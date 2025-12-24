@@ -64,6 +64,7 @@ content: |-
   - Bond Preference: {bond_guidance}
   {personality_notes}
   {direction}
+  {player_only_message}
 
   **Faction Abbreviations (CANONICAL):**
   - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)

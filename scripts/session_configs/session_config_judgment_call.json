@@ -58,7 +58,7 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Charm": 4,
           "Willpower": 4,
           "Size": 5,
           "Dexterity": 3
@@ -71,7 +71,7 @@
           "Awareness": 5,
           "Athletics": 4,
           "Intimidation": 5,
-          "Persuasion": 4
+          "Charm": 4
         },
         "equipped_weapons": {
           "primary": "pistol",
@@ -120,7 +120,7 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 3,
+          "Charm": 3,
           "Willpower": 5,
           "Size": 5,
           "Dexterity": 3
@@ -133,7 +133,7 @@
           "Athletics": 5,
           "Investigation": 4,
           "Intimidation": 4,
-          "Ritual Knowledge": 4
+          "Ritual Lore": 4
         },
         "equipped_weapons": {
           "primary": "rifle",

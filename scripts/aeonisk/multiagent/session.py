@@ -376,9 +376,14 @@ class SelfPlayingSession:
         try:
             with open(config_path, 'r') as f:
                 if config_path.endswith('.yaml') or config_path.endswith('.yml'):
-                    return yaml.safe_load(f)
+                    config = yaml.safe_load(f)
                 else:
-                    return json.load(f)
+                    config = json.load(f)
+
+            # Validate skill names are canonical
+            self._validate_config_skills(config, config_path)
+
+            return config
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Failed to access config file {config_path}: {e}")
             raise
@@ -388,6 +393,28 @@ class SelfPlayingSession:
         except Exception as e:
             logger.error(f"Unexpected error loading config from {config_path}: {e}")
             raise
+
+    def _validate_config_skills(self, config: Dict[str, Any], config_path: str):
+        """
+        Validate that all character skills use canonical names.
+
+        Non-canonical skill names (like 'Notice' instead of 'Awareness') cause
+        skill lookups to fail, resulting in all checks being treated as unskilled.
+
+        Raises:
+            ValueError: If non-canonical skill names are found
+        """
+        from .skill_mapping import validate_session_config_skills
+
+        is_valid, errors = validate_session_config_skills(config, raise_on_error=False)
+
+        if not is_valid:
+            error_msg = f"\n❌ Session config '{config_path}' has non-canonical skill names:\n"
+            for error in errors:
+                error_msg += f"  • {error}\n"
+            error_msg += "\nFix the skill names in the config file to use canonical names from skill_descriptions.py."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
                 
     async def start_session(self):
         """Start the complete self-playing session."""

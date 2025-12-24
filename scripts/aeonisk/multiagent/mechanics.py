@@ -40,6 +40,32 @@ def _resolution_success(resolution) -> bool:
     return True
 
 
+def is_knowledge_skill(skill_name: Optional[str]) -> bool:
+    """
+    Check if a skill is a Knowledge skill (cannot be used untrained per YAGS rules).
+
+    Knowledge skills require training (skill >= 1) to attempt.
+    Standard skills can be attempted untrained with d20 ÷ 2.
+
+    Knowledge skills: Magick Theory, Ritual Lore, Science, History, Area Lore,
+                      Void Theory, Debt Law
+    """
+    if not skill_name:
+        return False
+    try:
+        from .skill_descriptions import SKILL_DATABASE
+        from .skill_mapping import normalize_skill
+        normalized = normalize_skill(skill_name)
+        if normalized and normalized in SKILL_DATABASE:
+            return SKILL_DATABASE[normalized].category == "Knowledge"
+        # Also check unnormalized
+        if skill_name in SKILL_DATABASE:
+            return SKILL_DATABASE[skill_name].category == "Knowledge"
+    except ImportError:
+        logger.warning("skill_descriptions not available for Knowledge skill check")
+    return False
+
+
 # Import energy economy types for seed attunement
 try:
     from .energy_economy import SeedType, Element, Seed, Vendor, VendorItem, VendorType
@@ -296,9 +322,19 @@ class JSONLLogger:
         # Defensive attribute access for old vs new ActionResolution schema
         attribute_value = getattr(resolution, 'attribute_value', 0)
         skill_value = getattr(resolution, 'skill_value', 0)
+        skill = getattr(resolution, 'skill', None)
         difficulty = getattr(resolution, 'difficulty', 0)
 
-        ability = attribute_value * skill_value if skill_value > 0 else (attribute_value * 4 if attribute_value > 0 else 0)
+        # Calculate ability based on YAGS Aeonisk v1.3.0 rules:
+        # - Skilled: Attribute × Skill
+        # - Unskilled (skill_value=0): ability is 0, d20 gets halved
+        # - Raw attribute checks removed in v1.3.0
+        if skill_value > 0:
+            ability = attribute_value * skill_value
+        else:
+            # Unskilled - ability is 0, d20 gets halved
+            ability = 0
+
         dc = difficulty
 
         tiers = {
@@ -2051,6 +2087,10 @@ class MechanicsEngine:
         roll = random.randint(1, 20)
 
         # Calculate base total
+        # Track unskilled state for fumble handling
+        is_unskilled_attempt = False
+        unskilled_fumble = False
+
         if skill_value > 0:
             # Skilled: Attribute × Skill + d20
             ability = attribute_value * skill_value
@@ -2060,13 +2100,39 @@ class MechanicsEngine:
             assert base_total == ability + roll, \
                 f"Math error (skilled): {attribute_value}×{skill_value}+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
         else:
-            # Unskilled: YAGS standard is Attribute × 4 + d20
-            ability = attribute_value * 4
-            base_total = ability + roll
+            # Unskilled attempt (skill_value == 0)
+            # YAGS Aeonisk v1.3.0: Raw attribute checks removed - all actions require skills
+            # - Knowledge skills: Cannot be attempted untrained at all
+            # - Standard skills (including skill=None): d20 ÷ 2, fumble on natural 1-2
 
-            # Math verification: ensure calculation is correct
-            assert base_total == ability + roll, \
-                f"Math error (unskilled): {attribute_value}×4+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
+            if skill and is_knowledge_skill(skill):
+                # Knowledge skills cannot be attempted without training
+                # Return automatic critical failure
+                logger.warning(f"Attempted Knowledge skill '{skill}' without training - automatic failure")
+                return ActionResolution(
+                    intent=intent,
+                    attribute=attribute,
+                    skill=skill,
+                    attribute_value=attribute_value,
+                    skill_value=0,
+                    roll=roll,
+                    total=0,
+                    difficulty=difficulty,
+                    success=False,
+                    margin=-difficulty,
+                    outcome_tier="critical_failure",
+                    narrative=f"Cannot attempt {skill} without proper training.",
+                    modifiers_applied=modifiers_applied if modifiers_applied else None
+                )
+
+            # Unskilled Standard skill (or no skill specified): d20 ÷ 2
+            is_unskilled_attempt = True
+            ability = 0  # No ability bonus for untrained
+            base_total = roll // 2
+            unskilled_fumble = roll <= 2  # Fumble on natural 1 or 2
+
+            skill_name = skill if skill else "unskilled action"
+            logger.debug(f"Unskilled {skill_name}: d20({roll}) ÷ 2 = {base_total}")
 
         # Apply modifiers and collect non-condition modifiers for logging
         total = base_total
@@ -2091,8 +2157,15 @@ class MechanicsEngine:
 
         # Calculate margin and outcome
         margin = total - difficulty
-        success = margin >= 0
-        outcome_tier = self._determine_outcome_tier(margin)
+
+        # Handle unskilled fumble (natural 1-2 on d20 when attempting skill untrained)
+        if unskilled_fumble:
+            success = False
+            outcome_tier = OutcomeTier.CRITICAL_FAILURE
+            logger.debug(f"Unskilled fumble (rolled {roll}): automatic critical failure")
+        else:
+            success = margin >= 0
+            outcome_tier = self._determine_outcome_tier(margin)
 
         # Create resolution
         resolution = ActionResolution(
@@ -4709,15 +4782,20 @@ class MechanicsEngine:
         roll = getattr(resolution, 'roll', 0)
         intent = getattr(resolution, 'intent', 'Action')
 
-        # Format skill text - never show "×None"
+        # Format skill text based on YAGS Aeonisk v1.3.0 rules
+        # Raw attribute checks removed - all actions use skills
         if skill and skill_value > 0:
+            # Skilled: Attribute × Skill + d20
             skill_text = f"{attribute} × {skill}"
             ability = attribute_value * skill_value
             formula = f"{attribute_value} × {skill_value} + d20({roll})"
         else:
-            skill_text = f"{attribute} (unskilled)"
-            ability = attribute_value * 4 if attribute_value > 0 else 0
-            formula = f"{attribute_value} × 4 + d20({roll})" if attribute_value > 0 else "Unknown"
+            # Unskilled: d20 ÷ 2 (no ability bonus)
+            skill_name = skill if skill else "unskilled"
+            skill_text = f"{skill_name} (unskilled)"
+            ability = 0
+            halved_roll = roll // 2
+            formula = f"d20({roll}) ÷ 2 = {halved_roll}"
 
         # Transparent roll display (with defensive access for new Pydantic schema)
         total = getattr(resolution, 'total', 0)

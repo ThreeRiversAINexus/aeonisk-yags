@@ -10,6 +10,7 @@ content: |-
   **Your Reasoning:** {phase1_reasoning}
   {personality_notes}
   {direction}
+  {player_only_message}
 
   You've chosen a **combat action**. Now let's define the mechanical details.
 
@@ -206,7 +207,7 @@ content: |-
 
   ❌ **No target specified** - MUST include target! (e.g., `target="tgt_enemy_01"`)
   ❌ **Wrong skill for weapon** - Guns use Agility, not Strength
-  ❌ **Forgetting unskilled penalty** - If you don't have the skill, add -5 to your total!
+  ❌ **Attempting without skill** - Unskilled combat uses d20÷2 only (nearly impossible!)
   ❌ **Using magic without offering** - Void corruption risk! Specify `has_offering=True` if you have incense/crystals
   ❌ **Unrealistic difficulty** - Consider cover, range, target awareness
 
