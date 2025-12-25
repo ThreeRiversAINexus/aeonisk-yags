@@ -435,16 +435,19 @@ class JSONLLogger:
           }
         }
         """
-        # Calculate ability score (defensive checks for old vs new ActionResolution schema)
+        # Use cached ability from ActionResolution (calculated once in resolve_action)
+        # Fallback to recalculation for backward compatibility with old resolutions
         skill = getattr(resolution, 'skill', None)
         skill_value = getattr(resolution, 'skill_value', 0)
         attribute_value = getattr(resolution, 'attribute_value', 0)
+        ability = getattr(resolution, 'ability', None)
 
-        if skill and skill_value > 0:
-            ability = attribute_value * skill_value
-        else:
-            # Unskilled: d20 ÷ 2, ability doesn't contribute (YAGS v1.2.3)
-            ability = 0
+        if ability is None:
+            # Fallback for old ActionResolution objects without ability field
+            if skill and skill_value > 0:
+                ability = attribute_value * skill_value
+            else:
+                ability = 0
 
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
@@ -1667,7 +1670,7 @@ class ActionResolution:
     attribute_value: int
     skill_value: int
     roll: int  # d20 result
-    total: int  # attribute × skill + d20
+    total: int  # attribute × skill + d20 (skilled) or d20 ÷ 2 (unskilled)
     difficulty: int
     margin: int  # total - difficulty
     outcome_tier: OutcomeTier
@@ -1675,6 +1678,10 @@ class ActionResolution:
     narrative: str
     state_effects: Dict[str, Any] = field(default_factory=dict)
     modifiers_applied: List[RollModifier] = field(default_factory=list)  # Roll modifiers for ML logging
+    # Formula breakdown (calculated once in resolve_action, used by logging/display)
+    ability: int = 0  # attr × skill (0 if unskilled)
+    is_unskilled: bool = False  # True if skill_value == 0
+    roll_formula: Optional[str] = None  # Human-readable formula string
 
 
 @dataclass
@@ -2123,7 +2130,10 @@ class MechanicsEngine:
                     margin=-difficulty,
                     outcome_tier="critical_failure",
                     narrative=f"Cannot attempt {skill} without proper training.",
-                    modifiers_applied=modifiers_applied if modifiers_applied else None
+                    modifiers_applied=modifiers_applied if modifiers_applied else None,
+                    ability=0,
+                    is_unskilled=True,
+                    roll_formula=f"Knowledge skill '{skill}' requires training - automatic failure"
                 )
 
             # Unskilled Standard skill (or no skill specified): d20 ÷ 2
@@ -2168,6 +2178,16 @@ class MechanicsEngine:
             success = margin >= 0
             outcome_tier = self._determine_outcome_tier(margin)
 
+        # Build formula string once (single source of truth)
+        if skill_value > 0:
+            # Skilled: Attr × Skill + d20
+            roll_formula = f"{attribute} {attribute_value} × {skill} {skill_value} = {ability}; {ability} + d20({roll}) = {total} vs DC {difficulty}"
+        else:
+            # Unskilled: d20 ÷ 2
+            halved = roll // 2
+            skill_name = skill if skill else "unskilled"
+            roll_formula = f"d20({roll}) ÷ 2 = {halved} ({skill_name}, unskilled) vs DC {difficulty}"
+
         # Create resolution
         resolution = ActionResolution(
             intent=intent,
@@ -2182,7 +2202,10 @@ class MechanicsEngine:
             outcome_tier=outcome_tier,
             success=success,
             narrative=self._generate_narrative(intent, outcome_tier, margin),
-            modifiers_applied=modifiers_applied
+            modifiers_applied=modifiers_applied,
+            ability=ability,
+            is_unskilled=is_unskilled_attempt,
+            roll_formula=roll_formula
         )
 
         self.action_history.append(resolution)

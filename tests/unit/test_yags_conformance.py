@@ -637,3 +637,99 @@ def test_all_yags_attributes_supported(attribute, expected_attr_value):
     expected_ability = expected_attr_value * 2
     ability = resolution.total - resolution.roll
     assert ability == expected_ability, f"{attribute}: Expected ability {expected_ability}, got {ability}"
+
+
+class TestActionResolutionFormulaFields:
+    """Test that ActionResolution includes formula breakdown fields for centralized logic."""
+
+    def test_skilled_resolution_has_ability_field(self):
+        """Skilled resolution should have ability = attr × skill."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Hack terminal",
+                attribute="Intelligence",
+                skill="Systems",
+                attribute_value=4,
+                skill_value=5,
+                difficulty=20
+            )
+
+        # ability = 4 × 5 = 20
+        assert resolution.ability == 20, f"Expected ability 20, got {resolution.ability}"
+        assert resolution.is_unskilled == False
+        assert resolution.roll_formula is not None
+        assert "4 × Systems 5 = 20" in resolution.roll_formula
+
+    def test_unskilled_resolution_has_zero_ability(self):
+        """Unskilled resolution should have ability = 0."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Hack terminal",
+                attribute="Intelligence",
+                skill="Systems",
+                attribute_value=4,
+                skill_value=0,  # Unskilled
+                difficulty=20
+            )
+
+        assert resolution.ability == 0, f"Expected ability 0, got {resolution.ability}"
+        assert resolution.is_unskilled == True
+        assert resolution.roll_formula is not None
+        assert "d20(10) ÷ 2 = 5" in resolution.roll_formula
+
+    def test_no_skill_resolution_is_unskilled(self):
+        """skill=None resolution should be marked as unskilled."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=12):
+            resolution = mechanics.resolve_action(
+                intent="Lift heavy object",
+                attribute="Strength",
+                skill=None,
+                attribute_value=5,
+                skill_value=0,
+                difficulty=10
+            )
+
+        assert resolution.ability == 0
+        assert resolution.is_unskilled == True
+        assert "d20(12) ÷ 2 = 6" in resolution.roll_formula
+
+    def test_knowledge_skill_failure_has_formula(self):
+        """Knowledge skill without training should have explanatory formula."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Analyze void",
+                attribute="Intelligence",
+                skill="Void Lore",  # Knowledge skill
+                attribute_value=5,
+                skill_value=0,  # Unskilled
+                difficulty=20
+            )
+
+        assert resolution.ability == 0
+        assert resolution.is_unskilled == True
+        assert resolution.success == False
+        assert "requires training" in resolution.roll_formula
+
+    def test_roll_formula_includes_dc(self):
+        """Roll formula should include difficulty for logging."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=15):
+            resolution = mechanics.resolve_action(
+                intent="Fire weapon",
+                attribute="Agility",
+                skill="Guns",
+                attribute_value=3,
+                skill_value=4,
+                difficulty=18
+            )
+
+        assert "DC 18" in resolution.roll_formula or "vs DC 18" in resolution.roll_formula

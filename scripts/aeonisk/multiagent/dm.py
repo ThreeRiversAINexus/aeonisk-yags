@@ -2566,6 +2566,12 @@ Apply this narrative style to:
         Format: "Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC"
         Example: "Perception 4 × Guns 5 = 20; 20 + d20(15) = 35 vs DC 20"
         """
+        # Use cached formula if available (single source of truth from resolve_action)
+        cached_formula = getattr(resolution, 'roll_formula', None)
+        if cached_formula:
+            return cached_formula
+
+        # Fallback for backward compatibility with old ActionResolution objects
         attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
         attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
         skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'None'
