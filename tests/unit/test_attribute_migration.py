@@ -98,11 +98,9 @@ def test_schema_whitelist_excludes_charisma():
 
 def test_schema_whitelist_includes_dexterity():
     """Schema validation in player_action.py must whitelist Dexterity."""
-    schema_py = pathlib.Path("scripts/aeonisk/multiagent/schemas/player_action.py").read_text()
-
-    if 'valid_attributes' in schema_py:
-        assert '"Dexterity"' in schema_py, \
-            "Missing 'Dexterity' in player_action.py valid_attributes whitelist"
+    from scripts.aeonisk.multiagent.constants import YAGS_ATTRIBUTES
+    assert "Dexterity" in YAGS_ATTRIBUTES, \
+        "Missing 'Dexterity' in YAGS_ATTRIBUTES constant used by player_action.py"
 
 
 def test_skill_mapping_excludes_charisma():

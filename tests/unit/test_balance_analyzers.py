@@ -128,28 +128,29 @@ class TestWeaponsAnalyzer:
         analyzer = WeaponsAnalyzer()
 
         # Process fake combat events (need 3+ per weapon for min sample size)
+        # Note: "hit" is nested under "attack" per real JSONL schema
         analyzer.process_event({
             "event_type": "combat_action",
             "weapon": "Pistol",
-            "hit": True,
+            "attack": {"hit": True},
             "damage": {"dealt": 10},
         })
         analyzer.process_event({
             "event_type": "combat_action",
             "weapon": "Pistol",
-            "hit": False,
+            "attack": {"hit": False},
             "damage": {"dealt": 0},
         })
         analyzer.process_event({
             "event_type": "combat_action",
             "weapon": "Pistol",
-            "hit": True,
+            "attack": {"hit": True},
             "damage": {"dealt": 8},
         })
         analyzer.process_event({
             "event_type": "combat_action",
             "weapon": "Rifle",
-            "hit": True,
+            "attack": {"hit": True},
             "damage": {"dealt": 15},
         })
 
@@ -322,8 +323,9 @@ class TestAnalyzerPipeline:
         pipeline = AnalyzerPipeline([skills_analyzer, enemies_analyzer])
 
         # This should go to skills analyzer only
+        # Note: SkillsAnalyzer skips events where roll.attr is None
         pipeline.process_session(iter([
-            {"event_type": "action_resolution", "roll": {"skill": "Guns", "success": True}},
+            {"event_type": "action_resolution", "roll": {"attr": "Dexterity", "skill": "Guns", "success": True}},
         ]))
 
         results = pipeline.get_results()
@@ -341,7 +343,7 @@ class TestAnalyzerPipeline:
         ])
 
         pipeline.process_session(iter([
-            {"event_type": "action_resolution", "roll": {"skill": "Guns"}},
+            {"event_type": "action_resolution", "roll": {"attr": "Dexterity", "skill": "Guns"}},
             {"event_type": "enemy_spawn", "template": "Grunt"},
         ]))
 
