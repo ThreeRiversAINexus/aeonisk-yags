@@ -92,10 +92,10 @@ class TestUnskilledPenalty:
                 difficulty=15
             )
 
-            # Ability = 4 - 5 (unskilled penalty) = -1
-            # Total = -1 + 12 = 11
-            assert resolution.total == 11
-            assert resolution.margin == -4
+            # v1.2.3: Unskilled uses d20 ÷ 2 (no attribute bonus)
+            # Total = 12 ÷ 2 = 6
+            assert resolution.total == 6
+            assert resolution.margin == 6 - 15  # -9 margin
 
     def test_skilled_no_penalty(self, mechanics):
         """Test skilled character doesn't get penalty."""
@@ -137,24 +137,23 @@ class TestUnskilledPenalty:
                 difficulty=18
             )
 
-        # Unskilled: 3 - 5 = -2, +10 = 8
+        # v1.2.3: Unskilled: d20(10) ÷ 2 = 5
         # Skilled: 3 × 2 = 6, +10 = 16
         assert unskilled.total < skilled.total
-        assert skilled.total - unskilled.total == 8
+        assert skilled.total - unskilled.total == 11  # 16 - 5 = 11
 
 
 class TestAttributeChecks:
-    """Test pure attribute checks (no skill)."""
+    """Test pure attribute checks (no skill) - now uses unskilled formula (v1.2.3)."""
 
     @pytest.fixture
     def mechanics(self):
         return MechanicsEngine(jsonl_logger=None)
 
     def test_attribute_check_formula(self, mechanics):
-        """Test attribute check: Attribute × 4 + d20."""
-        # According to YAGS, pure attribute checks use Attribute × 4
-        # Our implementation uses the unskilled formula (Attribute - 5)
-        # This test documents the difference
+        """Test attribute check: now uses d20 ÷ 2 (v1.2.3 - raw attribute removed)."""
+        # v1.2.3: Raw attribute checks removed - all actions require skills
+        # When skill=None, uses unskilled formula: d20 ÷ 2
 
         with patch('random.randint', return_value=10):
             resolution = mechanics.resolve_action(
@@ -166,10 +165,8 @@ class TestAttributeChecks:
                 difficulty=15
             )
 
-            # Current implementation: 4 - 5 = -1, +10 = 9
-            # YAGS pure attribute: 4 × 4 = 16, +10 = 26
-            # This test documents current behavior
-            assert resolution.total == 9
+            # v1.2.3: d20(10) ÷ 2 = 5 (attribute doesn't help)
+            assert resolution.total == 5
 
 
 class TestSkillLevels:

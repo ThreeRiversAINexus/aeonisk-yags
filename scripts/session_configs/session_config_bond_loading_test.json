@@ -56,7 +56,7 @@
         },
         "skills": {
           "Investigation": 4,
-          "Void Sense": 3,
+          "Attunement": 3,
           "Intimacy Ritual": 2
         },
         "llm": {
@@ -82,8 +82,8 @@
           "empathy": 5
         },
         "skills": {
-          "Negotiation": 4,
-          "Empathy": 3,
+          "Charm": 4,
+          "Charm": 3,
           "Intimacy Ritual": 2
         },
         "llm": {
@@ -109,8 +109,8 @@
           "empathy": 2
         },
         "skills": {
-          "Small Arms": 4,
-          "Melee Combat": 3,
+          "Guns": 4,
+          "Melee": 3,
           "Intimidation": 2
         },
         "llm": {

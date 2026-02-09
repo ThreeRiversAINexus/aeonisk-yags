@@ -10,6 +10,7 @@ content: |-
   **Your Reasoning:** {phase1_reasoning}
   {personality_notes}
   {direction}
+  {player_only_message}
 
   You've chosen to **investigate**. This is for **SEARCHING** and **FINDING ITEMS**.
 

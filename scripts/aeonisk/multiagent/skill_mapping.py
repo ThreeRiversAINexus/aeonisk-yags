@@ -218,3 +218,170 @@ def validate_action_mechanics(
         corrected_skill = None
 
     return (corrected_attr, corrected_skill, True, "")
+
+
+# =============================================================================
+# SESSION CONFIG SKILL VALIDATION
+# =============================================================================
+
+# Non-canonical skill names that are commonly misused, with their canonical equivalents
+NON_CANONICAL_SKILL_MAP = {
+    # Common mistakes - Social
+    "Notice": "Awareness",
+    "Deception": "Guile",
+    "Persuasion": "Charm",
+    "Empathy": "Charm",  # Empathy is an attribute, Charm is the skill
+    "Social": "Charm",
+    "Negotiation": "Charm",
+    "Negotiate": "Charm",
+
+    # Observation/Investigation variants
+    "Observation": "Awareness",
+    "Perception": "Awareness",  # As a skill (not attribute)
+    "Search": "Awareness",
+    "Investigate": "Awareness",  # Use Investigation for the skill, Awareness for passive
+
+    # Technical variants
+    "Engineering": "Tech/Craft",
+    "Computers": "Systems",
+
+    # Combat variants
+    "Small Arms": "Guns",
+    "Melee Combat": "Melee",
+
+    # Knowledge variants
+    "Magic Theory": "Magick Theory",
+    "Meditation": "Discipline",
+    "Ritual Knowledge": "Ritual Lore",
+    "Occult": "Magick Theory",
+    "Void Sense": "Attunement",  # Sensing void energies
+
+    # Aeonisk ritual variants
+    "Astral Rituals": "Astral Arts",
+
+    # Survival (not in YAGS - map to closest)
+    "Survival": "Resistance",
+
+    # For documentation - these ARE canonical
+    # "Investigation": "Investigation",
+}
+
+
+def get_canonical_skills() -> set:
+    """
+    Get the set of all canonical skill names from the skill database.
+
+    Returns:
+        Set of canonical skill names
+    """
+    from .skill_descriptions import SKILL_DATABASE
+    return set(SKILL_DATABASE.keys())
+
+
+def is_canonical_skill(skill_name: str) -> bool:
+    """
+    Check if a skill name is in the canonical skill database.
+
+    Args:
+        skill_name: Skill name to check
+
+    Returns:
+        True if canonical, False otherwise
+    """
+    canonical_skills = get_canonical_skills()
+    return skill_name in canonical_skills
+
+
+def get_canonical_suggestion(skill_name: str) -> Optional[str]:
+    """
+    Get the canonical skill name suggestion for a non-canonical skill.
+
+    Args:
+        skill_name: Non-canonical skill name
+
+    Returns:
+        Suggested canonical skill name, or None if no suggestion
+    """
+    # Check known non-canonical mappings first
+    if skill_name in NON_CANONICAL_SKILL_MAP:
+        return NON_CANONICAL_SKILL_MAP[skill_name]
+
+    # Try the normalize function
+    normalized = normalize_skill(skill_name)
+    if normalized and is_canonical_skill(normalized):
+        return normalized
+
+    return None
+
+
+def validate_character_skills(
+    character_name: str,
+    skills: Dict[str, int],
+    raise_on_error: bool = True
+) -> Tuple[bool, list]:
+    """
+    Validate that all skills in a character's skill dict use canonical names.
+
+    Args:
+        character_name: Name of the character (for error messages)
+        skills: Character's skill dict {skill_name: level}
+        raise_on_error: If True, raise ValueError on non-canonical skills
+
+    Returns:
+        Tuple of (is_valid, list of error messages)
+
+    Raises:
+        ValueError: If raise_on_error=True and non-canonical skills found
+    """
+    canonical_skills = get_canonical_skills()
+    errors = []
+
+    for skill_name in skills.keys():
+        if skill_name not in canonical_skills:
+            suggestion = get_canonical_suggestion(skill_name)
+            if suggestion:
+                msg = f"Character '{character_name}' uses non-canonical skill '{skill_name}'. Use '{suggestion}' instead."
+            else:
+                msg = f"Character '{character_name}' uses unknown skill '{skill_name}'. Valid skills: {sorted(canonical_skills)[:10]}..."
+            errors.append(msg)
+
+    is_valid = len(errors) == 0
+
+    if not is_valid and raise_on_error:
+        raise ValueError("\n".join(errors))
+
+    return is_valid, errors
+
+
+def validate_session_config_skills(config: dict, raise_on_error: bool = True) -> Tuple[bool, list]:
+    """
+    Validate all character skills in a session config use canonical names.
+
+    Args:
+        config: Session config dict
+        raise_on_error: If True, raise ValueError on non-canonical skills
+
+    Returns:
+        Tuple of (is_valid, list of all error messages)
+
+    Raises:
+        ValueError: If raise_on_error=True and non-canonical skills found
+    """
+    all_errors = []
+
+    # Check player characters
+    agents = config.get('agents', {})
+    players = agents.get('players', [])
+
+    for player in players:
+        name = player.get('name', 'Unknown')
+        skills = player.get('skills', {})
+        is_valid, errors = validate_character_skills(name, skills, raise_on_error=False)
+        all_errors.extend(errors)
+
+    is_valid = len(all_errors) == 0
+
+    if not is_valid and raise_on_error:
+        raise ValueError(f"Session config has non-canonical skill names:\n" + "\n".join(all_errors))
+
+    return is_valid, all_errors

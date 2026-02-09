@@ -713,6 +713,28 @@ class AIDMAgent(Agent):
         logger.debug(f"DM: Selected {len(modules)} modules: {', '.join(modules)}")
         return modules
 
+    def _get_party_personalities(self) -> str:
+        """Get personality summaries for all party members (DM needs full party awareness).
+
+        Returns formatted string with all party member personality descriptions,
+        enabling the DM to write personality-appropriate narration and have NPCs
+        react appropriately to different party members.
+
+        Returns:
+            Formatted string with party personalities, or empty string if none available.
+        """
+        if not self.shared_state or not self.shared_state.registered_players:
+            return ""
+
+        lines = []
+        for player in self.shared_state.registered_players:
+            if player.get('personality_description'):
+                lines.append(f"- **{player['name']}**: {player['personality_description']}")
+
+        if not lines:
+            return ""
+        return "\n**Party Personalities:**\n" + "\n".join(lines)
+
     async def _handle_session_start(self, message: Message):
         """Handle session start - generate initial scenario."""
         config = message.payload.get('config', {})
@@ -2544,6 +2566,12 @@ Apply this narrative style to:
         Format: "Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC"
         Example: "Perception 4 × Guns 5 = 20; 20 + d20(15) = 35 vs DC 20"
         """
+        # Use cached formula if available (single source of truth from resolve_action)
+        cached_formula = getattr(resolution, 'roll_formula', None)
+        if cached_formula:
+            return cached_formula
+
+        # Fallback for backward compatibility with old ActionResolution objects
         attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
         attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
         skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'None'
@@ -2556,9 +2584,9 @@ Apply this narrative style to:
             ability = attr_val * skill_val
             formula = f"{attr_name} {attr_val} × {skill_name} {skill_val} = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
         else:
-            # Unskilled penalty
-            ability = attr_val - 5
-            formula = f"{attr_name} {attr_val} - 5 (unskilled) = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+            # Unskilled: d20 ÷ 2 only (YAGS v1.2.3)
+            halved_roll = d20_roll // 2
+            formula = f"d20({d20_roll}) ÷ 2 = {halved_roll} (unskilled) vs DC {dc}"
 
         return formula
 
@@ -6998,9 +7026,11 @@ Void Level: {self.current_scenario.void_level}/10
         if action:
             character_name = action.get('character', 'Unknown')
             faction = action.get('faction', 'Unaffiliated')
+            party_personalities = self._get_party_personalities()
             character_context = f"""
 Character: {character_name} ({faction})
 Note: NPCs and other characters are aware of this affiliation.
+{party_personalities}
 """
 
         resolution_context = ""
@@ -7178,14 +7208,16 @@ Void Level: {self.current_scenario.void_level}/10
         # This prevents duplicate spawning across multiple PC action resolutions
         enemy_spawn_instructions = ""
 
-        # Add character context including faction
+        # Add character context including faction and party personalities
         character_context = ""
         if action:
             character_name = action.get('character', 'Unknown')
             faction = action.get('faction', 'Unaffiliated')
+            party_personalities = self._get_party_personalities()
             character_context = f"""
 Character: {character_name} ({faction})
 Note: NPCs and other characters are aware of this affiliation. Consider how faction ties might create complications, opportunities, or conflicts.
+{party_personalities}
 """
 
         resolution_context = ""

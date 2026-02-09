@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.2.2
+Version 1.2.3
 
 ## 1. Introduction
 
@@ -76,10 +76,10 @@ YAGS uses a relatively simple set of core rules.
 
 - **Attribute:** One of the eight basic numbers defining a creature. Typical human average is 3.
 - **Skill:** Defines training and experience in a narrow field. Combined with Attributes for task resolution. Professional level is 4+.
-- **Ability:** Attribute × Skill (for Skill Checks) or Attribute × 4 (for pure Attribute Checks).
+- **Ability:** Attribute × Skill (for Skill Checks). All actions require an appropriate skill.
 - **Die:** A single twenty-sided die (d20).
 - **Difficulty:** The target number for a task. Ability + d20 must meet or exceed the Difficulty. Moderate tasks are Difficulty 20.
-- **Task:** An activity requiring an Ability check (Attribute × Skill + d20 or Attribute × 4 + d20).
+- **Task:** An activity requiring an Ability check (Attribute × Skill + d20).
 - **Score:** The raw numerical value of a characteristic.
 
 ### 2.2. Task Resolution
@@ -89,7 +89,7 @@ The core mechanic for almost all actions:
 Ability + d20 vs Difficulty
 
 - **Skill Check:** Attribute × Skill + d20 vs Difficulty
-- **Attribute Check:** Attribute × 4 + d20 vs Difficulty
+- **Unskilled Attempt:** d20 ÷ 2 vs Difficulty (fumble on natural 1-2). Knowledge skills cannot be attempted unskilled.
 
 **Difficulties (YAGS Standard):**
 

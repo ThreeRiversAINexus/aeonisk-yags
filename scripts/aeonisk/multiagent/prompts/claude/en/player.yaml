@@ -89,18 +89,18 @@ sections:
 
     ## Understanding Your Roll Formula
 
-    **Base Formula:** `Attribute + Skill + d20` vs DC
-    - **With Skill:** Attribute + Skill + d20 (e.g., Intelligence 3 + Systems 5 + d20 = 8 + d20)
-    - **Without Skill (Unskilled):** Attribute + d20 - 5 (e.g., Intelligence 3 + d20 - 5 = d20 - 2)
+    **Base Formula:** `Attribute × Skill + d20` vs DC
+    - **With Skill:** Attribute × Skill + d20 (e.g., Intelligence 3 × Systems 5 = 15 + d20)
+    - **Without Skill (Unskilled):** d20 ÷ 2 only! (Attribute doesn't help at all!)
 
-    ## ⚠️ THE UNSKILLED PENALTY IS BRUTAL
+    ## ⚠️ UNSKILLED ATTEMPTS ARE NEARLY IMPOSSIBLE
 
-    If you don't have the skill, you get **-5 penalty**. This makes success nearly impossible for low attributes!
+    Without training, you only roll **d20 ÷ 2** - your attributes don't help at all!
 
     **Examples of Impossible Actions:**
-    - Intelligence 3 + NO Investigation skill = d20 - 2 vs DC 20 → **NEED d20 = 22 (IMPOSSIBLE!)**
-    - Intelligence 3 + NO Systems skill = d20 - 2 vs DC 18 → **98% failure rate**
-    - Strength 2 + NO Combat skill = d20 - 3 vs DC 20 → **NEED d20 = 23 (IMPOSSIBLE!)**
+    - NO Investigation skill = d20 ÷ 2 vs DC 20 → **MAX possible = 10 (IMPOSSIBLE!)**
+    - NO Systems skill = d20 ÷ 2 vs DC 18 → **Need nat 20 for 10... still fails!**
+    - NO Combat skill = d20 ÷ 2 vs DC 15 → **Need nat 20 for 10... still fails!**
 
     ## 🎲 Estimate Your Success Chance BEFORE Acting
 
@@ -139,17 +139,18 @@ sections:
 
     **Before declaring any action, calculate:**
     1. Find your Attribute value
-    2. Find your Skill value (or -5 if unskilled)
-    3. Add them: Attribute + Skill (or Attribute - 5)
-    4. Estimate DC: 15-20 for moderate, 25+ for challenging
-    5. Calculate needed d20 roll: DC - (Attribute + Skill)
-    6. If you need 16+, it's RISKY. If you need 20+, it's IMPOSSIBLE.
+    2. Find your Skill value (if unskilled, you only roll d20÷2!)
+    3. **Skilled:** Attribute × Skill + d20
+    4. **Unskilled:** d20 ÷ 2 only (attributes don't help!)
+    5. Estimate DC: 15-20 for moderate, 25+ for challenging
+    6. If you need d20 > 20 (skilled) or result > 10 (unskilled), it's IMPOSSIBLE.
 
-    **Example for Intelligence 3, no Investigation:**
-    - Your roll: 3 + 0 - 5 + d20 = d20 - 2
-    - DC 20: Need d20 = 22 → **IMPOSSIBLE**
-    - DC 15: Need d20 = 17 → **20% success**
-    - **VERDICT: Find a different approach!**
+    **Example for Intelligence 3, no Investigation (unskilled):**
+    - Your roll: d20 ÷ 2 (max possible = 10!)
+    - DC 20: Need 20... max is 10 → **IMPOSSIBLE**
+    - DC 15: Need 15... max is 10 → **IMPOSSIBLE**
+    - DC 10: Need 10... need nat 20 → **5% success**
+    - **VERDICT: Find a different approach or use a skill you have!**
   action_declaration_unified: |-
     # ⚙️ HOW TO DECLARE ACTIONS (STRUCTURED OUTPUT)
 
@@ -184,7 +185,7 @@ sections:
     **3. ATTRIBUTE + SKILL - Must match your character sheet EXACTLY**
     - ✅ CORRECT: `attribute="Intelligence", skill="Systems"`
     - ❌ WRONG: `attribute="int", skill="hacking"` (not on your sheet!)
-    - ✅ CORRECT: `skill=None` for unskilled checks (don't forget -5 penalty!)
+    - ✅ CORRECT: `skill=None` for unskilled checks (uses d20÷2 only - very hard!)
 
     **VALID ATTRIBUTES (use EXACTLY as shown):**
     - Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower
@@ -203,7 +204,7 @@ sections:
     **Survival:** Resistance
     **Physical:** Discipline, Lifting, Stamina
 
-    OR use `skill=None` for raw attribute checks (-5 unskilled penalty)
+    NOTE: All actions require a skill. Unskilled attempts use d20÷2 (very difficult!)
 
     **Total: 43 skills across 8 attributes**
 
@@ -212,7 +213,7 @@ sections:
     **Social Actions:**
     - **Intimidation/Threats/Coercion:** Use `Empathy × Intimidation` (if you have Intimidation skill)
       - Example: "I threaten the guard", "I make it clear what happens if they don't comply"
-      - If no Intimidation skill: `Empathy × Charm` with -5 penalty (unskilled)
+      - If no Intimidation skill: d20 ÷ 2 only (unskilled - very hard!)
     - **Persuasion/Charm/Seduction:** Use `Empathy × Charm`
       - Example: "I convince them gently", "I appeal to their better nature"
     - **Deception/Lying:** Use `Empathy × Guile`
@@ -495,7 +496,7 @@ sections:
     - **TARGET_ENERGY is REQUIRED** - must be one of: breath, grain, drip, spark
     - Raw Seed is ALWAYS consumed (even on failure)
     - Ritual roll: Willpower × Attunement + d20 + altar_bonus vs DC 20
-    - Unskilled penalty: -5 if Attunement skill = 0
+    - Unskilled: d20÷2 only if Attunement skill = 0 (very difficult!)
 
     **Conversion Rates:**
     - 1 Raw Seed → 100 Breath (least valuable)

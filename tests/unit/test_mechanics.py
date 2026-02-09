@@ -161,11 +161,11 @@ class TestActionResolution:
                 skill_value=0,
                 difficulty=15
             )
-            # YAGS unskilled: ability = attribute × 4 = 4 × 4 = 16
-            # total = 16 + 10 = 26
-            assert resolution.total == 26
-            assert resolution.margin == 26 - 15  # +11 margin
-            assert resolution.success == True  # Should succeed
+            # v1.2.3: Unskilled uses d20 ÷ 2 (no attribute bonus)
+            # total = 10 ÷ 2 = 5
+            assert resolution.total == 5
+            assert resolution.margin == 5 - 15  # -10 margin
+            assert resolution.success == False  # Should fail
 
     def test_resolve_action_with_modifiers(self, mechanics_engine):
         """Test action resolution tracks modifiers for ML logging."""

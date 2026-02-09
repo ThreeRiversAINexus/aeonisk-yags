@@ -58,7 +58,7 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 4,
+          "Charm": 4,
           "Willpower": 4,
           "Size": 5,
           "Dexterity": 3
@@ -71,7 +71,7 @@
           "Athletics": 4,
           "Awareness": 5,
           "Intimidation": 5,
-          "Persuasion": 3
+          "Charm": 3
         },
         "equipped_weapons": {
           "primary": "rifle",
@@ -116,7 +116,7 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Charm": 3,
           "Willpower": 3,
           "Size": 5,
           "Dexterity": 3

@@ -1,86 +1,247 @@
 """
 Comprehensive tests for YAGS mechanics conformance.
 
-Tests the core YAGS rules implementation:
-- Unskilled penalty (attribute × 4)
+Tests the core YAGS rules implementation (v1.2.3):
+- Unskilled checks (d20 ÷ 2) - when skill=None or skill_value=0
+- Unskilled Knowledge skill checks (blocked) - cannot attempt without training
 - Skilled checks (attribute × skill + d20)
 - Attribute ranges and validation
 - Skill-attribute mappings
 - Combat mechanics
 - Damage types (stun, wound, mixed)
+
+Note: Raw attribute checks (attribute × 4) were removed in v1.2.3.
+All actions now require skills; pure attribute checks use unskilled formula.
 """
 
 import pytest
 import random
 from unittest.mock import Mock, patch
 
-from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
+from scripts.aeonisk.multiagent.mechanics import MechanicsEngine, is_knowledge_skill
 from scripts.aeonisk.multiagent.skill_descriptions import SKILL_DATABASE
 
 
-class TestYAGSUnskilledPenalty:
-    """Test YAGS unskilled penalty: attribute × 4 (not -5)."""
+class TestYAGSNoSkillChecks:
+    """Test that skill=None uses unskilled formula (d20 ÷ 2) - raw attribute removed in v1.2.3."""
 
-    def test_unskilled_check_uses_attribute_times_four(self):
-        """Unskilled check should use attribute × 4, not -5 penalty."""
+    def test_no_skill_uses_unskilled_formula(self):
+        """When skill=None, should use d20 ÷ 2 (not attribute × 4)."""
         mechanics = MechanicsEngine()
 
         # Mock d20 roll to 10 for predictable results
         with patch('random.randint', return_value=10):
             resolution = mechanics.resolve_action(
-                intent="Hack a terminal",
-                attribute="Intelligence",
-                skill=None,  # Unskilled
-                attribute_value=3,
+                intent="Lift heavy object",  # Pure strength, no skill
+                attribute="Strength",
+                skill=None,  # No skill - uses unskilled formula
+                attribute_value=3,  # High attribute shouldn't help!
                 skill_value=0,
                 difficulty=20
             )
 
-        # YAGS unskilled: ability = 3 × 4 = 12
-        # total = 12 + 10 = 22
-        ability = resolution.total - resolution.roll
-        assert ability == 12, f"Expected ability 12 (3×4), got {ability}"
-        assert resolution.total == 22, f"Expected total 22 (12+10), got {resolution.total}"
-        assert resolution.success == True, "Should succeed against DC 20"
-        assert resolution.margin == 2, f"Expected margin +2, got {resolution.margin}"
+        # v1.2.3: d20(10) ÷ 2 = 5 (attribute doesn't matter)
+        assert resolution.total == 5, f"Expected total 5 (10÷2), got {resolution.total}"
+        assert resolution.success == False, "Should fail against DC 20 with only 5"
+        assert resolution.margin == -15, f"Expected margin -15, got {resolution.margin}"
 
-    def test_unskilled_with_low_attribute(self):
-        """Unskilled check with attribute 1 should still be positive."""
+    def test_no_skill_with_low_roll(self):
+        """Skill=None with low roll should be poor."""
         mechanics = MechanicsEngine()
 
-        with patch('random.randint', return_value=15):
+        with patch('random.randint', return_value=4):
             resolution = mechanics.resolve_action(
-                intent="Lift heavy object",
-                attribute="Strength",
+                intent="Push through pain",  # No skill
+                attribute="Endurance",
                 skill=None,
-                attribute_value=1,
+                attribute_value=5,  # Even high attribute doesn't help
                 skill_value=0,
-                difficulty=20
+                difficulty=10
             )
 
-        # YAGS unskilled: 1 × 4 = 4 (not -5!)
-        ability = resolution.total - resolution.roll
-        assert ability == 4, f"Expected ability 4 (1×4), got {ability}"
-        assert resolution.total == 19, f"Expected total 19 (4+15), got {resolution.total}"
+        # d20(4) ÷ 2 = 2
+        assert resolution.total == 2, f"Expected total 2 (4÷2), got {resolution.total}"
+        assert resolution.success == False
 
-    def test_unskilled_with_high_attribute(self):
-        """Unskilled check with high attribute should be viable."""
+    def test_no_skill_with_high_roll(self):
+        """Skill=None with high roll can succeed at easy tasks."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=18):
+            resolution = mechanics.resolve_action(
+                intent="Resist mental assault",  # No skill
+                attribute="Willpower",
+                skill=None,
+                attribute_value=5,
+                skill_value=0,
+                difficulty=8  # Very easy
+            )
+
+        # d20(18) ÷ 2 = 9
+        assert resolution.total == 9, f"Expected total 9 (18÷2), got {resolution.total}"
+        assert resolution.success == True, "Should succeed at DC 8"
+
+
+class TestYAGSUnskilledStandardSkills:
+    """Test YAGS unskilled Standard skill checks: d20 ÷ 2 (halved)."""
+
+    def test_unskilled_standard_skill_uses_halved_d20(self):
+        """Unskilled Standard skill check should use d20 ÷ 2, no attribute bonus."""
         mechanics = MechanicsEngine()
 
         with patch('random.randint', return_value=10):
             resolution = mechanics.resolve_action(
-                intent="Analyze complex system",
+                intent="Hack a terminal",
                 attribute="Intelligence",
-                skill=None,
-                attribute_value=5,
-                skill_value=0,
-                difficulty=25
+                skill="Systems",  # Standard skill, not trained
+                attribute_value=5,  # High attribute shouldn't help!
+                skill_value=0,  # Unskilled
+                difficulty=10
             )
 
-        # YAGS unskilled: 5 × 4 = 20
-        ability = resolution.total - resolution.roll
-        assert ability == 20, f"Expected ability 20 (5×4), got {ability}"
-        assert resolution.total == 30, f"Expected total 30 (20+10), got {resolution.total}"
+        # Unskilled Standard: d20(10) ÷ 2 = 5 (no attribute bonus!)
+        assert resolution.total == 5, f"Expected total 5 (10÷2), got {resolution.total}"
+        assert resolution.success == False, "Should fail DC 10 with only 5"
+        assert resolution.margin == -5, f"Expected margin -5, got {resolution.margin}"
+
+    def test_unskilled_standard_skill_high_roll(self):
+        """Unskilled with high roll can still succeed at easy tasks."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=18):
+            resolution = mechanics.resolve_action(
+                intent="Fire weapon",
+                attribute="Perception",
+                skill="Guns",  # Standard skill, not trained
+                attribute_value=4,
+                skill_value=0,
+                difficulty=8  # Very easy
+            )
+
+        # Unskilled: d20(18) ÷ 2 = 9
+        assert resolution.total == 9, f"Expected total 9 (18÷2), got {resolution.total}"
+        assert resolution.success == True, "Should succeed at DC 8"
+
+    def test_unskilled_fumble_on_natural_1(self):
+        """Unskilled Standard skill fumbles on natural 1."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=1):
+            resolution = mechanics.resolve_action(
+                intent="Pick lock",
+                attribute="Dexterity",
+                skill="Sleight",  # Talent, but testing with 0
+                attribute_value=4,
+                skill_value=0,
+                difficulty=5  # Very easy
+            )
+
+        # Natural 1 = fumble for unskilled
+        assert resolution.roll == 1
+        assert resolution.success == False, "Natural 1 should be fumble"
+        assert resolution.outcome_tier.value == "critical_failure", "Should be critical failure"
+
+    def test_unskilled_fumble_on_natural_2(self):
+        """Unskilled Standard skill also fumbles on natural 2."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=2):
+            resolution = mechanics.resolve_action(
+                intent="Throw grenade",
+                attribute="Dexterity",
+                skill="Throw",
+                attribute_value=3,
+                skill_value=0,
+                difficulty=5
+            )
+
+        # Natural 2 = fumble for unskilled
+        assert resolution.roll == 2
+        assert resolution.success == False, "Natural 2 should be fumble"
+        assert resolution.outcome_tier.value == "critical_failure"
+
+    def test_unskilled_no_fumble_on_3(self):
+        """Unskilled Standard skill does NOT fumble on natural 3."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=3):
+            resolution = mechanics.resolve_action(
+                intent="Notice something",
+                attribute="Perception",
+                skill="Awareness",
+                attribute_value=4,
+                skill_value=0,
+                difficulty=1  # Very easy - 3÷2=1 should barely pass
+            )
+
+        # Natural 3 = 1 (3÷2), no fumble
+        assert resolution.roll == 3
+        assert resolution.total == 1, "3÷2 = 1"
+        assert resolution.outcome_tier.value != "critical_failure", "Natural 3 should not fumble"
+
+
+class TestYAGSUnskilledKnowledgeSkills:
+    """Test YAGS Knowledge skill restrictions: cannot attempt untrained."""
+
+    def test_knowledge_skill_helper(self):
+        """Test is_knowledge_skill() helper function."""
+        # Knowledge skills (per skill_descriptions.py)
+        assert is_knowledge_skill("Magick Theory") == True
+        assert is_knowledge_skill("Ritual Lore") == True
+        assert is_knowledge_skill("Science") == True
+        assert is_knowledge_skill("History") == True
+        assert is_knowledge_skill("Area Lore") == True
+        assert is_knowledge_skill("Void Lore") == True  # Note: "Void Lore" not "Void Theory"
+        assert is_knowledge_skill("Debt Law") == True
+
+        # Standard skills
+        assert is_knowledge_skill("Systems") == False
+        assert is_knowledge_skill("Guns") == False
+        assert is_knowledge_skill("Brawl") == False
+        assert is_knowledge_skill("Charm") == False
+
+        # Edge cases
+        assert is_knowledge_skill(None) == False
+        assert is_knowledge_skill("") == False
+        assert is_knowledge_skill("NonexistentSkill") == False
+
+    def test_unskilled_knowledge_skill_blocked(self):
+        """Knowledge skills cannot be attempted without training."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=20):  # Even nat 20 shouldn't help
+            resolution = mechanics.resolve_action(
+                intent="Recall arcane theory",
+                attribute="Intelligence",
+                skill="Magick Theory",  # Knowledge skill
+                attribute_value=5,
+                skill_value=0,  # Unskilled
+                difficulty=10  # Easy DC
+            )
+
+        # Should be automatic critical failure
+        assert resolution.success == False
+        assert resolution.outcome_tier == "critical_failure" or getattr(resolution.outcome_tier, 'value', resolution.outcome_tier) == "critical_failure"
+        # Check narrative field for "training" message
+        narrative_text = getattr(resolution, 'narrative', '') or ''
+        assert "training" in narrative_text.lower(), f"Expected 'training' in narrative: {narrative_text}"
+
+    def test_trained_knowledge_skill_works(self):
+        """Trained Knowledge skill should work normally."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Recall ritual lore",
+                attribute="Intelligence",
+                skill="Ritual Lore",  # Knowledge skill
+                attribute_value=4,
+                skill_value=3,  # Trained!
+                difficulty=20
+            )
+
+        # Skilled: 4 × 3 = 12 + 10 = 22
+        assert resolution.total == 22
         assert resolution.success == True
 
 
@@ -128,10 +289,11 @@ class TestYAGSSkilledChecks:
         assert resolution.success == True
 
     def test_skilled_vs_unskilled_comparison(self):
-        """Skilled check should vastly outperform unskilled."""
+        """Skilled check should vastly outperform unskilled Standard skill."""
         mechanics = MechanicsEngine()
 
         with patch('random.randint', return_value=10):
+            # Skilled: 3 × 4 = 12 + 10 = 22
             skilled_resolution = mechanics.resolve_action(
                 intent="Hack",
                 attribute="Intelligence",
@@ -141,38 +303,63 @@ class TestYAGSSkilledChecks:
                 difficulty=20
             )
 
+            # Unskilled Standard skill: d20(10) ÷ 2 = 5 (much worse!)
             unskilled_resolution = mechanics.resolve_action(
                 intent="Hack",
                 attribute="Intelligence",
-                skill=None,
+                skill="Systems",  # Same skill, but untrained
                 attribute_value=3,
                 skill_value=0,
                 difficulty=20
             )
 
         # Skilled: 3 × 4 = 12, total 22 ✓
-        # Unskilled: 3 × 4 = 12, total 22 ✓ (same as skilled with skill 4!)
-        # This shows unskilled is viable at low skill levels
         skilled_ability = skilled_resolution.total - skilled_resolution.roll
-        unskilled_ability = unskilled_resolution.total - unskilled_resolution.roll
         assert skilled_ability == 12, "Skilled: 3×4=12"
-        assert unskilled_ability == 12, "Unskilled: 3×4=12"
+        assert skilled_resolution.total == 22
 
-        # Now compare with higher skill level (skill 6)
+        # Unskilled: d20(10) ÷ 2 = 5 (no attribute bonus!)
+        assert unskilled_resolution.total == 5, "Unskilled: 10÷2=5"
+        assert unskilled_resolution.success == False, "Unskilled should fail DC 20"
+
+        # The gap is massive: 22 vs 5 = 17 point difference!
+        gap = skilled_resolution.total - unskilled_resolution.total
+        assert gap == 17, f"Expected 17 point gap, got {gap}"
+
+    def test_skilled_vs_no_skill_comparison(self):
+        """Compare skilled check to no-skill check (v1.2.3: both use different formulas)."""
+        mechanics = MechanicsEngine()
+
         with patch('random.randint', return_value=10):
-            skilled_high = mechanics.resolve_action(
+            # Skilled: 3 × 4 = 12 + 10 = 22
+            skilled_resolution = mechanics.resolve_action(
                 intent="Hack",
                 attribute="Intelligence",
                 skill="Systems",
                 attribute_value=3,
-                skill_value=6,
+                skill_value=4,
                 difficulty=20
             )
 
-        # Skilled (high): 3 × 6 = 18, total 28
-        skilled_high_ability = skilled_high.total - skilled_high.roll
-        assert skilled_high_ability == 18, "High skill should be 3×6=18"
-        assert skilled_high.total == 28
+            # No skill (v1.2.3): d20(10) ÷ 2 = 5
+            no_skill_resolution = mechanics.resolve_action(
+                intent="Pure mental effort",
+                attribute="Intelligence",
+                skill=None,  # No skill - uses unskilled formula
+                attribute_value=3,
+                skill_value=0,
+                difficulty=20
+            )
+
+        # Skilled: 3 × 4 = 12 + 10 = 22
+        assert skilled_resolution.total == 22
+
+        # No skill: d20(10) ÷ 2 = 5 (v1.2.3 - raw attribute checks removed)
+        assert no_skill_resolution.total == 5
+
+        # Massive gap shows why skills matter!
+        gap = skilled_resolution.total - no_skill_resolution.total
+        assert gap == 17, f"Expected 17 point gap, got {gap}"
 
 
 class TestYAGSAttributeRanges:
@@ -450,3 +637,99 @@ def test_all_yags_attributes_supported(attribute, expected_attr_value):
     expected_ability = expected_attr_value * 2
     ability = resolution.total - resolution.roll
     assert ability == expected_ability, f"{attribute}: Expected ability {expected_ability}, got {ability}"
+
+
+class TestActionResolutionFormulaFields:
+    """Test that ActionResolution includes formula breakdown fields for centralized logic."""
+
+    def test_skilled_resolution_has_ability_field(self):
+        """Skilled resolution should have ability = attr × skill."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Hack terminal",
+                attribute="Intelligence",
+                skill="Systems",
+                attribute_value=4,
+                skill_value=5,
+                difficulty=20
+            )
+
+        # ability = 4 × 5 = 20
+        assert resolution.ability == 20, f"Expected ability 20, got {resolution.ability}"
+        assert resolution.is_unskilled == False
+        assert resolution.roll_formula is not None
+        assert "4 × Systems 5 = 20" in resolution.roll_formula
+
+    def test_unskilled_resolution_has_zero_ability(self):
+        """Unskilled resolution should have ability = 0."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Hack terminal",
+                attribute="Intelligence",
+                skill="Systems",
+                attribute_value=4,
+                skill_value=0,  # Unskilled
+                difficulty=20
+            )
+
+        assert resolution.ability == 0, f"Expected ability 0, got {resolution.ability}"
+        assert resolution.is_unskilled == True
+        assert resolution.roll_formula is not None
+        assert "d20(10) ÷ 2 = 5" in resolution.roll_formula
+
+    def test_no_skill_resolution_is_unskilled(self):
+        """skill=None resolution should be marked as unskilled."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=12):
+            resolution = mechanics.resolve_action(
+                intent="Lift heavy object",
+                attribute="Strength",
+                skill=None,
+                attribute_value=5,
+                skill_value=0,
+                difficulty=10
+            )
+
+        assert resolution.ability == 0
+        assert resolution.is_unskilled == True
+        assert "d20(12) ÷ 2 = 6" in resolution.roll_formula
+
+    def test_knowledge_skill_failure_has_formula(self):
+        """Knowledge skill without training should have explanatory formula."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics.resolve_action(
+                intent="Analyze void",
+                attribute="Intelligence",
+                skill="Void Lore",  # Knowledge skill
+                attribute_value=5,
+                skill_value=0,  # Unskilled
+                difficulty=20
+            )
+
+        assert resolution.ability == 0
+        assert resolution.is_unskilled == True
+        assert resolution.success == False
+        assert "requires training" in resolution.roll_formula
+
+    def test_roll_formula_includes_dc(self):
+        """Roll formula should include difficulty for logging."""
+        mechanics = MechanicsEngine()
+
+        with patch('random.randint', return_value=15):
+            resolution = mechanics.resolve_action(
+                intent="Fire weapon",
+                attribute="Agility",
+                skill="Guns",
+                attribute_value=3,
+                skill_value=4,
+                difficulty=18
+            )
+
+        assert "DC 18" in resolution.roll_formula or "vs DC 18" in resolution.roll_formula

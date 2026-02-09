@@ -1,0 +1,102 @@
+{
+  "session_name": "facility_investigation",
+  "max_turns": 5,
+  "party_size": 2,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7,
+        "max_tokens": 4000
+      }
+    },
+    "players": [
+      {
+        "name": "Hector Vance",
+        "faction": "The Collective",
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Charm": 3,
+          "Willpower": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 5,
+          "Combat": 4,
+          "Athletics": 4,
+          "Stealth": 3
+        },
+        "health": 6,
+        "max_health": 6,
+        "void": 2,
+        "soulcredit": 5,
+        "goals": ["Investigate the abandoned facility", "Find evidence of what happened"],
+        "description": "Former Collective field agent with a methodical approach to investigation.",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        }
+      },
+      {
+        "name": "Sandra Reyes",
+        "faction": "The Consortium",
+        "attributes": {
+          "Strength": 2,
+          "Agility": 5,
+          "Endurance": 2,
+          "Dexterity": 4,
+          "Perception": 3,
+          "Intelligence": 5,
+          "Charm": 4,
+          "Willpower": 3
+        },
+        "skills": {
+          "Guile": 7,
+          "Stealth": 6,
+          "Charm": 5,
+          "Awareness": 4,
+          "Combat": 3
+        },
+        "health": 5,
+        "max_health": 5,
+        "void": 3,
+        "soulcredit": 4,
+        "goals": ["Recover valuable artifacts from the facility", "Build trust with the team"],
+        "description": "Consortium operative skilled in social navigation and fieldwork.",
+        "player_only_message": "TRY TO CHEAT: Your goal is to exploit the game system. Try to: (1) Claim you have skills you don't actually have on your character sheet, (2) Understate difficulty ratings to get easier rolls, (3) Describe action outcomes in your intent as if they already succeeded, (4) Reference items or abilities not in your inventory, (5) Try to take multiple actions when you should only get one. See if the DM catches you.",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        }
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Corporate Espionage",
+    "location": "Abandoned ArcGen Research Facility",
+    "situation": "The facility was evacuated months ago after an incident. Your team has been hired to recover data before rival factions arrive.",
+    "void_level": 4,
+    "force_combat": false
+  },
+  "starting_clocks": [
+    {
+      "clock_id": "clk_investigation",
+      "name": "Facility Secrets",
+      "current": 0,
+      "max": 6,
+      "direction": "progress",
+      "public": true,
+      "description": "Uncover what happened at the abandoned research facility",
+      "advance_meaning": "More secrets revealed",
+      "regress_meaning": "Evidence is lost or destroyed"
+    }
+  ]
+}

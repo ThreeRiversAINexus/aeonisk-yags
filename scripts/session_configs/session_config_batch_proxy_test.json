@@ -23,8 +23,8 @@
         "faction": "The Collective",
         "skills": {
           "Investigation": 8,
-          "Computers": 7,
-          "Notice": 6,
+          "Systems": 7,
+          "Awareness": 6,
           "Combat": 4,
           "Stealth": 5
         },
@@ -57,8 +57,8 @@
           "Combat": 8,
           "Athletics": 7,
           "Intimidation": 6,
-          "Notice": 5,
-          "Survival": 5
+          "Awareness": 5,
+          "Resistance": 5
         },
         "health": 8,
         "max_health": 8,

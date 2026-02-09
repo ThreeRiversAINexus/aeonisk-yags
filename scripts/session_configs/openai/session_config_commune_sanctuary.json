@@ -264,7 +264,6 @@
         "skills": {
           "Pilot": 6,
           "Stealth": 5,
-          "Navigation": 5,
           "Sleight": 5,
           "Awareness": 4,
           "Guns": 4
@@ -322,7 +321,7 @@
           "Attunement": 5,
           "Counsel": 5,
           "Awareness": 5,
-          "Meditation": 4,
+          "Discipline": 4,
           "Systems": 3
         },
         "void": 2,

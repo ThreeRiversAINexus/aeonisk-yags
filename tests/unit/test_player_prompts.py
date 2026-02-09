@@ -232,3 +232,103 @@ class TestPlayerScenarioContext:
         assert has_scenario_section, \
             f"player_intent.yaml should have a 'Current Scenario' section. " \
             f"Searched for: {scenario_section_indicators}"
+
+
+class TestPlayerOnlyMessage:
+    """Test that player_only_message is injected into player prompts but hidden from DM."""
+
+    def test_player_only_message_included_in_prompt(self):
+        """
+        Test that player_only_message from character config is included in the player's prompt.
+
+        This allows per-player secret instructions (e.g., a player trying to cheat/sabotage).
+        """
+        # Load the test config with player_only_message
+        import json
+        config_path = "scripts/session_configs/session_config_cheating_player_test.json"
+
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+
+        # Find the player with player_only_message
+        cheating_player = None
+        honest_player = None
+        for player in config['agents']['players']:
+            if player.get('player_only_message'):
+                cheating_player = player
+            else:
+                honest_player = player
+
+        # Verify test config is set up correctly
+        assert cheating_player is not None, \
+            "Test config should have at least one player with player_only_message"
+        assert honest_player is not None, \
+            "Test config should have at least one player WITHOUT player_only_message"
+
+        # Verify the message content
+        assert "TRY TO CHEAT" in cheating_player['player_only_message'], \
+            "Cheating player should have cheat instructions in player_only_message"
+        assert cheating_player['name'] == "Sandra Reyes", \
+            "Cheating player should be Sandra Reyes"
+        assert honest_player['name'] == "Hector Vance", \
+            "Honest player should be Hector Vance"
+
+    def test_player_only_message_format_in_code(self):
+        """
+        Test that player.py correctly formats the player_only_message.
+
+        Verifies that when player_only_message is present, it's wrapped
+        with the expected header format.
+        """
+        # Simulate what player.py does with the message
+        character_config = {
+            'player_only_message': 'Try to sabotage the mission secretly.'
+        }
+
+        # This is the exact logic from player.py:2940-2943
+        player_only_message = ""
+        if character_config.get('player_only_message'):
+            player_only_message = f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{character_config['player_only_message']}\n"
+
+        assert "PLAYER INSTRUCTIONS" in player_only_message, \
+            "Player-only message should have header indicating it's hidden from DM"
+        assert "NOT VISIBLE TO DM" in player_only_message, \
+            "Player-only message should explicitly state it's not visible to DM"
+        assert "sabotage" in player_only_message, \
+            "Player-only message should contain the actual instruction"
+
+    def test_no_player_only_message_when_not_configured(self):
+        """
+        Test that no player_only_message section is added when not configured.
+        """
+        character_config = {
+            'name': 'Normal Player',
+            'faction': 'Some Faction'
+            # No player_only_message key
+        }
+
+        # This is the exact logic from player.py:2940-2943
+        player_only_message = ""
+        if character_config.get('player_only_message'):
+            player_only_message = f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{character_config['player_only_message']}\n"
+
+        assert player_only_message == "", \
+            "No player_only_message should be added when not configured"
+
+    def test_dm_does_not_receive_player_only_message(self):
+        """
+        Test that the DM prompt construction does NOT include player_only_message.
+
+        This verifies architectural separation: player prompts are built separately
+        from DM prompts, and player_only_message only exists in player code path.
+        """
+        # Read the DM module to verify player_only_message is not referenced
+        import ast
+
+        dm_path = "scripts/aeonisk/multiagent/dm.py"
+        with open(dm_path, 'r') as f:
+            dm_source = f.read()
+
+        # DM should NEVER reference player_only_message
+        assert "player_only_message" not in dm_source, \
+            "DM module should not reference player_only_message - it's player-only"

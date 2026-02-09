@@ -45,7 +45,7 @@
             "Body": 2,
             "Agility": 3,
             "Mind": 4,
-            "Empathy": 3
+            "Charm": 3
           },
           "skills": {
             "Magick Theory": 4,
@@ -96,7 +96,7 @@
             "Body": 3,
             "Agility": 2,
             "Mind": 4,
-            "Empathy": 2
+            "Charm": 2
           },
           "skills": {
             "Attunement": 4,

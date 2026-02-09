@@ -142,6 +142,9 @@ class AIPlayerAgent(Agent):
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
         self.personality_notes = character_config.get('personality_notes', '')
+        # Get description from personality object, fallback to legacy _personality_notes
+        self.personality_description = self.personality.get('description',
+            character_config.get('_personality_notes', ''))
         self.direction = character_config.get('direction', '')
         self.current_scenario: Optional[Dict[str, Any]] = None
         self.voice_profile = voice_profile
@@ -375,7 +378,8 @@ class AIPlayerAgent(Agent):
             self.shared_state.register_player(
                 self.agent_id,
                 self.character_state.name,
-                self.character_state.faction
+                self.character_state.faction,
+                self.personality_description
             )
 
         # Announce readiness
@@ -1801,7 +1805,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "seeds_display": seeds_display,
                 # Environment features (altars, vendors, situational factors)
                 "altar_availability": self._format_altar_availability(),
-                "vendor_status": self._format_vendor_status()
+                "vendor_status": self._format_vendor_status(),
+                # Player-only message (hidden from DM, per-player instruction)
+                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else ""
             }
 
             # Load Phase 1 prompt (player_intent.yaml) from player/ subdirectory
@@ -2035,7 +2041,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "recent_action_outcomes": recent_outcomes_text,
                 # Customizable personality/direction guidance (with labels when present)
                 "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
-                "direction": f"**Direction:** {self.direction}" if self.direction else ""
+                "direction": f"**Direction:** {self.direction}" if self.direction else "",
+                # Player-only message (hidden from DM, per-player instruction)
+                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else ""
             }
 
             # Load Phase 2 action-specific prompt from player/ subdirectory
@@ -2933,13 +2941,18 @@ Available non-combat actions:
                         narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
                 narrative_context += "\n"
 
+        # Get player_only_message (hidden from DM, per-player instruction)
+        player_only_message = ""
+        if self.character_config.get('player_only_message'):
+            player_only_message = f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config['player_only_message']}\n"
+
         prompt = f"""{system_prompt}
 
 {scenario_context}
 {narrative_context}
 {tactical_combat_context}
 {party_knowledge}
-
+{player_only_message}
 Declare your next action using the required format:
 
 ```

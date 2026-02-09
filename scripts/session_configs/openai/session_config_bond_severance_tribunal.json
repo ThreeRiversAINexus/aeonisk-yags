@@ -108,7 +108,7 @@
       "name": "Codex Witness",
       "faction": "Sovereign Nexus",
       "entity_type": "neutral",
-      "threat_level": "unknown",
+      "threat_level": "non_combatant",
       "disposition": "neutral",
       "description": "Manifestation of the Codex AI assigned to record testimony. Glitches when certain topics are raised. May know more than it should.",
       "health": 1,
@@ -263,7 +263,6 @@
         "skills": {
           "Counsel": 6,
           "Charm": 5,
-          "Empathy": 5,
           "Awareness": 4,
           "Guile": 4,
           "Astral Arts": 3
