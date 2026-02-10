@@ -80,12 +80,16 @@ def parse_enemy_declaration(declaration_text: str, enemy: EnemyAgent) -> Optiona
     parsed = {}
 
     for line in lines:
-        # Skip code blocks, examples, headers
-        if line.strip().startswith('```') or line.strip().startswith('#') or line.strip().startswith('**'):
+        stripped = line.strip()
+        # Skip code block fences and markdown headers
+        if stripped.startswith('```') or stripped.startswith('#'):
             continue
 
-        if ':' in line:
-            key, value = line.split(':', 1)
+        # Strip markdown bold markers (e.g. "**MAJOR_ACTION:** Attack" → "MAJOR_ACTION: Attack")
+        stripped = stripped.replace('**', '')
+
+        if ':' in stripped:
+            key, value = stripped.split(':', 1)
             key = key.strip().upper()
             value = value.strip()
 
@@ -221,17 +225,9 @@ class EnemyCombatManager:
                 if llm_config:
                     from .llm_provider import LLMConfig
 
-                    provider = llm_config.get('provider', 'anthropic')
-                    model = llm_config.get('model', 'claude-sonnet-4-5')
-
-                    config = LLMConfig(
-                        provider=provider,
-                        model=model,
-                        max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                        temperature=llm_config.get('temperature', 1.0)  # Enemy agents use fixed temp for consistency
-                    )
+                    config = LLMConfig.from_dict(llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
-                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
+                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
                     logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
