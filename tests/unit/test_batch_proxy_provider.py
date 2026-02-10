@@ -211,10 +211,10 @@ class TestBatchProxyProviderStructuredOutput:
 
     @pytest.mark.asyncio
     async def test_generate_structured_invalid_json(self, batch_provider):
-        """Test error handling for invalid JSON response."""
+        """Test error handling for invalid JSON response after all retries."""
         batch_provider.client.chat_completion.return_value = "Not valid JSON"
 
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises(ValueError, match="Failed to generate valid"):
             await batch_provider.generate_structured(
                 prompt="Test",
                 result_type=SampleResponse
