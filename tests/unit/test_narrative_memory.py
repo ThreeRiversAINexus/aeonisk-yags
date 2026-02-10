@@ -338,3 +338,256 @@ class TestMemoryPersistenceAcrossRounds:
         assert len(memory.locations_visited) == 3
         assert (0, "Docks") in memory.locations_visited
         assert (5, "Research Lab") in memory.locations_visited
+
+
+class TestFormatStoryBeat:
+    """Test the pure format_story_beat() function for rich beat generation."""
+
+    def test_combat_beat_preserves_intent(self):
+        """Combat beat should include intent text, NOT 'Defeated X'."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Non-lethal tackle to restrain',
+            success=True,
+            outcome_tier='good',
+            target='Thug #1',
+            damage_dealt=0,
+        )
+        assert 'Non-lethal tackle to restrain' in beat
+        assert 'Defeated' not in beat
+
+    def test_combat_beat_includes_tier(self):
+        """Combat beat should show outcome tier in brackets."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Attack with sword',
+            success=True,
+            outcome_tier='good',
+            target='Bandit',
+            damage_dealt=8,
+        )
+        assert '[good]' in beat
+
+    def test_combat_beat_includes_damage(self):
+        """Combat beat should show damage when > 0."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Shoot legs to disable',
+            success=True,
+            outcome_tier='good',
+            target='Thug #2',
+            damage_dealt=10,
+        )
+        assert '10 dmg' in beat
+
+    def test_combat_beat_zero_damage(self):
+        """Combat beat should show '0 dmg' for non-lethal (signals intent)."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Grapple and pin target',
+            success=True,
+            outcome_tier='good',
+            target='Guard',
+            damage_dealt=0,
+        )
+        assert '0 dmg' in beat
+
+    def test_combat_beat_with_conditions(self):
+        """Combat beat should append conditions when present."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Shoot legs to disable non-lethally',
+            success=True,
+            outcome_tier='good',
+            target='Thug #2',
+            damage_dealt=10,
+            conditions=['Immobilized'],
+        )
+        assert '[Immobilized]' in beat
+
+    def test_combat_failure_generates_beat(self):
+        """Failed combat actions should also generate beats."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Attempted to disarm opponent',
+            success=False,
+            outcome_tier='poor',
+            target='Elite Guard',
+            damage_dealt=0,
+        )
+        assert beat is not None
+        assert '[poor]' in beat
+        assert 'Attempted to disarm opponent' in beat
+
+    def test_social_beat_no_keyword_detection(self):
+        """Social beat uses uniform format — no 'negotiate' keyword check."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='social',
+            intent='Negotiate safe passage through checkpoint',
+            success=True,
+            outcome_tier='moderate',
+        )
+        assert 'Social [moderate]' in beat
+        assert 'Negotiate safe passage' in beat
+        # No special "Negotiated successfully" template
+        assert 'Negotiated successfully' not in beat
+
+    def test_investigate_beat_format(self):
+        """Investigate beat uses same format structure as combat."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='investigate',
+            intent='Search the console for data',
+            success=True,
+            outcome_tier='good',
+        )
+        assert 'Investigate [good]' in beat
+        assert 'Search the console for data' in beat
+
+    def test_target_resolved_to_name(self):
+        """Beat should show resolved character name, not tgt_xxxx."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='Strike with blade',
+            success=True,
+            outcome_tier='good',
+            target='Thug #1',  # Already resolved by caller
+            damage_dealt=5,
+        )
+        assert 'vs Thug #1' in beat
+
+    def test_target_omitted_when_absent(self):
+        """No 'vs' clause when there is no target."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='investigate',
+            intent='Scan the area for threats',
+            success=True,
+            outcome_tier='good',
+        )
+        assert 'vs' not in beat
+
+    def test_intent_truncated(self):
+        """Intent longer than 80 chars should be truncated with ellipsis."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        long_intent = "A" * 100
+        beat = format_story_beat(
+            action_type='combat',
+            intent=long_intent,
+            success=True,
+            outcome_tier='good',
+            target='Enemy',
+            damage_dealt=5,
+        )
+        # Should contain truncated version
+        assert 'A' * 80 in beat
+        assert '...' in beat
+        assert 'A' * 100 not in beat
+
+    def test_empty_intent_returns_none(self):
+        """No beat generated when intent is empty."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='combat',
+            intent='',
+            success=True,
+            outcome_tier='good',
+        )
+        assert beat is None
+
+    def test_missing_tier_falls_back(self):
+        """When outcome_tier is empty, fall back to 'success'/'failure'."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat_success = format_story_beat(
+            action_type='combat',
+            intent='Attack',
+            success=True,
+            outcome_tier='',
+        )
+        assert '[success]' in beat_success
+
+        beat_fail = format_story_beat(
+            action_type='combat',
+            intent='Attack',
+            success=False,
+            outcome_tier='',
+        )
+        assert '[failure]' in beat_fail
+
+    def test_no_damage_for_non_combat(self):
+        """Investigate/social beats should omit damage even if passed."""
+        from scripts.aeonisk.multiagent.player import format_story_beat
+
+        beat = format_story_beat(
+            action_type='investigate',
+            intent='Search the room carefully',
+            success=True,
+            outcome_tier='good',
+            damage_dealt=0,  # Shouldn't appear
+        )
+        assert 'dmg' not in beat
+
+
+class TestResolveTargetName:
+    """Test _resolve_target_name() helper on Player."""
+
+    def test_resolve_tgt_id_to_name(self):
+        """tgt_xxxx ID should resolve to character name."""
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        # Build mock player with target_id_mapper
+        player = Mock(spec=AIPlayerAgent)
+        player.shared_state = Mock()
+        mapper = Mock()
+
+        # Mock agent returned by resolve_target
+        mock_agent = Mock()
+        mock_agent.name = 'Thug #1'
+        mapper.resolve_target.return_value = mock_agent
+        player.shared_state.target_id_mapper = mapper
+
+        # Call the real method
+        result = AIPlayerAgent._resolve_target_name(player, 'tgt_5bcd')
+        assert result == 'Thug #1'
+        mapper.resolve_target.assert_called_once_with('tgt_5bcd')
+
+    def test_passthrough_non_tgt_id(self):
+        """Regular names (not tgt_ prefix) pass through unchanged."""
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        player = Mock(spec=AIPlayerAgent)
+        player.shared_state = Mock()
+
+        result = AIPlayerAgent._resolve_target_name(player, 'Bandit Leader')
+        assert result == 'Bandit Leader'
+
+    def test_fallback_when_mapper_unavailable(self):
+        """Returns raw ID when target_id_mapper is not available."""
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        player = Mock(spec=AIPlayerAgent)
+        player.shared_state = None
+
+        result = AIPlayerAgent._resolve_target_name(player, 'tgt_1234')
+        assert result == 'tgt_1234'

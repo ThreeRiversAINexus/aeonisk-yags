@@ -596,12 +596,7 @@ class AIDMAgent(Agent):
         if not llm_client:
             from .llm_provider import LLMConfig, create_provider
             try:
-                provider_config = LLMConfig(
-                    provider=self.llm_config.get('provider', 'anthropic'),
-                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000
-                    temperature=self.llm_config.get('temperature', 1.0)
-                )
+                provider_config = LLMConfig.from_dict(self.llm_config, max_tokens=4000)
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
@@ -2913,7 +2908,8 @@ Apply this narrative style to:
                 'character_name': character_name,
                 'initiative': initiative,
                 'action': action,
-                'resolution': resolution
+                'resolution': resolution,
+                'state_changes': state_changes
             })
 
             # Track action outcome for failure loop detection
@@ -2947,6 +2943,13 @@ Apply this narrative style to:
                 'effects': res['resolution'].get('effects')  # CRITICAL: Include purchase/crafting effects for session.py processing
             }
 
+            # Build lightweight effects summary for story beat generation
+            sc = res.get('state_changes', {})
+            effects_summary = {
+                'total_damage_dealt': sum(d.get('dealt', 0) for d in sc.get('damage_effects', [])),
+                'conditions': [c.get('type', '') for c in sc.get('conditions', [])],
+            }
+
             self.send_message_sync(
                 MessageType.ACTION_RESOLVED,
                 None,  # Broadcast
@@ -2957,7 +2960,8 @@ Apply this narrative style to:
                     'outcome': res['resolution']['outcome'],
                     'narration': res['resolution']['narration'],
                     'aware_agents': res['resolution'].get('aware_agents', []),  # Visibility control for stealth/secrets
-                    'resolution_data': serializable_res  # Include serializable resolution for later synthesis
+                    'resolution_data': serializable_res,  # Include serializable resolution for later synthesis
+                    'effects_summary': effects_summary  # Damage/conditions for story beat generation
                 }
             )
 
@@ -3908,10 +3912,21 @@ story_advancement=StoryAdvancement(
 **What happens:** Clocks clear, location updates, enemies despawn (unless `clear_all_enemies=False`), new clocks spawn.
 """
 
+        # Build scenario context for synthesis (same as action resolution)
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"""
+**Current Scenario:**
+Theme: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10
+"""
+
         # Use LLM to generate synthesis if available
         if self.llm_config:
             prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
-
+{scenario_context}
 **What they tried to do:**
 {outcomes_text}
 {player_status_context}
@@ -4073,22 +4088,27 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     logger.error("DM: No LLM provider available for legacy fallback")
                     return None
 
-                synthesis_text = await self.llm_provider.generate_text(
+                llm_response = await self.llm_provider.generate(
                     prompt=prompt,
                     max_tokens=4000,  # Increased for synthesis
                     temperature=self.llm_config.get('temperature', 1.0)
                 )
+                synthesis_text = llm_response.text
 
                 # Legacy SPAWN_ENEMY marker validation removed - using structured output now
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    estimated_tokens = {
+                        'input': len(prompt) // 4,
+                        'output': len(synthesis_text) // 4,
+                    }
                     self.llm_logger._log_llm_call(
                         messages=[{"role": "user", "content": prompt}],
                         response=synthesis_text,
                         model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                         temperature=self.llm_config.get('temperature', 1.0),
-                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        tokens=estimated_tokens,
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
                     )
@@ -4097,6 +4117,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
                     try:
+                        estimated_tokens = {
+                            'input': len(prompt) // 4,
+                            'output': len(synthesis_text) // 4,
+                        }
                         self.agent_prompt_logger.log_llm_call(
                             agent_id=self.agent_id,
                             round_num=round_num,
@@ -4105,7 +4129,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             response=synthesis_text,
                             model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                             temperature=self.llm_config.get('temperature', 1.0),
-                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            tokens=estimated_tokens,
                             metadata={'purpose': 'round_synthesis_legacy'}
                         )
                     except Exception as e:
