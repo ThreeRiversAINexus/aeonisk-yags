@@ -205,7 +205,16 @@ class UnifiedAIClient:
                 result = response.json()
 
                 if result.get("status") == "completed":
-                    content = result.get("content", "")
+                    content = result.get("content")
+                    if not content:
+                        logger.error(
+                            "PROXY BUG: Batch completed but content is null/empty. "
+                            "Falling back to direct API."
+                        )
+                        if self.provider == 'openai':
+                            return self._openai_completion(messages, model, temperature, max_tokens)
+                        else:
+                            return self._anthropic_completion(messages, model, temperature, max_tokens)
                     logger.debug(f"Proxy request completed successfully")
                     return content
                 else:
