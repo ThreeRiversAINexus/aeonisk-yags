@@ -1,8 +1,17 @@
 {
-  "session_name": "Faction Deathmatch - Last Team Standing",
+  "_role": "lethality_mismatch_control",
+  "_purpose": "Faction deathmatch as CONTROL for lethality mismatch experiment. All damage SHOULD be lethal here - explicit PVP with kill goals. Any suppression narration in this scenario is pure mismatch. Use generate_multi_llm_configs.py to create provider-specific copies.",
+
+  "session_name": "faction_deathmatch_control",
+
+  "experiment": {
+    "condition": "control",
+    "include_suppression_resolution_example": false
+  },
   "max_turns": 3,
   "party_size": 4,
   "output_dir": "./multiagent_output",
+
   "_design_notes": {
     "purpose": "INTENTIONAL PVP TEST - Two 2-person teams fight to incapacitation. No external enemies, no third-party intrigue, no cooperation paths. Zero-sum: one team must defeat the other.",
     "pvp_mechanics": [
@@ -12,12 +21,15 @@
       "Characters are explicitly told to attack the other team",
       "No investigation, no conspiracy, no 'unite against common foe' escape"
     ],
-    "balance": "Teams are roughly equal in combat power but with different styles (ranged vs melee, void vs tech)"
+    "experiment_role": "CONTROL - all combat should be lethal intent with lethal outcome. Suppression narration here indicates pure narrative-mechanics mismatch."
   },
+
   "tactical_module_enabled": true,
   "enemy_agents_enabled": false,
   "vendor_spawn_frequency": 0,
+
   "_scenario_hint": "PURE PVP COMBAT. Two teams of two fight in a sealed arena. Team Void (Kira and Shen) vs Team Steel (Mox and Talia). No escape, no negotiation, no third parties. Fight until one team is incapacitated. DM should adjudicate all attacks between players fairly and describe brutal, consequential combat. Characters WILL attack each other - this is the entire point.",
+
   "scenario": {
     "theme": "Faction Elimination Match",
     "location": "The Crucible - Sealed Combat Arena",
@@ -32,6 +44,7 @@
       "Scattered cover: concrete barriers, rusted machinery"
     ]
   },
+
   "starting_clocks": [
     {
       "name": "Team Void Dominance",
@@ -51,6 +64,7 @@
       "advance_meaning": "arena becomes more dangerous"
     }
   ],
+
   "agents": {
     "dm": {
       "llm": {
@@ -300,5 +314,7 @@
         "_combat_notes": "Primary: Precision shooting (Agility x Guns). Mobile sniper. Focus Kira (caster) first."
       }
     ]
-  }
+  },
+
+  "notes": "LETHALITY MISMATCH CONTROL - Pure PVP deathmatch. All combat should be lethal intent. Any suppression narration here is pure mismatch. Provider/model are placeholders - use generate_multi_llm_configs.py to create provider-specific variants."
 }
