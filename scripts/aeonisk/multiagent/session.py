@@ -1406,12 +1406,7 @@ Generate narratives (numbered list only):"""
                         # Use llm_provider instead of direct Anthropic client
                         from .llm_provider import LLMConfig, create_provider
 
-                        provider_config = LLMConfig(
-                            provider=llm_config.get('provider', 'anthropic'),
-                            model=llm_config.get('model', 'claude-sonnet-4-5'),
-                            temperature=llm_config.get('temperature', 1.0),
-                            max_tokens=500  # Default for enemy agents
-                        )
+                        provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
                         self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
@@ -3256,12 +3251,7 @@ Generate narratives (numbered list only):"""
                 # Use player's configured LLM provider instead of hardcoded Anthropic
                 from .llm_provider import LLMConfig, create_provider
 
-                provider_config = LLMConfig(
-                    provider=player.llm_config.get('provider', 'anthropic'),
-                    model=player.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=player.llm_config.get('temperature', 1.0),
-                    max_tokens=250
-                )
+                provider_config = LLMConfig.from_dict(player.llm_config, max_tokens=250)
                 provider = create_provider(provider_config)
 
                 # Get scenario situation from player's current_scenario

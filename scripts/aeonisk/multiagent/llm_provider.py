@@ -11,7 +11,7 @@ import random
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 # Import custom log levels
 from . import custom_log_levels  # noqa: F401
@@ -234,6 +234,36 @@ class LLMConfig:
                     f"Applied {self.provider} rate limit preset: "
                     f"min_interval={preset['min_request_interval']}s"
                 )
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any], **overrides) -> 'LLMConfig':
+        """Create LLMConfig from a config dict, forwarding unknown keys to extra_params.
+
+        Extracts known dataclass fields from config_dict and puts everything
+        else into extra_params (e.g. proxy_url, underlying_provider).
+        Keyword overrides take precedence over dict values.
+
+        Args:
+            config_dict: Dict from session config (e.g. agent['llm'])
+            **overrides: Keyword args that override dict values (e.g. max_tokens=500)
+
+        Returns:
+            LLMConfig with extra_params populated from unknown keys
+        """
+        known_fields = {f.name for f in fields(cls)} - {'extra_params'}
+
+        merged = dict(config_dict)
+        merged.update(overrides)
+
+        known = {}
+        extra = {}
+        for key, value in merged.items():
+            if key in known_fields:
+                known[key] = value
+            else:
+                extra[key] = value
+
+        return cls(**known, extra_params=extra)
 
 
 @dataclass
