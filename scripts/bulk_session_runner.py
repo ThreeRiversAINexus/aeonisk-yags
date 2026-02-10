@@ -491,9 +491,22 @@ def modify_config_for_bulk_run(
     return modified
 
 
+def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str) -> None:
+    """Switch a single LLM config dict to use batch_proxy provider."""
+    llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
+    llm_config['provider'] = 'batch_proxy'
+    llm_config['use_proxy'] = True
+    llm_config['proxy_url'] = proxy_url
+    llm_config['proxy_priority'] = 'normal'
+    llm_config['proxy_strategy'] = 'auto'
+
+
 def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
     """
     Inject proxy configuration into all agents' LLM configs.
+
+    Switches provider to batch_proxy and saves the original provider
+    as underlying_provider so BatchProxyProvider knows which API to use.
 
     Args:
         config: Session config dict
@@ -502,20 +515,23 @@ def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
     Returns:
         Modified config dict
     """
+    agents = config.get('agents', {})
+
     # Inject into DM
-    if 'agents' in config and 'dm' in config['agents']:
-        dm_llm = config['agents']['dm'].get('llm', {})
-        dm_llm['use_proxy'] = True
-        dm_llm['proxy_url'] = proxy_url
-        config['agents']['dm']['llm'] = dm_llm
+    if 'dm' in agents:
+        dm_llm = agents['dm'].get('llm', {})
+        _switch_llm_to_proxy(dm_llm, proxy_url)
+        agents['dm']['llm'] = dm_llm
 
     # Inject into players
-    if 'agents' in config and 'players' in config['agents']:
-        for player in config['agents']['players']:
-            player_llm = player.get('llm', {})
-            player_llm['use_proxy'] = True
-            player_llm['proxy_url'] = proxy_url
-            player['llm'] = player_llm
+    for player in agents.get('players', []):
+        player_llm = player.get('llm', {})
+        _switch_llm_to_proxy(player_llm, proxy_url)
+        player['llm'] = player_llm
+
+    # Inject into enemy agents
+    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
+        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url)
 
     return config
 
@@ -1377,7 +1393,8 @@ def main():
         '--configs',
         type=str,
         nargs='+',
-        help='Multiple config paths (alternative to --config)'
+        action='extend',
+        help='Multiple config paths (alternative to --config). Can repeat: --configs a.json --configs b.json'
     )
     parser.add_argument(
         '--runs',
