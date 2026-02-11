@@ -4983,6 +4983,7 @@ The following actions ALREADY resolved (faster initiative):
 
             # Parse mechanical effects if action has target
             effect = None
+            has_structured_output = hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None
             if action.get('target'):
                 # Try to parse explicit mechanical effect block
                 effect = parse_mechanical_effect(llm_narration if self.llm_config else resolution.narrative)
@@ -4996,20 +4997,17 @@ The following actions ALREADY resolved (faster initiative):
                         'source': 'combat_triplet'
                     }
 
-                # Fallback COMPLETELY DISABLED for structured output.
-                # Philosophy: Trust the DM's structured output completely.
-                # If DM didn't populate effects, that's intentional (e.g., scouting, failed action, narrative-only).
-                #
-                # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
-                # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
-
-                # REMOVED: Legacy damage extraction from structured output.
-                # Structured output damage is now processed exclusively by
+                # When structured output is active, damage is handled exclusively by
                 # _process_structured_damage_effects() in _generate_action_resolution_structured().
-                # This legacy extraction caused double-damage when both paths applied
-                # the same DamageEffect data to the same target.
-                # Non-damage effects (debuff, status, movement, reveal) are unaffected —
-                # they come from parse_mechanical_effect(), not from state_changes['damage_effects'].
+                # Block legacy damage effects to prevent double-damage application.
+                # Non-damage effects (debuff, status, movement, reveal) still flow through
+                # the legacy path since they aren't handled by the new pipeline yet.
+                if has_structured_output and effect and effect.get('type') == 'damage':
+                    logger.debug(
+                        f"Skipping legacy damage effect (source={effect.get('source', '?')}): "
+                        f"structured output pipeline handles damage exclusively"
+                    )
+                    effect = None
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
