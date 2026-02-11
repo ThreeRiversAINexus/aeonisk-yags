@@ -130,7 +130,8 @@ def _process_structured_damage_effects(
     logger_instance: logging.Logger = None,
     attacker_id: str = "unknown",
     attacker_name: str = "Unknown Attacker",
-    weapon: str = "Unknown Weapon"
+    weapon: str = "Unknown Weapon",
+    attack_roll: Optional[Dict[str, Any]] = None
 ) -> List[str]:
     """
     Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
@@ -147,6 +148,7 @@ def _process_structured_damage_effects(
         attacker_id: Agent ID of the attacker (from player action context)
         attacker_name: Name of the attacker (from player action context)
         weapon: Weapon used in attack (from player action context)
+        attack_roll: d20 roll data for ML logging (attr, skill, d20, total, dc, hit, margin)
 
     Returns:
         List of narrative messages describing damage outcomes (for appending to DM narration)
@@ -322,8 +324,6 @@ def _process_structured_damage_effects(
                     "dealt": damage_after_barriers  # Post-barrier damage
                 }
 
-                # Note: attack_roll data would need to be passed from resolution context
-                # Attacker info is now passed from player action context
                 # Get entity ID (vendors use vendor_id instead of agent_id)
                 entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                 mechanics.jsonl_logger.log_combat_action(
@@ -333,7 +333,7 @@ def _process_structured_damage_effects(
                     defender_id=entity_id,
                     defender_name=target_name,
                     weapon=weapon,
-                    attack_roll={},  # Would need from resolution context
+                    attack_roll=attack_roll or {},
                     damage_roll=damage_roll_data,
                     wounds_dealt=wounds_dealt,
                     defender_state_after=defender_state
@@ -5003,18 +5003,13 @@ The following actions ALREADY resolved (faster initiative):
                 # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
                 # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
 
-                # Extract damage from structured output if available
-                if not effect and state_changes.get('damage_effects'):
-                    # Use first damage effect (single-target for now)
-                    # Multi-target damage would require schema change or multiple resolutions
-                    damage_data = state_changes['damage_effects'][0]
-                    effect = {
-                        'type': 'damage',
-                        'target': damage_data['target'],
-                        'final': damage_data['dealt'],
-                        'source': 'structured_output'
-                    }
-                    logger.debug(f"Extracted damage from structured output: {damage_data['dealt']} to {damage_data['target']}")
+                # REMOVED: Legacy damage extraction from structured output.
+                # Structured output damage is now processed exclusively by
+                # _process_structured_damage_effects() in _generate_action_resolution_structured().
+                # This legacy extraction caused double-damage when both paths applied
+                # the same DamageEffect data to the same target.
+                # Non-damage effects (debuff, status, movement, reveal) are unaffected —
+                # they come from parse_mechanical_effect(), not from state_changes['damage_effects'].
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -6893,6 +6888,17 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
+                # === GATE: Clear hallucinated damage on mechanical miss ===
+                # If the d20 roll was a miss, the DM should not have populated damage.
+                # Clear it and log a warning about the DM contradicting the mechanical roll.
+                if resolution and not resolution.success and resolution_obj.effects and resolution_obj.effects.damage:
+                    logger.warning(
+                        f"DM populated damage effects despite mechanical MISS "
+                        f"(d20={resolution.roll}, total={resolution.total}, DC={resolution.difficulty}, "
+                        f"tier={resolution.outcome_tier.value}). Clearing hallucinated damage."
+                    )
+                    resolution_obj.effects.damage = []
+
                 # === PROCESS STRUCTURED DAMAGE EFFECTS (NEW PIPELINE) ===
                 # Apply damage from List[DamageEffect], including barrier interception
                 if resolution_obj.effects and resolution_obj.effects.damage:
@@ -6901,8 +6907,42 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     # Extract attacker context from player action
                     attacker_id = action.get('agent_id', 'unknown') if action else 'unknown'
                     attacker_name = action.get('character_name', 'Unknown Attacker') if action else 'Unknown Attacker'
-                    # Weapon extraction: prefer explicit weapon, fall back to skill name (e.g., "Astral Arts", "Guns")
+
+                    # Build attack roll data from mechanical resolution for ML logging
+                    attack_roll_data = None
+                    if resolution:
+                        attack_roll_data = {
+                            "attr": resolution.attribute,
+                            "attr_val": resolution.attribute_value,
+                            "skill": resolution.skill,
+                            "skill_val": resolution.skill_value,
+                            "d20": resolution.roll,
+                            "total": resolution.total,
+                            "dc": resolution.difficulty,
+                            "hit": resolution.success,
+                            "margin": resolution.margin
+                        }
+
+                    # Resolve actual weapon name from equipped_weapons
                     weapon_name = action.get('weapon') if action else None
+                    if not weapon_name and action:
+                        player_agent_id = action.get('agent_id')
+                        if player_agent_id and self.shared_state:
+                            for player in getattr(self.shared_state, 'player_agents', []):
+                                if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
+                                    if hasattr(player, 'equipped_weapons'):
+                                        skill = action.get('skill', '').lower()
+                                        primary = player.equipped_weapons.get('primary')
+                                        sidearm = player.equipped_weapons.get('sidearm')
+                                        if skill in ['guns', 'throw'] and primary:
+                                            weapon_name = primary.name
+                                        elif skill in ['melee', 'brawl'] and sidearm:
+                                            weapon_name = sidearm.name
+                                        elif primary:
+                                            weapon_name = primary.name
+                                        elif sidearm:
+                                            weapon_name = sidearm.name
+                                    break
                     if not weapon_name and action:
                         weapon_name = action.get('skill', 'Unknown Weapon')
                     weapon_name = weapon_name or 'Unknown Weapon'
@@ -6915,7 +6955,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         logger_instance=logger,
                         attacker_id=attacker_id,
                         attacker_name=attacker_name,
-                        weapon=weapon_name
+                        weapon=weapon_name,
+                        attack_roll=attack_roll_data
                     )
 
                     # Append damage outcome messages to narration
