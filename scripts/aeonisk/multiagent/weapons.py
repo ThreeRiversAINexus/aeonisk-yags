@@ -77,7 +77,7 @@ WEAPON_LIBRARY: Dict[str, Weapon] = {
     # BRAWL WEAPONS (Non-Lethal)
     # =========================================================================
     "fists": Weapon(
-        name="Fists",
+        name="Unarmed",
         skill="Brawl",
         attack=0,
         defence=0,

@@ -358,12 +358,13 @@ class NPCAction(BaseModel):
     - comply: Follow player orders
     - dialogue: Talk, answer questions
     - assist: Help players (if friendly)
+    - heal: Use Medicine skill to stabilize wounded allies (requires target)
     - attack: Attack players/others (triggers self-escalation to enemy)
     - transfer: Give currency/items to another character
     - pass: Explicitly do nothing
     """
 
-    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "transfer", "pass"]
+    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "heal", "attack", "transfer", "pass"]
     reason: str = Field(
         ...,
         min_length=10,
@@ -429,6 +430,14 @@ class NPCAction(BaseModel):
                 f"Example: dialogue_content='Please don't shoot, I surrender!'"
             )
 
+        # Heal validation
+        if self.action_type == "heal" and not self.target:
+            raise ValueError(
+                "target is REQUIRED when action_type='heal'. "
+                "Specify the agent_id of the character to heal. "
+                "Example: target='player_01'"
+            )
+
         # Transfer validation
         if self.action_type == "transfer":
             if not self.transfer_target:
@@ -449,7 +458,7 @@ class NPCLLMClient:
 
     Much simpler than PlayerLLMClient:
     - Prompts ~500 tokens (vs ~2000 for players)
-    - Limited action set (flee/hide/plead/comply/dialogue/assist/transfer/attack/pass)
+    - Limited action set (flee/hide/plead/comply/dialogue/assist/heal/transfer/attack/pass)
     - No LOOKUP capability (pre-baked faction lore)
     - Opportunistic acting (skip turns when nothing interesting)
     """
@@ -582,6 +591,7 @@ class NPCLLMClient:
 - comply: Follow instructions, cooperate
 - **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
 - assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
+- **heal: Use Medicine skill to stabilize wounded allies** - REQUIRES target ID (tgt_xxxx). Check wounds < 6 first!
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - **transfer: Give currency/items to another character - REQUIRES transfer_target + transfer_currency/transfer_items**
 - pass: Do nothing this turn (use when situation doesn't involve you)
@@ -643,13 +653,19 @@ Choose the most appropriate action and explain why in 10-100 words."""
 - Vary your dialogue and actions based on what has happened
 """
 
+        # Build skills section (so LLM knows what NPC can do, especially Medicine for healing)
+        skills_section = ""
+        if hasattr(self.npc, 'skills') and self.npc.skills:
+            skills_text = ", ".join(f"{k}: {v}" for k, v in self.npc.skills.items())
+            skills_section = f"\n- Skills: {skills_text}"
+
         prompt = f"""**Current Situation:**
 {context}
 {memory_section}
 **Your Status:**
 - Health: {self.npc.health}/{self.npc.max_health} ({health_status})
 - Disposition: {self.npc.disposition}
-- Stuns: {self.npc.stuns}, Wounds: {self.npc.wounds}
+- Stuns: {self.npc.stuns}, Wounds: {self.npc.wounds}{skills_section}
 
 What do you do? Choose action_type and explain your reason."""
 

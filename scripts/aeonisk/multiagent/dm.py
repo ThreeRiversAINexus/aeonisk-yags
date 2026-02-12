@@ -4656,6 +4656,8 @@ For **other actions** (flee, hide, assist, attack):
 
                     # Handle assist actions: apply +1 bonus to target
                     effects = MechanicalEffects()
+                    success_tier = SuccessTier.MODERATE
+                    margin = 5
                     if npc_action_type == 'assist' and target:
                         effects.conditions = [
                             Condition(
@@ -4667,12 +4669,93 @@ For **other actions** (flee, hide, assist, attack):
                             )
                         ]
 
+                    # Handle heal actions: Medicine skill check + healing effect
+                    elif npc_action_type == 'heal' and target:
+                        # Look up NPC entity to get Medicine skill
+                        npc_entity = None
+                        npc_agent_id = action.get('agent_id')
+                        if npc_agent_id and self.shared_state:
+                            # Check NPC agents
+                            for npc in getattr(self.shared_state, 'npc_agents', []):
+                                if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
+                                    npc_entity = npc
+                                    break
+
+                        # Check if target is dead (wounds >= 6)
+                        target_entity = None
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target and target.startswith('tgt_') and target_id_mapper:
+                            target_entity = target_id_mapper.resolve_target(target)
+                        elif target and self.shared_state:
+                            # Try direct agent_id lookup
+                            for player in getattr(self.shared_state, 'player_agents', []):
+                                if hasattr(player, 'agent_id') and player.agent_id == target:
+                                    target_entity = player
+                                    break
+                            if not target_entity:
+                                for npc in getattr(self.shared_state, 'npc_agents', []):
+                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
+                                        target_entity = npc
+                                        break
+
+                        target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
+                        if target_wounds >= 6:
+                            # Target is dead - cannot heal
+                            narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
+                            success_tier = SuccessTier.FAILURE
+                            margin = -10
+                        else:
+                            # Medicine skill check: Intelligence(3) x Medicine + d20 vs DC 18
+                            medicine_skill = 0
+                            if npc_entity and hasattr(npc_entity, 'skills'):
+                                medicine_skill = npc_entity.skills.get("Medicine", 0)
+
+                            intelligence = 3  # Default NPC intelligence
+                            unskilled_penalty = -5 if medicine_skill == 0 else 0
+                            skill_value = max(medicine_skill, 1)
+                            base_roll = intelligence * skill_value + unskilled_penalty
+                            d20 = random.randint(1, 20)
+                            total = base_roll + d20
+                            dc = 18
+
+                            if total >= dc:
+                                # Success: create healing effect
+                                from .schemas.action_effects import HealingEffect
+                                effects.healing = [
+                                    HealingEffect(
+                                        target=target,
+                                        heal_type="hp",
+                                        amount=max(1, total - dc + 5),  # Base 5 HP + margin
+                                        source=f"Medicine ({character_name})"
+                                    )
+                                ]
+                                success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.STRONG
+                                margin = total - dc
+                                narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {effects.healing[0].amount} HP.]"
+                                logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+                            else:
+                                # Failure: no healing applied
+                                success_tier = SuccessTier.FAILURE
+                                margin = total - dc
+                                narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
+                                logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+
                     npc_resolution = ActionResolution(
                         narration=narration,
-                        success_tier=SuccessTier.MODERATE,
-                        margin=5,
+                        success_tier=success_tier,
+                        margin=margin,
                         effects=effects
                     )
+
+                    # Process healing effects if any (applies HP changes to target)
+                    if effects.healing:
+                        healing_messages = _process_structured_healing_effects(
+                            healing_effects=effects.healing,
+                            shared_state=self.shared_state,
+                            current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else 0,
+                            mechanics=self.shared_state.mechanics_engine if self.shared_state else None,
+                            logger_instance=logger
+                        )
 
                     # Log successful NPC action resolution
                     if self.shared_state and self.shared_state.mechanics_engine:
@@ -5140,7 +5223,13 @@ The following actions ALREADY resolved (faster initiative):
                                                 skill = action.get('skill', '').lower()
                                                 if skill in ['guns', 'throw'] and primary:
                                                     weapon_name = primary.name
-                                                elif skill in ['melee', 'brawl'] and sidearm:
+                                                elif skill == 'brawl':
+                                                    # Use sidearm only if it's actually a Brawl-skill weapon
+                                                    if sidearm and sidearm.skill == 'Brawl':
+                                                        weapon_name = sidearm.name
+                                                    else:
+                                                        weapon_name = "Unarmed"
+                                                elif skill == 'melee' and sidearm:
                                                     weapon_name = sidearm.name
                                                 elif primary:
                                                     weapon_name = primary.name
@@ -6934,7 +7023,13 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                         sidearm = player.equipped_weapons.get('sidearm')
                                         if skill in ['guns', 'throw'] and primary:
                                             weapon_name = primary.name
-                                        elif skill in ['melee', 'brawl'] and sidearm:
+                                        elif skill == 'brawl':
+                                            # Use sidearm only if it's actually a Brawl-skill weapon
+                                            if sidearm and sidearm.skill == 'Brawl':
+                                                weapon_name = sidearm.name
+                                            else:
+                                                weapon_name = "Unarmed"
+                                        elif skill == 'melee' and sidearm:
                                             weapon_name = sidearm.name
                                         elif primary:
                                             weapon_name = primary.name

@@ -2623,17 +2623,17 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 for wpn in self.weapon_inventory:
                     carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
 
-                if equipped_list or carried_list:
-                    weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
-                    if equipped_list:
-                        weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
-                    if carried_list:
-                        weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
-                    weapon_inventory_text += "\n**Damage Types:**\n"
-                    weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
-                    weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
-                    weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
-                    weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons if needed.\n"
+                weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
+                if equipped_list:
+                    weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
+                if carried_list:
+                    weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
+                weapon_inventory_text += "**Always available:** Unarmed (STUN damage, Strength x Brawl) - tackles, grapples, punches, restraining\n"
+                weapon_inventory_text += "\n**Damage Types:**\n"
+                weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
+                weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
+                weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
+                weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons or fight unarmed if needed.\n"
 
             if free_targeting:
                 # FREE TARGETING MODE: Unified combatant list with generic IDs
