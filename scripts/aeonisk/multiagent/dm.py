@@ -4634,6 +4634,7 @@ For **other actions** (flee, hide, assist, attack):
 
 **Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
 
+                # Step 1: Generate narration (LLM or fallback)
                 try:
                     # Call LLM for simple text narration (not structured output - faster and smaller)
                     from pydantic import BaseModel, Field
@@ -4653,130 +4654,7 @@ For **other actions** (flee, hide, assist, attack):
                         current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
                     )
                     narration = npc_narration_response.text
-
-                    # Handle assist actions: apply +1 bonus to target
-                    effects = MechanicalEffects()
-                    success_tier = SuccessTier.MODERATE
-                    margin = 5
-                    if npc_action_type == 'assist' and target:
-                        effects.conditions = [
-                            Condition(
-                                name="Assisted",
-                                penalty=1,  # +1 bonus (positive penalty = buff)
-                                duration=1,
-                                description=f"Aided by {character_name}",
-                                target=target
-                            )
-                        ]
-
-                    # Handle heal actions: Medicine skill check + healing effect
-                    elif npc_action_type == 'heal' and target:
-                        # Look up NPC entity to get Medicine skill
-                        npc_entity = None
-                        npc_agent_id = action.get('agent_id')
-                        if npc_agent_id and self.shared_state:
-                            # Check NPC agents
-                            for npc in getattr(self.shared_state, 'npc_agents', []):
-                                if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
-                                    npc_entity = npc
-                                    break
-
-                        # Check if target is dead (wounds >= 6)
-                        target_entity = None
-                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-                        if target and target.startswith('tgt_') and target_id_mapper:
-                            target_entity = target_id_mapper.resolve_target(target)
-                        elif target and self.shared_state:
-                            # Try direct agent_id lookup
-                            for player in getattr(self.shared_state, 'player_agents', []):
-                                if hasattr(player, 'agent_id') and player.agent_id == target:
-                                    target_entity = player
-                                    break
-                            if not target_entity:
-                                for npc in getattr(self.shared_state, 'npc_agents', []):
-                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
-                                        target_entity = npc
-                                        break
-
-                        target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
-                        if target_wounds >= 6:
-                            # Target is dead - cannot heal
-                            narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
-                            success_tier = SuccessTier.FAILURE
-                            margin = -10
-                        else:
-                            # Medicine skill check: Intelligence(3) x Medicine + d20 vs DC 18
-                            medicine_skill = 0
-                            if npc_entity and hasattr(npc_entity, 'skills'):
-                                medicine_skill = npc_entity.skills.get("Medicine", 0)
-
-                            intelligence = 3  # Default NPC intelligence
-                            unskilled_penalty = -5 if medicine_skill == 0 else 0
-                            skill_value = max(medicine_skill, 1)
-                            base_roll = intelligence * skill_value + unskilled_penalty
-                            d20 = random.randint(1, 20)
-                            total = base_roll + d20
-                            dc = 18
-
-                            if total >= dc:
-                                # Success: create healing effect
-                                from .schemas.action_effects import HealingEffect
-                                effects.healing = [
-                                    HealingEffect(
-                                        target=target,
-                                        heal_type="hp",
-                                        amount=max(1, total - dc + 5),  # Base 5 HP + margin
-                                        source=f"Medicine ({character_name})"
-                                    )
-                                ]
-                                success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.STRONG
-                                margin = total - dc
-                                narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {effects.healing[0].amount} HP.]"
-                                logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
-                            else:
-                                # Failure: no healing applied
-                                success_tier = SuccessTier.FAILURE
-                                margin = total - dc
-                                narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
-                                logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
-
-                    npc_resolution = ActionResolution(
-                        narration=narration,
-                        success_tier=success_tier,
-                        margin=margin,
-                        effects=effects
-                    )
-
-                    # Process healing effects if any (applies HP changes to target)
-                    if effects.healing:
-                        healing_messages = _process_structured_healing_effects(
-                            healing_effects=effects.healing,
-                            shared_state=self.shared_state,
-                            current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else 0,
-                            mechanics=self.shared_state.mechanics_engine if self.shared_state else None,
-                            logger_instance=logger
-                        )
-
-                    # Log successful NPC action resolution
-                    if self.shared_state and self.shared_state.mechanics_engine:
-                        mechanics = self.shared_state.mechanics_engine
-                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                            current_round = mechanics.current_round
-                            mechanics.jsonl_logger.log_action_resolution(
-                                round_num=current_round,
-                                phase="adjudicate_npc",
-                                agent_name=character_name,
-                                action=intent,
-                                resolution=npc_resolution.model_dump(),
-                                economy_changes={},
-                                clock_states={},
-                                effects={},
-                                context={
-                                    "action_type": npc_action_type,
-                                    "is_npc": True,
-                                    "dialogue_content": action.get('dialogue_content')
-                                }
-                            )
+                    is_fallback = False
 
                 except Exception as e:
                     logger.warning(f"NPC LLM narration failed: {e}, using fallback")
@@ -4788,34 +4666,135 @@ For **other actions** (flee, hide, assist, attack):
                     if len(base_narration) < 400:
                         base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
                     narration = base_narration
-                    npc_resolution = ActionResolution(
-                        narration=narration,
-                        success_tier=SuccessTier.MODERATE,
-                        margin=5,
-                        effects=MechanicalEffects()
+                    is_fallback = True
+
+                # Step 2: Apply mechanical effects (runs regardless of narration source)
+                effects = MechanicalEffects()
+                success_tier = SuccessTier.MODERATE
+                margin = 5
+
+                # Handle assist actions: apply +1 bonus to target
+                if npc_action_type == 'assist' and target:
+                    effects.conditions = [
+                        Condition(
+                            name="Assisted",
+                            penalty=1,  # +1 bonus (positive penalty = buff)
+                            duration=1,
+                            description=f"Aided by {character_name}",
+                            target=target
+                        )
+                    ]
+
+                # Handle heal actions: Medicine skill check + healing effect
+                elif npc_action_type == 'heal' and target:
+                    # Look up NPC entity to get Medicine skill
+                    npc_entity = None
+                    npc_agent_id = action.get('agent_id')
+                    if npc_agent_id and self.shared_state:
+                        # Check NPC agents
+                        for npc in getattr(self.shared_state, 'npc_agents', []):
+                            if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
+                                npc_entity = npc
+                                break
+
+                    # Check if target is dead (wounds >= 6)
+                    target_entity = None
+                    target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                    if target and target.startswith('tgt_') and target_id_mapper:
+                        target_entity = target_id_mapper.resolve_target(target)
+                    elif target and self.shared_state:
+                        # Try direct agent_id lookup
+                        for player in getattr(self.shared_state, 'player_agents', []):
+                            if hasattr(player, 'agent_id') and player.agent_id == target:
+                                target_entity = player
+                                break
+                        if not target_entity:
+                            for npc in getattr(self.shared_state, 'npc_agents', []):
+                                if hasattr(npc, 'agent_id') and npc.agent_id == target:
+                                    target_entity = npc
+                                    break
+
+                    target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
+                    if target_wounds >= 6:
+                        # Target is dead - cannot heal
+                        narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                    else:
+                        # Medicine skill check: Intelligence(3) x Medicine + d20 vs DC 18
+                        medicine_skill = 0
+                        if npc_entity and hasattr(npc_entity, 'skills'):
+                            medicine_skill = npc_entity.skills.get("Medicine", 0)
+
+                        intelligence = 3  # Default NPC intelligence
+                        unskilled_penalty = -5 if medicine_skill == 0 else 0
+                        skill_value = max(medicine_skill, 1)
+                        base_roll = intelligence * skill_value + unskilled_penalty
+                        d20 = random.randint(1, 20)
+                        total = base_roll + d20
+                        dc = 18
+
+                        if total >= dc:
+                            # Success: create healing effect
+                            from .schemas.action_effects import HealingEffect
+                            effects.healing = [
+                                HealingEffect(
+                                    target=target,
+                                    heal_type="hp",
+                                    amount=max(1, total - dc + 5),  # Base 5 HP + margin
+                                    source=f"Medicine ({character_name})"
+                                )
+                            ]
+                            success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.GOOD
+                            margin = total - dc
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {effects.healing[0].amount} HP.]"
+                            logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+                        else:
+                            # Failure: no healing applied
+                            success_tier = SuccessTier.FAILURE
+                            margin = total - dc
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
+                            logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+
+                # Step 3: Build resolution and process effects
+                npc_resolution = ActionResolution(
+                    narration=narration,
+                    success_tier=success_tier,
+                    margin=margin,
+                    effects=effects
+                )
+
+                # Process healing effects if any (applies HP changes to target)
+                if effects.healing:
+                    healing_messages = _process_structured_healing_effects(
+                        healing_effects=effects.healing,
+                        shared_state=self.shared_state,
+                        current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else 0,
+                        mechanics=self.shared_state.mechanics_engine if self.shared_state else None,
+                        logger_instance=logger
                     )
 
-                    # Log fallback NPC action resolution
-                    if self.shared_state and self.shared_state.mechanics_engine:
-                        mechanics = self.shared_state.mechanics_engine
-                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                            current_round = mechanics.current_round
-                            mechanics.jsonl_logger.log_action_resolution(
-                                round_num=current_round,
-                                phase="adjudicate_npc",
-                                agent_name=character_name,
-                                action=intent,
-                                resolution=npc_resolution.model_dump(),
-                                economy_changes={},
-                                clock_states={},
-                                effects={},
-                                context={
-                                    "action_type": npc_action_type,
-                                    "is_npc": True,
-                                    "dialogue_content": action.get('dialogue_content'),
-                                    "fallback": True
-                                }
-                            )
+                # Step 4: Log resolution
+                if self.shared_state and self.shared_state.mechanics_engine:
+                    mechanics = self.shared_state.mechanics_engine
+                    if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        current_round = mechanics.current_round
+                        mechanics.jsonl_logger.log_action_resolution(
+                            round_num=current_round,
+                            phase="adjudicate_npc",
+                            agent_name=character_name,
+                            action=intent,
+                            resolution=npc_resolution.model_dump(),
+                            economy_changes={},
+                            clock_states={},
+                            effects={},
+                            context={
+                                "action_type": npc_action_type,
+                                "is_npc": True,
+                                "dialogue_content": action.get('dialogue_content'),
+                                "fallback": is_fallback
+                            }
+                        )
 
             # Return lightweight resolution matching player format (with outcome dict)
             return {
