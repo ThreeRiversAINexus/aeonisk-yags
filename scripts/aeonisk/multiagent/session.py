@@ -1871,6 +1871,7 @@ Generate narratives (numbered list only):"""
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score,
+                                'target': npc_action.target,  # Target for assist/heal/dialogue/attack actions
                                 'dialogue_content': npc_action.dialogue_content,  # Include actual dialogue for dialogue actions
                                 # Transfer-specific fields (if transfer action)
                                 'transfer_target': getattr(npc_action, 'transfer_target', None),
@@ -2210,11 +2211,12 @@ Generate narratives (numbered list only):"""
                         'character_name': agent.name,
                         'initiative': initiative_score,
                         'action': {
+                            'agent_id': agent.agent_id,  # NPC agent_id for entity lookup in DM resolution
                             'character_name': agent.name,  # Include in nested action for resolution broadcast
                             'intent': npc_intent,
                             'description': npc_description,
                             'action_type': npc_action_type,
-                            'target': npc_action.get('target'),  # Include target for assist/dialogue/attack actions
+                            'target': npc_action.get('target'),  # Include target for assist/heal/dialogue/attack actions
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
                     }
