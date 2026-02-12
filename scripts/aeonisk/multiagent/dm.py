@@ -5,7 +5,7 @@ AI Dungeon Master agent for multi-agent self-playing system.
 import asyncio
 import logging
 import random
-from typing import Dict, Any, List, Optional, Callable, Iterable
+from typing import Dict, Any, List, Optional, Callable, Iterable, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -37,6 +37,61 @@ def _resolution_success(resolution) -> bool:
 
     # Fallback: assume success if we can't determine
     return True
+
+
+def _resolve_weapon_and_damage_type(
+    action: Optional[Dict[str, Any]],
+    shared_state: 'SharedState'
+) -> Tuple[str, str, Any]:
+    """
+    Resolve weapon name, YAGS damage type, and Weapon object from player action.
+
+    Looks up the player's equipped weapons and matches by skill to determine
+    which weapon is being used and its damage type.
+
+    Returns:
+        (weapon_name, damage_type, weapon_obj_or_None)
+        - damage_type is one of: "stun", "wound", "mixed"
+    """
+    if not action or not shared_state:
+        return ("Unknown Weapon", "wound", None)
+
+    player_agent_id = action.get('agent_id')
+    if not player_agent_id:
+        return ("Unknown Weapon", "wound", None)
+
+    # Find the player agent
+    player_agent = None
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
+            player_agent = player
+            break
+
+    if not player_agent or not hasattr(player_agent, 'equipped_weapons'):
+        return ("Unknown Weapon", "wound", None)
+
+    skill = action.get('skill', '').lower()
+    primary = player_agent.equipped_weapons.get('primary')
+    sidearm = player_agent.equipped_weapons.get('sidearm')
+
+    if skill in ['guns', 'throw'] and primary:
+        return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
+    elif skill == 'brawl':
+        if sidearm and getattr(sidearm, 'skill', '') == 'Brawl':
+            return (sidearm.name, getattr(sidearm, 'damage_type', 'stun'), sidearm)
+        else:
+            # Unarmed — use fists from WEAPON_LIBRARY
+            from .weapons import WEAPON_LIBRARY
+            fists = WEAPON_LIBRARY.get("fists")
+            return ("Unarmed", "stun", fists)
+    elif skill == 'melee' and sidearm:
+        return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
+    elif primary:
+        return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
+    elif sidearm:
+        return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
+
+    return ("Unknown Weapon", "wound", None)
 
 
 def _get_active_protections(entity) -> List['Condition']:
@@ -131,7 +186,8 @@ def _process_structured_damage_effects(
     attacker_id: str = "unknown",
     attacker_name: str = "Unknown Attacker",
     weapon: str = "Unknown Weapon",
-    attack_roll: Optional[Dict[str, Any]] = None
+    attack_roll: Optional[Dict[str, Any]] = None,
+    resolved_damage_type: Optional[str] = None
 ) -> List[str]:
     """
     Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
@@ -230,39 +286,72 @@ def _process_structured_damage_effects(
         if barrier_messages:
             messages.extend([f"🛡️ {msg}" for msg in barrier_messages])
 
-        # === APPLY DAMAGE TO ENTITY ===
+        # === APPLY DAMAGE TO ENTITY (damage type routing) ===
         if damage_after_barriers > 0:
-            old_health = target_entity.health
-            wounds_dealt = damage_after_barriers // 5  # YAGS: every 5 damage = 1 wound
-            target_entity.wounds += wounds_dealt
-            target_entity.health -= damage_after_barriers
+            from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
 
-            damage_type_label = f" ({damage_effect.damage_type})" if damage_effect.damage_type else ""
+            old_health = target_entity.health
+            old_stuns = getattr(target_entity, 'stuns', 0)
+            old_wounds = getattr(target_entity, 'wounds', 0)
+
+            # Priority: backend-resolved weapon type > LLM's DamageEffect.damage_type > "wound" default
+            mechanical_type = resolved_damage_type or damage_effect.damage_type or "wound"
+            if mechanical_type not in ("stun", "wound", "mixed"):
+                mechanical_type = "wound"  # Normalize freeform types (kinetic, bludgeoning, etc.)
+
             friendly_fire_label = " [FRIENDLY FIRE]" if is_friendly_fire else ""
 
-            messages.append(
-                f"⚔️ **{target_name} takes {damage_after_barriers} damage{damage_type_label}!** "
-                f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
-            )
+            if mechanical_type == "stun":
+                result = apply_stun_damage(target_entity, damage_after_barriers)
+                wounds_dealt = 0
+                stuns_dealt = result['stuns_dealt']
+                messages.append(
+                    f"⚡ **{target_name} takes {damage_after_barriers} stun damage!** "
+                    f"(stuns: {old_stuns} → {target_entity.stuns}){friendly_fire_label}"
+                )
+            elif mechanical_type == "mixed":
+                result = apply_mixed_damage(target_entity, damage_after_barriers)
+                wounds_dealt = result['wounds_dealt']
+                stuns_dealt = result['stuns_dealt']
+                messages.append(
+                    f"⚔️ **{target_name} takes {damage_after_barriers} mixed damage!** "
+                    f"(stuns: {old_stuns} → {target_entity.stuns}, "
+                    f"{old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+                )
+            else:  # "wound"
+                result = apply_wound_damage(target_entity, damage_after_barriers)
+                wounds_dealt = result['wounds_dealt']
+                stuns_dealt = 0
+                messages.append(
+                    f"⚔️ **{target_name} takes {damage_after_barriers} damage!** "
+                    f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+                )
 
             if is_friendly_fire:
                 logger_instance.warning(
-                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} to {target_name} "
-                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} {mechanical_type} to {target_name}"
                 )
             else:
                 logger_instance.info(
-                    f"Damage dealt: {damage_after_barriers} to {target_name} "
-                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                    f"Damage dealt: {damage_after_barriers} {mechanical_type} to {target_name}"
                 )
 
             # === CHECK FOR DEFEAT ===
-            if target_entity.health <= 0:
-                defeat_logged = False
-                defeat_reason = None
+            defeat_logged = False
+            defeat_reason = None
+            is_stun_only = (mechanical_type == "stun")
 
+            if is_stun_only and result.get('unconscious_check_needed'):
+                # Stun KO — non-lethal incapacitation
+                logger_instance.info(f"{target_name} knocked unconscious by stun damage!")
+                messages.append(f"😵 **{target_name} is knocked unconscious!**")
+                if hasattr(target_entity, 'is_active'):
+                    target_entity.is_active = False
+                defeat_reason = "unconscious"
+                defeat_logged = True
+            elif not is_stun_only and target_entity.health <= 0:
+                # Wound/mixed defeat — existing logic
                 if hasattr(target_entity, 'check_death_save'):
-                    # Enemy/NPC with death saves
                     alive, status = target_entity.check_death_save()
                     if not alive:
                         logger_instance.info(f"{target_name} KILLED by attack!")
@@ -282,7 +371,6 @@ def _process_structured_damage_effects(
                         logger_instance.info(f"{target_name} critically wounded but conscious!")
                         messages.append(f"⚠️ **{target_name} is critically wounded!**")
                 else:
-                    # PC or entity without death saves
                     logger_instance.info(f"{target_name} defeated!")
                     messages.append(f"💀 **{target_name} is defeated!**")
                     if hasattr(target_entity, 'is_active'):
@@ -290,41 +378,40 @@ def _process_structured_damage_effects(
                     defeat_reason = "killed"
                     defeat_logged = True
 
-                # Log enemy defeat event for ML training (only for actual enemies, not PCs)
-                if defeat_logged and mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    if hasattr(target_entity, 'agent_id') and hasattr(target_entity, 'spawned_round'):
-                        # Calculate rounds survived
-                        rounds_survived = current_round - target_entity.spawned_round if target_entity.spawned_round else 0
-                        mechanics.jsonl_logger.log_enemy_defeat(
-                            round_num=current_round,
-                            enemy_id=target_entity.agent_id,
-                            enemy_name=target_name,
-                            defeat_reason=defeat_reason,
-                            rounds_survived=rounds_survived,
-                            killer_id=attacker_id,
-                            killer_name=attacker_name,
-                            final_damage=damage_after_barriers
-                        )
+            # Log enemy defeat event for ML training (only for actual enemies, not PCs)
+            if defeat_logged and mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                if hasattr(target_entity, 'agent_id') and hasattr(target_entity, 'spawned_round'):
+                    spawned = getattr(target_entity, 'spawned_round', None)
+                    rounds_survived = current_round - spawned if isinstance(spawned, int) else 0
+                    mechanics.jsonl_logger.log_enemy_defeat(
+                        round_num=current_round,
+                        enemy_id=target_entity.agent_id,
+                        enemy_name=target_name,
+                        defeat_reason=defeat_reason,
+                        rounds_survived=rounds_survived,
+                        killer_id=attacker_id,
+                        killer_name=attacker_name,
+                        final_damage=damage_after_barriers
+                    )
 
             # === LOG COMBAT ACTION (ML TRAINING) ===
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                # Build minimal combat action log
-                # (Full implementation would extract attack roll data from resolution context)
                 defender_state = {
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
-                    "alive": target_entity.health > 0,
-                    "status": "active" if target_entity.health > 0 else "defeated"
+                    "stuns": getattr(target_entity, 'stuns', 0),
+                    "alive": target_entity.health > 0 or is_stun_only,
+                    "status": "active" if (target_entity.health > 0 or is_stun_only) and not defeat_logged else "defeated"
                 }
 
                 damage_roll_data = {
                     "base_damage": damage_effect.base_damage,
                     "soak": damage_effect.soak if damage_effect.soak is not None else 0,
-                    "dealt": damage_after_barriers  # Post-barrier damage
+                    "dealt": damage_after_barriers,
+                    "damage_type": mechanical_type
                 }
 
-                # Get entity ID (vendors use vendor_id instead of agent_id)
                 entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                 mechanics.jsonl_logger.log_combat_action(
                     round_num=current_round,
@@ -5185,36 +5272,8 @@ The following actions ALREADY resolved (faster initiative):
                                     "status": "active" if target_entity.health > 0 else "defeated"
                                 }
 
-                                # Get weapon from player's equipped_weapons (preferred) or fallback to intent
-                                weapon_name = "Unknown Weapon"
-
-                                # Try to get weapon from player agent's equipped_weapons
-                                player_agent_id = action.get('agent_id')
-                                if player_agent_id and self.shared_state:
-                                    # Look up player agent
-                                    for player in getattr(self.shared_state, 'player_agents', []):
-                                        if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
-                                            # Check equipped weapons
-                                            if hasattr(player, 'equipped_weapons'):
-                                                primary = player.equipped_weapons.get('primary')
-                                                sidearm = player.equipped_weapons.get('sidearm')
-                                                # Use skill to determine which weapon
-                                                skill = action.get('skill', '').lower()
-                                                if skill in ['guns', 'throw'] and primary:
-                                                    weapon_name = primary.name
-                                                elif skill == 'brawl':
-                                                    # Use sidearm only if it's actually a Brawl-skill weapon
-                                                    if sidearm and sidearm.skill == 'Brawl':
-                                                        weapon_name = sidearm.name
-                                                    else:
-                                                        weapon_name = "Unarmed"
-                                                elif skill == 'melee' and sidearm:
-                                                    weapon_name = sidearm.name
-                                                elif primary:
-                                                    weapon_name = primary.name
-                                                elif sidearm:
-                                                    weapon_name = sidearm.name
-                                            break
+                                # Resolve weapon from equipped_weapons via shared helper
+                                weapon_name, _, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
 
                                 # Fallback to intent-based guessing if no equipped weapon found
                                 if weapon_name == "Unknown Weapon" and action.get('intent'):
@@ -5228,7 +5287,6 @@ The following actions ALREADY resolved (faster initiative):
                                     elif 'punch' in intent_lower or 'kick' in intent_lower or 'brawl' in intent_lower:
                                         weapon_name = "Unarmed"
                                     elif action.get('skill'):
-                                        # Use skill name directly (e.g., "Astral Arts", "Guns", "Melee")
                                         weapon_name = action['skill']
 
                                 # Get defender ID (vendors use vendor_id instead of agent_id)
@@ -6989,34 +7047,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             "margin": resolution.margin
                         }
 
-                    # Resolve actual weapon name from equipped_weapons
-                    weapon_name = action.get('weapon') if action else None
-                    if not weapon_name and action:
-                        player_agent_id = action.get('agent_id')
-                        if player_agent_id and self.shared_state:
-                            for player in getattr(self.shared_state, 'player_agents', []):
-                                if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
-                                    if hasattr(player, 'equipped_weapons'):
-                                        skill = action.get('skill', '').lower()
-                                        primary = player.equipped_weapons.get('primary')
-                                        sidearm = player.equipped_weapons.get('sidearm')
-                                        if skill in ['guns', 'throw'] and primary:
-                                            weapon_name = primary.name
-                                        elif skill == 'brawl':
-                                            # Use sidearm only if it's actually a Brawl-skill weapon
-                                            if sidearm and sidearm.skill == 'Brawl':
-                                                weapon_name = sidearm.name
-                                            else:
-                                                weapon_name = "Unarmed"
-                                        elif skill == 'melee' and sidearm:
-                                            weapon_name = sidearm.name
-                                        elif primary:
-                                            weapon_name = primary.name
-                                        elif sidearm:
-                                            weapon_name = sidearm.name
-                                    break
-                    if not weapon_name and action:
-                        weapon_name = action.get('skill', 'Unknown Weapon')
+                    # Resolve weapon and damage type from equipped_weapons
+                    weapon_name, resolved_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
+                    # Fallback: check action dict, then skill name
+                    if weapon_name == "Unknown Weapon" and action:
+                        weapon_name = action.get('weapon') or action.get('skill', 'Unknown Weapon')
                     weapon_name = weapon_name or 'Unknown Weapon'
 
                     damage_messages = _process_structured_damage_effects(
@@ -7028,7 +7063,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         attacker_id=attacker_id,
                         attacker_name=attacker_name,
                         weapon=weapon_name,
-                        attack_roll=attack_roll_data
+                        attack_roll=attack_roll_data,
+                        resolved_damage_type=resolved_damage_type
                     )
 
                     # Append damage outcome messages to narration
@@ -7267,13 +7303,25 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                         combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
                         combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
 
+        # Build weapon context for combat actions
+        weapon_context = ""
+        if action and action.get('action_type') in ('attack', 'combat', 'brawl'):
+            weapon_name, weapon_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
+            if weapon_name != "Unknown Weapon":
+                weapon_context = (
+                    f"\n\n**WEAPON CONTEXT:**\n"
+                    f"Weapon: {weapon_name}\n"
+                    f"Damage Type: {weapon_damage_type.upper()}\n"
+                    f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
+                )
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
             scenario_context=scenario_context,
             character_context=character_context,
             resolution_context=resolution_context,
-            tactical_combat_context="",  # Will be filled by full implementation
+            tactical_combat_context=weapon_context,
             clock_context=clock_context,
             bond_matrix=bond_matrix,
             void_level=self.current_scenario.void_level if self.current_scenario else 3,
@@ -7286,8 +7334,8 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             character_name=action.get('character', 'The character') if action else "The character",
             target_character="",
             target_id=target_id,
-            previous_context=previous_context,  # Include earlier resolutions for consistency
-            combatant_list=combatant_list  # NEW: Include all valid target IDs
+            previous_context=previous_context,
+            combatant_list=combatant_list
         )
 
         return prompt

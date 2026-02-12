@@ -266,7 +266,14 @@ class DamageEffect(BaseModel):
     base_damage: int = Field(..., ge=0, description="Damage before soak")
     soak: Optional[int] = Field(default=None, ge=0, description="Damage soaked (if known)")
     dealt: int = Field(..., ge=0, description="Final damage dealt after soak")
-    damage_type: Optional[str] = Field(default=None, description="Type of damage (kinetic, void, psychic, etc.)")
+    damage_type: Optional[str] = Field(
+        default=None,
+        description=(
+            "YAGS damage type: 'stun' (non-lethal knockout), "
+            "'wound' (lethal, HP loss + wounds), or 'mixed' (split stun/wound). "
+            "Must match the weapon's damage type from WEAPON CONTEXT."
+        )
+    )
 
     @field_validator('target')
     @classmethod

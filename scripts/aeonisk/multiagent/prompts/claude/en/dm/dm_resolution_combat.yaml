@@ -16,7 +16,7 @@ content: |-
       base_damage=15,         # Raw damage before soak
       soak=7,                 # Armor/resistance absorbed
       dealt=8,                # Final damage dealt (base - soak)
-      weapon="Kinetic Pistol" # Weapon used
+      damage_type="wound"     # From WEAPON CONTEXT: "stun", "wound", or "mixed"
   )]
   ```
 
@@ -71,7 +71,7 @@ content: |-
   )]
   ```
 
-  ## COMBAT EXAMPLE
+  ## LETHAL COMBAT EXAMPLE (damage_type="wound")
 
   ```python
   ActionResolution(
@@ -84,7 +84,7 @@ content: |-
               base_damage=15,
               soak=7,
               dealt=8,
-              weapon="Kinetic Pistol"
+              damage_type="wound"  # From WEAPON CONTEXT
           )],
           conditions=[Condition(
               name="Disarmed",
@@ -107,6 +107,33 @@ content: |-
   )
   ```
 
+  ## NON-LETHAL (STUN) COMBAT EXAMPLE
+
+  When WEAPON CONTEXT says damage_type=STUN, use damage_type="stun".
+  Stun attacks knock out targets without killing them.
+
+  ```python
+  ActionResolution(
+      narration="Your fist connects solidly with the guard's jaw, snapping their head sideways. They stumble, eyes unfocused, before crumpling to the ground unconscious.",
+      success_tier=SuccessTier.MODERATE,
+      margin=5,
+      effects=MechanicalEffects(
+          damage=[DamageEffect(
+              target="tgt_7a3f",
+              base_damage=10,
+              soak=5,
+              dealt=5,
+              damage_type="stun"  # From WEAPON CONTEXT — non-lethal
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="non-lethal takedown of hostile"
+          )]
+      )
+  )
+  ```
+
   ## VOID-FORGED WEAPON EXAMPLE
 
   ```python
@@ -120,7 +147,7 @@ content: |-
               base_damage=18,
               soak=6,
               dealt=12,
-              weapon="Void-Forged Kinetic Rifle"
+              damage_type="wound"  # From WEAPON CONTEXT
           )],
           void_changes=[VoidChange(
               character_name="Kade",
@@ -142,3 +169,5 @@ content: |-
   - Include sensory details: sounds, smells, visual aftermath
   - Show the target's reaction (stumble, scream, counter)
   - For misses, describe how they evade or the shot goes wide
+  - For STUN attacks: describe knockout, daze, or stagger — NOT bleeding/death
+  - For WOUND attacks: describe lethality, blood, lasting injury
