@@ -357,19 +357,23 @@ class AIPlayerAgent(Agent):
         self.health = self.max_health
         self.wounds = 0  # Wound count (tactical module)
 
-        # Soak calculation (YAGS formula + Aeonisk combat balance)
+        # Soak calculation (pure YAGS formula + equipped armor)
         # YAGS: Soak = Size + Agility + Endurance - 5
-        # Aeonisk: +4 combat balance (keeps avg=10 for backwards compatibility)
-        SOAK_COMBAT_BALANCE = 4
-
         agility = self.character_state.attributes.get('Agility', 3)
 
         base_soak = size + agility + endurance - 5
-        self.soak = base_soak + SOAK_COMBAT_BALANCE
+        self.soak = base_soak
+
+        # Apply equipped armor bonus from inventory
+        armor = self._load_armor()
+        armor_bonus = 0
+        if armor:
+            armor_bonus = armor.soak_bonus
+            self.soak += armor_bonus
 
         logger.debug(
             f"{self.character_state.name} Soak calculation: "
-            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + balance({SOAK_COMBAT_BALANCE}) = {self.soak}"
+            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + armor({armor_bonus}) = {self.soak}"
         )
 
         # Initialize weapons from config or use defaults
@@ -442,6 +446,23 @@ class AIPlayerAgent(Agent):
         if not self.human_controlled:
             print("Type 'take_control' to switch to human control")
         
+    def _load_armor(self):
+        """Load best armor from character config inventory.
+
+        Checks inventory keys against ARMOR_LIBRARY and returns the armor
+        with the highest soak_bonus. Returns None if no armor found.
+        """
+        from .weapons import ARMOR_LIBRARY
+
+        inventory = self.character_config.get('inventory', {})
+        best_armor = None
+        for item_key, count in inventory.items():
+            if count > 0 and item_key in ARMOR_LIBRARY:
+                armor = ARMOR_LIBRARY[item_key]
+                if armor.soak_bonus > 0 and (best_armor is None or armor.soak_bonus > best_armor.soak_bonus):
+                    best_armor = armor
+        return best_armor
+
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.debug(f"Player {self.agent_id} shutting down")

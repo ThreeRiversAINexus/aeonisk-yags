@@ -194,15 +194,16 @@ def calc_pc_hp(size: int = 5, endurance: int = 3) -> int:
     return (size * 2) + endurance + 13
 
 
-def calc_pc_soak(size: int = 5, agility: int = 3, endurance: int = 3) -> int:
-    """PC Soak = Size + Agility + Endurance - 5 + 4 (combat balance)."""
-    return size + agility + endurance - 5 + 4
+def calc_pc_soak(size: int = 5, agility: int = 3, endurance: int = 3,
+                 armor_soak: int = 0) -> int:
+    """PC Soak = Size + Agility + Endurance - 5 + armor (pure YAGS)."""
+    return size + agility + endurance - 5 + armor_soak
 
 
 def calc_enemy_soak(size: int = 5, agility: int = 3, endurance: int = 3,
                      armor_soak: int = 0) -> int:
-    """Enemy Soak = Size + Agi + End - 5 + 4 + armor_soak_bonus."""
-    return size + agility + endurance - 5 + 4 + armor_soak
+    """Enemy Soak = Size + Agi + End - 5 + armor (pure YAGS)."""
+    return size + agility + endurance - 5 + armor_soak
 
 
 # =============================================================================
