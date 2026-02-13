@@ -2253,6 +2253,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
                         )
 
+                if not active_enemies:
+                    entities.append("⚠️ NO TARGETABLE ENEMIES IN SCENE — All hostiles have been neutralized or withdrawn.")
+
         # Add NPCs (with target IDs for combat)
         if self.shared_state and self.shared_state.npc_agents:
             for npc in self.shared_state.npc_agents:

@@ -4113,6 +4113,17 @@ story_advancement=StoryAdvancement(
 - Your job is to WEAVE these resolutions together, not re-narrate them from scratch
 - If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
 
+**⚠️ CRITICAL - ENTITY-NARRATIVE ALIGNMENT (STRICT):**
+- You MUST NOT describe specific hostile combatants (snipers, guards, attackers, shooters) that are not in the "Active Enemies" list above
+- To introduce new threats, spawn them via Entity Lifecycle Phase (enemy_spawns) FIRST — only then may you narrate their presence
+- Narrating phantom enemies causes players to target non-existent hostiles, resulting in friendly fire casualties
+- Environmental tension without specific hostiles is acceptable:
+  ✅ "Shadows shift along the rooftop parapets, the air thick with ozone"
+  ✅ "Something moves in the dark — too fast to identify"
+  ❌ "A sniper takes position on the rooftop" (implies targetable enemy — MUST spawn first)
+  ❌ "Guards approach from three directions" (implies targetable enemies — MUST spawn first)
+- If the Active Enemies list is EMPTY, narrate a post-combat or transitional scene — do not introduce new hostiles without spawning them
+
 **Storytelling Elements - Make it NARRATIVE, not just reportage:**
 
 **SHOW, Don't Tell:**
