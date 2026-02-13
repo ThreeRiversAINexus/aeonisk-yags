@@ -487,7 +487,7 @@ conversion_check_prompt: |
   npc_spawns=[
       NPCSpawn(
           name="Facility Security Patrol",
-          faction="Tempest Corp Security",
+          faction="Tempest Industries",
           entity_type="neutral",
           threat_level="armed_neutral",
           disposition="wary",
@@ -512,7 +512,7 @@ conversion_check_prompt: |
   # Civilian non-combatant (fearful)
   NPCSpawn(
       name="Frightened Dock Worker",
-      faction="Independent Civilian",
+      faction="Independent",
       entity_type="neutral",
       threat_level="non_combatant",
       disposition="fearful",  # Use "fearful" for scared/terrified NPCs
@@ -525,7 +525,7 @@ conversion_check_prompt: |
   # Friendly ally with skills
   NPCSpawn(
       name="Dr. Yuki Tanaka",
-      faction="Freeborn Medical Corps",
+      faction="Freeborn",
       entity_type="ally",
       threat_level="non_combatant",
       disposition="friendly",
@@ -538,7 +538,7 @@ conversion_check_prompt: |
   # Armed neutral (potential threat)
   NPCSpawn(
       name="Warehouse Security Guard",
-      faction="Independent Contract Security",
+      faction="Independent",
       entity_type="neutral",
       threat_level="armed_neutral",
       disposition="wary",
@@ -571,6 +571,29 @@ conversion_check_prompt: |
   "grunt", "elite", "boss", "enforcer", "sniper", "support", "ambusher", "void_cultist", "security_drone", "seedwalker_heavy", "voidcradle_antibot"
 
   Do NOT use variations like "elite_operative" (use "elite" or "enforcer"), "guard" (use "grunt" or "enforcer"), "soldier" (use "grunt"), "cultist" (use "void_cultist"), "heavy" (use "seedwalker_heavy"), "thug" (use "grunt"), "raider" (use "grunt" or "elite").
+
+  ⚠️ **CRITICAL: Enemy faction MUST be EXACTLY one of these 10 canonical values:**
+
+  | Faction | Use For |
+  |---------|---------|
+  | "Sovereign Nexus" | Central governing authority forces |
+  | "Pantheon Security" | Nexus-aligned security operatives (often hired as mercenaries by Sovereign Nexus and corporate factions) |
+  | "ACG" | Astral Commerce Group (financiers, debt law, corporate influence) |
+  | "ArcGen" | Biotech corporation forces |
+  | "House of Vox" | Media/intel corporation operatives |
+  | "Tempest Industries" | Anti-Nexus rebel forces |
+  | "Freeborn" | Neutral zone independents |
+  | "Void" | Void creatures, corrupted entities, void cultists |
+  | "Independent" | Unaffiliated criminals, mercs, gangs, thugs, civilians |
+  | "Unknown" | Unidentified entities |
+
+  ⚠️ **INVALID faction examples (do NOT use):**
+  - "ACG Security" → use "ACG"
+  - "Tempest Corp Security" → use "Tempest Industries"
+  - "Void Cultists" / "Void Entities" → use "Void"
+  - "Red Coil Syndicate" / "Local Criminal Syndicate" → use "Independent"
+  - "Pantheon Crew" → use "Pantheon Security"
+  - "Corporate Security" → use the specific corporation name (ACG, ArcGen, etc.)
 
   **When to spawn new enemies:**
   - **Reinforcements:** Backup called after alarm/distress signal
@@ -612,7 +635,7 @@ conversion_check_prompt: |
 
   All enemy spawns MUST specify:
   - `template`: Enemy type ("thug", "raider", "enforcer", "heavy_gunner", "elite_operative", "void_cultist")
-  - `faction`: Which faction they belong to (e.g., "Red Coil Syndicate", "Corporate Security", "Void Cultists")
+  - `faction`: Which faction they belong to - MUST be one of: "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen", "House of Vox", "Tempest Industries", "Freeborn", "Void", "Independent", "Unknown"
   - `count`: Number to spawn (1-6, typically 2-4)
   - `spawn_reason`: Why they're appearing (20-100 chars)
 
@@ -627,7 +650,7 @@ conversion_check_prompt: |
   enemy_spawns=[
       EnemySpawn(
           template="enforcer",
-          faction="Tempest Corp Security",
+          faction="Tempest Industries",
           count=3,
           spawn_reason="Failed stealth check triggered alarm - security reinforcements responding",
           initial_position="Far-Enemy"
@@ -640,10 +663,10 @@ conversion_check_prompt: |
   enemy_spawns=[
       EnemySpawn(
           template="elite",  # Use "elite" for skilled combatants, NOT "raider"
-          faction="Red Coil Syndicate",
+          faction="Independent",
           archetype="Raider",
           count=4,
-          spawn_reason="Red Coil Patrol clock filled - rival gang arrives to contest territory"
+          spawn_reason="Gang patrol clock filled - rival gang arrives to contest territory"
       )
   ]
   ```
@@ -653,7 +676,7 @@ conversion_check_prompt: |
   enemy_spawns=[
       EnemySpawn(
           template="enforcer",  # Use "enforcer" for security/guards, NOT "heavy_gunner"
-          faction="Local Criminal Syndicate",
+          faction="Independent",
           count=2,
           spawn_reason="Multiple failed hacks alerted facility defenders - heavy security deployed",
           archetype="Heavy Gunner",
@@ -667,7 +690,7 @@ conversion_check_prompt: |
   enemy_spawns=[
       EnemySpawn(
           template="void_cultist",
-          faction="Void Entities",
+          faction="Void",
           count=3,
           spawn_reason="Failed ritual with void corruption - void entities manifest from breach",
           archetype="melee"
@@ -679,20 +702,20 @@ conversion_check_prompt: |
 
   ❌ **WRONG - Duplicating existing enemies:**
   ```python
-  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Red Coil Thug #1, 80% HP)
+  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Independent Thug #1, 80% HP)
   enemy_spawns=[
       EnemySpawn(
           template="grunt",  # Use "grunt" for basic enemies, NOT "thug"
-          faction="Red Coil Syndicate",
+          faction="Independent",
           count=1,
-          spawn_reason="Red Coil thug arrives"  # ← WRONG! Enemy already exists!
+          spawn_reason="Independent thug arrives"  # ← WRONG! Enemy already exists!
       )
   ]
   ```
 
   ✅ **CORRECT - Only spawn if needed:**
   ```python
-  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Red Coil Thug #1, 80% HP)
+  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Independent Thug #1, 80% HP)
   enemy_spawns=[]  # ← Enemy already present, no spawn needed
   ```
 
@@ -823,7 +846,7 @@ conversion_check_prompt: |
   "Thug #1 (enemy_thug_01) surrendered due to low HP (15%) and successful intimidation (margin +12). Guard #2 (enemy_guard_02) fled when surrounded. No NPC escalations - prisoner remains compliant."
 
   **Example with enemy spawns:**
-  "Failed stealth checks triggered facility alarm. Spawning 3 Tempest Corp enforcers as reinforcements. No conversions - existing enemies still combat-capable."
+  "Failed stealth checks triggered facility alarm. Spawning 3 Tempest Industries enforcers as reinforcements. No conversions - existing enemies still combat-capable."
 
   **Example with enemy departures:**
   "Cathedral Security confirmed authorization (Kael's diplomacy margin +18), stood down and departed. No conversions needed - guards simply left after verification."

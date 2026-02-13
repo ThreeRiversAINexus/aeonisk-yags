@@ -41,7 +41,7 @@ class TestEnemySpawnStructured:
         # Create EnemySpawn object (from DM's RoundSynthesis)
         spawn = EnemySpawn(
             template="Grunt",
-            faction="ACG Security",
+            faction="ACG",
             archetype="Enforcer",
             count=1,
             spawn_reason="Alarm triggered, reinforcements arrive",
@@ -58,7 +58,7 @@ class TestEnemySpawnStructured:
         assert len(enemy_combat.enemy_agents) == 1, "Should have 1 enemy agent"
 
         enemy = enemy_combat.enemy_agents[0]
-        assert enemy.name == "ACG Security Enforcer"
+        assert enemy.name == "ACG Enforcer"
         # Position is stored as object with ring and side attributes
         assert enemy.position.ring == "Far"
         assert enemy.position.side == "Enemy"
@@ -76,7 +76,7 @@ class TestEnemySpawnStructured:
 
         spawn = EnemySpawn(
             template="Grunt",
-            faction="Void Cultist",
+            faction="Void",
             archetype="Ritualist",
             count=3,
             spawn_reason="Ritual circle activates, cultists emerge",
@@ -90,9 +90,9 @@ class TestEnemySpawnStructured:
         assert len(enemy_combat.enemy_agents) == 3, "Should have 3 enemy agents"
 
         # Verify names have #1, #2, #3 suffixes
-        assert enemy_combat.enemy_agents[0].name == "Void Cultist Ritualist #1"
-        assert enemy_combat.enemy_agents[1].name == "Void Cultist Ritualist #2"
-        assert enemy_combat.enemy_agents[2].name == "Void Cultist Ritualist #3"
+        assert enemy_combat.enemy_agents[0].name == "Void Ritualist #1"
+        assert enemy_combat.enemy_agents[1].name == "Void Ritualist #2"
+        assert enemy_combat.enemy_agents[2].name == "Void Ritualist #3"
 
     def test_spawn_from_structured_multiple_spawn_objects(self):
         """
@@ -107,7 +107,7 @@ class TestEnemySpawnStructured:
         spawns = [
             EnemySpawn(
                 template="Grunt",
-                faction="Gang",
+                faction="Independent",
                 archetype="Enforcer",
                 count=2,
                 spawn_reason="Street gang backup arrives",
@@ -115,7 +115,7 @@ class TestEnemySpawnStructured:
             ),
             EnemySpawn(
                 template="Elite",
-                faction="Gang",
+                faction="Independent",
                 archetype="Leader",
                 count=1,
                 spawn_reason="Gang leader joins the fight",
@@ -129,9 +129,9 @@ class TestEnemySpawnStructured:
         assert len(enemy_combat.enemy_agents) == 3
 
         # Verify mix of templates
-        assert enemy_combat.enemy_agents[0].name == "Gang Enforcer #1"
-        assert enemy_combat.enemy_agents[1].name == "Gang Enforcer #2"
-        assert enemy_combat.enemy_agents[2].name == "Gang Leader"
+        assert enemy_combat.enemy_agents[0].name == "Independent Enforcer #1"
+        assert enemy_combat.enemy_agents[1].name == "Independent Enforcer #2"
+        assert enemy_combat.enemy_agents[2].name == "Independent Leader"
 
     def test_spawn_from_structured_disabled(self):
         """
@@ -145,7 +145,7 @@ class TestEnemySpawnStructured:
 
         spawn = EnemySpawn(
             template="Grunt",
-            faction="Test",
+            faction="Independent",
             archetype="Test",
             count=1,
             spawn_reason="Test spawn reason (disabled)",
@@ -202,7 +202,7 @@ class TestEnemySpawnParameterMapping:
 
         spawn = EnemySpawn(
             template="Elite",  # Must be lowercased for template_key
-            faction="Corp",
+            faction="ACG",
             archetype="Security",
             count=1,
             spawn_reason="Test spawn for parameter verification",
@@ -218,6 +218,132 @@ class TestEnemySpawnParameterMapping:
         # Verify Position enum was converted to string
         assert enemy.position.ring == "Near"
         assert enemy.position.side == "PC"
+
+
+class TestFactionValidation:
+    """Test that EnemySpawn and NPCSpawn enforce canonical faction names."""
+
+    def test_enemy_spawn_rejects_non_canonical_faction(self):
+        """Non-canonical faction strings must be rejected by Pydantic validation."""
+        from pydantic import ValidationError
+
+        bad_factions = [
+            "Pantheon Crew",
+            "ACG Security",
+            "Tempest Corp Security",
+            "Red Coil Syndicate",
+            "Void Cultists",
+            "Local Criminal Syndicate",
+            "Gang",
+            "Corp",
+        ]
+        for bad_faction in bad_factions:
+            with pytest.raises(ValidationError):
+                EnemySpawn(
+                    template="grunt",
+                    faction=bad_faction,
+                    archetype="Enforcer",
+                    count=1,
+                    spawn_reason="Test spawn with non-canonical faction",
+                )
+
+    def test_enemy_spawn_accepts_all_canonical_factions(self):
+        """All 10 canonical faction values must be accepted."""
+        canonical = [
+            "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+            "House of Vox", "Tempest Industries", "Freeborn",
+            "Void", "Independent", "Unknown",
+        ]
+        for faction in canonical:
+            spawn = EnemySpawn(
+                template="grunt",
+                faction=faction,
+                archetype="Enforcer",
+                count=1,
+                spawn_reason="Test spawn with canonical faction value",
+            )
+            assert spawn.faction == faction
+
+    def test_npc_spawn_rejects_non_canonical_faction(self):
+        """NPCSpawn must also reject non-canonical faction strings."""
+        from pydantic import ValidationError
+        from aeonisk.multiagent.schemas.story_events import NPCSpawn
+
+        bad_factions = [
+            "Pantheon Crew",
+            "Station Security",
+            "Independent Civilian",
+            "Freeborn Medical Corps",
+        ]
+        for bad_faction in bad_factions:
+            with pytest.raises(ValidationError):
+                NPCSpawn(
+                    name="Test NPC",
+                    faction=bad_faction,
+                    entity_type="neutral",
+                    threat_level="non_combatant",
+                    disposition="neutral",
+                    description="Test NPC for faction validation check",
+                    health=20,
+                    soak=0,
+                )
+
+    def test_npc_spawn_accepts_all_canonical_factions(self):
+        """NPCSpawn must accept all 10 canonical faction values."""
+        from aeonisk.multiagent.schemas.story_events import NPCSpawn
+
+        canonical = [
+            "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+            "House of Vox", "Tempest Industries", "Freeborn",
+            "Void", "Independent", "Unknown",
+        ]
+        for faction in canonical:
+            npc = NPCSpawn(
+                name="Test NPC",
+                faction=faction,
+                entity_type="neutral",
+                threat_level="non_combatant",
+                disposition="neutral",
+                description="Test NPC for faction validation check",
+                health=20,
+                soak=0,
+            )
+            assert npc.faction == faction
+
+
+class TestFactionUtilsVoid:
+    """Test Void faction handling in faction_utils."""
+
+    def test_void_hostile_to_all_non_void(self):
+        """Void faction should be hostile to every non-Void faction."""
+        from aeonisk.multiagent.faction_utils import are_factions_allied
+
+        non_void = [
+            "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+            "House of Vox", "Tempest Industries", "Freeborn",
+            "Independent", "Unknown", "Nexus", "Pantheon",
+        ]
+        for faction in non_void:
+            assert are_factions_allied("Void", faction) is False, \
+                f"Void should be hostile to {faction}"
+            assert are_factions_allied(faction, "Void") is False, \
+                f"{faction} should be hostile to Void"
+
+    def test_void_allied_with_void(self):
+        """Void should be allied with other Void entities."""
+        from aeonisk.multiagent.faction_utils import are_factions_allied
+        assert are_factions_allied("Void", "Void") is True
+
+    def test_void_faction_stance(self):
+        """get_faction_stance should return 'Void' for Void faction."""
+        from aeonisk.multiagent.faction_utils import get_faction_stance
+        assert get_faction_stance("Void") == "Void"
+
+    def test_extract_faction_void(self):
+        """extract_faction should match 'Void' in enemy names."""
+        from aeonisk.multiagent.faction_utils import extract_faction
+        assert extract_faction("Void Creature") == "Void"
+        assert extract_faction("Corrupted Void Entity") == "Void"
 
 
 if __name__ == '__main__':

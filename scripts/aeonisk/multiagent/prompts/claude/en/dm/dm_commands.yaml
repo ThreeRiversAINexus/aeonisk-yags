@@ -104,7 +104,7 @@ story_advancement=StoryAdvancement(\n\
   \ Output):**\n\n**When using structured output (`RoundSynthesis` schema):**\n\n\
   Use `enemy_spawns` and `enemy_conversions` fields instead of text markers.\n\n**Enemy\
   \ Spawns:**\n```python\nenemy_spawns=[\n    EnemySpawn(\n        template=\"Elite\"\
-  ,\n        faction=\"ACG Security Response Team\",\n        archetype=\"Enforcer\"\
+  ,\n        faction=\"ACG\",\n        archetype=\"Enforcer\"\
   ,\n        spawn_reason=\"Alarm triggered, rapid response team deployed\",\n   \
   \     initial_position=Position.FAR_ENEMY\n    )\n]\n```\n\n## \U0001F3AF ENEMY\
   \ GROUP PHILOSOPHY - CRITICAL\n\n**Enemy groups are SINGLE combat units with narrative\
@@ -191,27 +191,27 @@ story_advancement=StoryAdvancement(\n\
   \ local fixers\n- Social missions → spawn quest-givers, informants, contacts\n-\
   \ Players need someone to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
   \ 1: Civilian non-combatant (fearful)\nnpc_spawns=[\n    NPCSpawn(\n       \
-  \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
+  \ name=\"Frightened Dock Worker\",\n        faction=\"Independent\",\n\
   \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
   \      disposition=\"fearful\",  # Use 'fearful' for scared/terrified NPCs\n  \
   \      description=\"Terrified civilian hiding behind cargo crates\",\n        health=15,\
   \  # Low health, fragile\n        soak=0,\n        skills={}  # No special skills\n\
   \    )\n]\n\n# Example 2: Friendly ally\
   \ with skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Dr. Yuki Tanaka\",\n\
-  \        faction=\"Freeborn Medical Corps\",\n        entity_type=\"ally\",\n \
+  \        faction=\"Freeborn\",\n        entity_type=\"ally\",\n \
   \       threat_level=\"non_combatant\",\n        disposition=\"friendly\",\n  \
   \      description=\"Field medic offering to treat the team's wounds\",\n     \
   \   health=20,\n        soak=0,\n        skills={\"Medicine\": 15, \"Empathy\"\
   : 12}  # Can assist with healing/social\n    )\n]\n\n# Example 3: Wary potential\
   \ threat (armed neutral)\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Warehouse\
-  \ Security Guard\",\n        faction=\"Independent Contract Security\",\n     \
+  \ Security Guard\",\n        faction=\"Independent\",\n     \
   \   entity_type=\"neutral\",\n        threat_level=\"armed_neutral\",\n       \
   \ disposition=\"wary\",\n        description=\"Armed guard watching the team cautiously,\
   \ hand near holster\",\n        health=25,  # More durable than civilians\n   \
   \     soak=2,  # Light armor\n        skills={\"Notice\": 10, \"Intimidate\": 8}\
   \  # Professional skills\n    )\n]\n\n# Example 4: Informant with investigative\
   \ skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"'Whisper' Chen\",\n     \
-  \   faction=\"Independent Information Broker\",\n        entity_type=\"neutral\"\
+  \   faction=\"Independent\",\n        entity_type=\"neutral\"\
   ,\n        threat_level=\"potential_threat\",\n        disposition=\"neutral\",\n\
   \        description=\"Data broker with intel on ACG operations\",\n        health=18,\n\
   \        soak=0,\n        skills={\"Investigation\": 14, \"Deception\": 13, \"\

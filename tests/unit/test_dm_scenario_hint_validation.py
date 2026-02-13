@@ -211,7 +211,7 @@ class TestScenarioValidation:
             initial_enemies=[  # Wrong! Hint says NO enemies
                 EnemySpawn(
                     template="Grunt",
-                    faction="Generic Gang",
+                    faction="Independent",
                     archetype="Enforcer",
                     count=2,
                     spawn_reason="Test enemies for validation"

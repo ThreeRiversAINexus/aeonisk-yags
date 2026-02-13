@@ -10,6 +10,16 @@ Author: Three Rivers AI Nexus
 from typing import Tuple
 
 
+# Canonical faction names for spawns (EnemySpawn, NPCSpawn schemas)
+CANONICAL_SPAWN_FACTIONS = [
+    "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+    "House of Vox", "Tempest Industries", "Freeborn",
+    "Void", "Independent", "Unknown"
+]
+
+# Void faction set (hostile to everyone except other Void)
+VOID_FACTIONS = {"Void"}
+
 # Faction Alignments (from FACTION_REFERENCE.md)
 PRO_NEXUS_FACTIONS = {
     "Nexus", "Sovereign Nexus", "Pantheon", "Pantheon Security"
@@ -51,7 +61,8 @@ def extract_faction(enemy_name: str) -> str:
         PRO_NEXUS_FACTIONS |
         NEXUS_ALIGNED_CORPORATE |
         ANTI_NEXUS_FACTIONS |
-        NEUTRAL_FACTIONS
+        NEUTRAL_FACTIONS |
+        VOID_FACTIONS
     )
 
     for faction in all_factions:
@@ -82,6 +93,10 @@ def are_factions_allied(faction_a: str, faction_b: str) -> bool:
     # Same faction = allied
     if faction_a == faction_b:
         return True
+
+    # Void factions are hostile to everyone except other Void
+    if faction_a in VOID_FACTIONS or faction_b in VOID_FACTIONS:
+        return faction_a in VOID_FACTIONS and faction_b in VOID_FACTIONS
 
     # Unknown factions are hostile to everyone
     if faction_a == "Unknown" or faction_b == "Unknown":
@@ -129,7 +144,9 @@ def get_faction_stance(faction: str) -> str:
     Returns:
         "Pro-Nexus", "Anti-Nexus", "Neutral", or "Unknown"
     """
-    if faction in PRO_NEXUS_FACTIONS or faction in NEXUS_ALIGNED_CORPORATE:
+    if faction in VOID_FACTIONS:
+        return "Void"
+    elif faction in PRO_NEXUS_FACTIONS or faction in NEXUS_ALIGNED_CORPORATE:
         return "Pro-Nexus"
     elif faction in ANTI_NEXUS_FACTIONS:
         return "Anti-Nexus"

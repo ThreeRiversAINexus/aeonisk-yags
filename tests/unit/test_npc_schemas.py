@@ -48,7 +48,7 @@ def test_npc_spawn_entity_types():
     for entity_type in entity_types:
         spawn = NPCSpawn(
             name="Test NPC",
-            faction="Test",
+            faction="Independent",
             entity_type=entity_type,
             threat_level="non_combatant",
             disposition="neutral" if entity_type != "prisoner" else "prisoner",
@@ -66,7 +66,7 @@ def test_npc_spawn_threat_levels():
     for threat_level in threat_levels:
         spawn = NPCSpawn(
             name="Test NPC",
-            faction="Test",
+            faction="Independent",
             entity_type="neutral",
             threat_level=threat_level,
             disposition="neutral",
@@ -84,7 +84,7 @@ def test_npc_spawn_dispositions():
     for disposition in dispositions:
         spawn = NPCSpawn(
             name="Test NPC",
-            faction="Test",
+            faction="Independent",
             entity_type="neutral" if disposition != "prisoner" else "prisoner",
             threat_level="non_combatant",
             disposition=disposition,
@@ -100,7 +100,7 @@ def test_npc_spawn_min_description_length():
     with pytest.raises(ValidationError):
         NPCSpawn(
             name="Test",
-            faction="Test",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="neutral",

@@ -3802,7 +3802,7 @@ Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn ne
 enemy_spawns=[
     EnemySpawn(
         template="Grunt",
-        faction="ACG Security",
+        faction="ACG",
         archetype="Enforcer",
         count=2,
         spawn_reason="Alarm triggered, security team responds",

@@ -106,7 +106,7 @@ class TestSessionStartNPCLifecycleLogging:
         initial_npcs = [
             NPCSpawn(
                 name="Test NPC 1",
-                faction="Commune",
+                faction="Freeborn",
                 disposition="friendly",
                 entity_type="neutral",
                 threat_level="non_combatant",
@@ -276,7 +276,7 @@ class TestSessionStartNPCLifecycleLogging:
         initial_npcs = [
             NPCSpawn(
                 name="Round Test NPC",
-                faction="Commune",
+                faction="Freeborn",
                 disposition="friendly",
                 entity_type="neutral",
                 threat_level="non_combatant",

@@ -332,7 +332,7 @@ class TestPreRoundEntityLifecycle:
                 ),
                 NPCSpawn(
                     name="Guard",
-                    faction="ACG Security",
+                    faction="ACG",
                     entity_type="neutral",
                     threat_level="potential_threat",
                     disposition="neutral",
@@ -383,7 +383,7 @@ class TestPreRoundEntityLifecycle:
             enemy_spawns=[
                 EnemySpawn(
                     template="grunt",
-                    faction="Hostile Faction",
+                    faction="Tempest Industries",
                     archetype="enforcer",
                     count=2,
                     spawn_reason="Patrol enters the area",
