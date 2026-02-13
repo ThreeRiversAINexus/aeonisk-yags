@@ -44,6 +44,7 @@ content: |-
   **Inventory:**
   - Energy: {currency_display}
   - Seeds: {seeds_display}
+  {weapon_inventory}
 
   **Environment:**
   - Altars: {altar_availability}

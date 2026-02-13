@@ -463,6 +463,33 @@ class AIPlayerAgent(Agent):
                     best_armor = armor
         return best_armor
 
+    def _format_weapon_inventory(self) -> str:
+        """Format equipped/carried weapons for LLM prompts."""
+        if not hasattr(self, 'equipped_weapons') or not hasattr(self, 'weapon_inventory'):
+            return ""
+
+        equipped_list = []
+        if self.equipped_weapons.get('primary'):
+            wpn = self.equipped_weapons['primary']
+            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
+        if self.equipped_weapons.get('sidearm'):
+            wpn = self.equipped_weapons['sidearm']
+            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
+
+        carried_list = []
+        for wpn in self.weapon_inventory:
+            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
+
+        text = "\n\n**Your Weapons:**\n"
+        if equipped_list:
+            text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
+        if carried_list:
+            text += "**Carried:** " + ", ".join(carried_list) + "\n"
+        text += "**Always available:** Unarmed (STUN damage, Strength x Brawl)\n"
+        text += "\n**Damage Types:** STUN = Non-lethal | MIXED = Partially lethal | WOUND = Fully lethal\n"
+        text += "**IMPORTANT:** Specify which weapon you're using in your action!\n"
+        return text
+
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.debug(f"Player {self.agent_id} shutting down")
@@ -1870,6 +1897,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Inventory for attunement/purchase decisions
                 "currency_display": currency_display,
                 "seeds_display": seeds_display,
+                # Weapon loadout (so LLM knows what weapons are available)
+                "weapon_inventory": self._format_weapon_inventory(),
                 # Environment features (altars, vendors, situational factors)
                 "altar_availability": self._format_altar_availability(),
                 "vendor_status": self._format_vendor_status(),
@@ -2106,6 +2135,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "declared_actions_this_round": declared_actions_text,
                 # NEW: Recent action outcomes (detailed narrations)
                 "recent_action_outcomes": recent_outcomes_text,
+                # Weapon loadout (so LLM knows what weapons are available)
+                "weapon_inventory": self._format_weapon_inventory(),
                 # Customizable personality/direction guidance (with labels when present)
                 "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
                 "direction": f"**Direction:** {self.direction}" if self.direction else "",
@@ -2629,32 +2660,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
         # In free targeting mode: ALWAYS show UI (IFF/ROE testing - PCs can heal/harm each other)
         # In standard mode: only show UI when enemies present (backward compatible)
         if free_targeting or active_enemies:
-            # Build weapon inventory summary (for lethal/non-lethal choices)
-            weapon_inventory_text = ""
-            if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):
-                equipped_list = []
-                if self.equipped_weapons.get('primary'):
-                    wpn = self.equipped_weapons['primary']
-                    equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
-                if self.equipped_weapons.get('sidearm'):
-                    wpn = self.equipped_weapons['sidearm']
-                    equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
-
-                carried_list = []
-                for wpn in self.weapon_inventory:
-                    carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
-
-                weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
-                if equipped_list:
-                    weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
-                if carried_list:
-                    weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
-                weapon_inventory_text += "**Always available:** Unarmed (STUN damage, Strength x Brawl) - tackles, grapples, punches, restraining\n"
-                weapon_inventory_text += "\n**Damage Types:**\n"
-                weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
-                weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
-                weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
-                weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons or fight unarmed if needed.\n"
+            weapon_inventory_text = self._format_weapon_inventory()
 
             if free_targeting:
                 # FREE TARGETING MODE: Unified combatant list with generic IDs

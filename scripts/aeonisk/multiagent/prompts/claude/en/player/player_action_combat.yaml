@@ -78,6 +78,7 @@ content: |-
   - Combat skills: {combat_skills}
   - Current health: {health}/{max_health} ({health_status})
   - Position: {position}
+  {weapon_inventory}
 
   {declared_actions_this_round}
 

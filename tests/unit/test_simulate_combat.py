@@ -60,28 +60,28 @@ class TestPCFormulas:
         assert calc_pc_hp(size=5, endurance=3) == 26
 
     def test_pc_soak_calculation(self):
-        """Soak = Size + Agi + End - 5 + 4. Size=5, Agi=4, End=4 => 12."""
-        assert calc_pc_soak(size=5, agility=4, endurance=4) == 12
+        """Soak = Size + Agi + End - 5 + armor. Size=5, Agi=4, End=4, armor=3 => 11."""
+        assert calc_pc_soak(size=5, agility=4, endurance=4, armor_soak=3) == 11
 
     def test_pc_soak_low_stats(self):
-        """Soak with low stats. Size=5, Agi=2, End=2 => 8."""
-        assert calc_pc_soak(size=5, agility=2, endurance=2) == 8
+        """Soak with low stats no armor. Size=5, Agi=2, End=2 => 4."""
+        assert calc_pc_soak(size=5, agility=2, endurance=2) == 4
 
 
 class TestEnemyFormulas:
     """Test enemy stat calculations match enemy_agent.py formulas."""
 
     def test_enemy_soak_with_armor(self):
-        """Grunt soak: Size(5)+Agi(3)+End(3)-5+4+armor(3) = 13."""
-        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=3) == 13
+        """Grunt soak: Size(5)+Agi(3)+End(3)-5+armor(3) = 9."""
+        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=3) == 9
 
     def test_enemy_soak_no_armor(self):
-        """Soak without armor. Size(5)+Agi(3)+End(3)-5+4 = 10."""
-        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=0) == 10
+        """Soak without armor. Size(5)+Agi(3)+End(3)-5 = 6."""
+        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=0) == 6
 
     def test_enemy_soak_heavy_armor(self):
-        """Enforcer soak: Size(5)+Agi(3)+End(3)-5+4+armor(8) = 18."""
-        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=8) == 18
+        """Enforcer soak: Size(5)+Agi(3)+End(3)-5+armor(8) = 14."""
+        assert calc_enemy_soak(size=5, agility=3, endurance=3, armor_soak=8) == 14
 
 
 class TestEnemyAttack:
@@ -449,7 +449,7 @@ class TestParseSessionJSONL:
             assert len(enemies) == 1
             assert pcs[0].name == "Test PC"
             assert pcs[0].hp == 27  # (5*2)+4+13
-            assert pcs[0].soak == 12  # 5+4+4-5+4
+            assert pcs[0].soak == 8  # 5+4+4-5 (YAGS: no balance modifier)
             assert enemies[0].name == "Grunt #1"
             assert enemies[0].hp == 30
             assert enemies[0].soak == 13
