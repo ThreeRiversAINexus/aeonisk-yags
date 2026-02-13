@@ -95,6 +95,30 @@ def _parse_surrender_from_resolution(
                             return
 
 
+def _mark_defeated_from_resolution(
+    enemy_combat,
+    resolution_state: ResolutionState
+) -> None:
+    """
+    Sync resolution_state with enemies defeated by PC actions.
+
+    After a PC action resolves and _process_structured_damage_effects sets
+    is_active=False on killed enemies, this marks them as defeated in
+    resolution_state so ActionValidator properly invalidates their later
+    actions (with JSONL events and narration).
+
+    Args:
+        enemy_combat: EnemyCombatManager (or None if not in tactical combat)
+        resolution_state: Resolution state to update
+    """
+    if not enemy_combat or not hasattr(enemy_combat, 'enemy_agents'):
+        return
+    for enemy in enemy_combat.enemy_agents:
+        if not enemy.is_active and not resolution_state.is_defeated(enemy.agent_id):
+            resolution_state.mark_defeated(enemy.agent_id)
+            logger.info(f"Marked {enemy.name} ({enemy.agent_id}) as defeated in resolution_state")
+
+
 def _get_energy_purse(agent):
     """
     Get energy purse from player or NPC agent.
@@ -2041,6 +2065,7 @@ Generate narratives (numbered list only):"""
                             # so their actions get invalidated (like defeated enemies)
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
+                            _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
 
                             # Process purchase/crafting effects from structured output
                             effects = resolution_data.get('effects') or {}
@@ -2125,9 +2150,9 @@ Generate narratives (numbered list only):"""
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
-                        # TODO: Update resolution_state based on PC action results
-                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.
-                        #  Currently handles: surrendered enemies via _parse_surrender_from_resolution)
+                        # resolution_state updated after each PC action:
+                        # - Surrendered enemies: _parse_surrender_from_resolution
+                        # - Defeated enemies: _mark_defeated_from_resolution
 
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
