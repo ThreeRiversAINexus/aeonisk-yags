@@ -46,7 +46,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Guns": 3,
             "Awareness": 2,
             "Athletics": 2,
-            "Melee": 1
+            "Melee": 3
         },
 
         # Combat Stats
