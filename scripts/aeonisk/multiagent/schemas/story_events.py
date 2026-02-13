@@ -923,6 +923,10 @@ If unsure, choose the CLOSEST match from the 6 valid options above."""
         default_factory=dict,
         description="Key YAGS skills (NOT attributes). Examples: {'Guns': 10, 'Medicine': 12, 'Stealth': 8}. Do NOT use 'Perception', 'Strength', etc. (those are attributes, not skills)."
     )
+    weapons: List[str] = Field(
+        default_factory=list,
+        description="Weapon keys from WEAPON_LIBRARY (e.g., ['pistol', 'combat_knife']). Optional - if empty, weapons auto-assigned based on threat_level and skills."
+    )
 
     @field_validator('skills')
     @classmethod

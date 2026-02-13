@@ -4280,9 +4280,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     print(f"\n{notification}")
 
             # Get initial_npcs (works for both object and dict)
+            # Note: dm.py stores NPC spawns as 'npc_spawns' in scenario_setup_dict,
+            # so fall back to that key if 'initial_npcs' not found
             npc_spawns = getattr(scenario_setup, 'initial_npcs', None)
             if npc_spawns is None and isinstance(scenario_setup, dict):
-                npc_spawns = scenario_setup.get('initial_npcs', [])
+                npc_spawns = scenario_setup.get('initial_npcs', scenario_setup.get('npc_spawns', []))
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts

@@ -1406,7 +1406,8 @@ Apply this narrative style to:
                     description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
                     health=npc_config.get('health', 20),
                     soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {})
+                    skills=npc_config.get('skills', {}),
+                    weapons=npc_config.get('weapons', [])
                 )
                 npc_spawns.append(npc_spawn)
 
@@ -1647,7 +1648,8 @@ Apply this narrative style to:
                     description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
                     health=npc_config.get('health', 20),
                     soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {})
+                    skills=npc_config.get('skills', {}),
+                    weapons=npc_config.get('weapons', [])
                 )
                 npc_spawns.append(npc_spawn)
 
@@ -4853,6 +4855,125 @@ For **other actions** (flee, hide, assist, attack):
                             margin = total - dc
                             narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
                             logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+
+                # Handle attack actions: simplified YAGS combat
+                elif npc_action_type == 'attack' and target:
+                    # Look up NPC entity to get skills and weapons
+                    npc_entity = None
+                    npc_agent_id = action.get('agent_id')
+                    if npc_agent_id and self.shared_state:
+                        for npc in getattr(self.shared_state, 'npc_agents', []):
+                            if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
+                                npc_entity = npc
+                                break
+
+                    # Find weapon
+                    weapon = None
+                    if npc_entity and hasattr(npc_entity, 'weapons') and npc_entity.weapons:
+                        weapon = npc_entity.weapons[0]
+
+                    if not weapon:
+                        # No weapon - attack fails
+                        narration += f"\n\n[{character_name} attempts to attack but has no weapon.]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                        logger.info(f"NPC {character_name} attack failed: no weapon")
+                    else:
+                        # Resolve target entity
+                        target_entity = None
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target and target.startswith('tgt_') and target_id_mapper:
+                            target_entity = target_id_mapper.resolve_target(target)
+                        elif target and self.shared_state:
+                            # Try direct agent_id lookup: PCs, NPCs, then enemies
+                            for player in getattr(self.shared_state, 'player_agents', []):
+                                if hasattr(player, 'agent_id') and player.agent_id == target:
+                                    target_entity = player
+                                    break
+                            if not target_entity:
+                                for npc in getattr(self.shared_state, 'npc_agents', []):
+                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
+                                        target_entity = npc
+                                        break
+                            if not target_entity:
+                                for enemy_agent in getattr(self.shared_state, 'enemy_agents', []):
+                                    if hasattr(enemy_agent, 'agent_id') and enemy_agent.agent_id == target:
+                                        target_entity = enemy_agent
+                                        break
+
+                        if not target_entity:
+                            narration += f"\n\n[{character_name} attacks but target has moved or is not found.]"
+                            success_tier = SuccessTier.FAILURE
+                            margin = -5
+                        else:
+                            target_name = getattr(target_entity, 'name', str(target))
+
+                            # Determine attribute based on weapon skill
+                            if weapon.skill == "Guns":
+                                attr_value = 3  # Default NPC Perception
+                            elif weapon.skill == "Melee":
+                                attr_value = 3  # Default NPC Dexterity
+                            else:  # Brawl
+                                attr_value = 3  # Default NPC Agility
+
+                            # Get combat skill
+                            combat_skill = 0
+                            if npc_entity and hasattr(npc_entity, 'skills'):
+                                combat_skill = npc_entity.skills.get(weapon.skill, 0)
+
+                            # Attack roll: attr × skill + weapon.attack + d20 (with unskilled penalty)
+                            unskilled_penalty = -5 if combat_skill == 0 else 0
+                            skill_value = max(combat_skill, 1)
+                            base_attack = attr_value * skill_value + weapon.attack + unskilled_penalty
+                            d20 = random.randint(1, 20)
+                            attack_total = base_attack + d20
+                            dc = 15  # Passive defense
+
+                            if attack_total >= dc:
+                                # Hit! Roll damage
+                                strength = 3  # Default NPC Strength
+                                damage_d20 = random.randint(1, 20)
+                                base_damage = strength + weapon.damage + damage_d20
+                                total_damage = int(base_damage * 0.85)  # CBM reduction
+
+                                target_soak = getattr(target_entity, 'soak', 0)
+                                damage_dealt = max(0, total_damage - target_soak)
+
+                                success_tier = SuccessTier.MODERATE if (attack_total - dc) < 5 else SuccessTier.GOOD
+                                margin = attack_total - dc
+
+                                # Apply damage
+                                if damage_dealt > 0 and hasattr(target_entity, 'health'):
+                                    from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
+                                    damage_type = weapon.damage_type
+
+                                    if damage_type == "stun":
+                                        damage_result = apply_stun_damage(target_entity, damage_dealt)
+                                    elif damage_type == "wound":
+                                        damage_result = apply_wound_damage(target_entity, damage_dealt)
+                                    elif damage_type == "mixed":
+                                        damage_result = apply_mixed_damage(target_entity, damage_dealt)
+
+                                # Add DamageEffect for JSONL logging
+                                from .schemas.shared_types import DamageEffect
+                                effects.damage = [
+                                    DamageEffect(
+                                        target=target_name,
+                                        base_damage=total_damage,
+                                        soak=target_soak,
+                                        dealt=damage_dealt,
+                                        damage_type=weapon.damage_type
+                                    )
+                                ]
+
+                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — HIT! Damage: {total_damage} - {target_soak} soak = {damage_dealt} dealt to {target_name}.]"
+                                logger.info(f"NPC {character_name} hit {target_name}: attack {attack_total} vs DC {dc}, {damage_dealt} damage ({weapon.skill} {combat_skill}, {weapon.name})")
+                            else:
+                                # Miss
+                                success_tier = SuccessTier.FAILURE
+                                margin = attack_total - dc
+                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — MISS.]"
+                                logger.info(f"NPC {character_name} missed {target_name}: attack {attack_total} vs DC {dc} ({weapon.skill} {combat_skill}, {weapon.name})")
 
                 # Step 3: Build resolution and process effects
                 npc_resolution = ActionResolution(
@@ -8085,24 +8206,35 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)
         npc_id = f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
 
-        # Synthesize weapons based on skills and threat level
+        # Synthesize weapons based on explicit list, skills, and threat level
         from .weapons import WEAPON_LIBRARY
         weapons = []
 
-        # Give weapons based on threat level and skills
+        # Check for explicit weapon list from NPCSpawn schema
+        spawn_weapons = getattr(npc_spawn, 'weapons', [])
+        if spawn_weapons:
+            for weapon_key in spawn_weapons:
+                if weapon_key in WEAPON_LIBRARY:
+                    weapons.append(WEAPON_LIBRARY[weapon_key])
+                else:
+                    logger.warning(f"Unknown weapon key '{weapon_key}' in NPCSpawn for {npc_spawn.name}, skipping")
+
+        # Get skills for weapon auto-assignment and NPC creation
         skills = npc_spawn.skills if npc_spawn.skills else {}
 
-        if npc_spawn.threat_level == "armed_neutral":
-            # Armed NPCs get appropriate weapons based on skills
-            if skills.get('Guns', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['pistol'])
-            if skills.get('Melee', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['combat_knife'])
+        # Fall through to auto-assignment if no explicit weapons
+        if not weapons:
+            if npc_spawn.threat_level == "armed_neutral":
+                # Armed NPCs get appropriate weapons based on skills
+                if skills.get('Guns', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['pistol'])
+                if skills.get('Melee', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['combat_knife'])
 
-        elif npc_spawn.threat_level == "potential_threat":
-            # Potentially dangerous NPCs might have basic weapons
-            if skills.get('Melee', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['combat_knife'])
+            elif npc_spawn.threat_level == "potential_threat":
+                # Potentially dangerous NPCs might have basic weapons
+                if skills.get('Melee', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['combat_knife'])
 
         # Everyone can use their fists (unarmed fallback)
         if not weapons:

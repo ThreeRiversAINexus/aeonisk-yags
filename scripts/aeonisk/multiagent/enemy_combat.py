@@ -908,18 +908,29 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC (enemies can't attack other enemies with this action)
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to attack enemy {target_id} - not supported")
-                    return {
-                        'enemy_id': enemy.agent_id,
-                        'character_name': enemy.name,
-                        'action': 'attack',
-                        'result': 'invalid target',
-                        'narration': f"{enemy.name} cannot attack another enemy"
-                    }
+                    # Faction-aware: hostile factions can attack each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to attack allied enemy {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'attack',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot attack allied {target_faction} forces"
+                        }
+                    else:
+                        # Hostile faction - allow attack
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) attacking hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)
@@ -1042,8 +1053,9 @@ class EnemyCombatManager:
                 # Start building clearer narration: Attacker HIT Target with Weapon for X damage
                 result['narration'] = f"{enemy.name} HIT {target_name} with {weapon.name} for {total_damage} damage ({damage_dealt} after soak)"
 
-                # Track damage for round summary
-                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                # Track damage for round summary (only for PC targets)
+                is_pc_target = hasattr(target, 'character_state')
+                if is_pc_target and self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_player_damage_taken(damage_dealt)
 
                 # Apply damage based on weapon type (YAGS damage types)
@@ -1108,6 +1120,9 @@ class EnemyCombatManager:
                         result['narration'] += " - TARGET DEFEATED!"
                         resolution_state.mark_defeated(target_id)
                         result['target_defeated'] = True
+                        # Deactivate enemy/NPC targets
+                        if hasattr(target, 'is_active'):
+                            target.is_active = False
                         logger.info(f"{enemy.name} defeated {target.name if hasattr(target, 'name') else target_id}")
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
@@ -1204,18 +1219,28 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to suppress enemy {target_id} - not supported")
-                    return {
-                        'enemy_id': enemy.agent_id,
-                        'character_name': enemy.name,
-                        'action': 'suppress',
-                        'result': 'invalid target',
-                        'narration': f"{enemy.name} cannot suppress another enemy"
-                    }
+                    # Faction-aware: hostile factions can suppress each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to suppress allied enemy {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'suppress',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot suppress allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) suppressing hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)
@@ -1613,11 +1638,21 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to charge enemy {target_id} - not supported")
+                    # Faction-aware: hostile factions can charge each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to charge allied enemy {target_id} ({target_faction})")
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) charging hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)

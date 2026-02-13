@@ -148,15 +148,15 @@ class TestTargetIDMapperNPC:
         assert "npc_civilian_1" in npc_ids
 
     def test_can_target_npc_rules(self):
-        """can_target enforces NPC targeting rules."""
+        """can_target allows all entity types to target."""
         mapper = TargetIDMapper()
 
-        # NPCs cannot target (non-combatants)
+        # NPCs can now target (simplified combat)
         assert mapper.can_target(
             source_id="npc_civilian_1",
             target_id="player_01",
             source_type="npc"
-        ) == False
+        ) == True
 
         # Players can target NPCs
         assert mapper.can_target(
@@ -165,86 +165,12 @@ class TestTargetIDMapperNPC:
             source_type="player"
         ) == True
 
-        # Enemies can target NPCs (checked with personality elsewhere)
+        # Enemies can target NPCs (faction check in enemy_combat.py)
         assert mapper.can_target(
             source_id="enemy_grunt_1",
             target_id="npc_civilian_1",
             source_type="enemy"
         ) == True
-
-    def test_can_target_with_personality_ruthless(self):
-        """Ruthless enemies can target all NPCs."""
-        mapper = TargetIDMapper()
-        npc = create_test_npc(agent_id="npc_civilian_1", threat_level="non_combatant")
-        mapper.register_npc(npc)
-
-        # Ruthless enemies target anyone
-        assert mapper.can_target_with_personality(
-            source_id="enemy_grunt_1",
-            target_id="npc_civilian_1",
-            personality="ruthless",
-            target_threat_level="non_combatant"
-        ) == True
-
-    def test_can_target_with_personality_professional(self):
-        """Professional enemies only target threats."""
-        mapper = TargetIDMapper()
-
-        # Non-combatant NPC - professional won't target
-        assert mapper.can_target_with_personality(
-            source_id="enemy_soldier_1",
-            target_id="npc_civilian_1",
-            personality="professional",
-            target_threat_level="non_combatant"
-        ) == False
-
-        # Armed neutral - professional will target
-        assert mapper.can_target_with_personality(
-            source_id="enemy_soldier_1",
-            target_id="npc_guard_1",
-            personality="professional",
-            target_threat_level="armed_neutral"
-        ) == True
-
-        # Potential threat - professional will target
-        assert mapper.can_target_with_personality(
-            source_id="enemy_soldier_1",
-            target_id="npc_informant_1",
-            personality="professional",
-            target_threat_level="potential_threat"
-        ) == True
-
-    def test_can_target_with_personality_defensive(self):
-        """Defensive enemies ignore all NPCs."""
-        mapper = TargetIDMapper()
-
-        # Defensive enemies don't target any NPCs
-        assert mapper.can_target_with_personality(
-            source_id="enemy_grunt_1",
-            target_id="npc_civilian_1",
-            personality="defensive",
-            target_threat_level="non_combatant"
-        ) == False
-
-        assert mapper.can_target_with_personality(
-            source_id="enemy_grunt_1",
-            target_id="npc_guard_1",
-            personality="defensive",
-            target_threat_level="armed_neutral"
-        ) == False
-
-    def test_can_target_with_personality_always_targets_players(self):
-        """All personalities can target players."""
-        mapper = TargetIDMapper()
-
-        # All personalities target players
-        for personality in ["ruthless", "professional", "defensive"]:
-            assert mapper.can_target_with_personality(
-                source_id="enemy_grunt_1",
-                target_id="player_01",
-                personality=personality,
-                target_threat_level="armed_neutral"
-            ) == True
 
     def test_npc_prefix_priority_in_get_agent_type(self):
         """npc_ prefix is checked before enemy_ prefix."""

@@ -359,7 +359,7 @@ class NPCAction(BaseModel):
     - dialogue: Talk, answer questions
     - assist: Help players (if friendly)
     - heal: Use Medicine skill to stabilize wounded allies (requires target)
-    - attack: Attack players/others (triggers self-escalation to enemy)
+    - attack: Attack players/others (simplified YAGS combat)
     - transfer: Give currency/items to another character
     - pass: Explicitly do nothing
     """
@@ -428,6 +428,14 @@ class NPCAction(BaseModel):
                 f"dialogue_content is REQUIRED when action_type='{self.action_type}'. "
                 f"You must provide what the NPC actually says, not just the reason. "
                 f"Example: dialogue_content='Please don't shoot, I surrender!'"
+            )
+
+        # Attack validation
+        if self.action_type == "attack" and not self.target:
+            raise ValueError(
+                "target is REQUIRED when action_type='attack'. "
+                "Specify the agent_id or tgt_ ID of the character to attack. "
+                "Example: target='tgt_1234'"
             )
 
         # Heal validation
