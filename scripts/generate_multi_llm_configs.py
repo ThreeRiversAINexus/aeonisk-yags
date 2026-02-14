@@ -29,15 +29,27 @@ def sanitize_model_name(model: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]", "", model)
 
 
-def update_llm_block(llm_config: dict, provider: str, model: str) -> dict:
-    """Update an LLM config block with new provider and model."""
+def update_llm_block(llm_config: dict, provider: str, model: str, proxy_url: str = None) -> dict:
+    """Update an LLM config block with new provider and model.
+
+    When proxy_url is set, wraps the config in batch_proxy routing.
+    """
     updated = copy.deepcopy(llm_config)
-    updated["provider"] = provider
-    updated["model"] = model
+    if proxy_url:
+        updated["provider"] = "batch_proxy"
+        updated["model"] = model
+        updated["underlying_provider"] = provider
+        updated["use_proxy"] = True
+        updated["proxy_url"] = proxy_url
+        updated["proxy_priority"] = "normal"
+        updated["proxy_strategy"] = "auto"
+    else:
+        updated["provider"] = provider
+        updated["model"] = model
     return updated
 
 
-def generate_config(base_config: dict, provider: str, model: str) -> dict:
+def generate_config(base_config: dict, provider: str, model: str, proxy_url: str = None) -> dict:
     """Deep-copy base config and replace provider/model in ALL agent LLM blocks."""
     config = copy.deepcopy(base_config)
 
@@ -45,16 +57,16 @@ def generate_config(base_config: dict, provider: str, model: str) -> dict:
     if "agents" in config and "dm" in config["agents"]:
         if "llm" in config["agents"]["dm"]:
             config["agents"]["dm"]["llm"] = update_llm_block(
-                config["agents"]["dm"]["llm"], provider, model
+                config["agents"]["dm"]["llm"], provider, model, proxy_url=proxy_url
             )
 
     # Update all player LLM blocks
     if "agents" in config and "players" in config["agents"]:
         for player in config["agents"]["players"]:
             if "llm" in player:
-                player["llm"] = update_llm_block(player["llm"], provider, model)
+                player["llm"] = update_llm_block(player["llm"], provider, model, proxy_url=proxy_url)
 
-    # Update session_name with provider/model suffix
+    # Update session_name with original provider/model (not "batch_proxy")
     safe_model = sanitize_model_name(model)
     base_name = config.get("session_name", "experiment")
     config["session_name"] = f"{base_name}_{provider}_{safe_model}"
@@ -81,6 +93,11 @@ def main():
         "--output-dir",
         required=True,
         help="Directory to write generated configs",
+    )
+    parser.add_argument(
+        "--proxy",
+        default=None,
+        help="Proxy URL to wrap configs in batch_proxy routing (e.g., http://localhost:8000)",
     )
     parser.add_argument(
         "--runs-per-config",
@@ -127,7 +144,7 @@ def main():
     base_stem = base_path.stem.replace("session_config_", "")
 
     for provider, model in specs:
-        config = generate_config(base_config, provider, model)
+        config = generate_config(base_config, provider, model, proxy_url=args.proxy)
         safe_model = sanitize_model_name(model)
         filename = f"session_config_{base_stem}_{provider}_{safe_model}.json"
         output_path = output_dir / filename

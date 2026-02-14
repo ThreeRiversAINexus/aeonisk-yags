@@ -116,6 +116,27 @@ SUPPORTED_MODELS = {
         'recommended': 'gpt-5-mini',
         'pricing_url': 'https://openai.com/pricing'
     },
+    'grok': {
+        'models': ['grok-4-latest', 'grok-3', 'grok-3-mini'],
+        'recommended': 'grok-4-latest',
+        'pricing_url': 'https://x.ai/api/pricing'
+    },
+    'gemini': {
+        'models': ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'],
+        'recommended': 'gemini-2.5-pro',
+        'pricing_url': 'https://ai.google.dev/pricing'
+    },
+    'deepinfra': {
+        'models': [
+            'deepseek-ai/DeepSeek-V3.2',
+            'zai-org/GLM-5',
+            'moonshotai/Kimi-K2.5',
+            'NousResearch/Hermes-3-Llama-3.1-405B',
+            'Qwen/Qwen3-32B',
+        ],
+        'recommended': 'deepseek-ai/DeepSeek-V3.2',
+        'pricing_url': 'https://deepinfra.com/pricing'
+    },
     'local': {
         'models': [
             'llama3.1',
@@ -133,6 +154,13 @@ SUPPORTED_MODELS = {
             'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini',
             # Anthropic models via proxy
             'claude-opus-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+            # Grok models via proxy
+            'grok-4-latest', 'grok-3', 'grok-3-mini',
+            # Gemini models via proxy
+            'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash',
+            # DeepInfra models via proxy
+            'deepseek-ai/DeepSeek-V3.2', 'zai-org/GLM-5', 'moonshotai/Kimi-K2.5',
+            'NousResearch/Hermes-3-Llama-3.1-405B', 'Qwen/Qwen3-32B',
         ],
         'recommended': 'gpt-5-mini (50% cheaper via proxy)',
         'pricing_url': 'https://docs.anthropic.com/en/docs/build-with-claude/message-batches'
@@ -151,6 +179,21 @@ RATE_LIMIT_PRESETS = {
         'max_concurrent_requests': 15,     # OpenAI handles higher concurrency
         'min_request_interval': 0.08,      # ~750 req/min max throughput (GPT-4+ tier allows 500-10k)
         'reasoning': 'OpenAI has higher rate limits (500 req/min for GPT-4, 10k for GPT-3.5/4o-mini)'
+    },
+    'grok': {
+        'max_concurrent_requests': 15,     # xAI handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'xAI Grok API has similar rate limits to OpenAI'
+    },
+    'gemini': {
+        'max_concurrent_requests': 15,     # Google handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'Google Gemini API has generous rate limits'
+    },
+    'deepinfra': {
+        'max_concurrent_requests': 15,     # DeepInfra handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'DeepInfra serverless inference has generous rate limits'
     },
     'local': {
         'max_concurrent_requests': 1,      # Local models typically single-threaded
