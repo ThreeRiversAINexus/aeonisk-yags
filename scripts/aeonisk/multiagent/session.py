@@ -1904,7 +1904,7 @@ Generate narratives (numbered list only):"""
                                 print(f"         └─ {reason_short}")
 
                             # Check for self-escalation (NPC declares attack)
-                            if npc_action.action_type == "attack":
+                            if _should_escalate_npc(agent.entity_type, npc_action.action_type):
                                 logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
                                 logger.info(f"   Reason: {npc_action.reason}")
 
@@ -5609,6 +5609,31 @@ NO conversions/morale checks needed (scene just started).
             # Signal completion AFTER all processing (including Entity Lifecycle #2) completes
             self._synthesis_complete.set()
             logger.debug("Round synthesis processing complete, signaling completion")
+
+
+def _should_escalate_npc(entity_type: str, action_type: str) -> bool:
+    """
+    Determine if an NPC action should trigger escalation to enemy.
+
+    Allied NPCs attacking enemies are fighting FOR players — don't escalate.
+    Only non-attack actions never escalate.
+
+    Args:
+        entity_type: NPC entity type ("ally", "neutral", "prisoner")
+        action_type: NPC action type ("attack", "dialogue", "flee", etc.)
+
+    Returns:
+        True if NPC should be escalated to enemy
+    """
+    if action_type != "attack":
+        return False
+
+    # Allied NPCs attacking enemies = helping players, don't escalate
+    if entity_type == "ally":
+        return False
+
+    # Neutral/prisoner/other attacking = hostile intent, escalate
+    return True
 
 
 # Configuration example

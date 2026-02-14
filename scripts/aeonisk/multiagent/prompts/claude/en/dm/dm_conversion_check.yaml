@@ -166,9 +166,11 @@ conversion_check_prompt: |
   **⚠️ CRITICAL: If resolutions show enemies/NPCs taking these actions, you MUST convert them:**
 
   **Enemy Actions → Automatic Conversion:**
-  - **"Surrender" action** → `EnemyConversion(resolution=CONVINCED, resulting_entity_type="prisoner", resulting_disposition="prisoner")`
+  - **"Surrender" action** → `EnemyConversion(resolution=CONVINCED, resulting_entity_type="prisoner", resulting_disposition="prisoner")` — MANDATORY, do not ignore!
   - **"Retreat" action** → `EnemyConversion(resolution=FLED, reason="Tactical retreat")`
   - **"Flee" action** → `EnemyConversion(resolution=FLED, reason="Morale broken, fled scene")`
+  - **"Wait" action** → No conversion needed (enemy is observing/holding)
+  - **"Dialogue" action** → No conversion needed (enemy is speaking, not surrendering)
 
   **NPC Actions → Automatic Departure:**
   - **"Flee" action** → NPC IMMEDIATELY leaves scene (add agent_id to npc_departures)
@@ -271,8 +273,18 @@ conversion_check_prompt: |
 
   ### Enemy Conversions (Enemy → NPC or Removal)
 
+  **Morale behavior types (shown in enemy list):**
+  - `surrender_if_cornered`: HIGH surrender chance when HP <30% or surrounded. Convert as CONVINCED → prisoner.
+  - `flee_when_broken`: HIGH flee chance when HP <30%. Convert as FLED.
+  - `fight_to_death`: VERY LOW conversion chance. Only convert if physically incapacitated (SUBDUED/NEUTRALIZED).
+
+  **Morale check results in resolution summary:**
+  - "surrender" event = Enemy MUST be converted (CONVINCED → prisoner)
+  - "panicked" event = Enemy should flee (FLED) or be removed
+  - Morale success = Enemy holds, no forced conversion
+
   **When enemies should convert:**
-  - **Low HP (<30%)**: High surrender/flee chance
+  - **Low HP (<30%)**: High surrender/flee chance (check morale behavior above)
   - **Surrounded/Outnumbered**: Tactical retreat or capitulation
   - **Successful Diplomacy**: Player intimidation/negotiation succeeded
   - **Morale broken**: Faction leader defeated, allies routed

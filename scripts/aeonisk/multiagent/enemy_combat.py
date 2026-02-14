@@ -56,6 +56,19 @@ class EnemyDeclaration:
     shared_intel: Optional[str]
 
 
+def _get_panicked_action(enemy: EnemyAgent) -> str:
+    """
+    Determine what action a panicked enemy takes based on morale_behavior.
+
+    Returns:
+        "Surrender" for surrender_if_cornered, "FLEE" for all others
+    """
+    morale_behavior = getattr(enemy, 'morale_behavior', 'flee_when_broken')
+    if morale_behavior == 'surrender_if_cornered':
+        return "Surrender"
+    return "FLEE"
+
+
 def parse_enemy_declaration(declaration_text: str, enemy: EnemyAgent) -> Optional[EnemyDeclaration]:
     """
     Parse structured enemy declaration output.
@@ -498,22 +511,30 @@ class EnemyCombatManager:
         if not self.enabled or not enemy.is_active:
             return None
 
-        # Override: Panicked enemies always declare FLEE
+        # Override: Panicked enemies auto-declare based on morale behavior
         if enemy.is_panicked:
-            logger.info(f"{enemy.name} is panicked - auto-declaring FLEE action")
+            panicked_action = _get_panicked_action(enemy)
+            logger.info(f"{enemy.name} is panicked - auto-declaring {panicked_action} action")
+
+            if panicked_action == "Surrender":
+                reasoning = f"Panicked due to {enemy.panic_trigger} - surrendering (morale behavior: surrender_if_cornered)"
+                intel = "Surrendering - morale broken"
+            else:
+                reasoning = f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
+                intel = "Attempting to escape - morale broken"
 
             parsed = EnemyDeclaration(
                 agent_id=enemy.agent_id,
                 character_name=enemy.name,
                 initiative=enemy.initiative,
-                major_action="FLEE",
+                major_action=panicked_action,
                 target="None",
                 weapon="None",
                 defence_token=None,
                 minor_action=None,
                 token_target=None,
-                shared_intel="Attempting to escape - morale broken",
-                reasoning=f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
+                shared_intel=intel,
+                reasoning=reasoning
             )
 
             self.enemy_declarations[enemy.agent_id] = parsed
@@ -540,6 +561,12 @@ class EnemyCombatManager:
 
         # Get target ID mapper if in free targeting mode
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state and free_targeting else None
+
+        # Inject situation history for prompt generation
+        if self.shared_state and hasattr(self.shared_state, 'round_synthesis_history'):
+            enemy._situation_history = self.shared_state.round_synthesis_history[-3:]
+        else:
+            enemy._situation_history = None
 
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt

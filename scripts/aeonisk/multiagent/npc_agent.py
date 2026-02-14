@@ -590,7 +590,10 @@ class NPCLLMClient:
 - **Pantheon Security** = Law enforcement
 - **Tempest Industries** = Anti-Nexus rebels (void research)
 - **House of Vox** = Media/broadcast corporation
+- **Aether Dynamics** = Leyline power, slipstream pilots (corporate, Nexus-aligned)
 - **Freeborn** = Natural-born, outside the pod system
+
+{self._get_faction_context()}
 
 **Action Options:**
 - flee: Run away from danger
@@ -638,6 +641,17 @@ class NPCLLMClient:
 - Someone is threatening you, your faction, or people you care about
 
 Choose the most appropriate action and explain why in 10-100 words."""
+
+    def _get_faction_context(self) -> str:
+        """Get faction relationship context for NPC prompt."""
+        from .faction_utils import get_faction_description, get_faction_stance
+        faction = getattr(self.npc, 'faction', 'Unknown')
+        desc = get_faction_description(faction)
+        stance = get_faction_stance(faction)
+        return f"""**Your Faction Relationships:**
+Your faction ({faction}) stance: {stance}
+{desc}
+This affects who you trust, resist, or cooperate with."""
 
     def _build_prompt(self, context: str) -> str:
         """Build user prompt with NPC state and context."""

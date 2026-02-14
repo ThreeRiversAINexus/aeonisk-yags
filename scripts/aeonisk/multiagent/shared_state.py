@@ -183,6 +183,10 @@ class SharedState:
     # Track recent scenarios for variety
     recent_scenarios: List[Dict[str, str]] = field(default_factory=list)
 
+    # Round synthesis history for enemy situational awareness
+    # List of (round_num, narration_text) tuples
+    round_synthesis_history: List[tuple] = field(default_factory=list)
+
     # Track coordination bonuses (who gave bonus to whom)
     # Format: {recipient_agent_id: {'bonus': +2, 'from': giver_name, 'reason': 'shared intel'}}
     coordination_bonuses: Dict[str, Dict[str, Any]] = field(default_factory=dict)

@@ -142,6 +142,18 @@ def deescalate_enemy_to_npc(
         llm_provider=llm_provider
     )
 
+    # Pre-seed NPC memory with conversion context
+    if npc.memory:
+        if disposition == "prisoner":
+            conversion_note = "You surrendered or were subdued. You are a captive."
+        elif disposition == "friendly":
+            conversion_note = "You chose to cooperate after the conflict."
+        elif disposition == "wary":
+            conversion_note = "You stopped fighting but remain cautious and wary."
+        else:  # neutral
+            conversion_note = "You stopped fighting. The situation has de-escalated."
+        npc.memory.set_goal(f"Converted from enemy ({disposition}). {conversion_note}")
+
     logger.debug(f"✅ De-escalated {enemy.agent_id}: {enemy.name} → NPC ({disposition})")
     return npc
 
@@ -250,7 +262,7 @@ def escalate_npc_to_enemy(
 
         # Enemy-specific
         template=template,
-        personality=_derive_personality_from_template(template),
+        morale_behavior=_derive_personality_from_template(template),
         position=npc.position,  # Position is required, will always exist
         initiative=0,  # Will be rolled at start of round
 

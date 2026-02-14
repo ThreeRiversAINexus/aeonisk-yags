@@ -3291,9 +3291,13 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                         is_candidate = health_pct < 30
                         marker = "🎯 CANDIDATE" if is_candidate else ""
 
-                        available_enemies.append(
-                            f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP) {marker}".strip()
-                        )
+                        morale = getattr(enemy, 'morale_behavior', 'flee_when_broken')
+                        faction = getattr(enemy, 'faction', 'Unknown')
+                        brief = getattr(enemy, 'character_brief', '')
+                        enemy_line = f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP, morale: {morale}, faction: {faction}) {marker}".strip()
+                        if brief:
+                            enemy_line += f"\n  Character: {brief[:100]}"
+                        available_enemies.append(enemy_line)
 
         # 2. Build available NPCs list
         available_npcs = []

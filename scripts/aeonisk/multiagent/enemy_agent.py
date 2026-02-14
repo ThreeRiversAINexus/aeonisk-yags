@@ -320,7 +320,8 @@ class EnemyAgent:
     tactics: str = "aggressive_melee"  # Combat doctrine
     threat_priority: str = "closest_threat"  # Target selection strategy
     retreat_threshold: float = 0.3  # Morale % (0.0-1.0)
-    personality: str = "flee_when_broken"  # Morale behavior: flee_when_broken | surrender_if_cornered | fight_to_death
+    morale_behavior: str = "flee_when_broken"  # flee_when_broken | surrender_if_cornered | fight_to_death
+    character_brief: str = ""  # Narrative personality description for LLM prompts
 
     # =========================================================================
     # AEONISK-SPECIFIC
@@ -433,10 +434,10 @@ class EnemyAgent:
         action = "continue"
         if not success:
             # Morale broken - what do they do?
-            personality = getattr(self, 'personality', 'flee_when_broken')
-            if personality == 'fight_to_death':
+            morale_behavior = getattr(self, 'morale_behavior', 'flee_when_broken')
+            if morale_behavior == 'fight_to_death':
                 action = "continue"  # Never give up (but morale still failed)
-            elif personality == 'surrender_if_cornered':
+            elif morale_behavior == 'surrender_if_cornered':
                 action = "surrender"
             else:  # flee_when_broken (default)
                 action = "flee"
