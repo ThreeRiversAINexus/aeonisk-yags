@@ -339,7 +339,8 @@ class EnemyCombatManager:
                                 stats=stats,
                                 position=str(enemy.position),
                                 tactics=enemy.tactics,
-                                count=spawn.count  # Number of enemies spawned in this batch
+                                count=spawn.count,  # Number of enemies spawned in this batch
+                                faction=spawn.faction,
                             )
 
         return notifications

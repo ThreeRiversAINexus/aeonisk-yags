@@ -1032,7 +1032,8 @@ class JSONLLogger:
         stats: Dict[str, Any],
         position: str,
         tactics: str,
-        count: int = 1
+        count: int = 1,
+        faction: str = "Unknown"
     ):
         """
         Log enemy spawn event.
@@ -1046,6 +1047,7 @@ class JSONLLogger:
             position: Spawn position
             tactics: Tactical behavior (aggressive_melee, tactical_ranged, etc.)
             count: Number of enemies spawned in this group (1-5)
+            faction: Enemy faction (e.g., "ACG", "Pantheon Security")
         """
         event = {
             "event_type": "enemy_spawn",
@@ -1055,6 +1057,7 @@ class JSONLLogger:
             "enemy_id": enemy_id,
             "enemy_name": enemy_name,
             "template": template,
+            "faction": faction,
             "stats": stats,
             "position": position,
             "tactics": tactics,

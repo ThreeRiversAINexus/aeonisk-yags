@@ -408,6 +408,7 @@ def _process_structured_damage_effects(
                 damage_roll_data = {
                     "base_damage": damage_effect.base_damage,
                     "soak": damage_effect.soak if damage_effect.soak is not None else 0,
+                    "mechanical_soak": getattr(target_entity, 'soak', None),
                     "dealt": damage_after_barriers,
                     "damage_type": mechanical_type
                 }
@@ -533,6 +534,21 @@ def _process_structured_healing_effects(
             messages.append(f"⚠️ **Target '{target_identifier}' not found for healing**")
             continue
 
+        # === DEFEAT/DEATH GUARD ===
+        target_wounds = getattr(target_entity, 'wounds', 0)
+        target_health = getattr(target_entity, 'health', 1)
+
+        # Dead (wounds >= 6): reject all healing
+        if target_wounds >= 6:
+            logger_instance.warning(
+                f"⚠️ Healing rejected: {target_name} is dead (wounds: {target_wounds}) — beyond saving"
+            )
+            messages.append(f"⚠️ **{target_name} is dead (wounds: {target_wounds}) — beyond saving**")
+            continue
+
+        # Defeated/unconscious (health <= 0): cap HP healing at stabilization
+        is_unconscious = target_health <= 0
+
         # === APPLY HEALING TO ENTITY ===
         healing_summary = []
         old_health = target_entity.health
@@ -540,10 +556,16 @@ def _process_structured_healing_effects(
 
         # Apply healing based on type
         if heal_type == "hp":
-            # Restore HP (capped at max_health)
-            target_entity.health = min(target_entity.health + amount, target_entity.max_health)
-            actual_heal = target_entity.health - old_health
-            healing_summary.append(f"+{actual_heal} HP")
+            if is_unconscious:
+                # Stabilize only: cap at 1 HP (not full heal)
+                target_entity.health = 1
+                actual_heal = target_entity.health - old_health
+                healing_summary.append(f"stabilized to 1 HP")
+            else:
+                # Restore HP (capped at max_health)
+                target_entity.health = min(target_entity.health + amount, target_entity.max_health)
+                actual_heal = target_entity.health - old_health
+                healing_summary.append(f"+{actual_heal} HP")
         elif heal_type == "stun":
             # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
             # For now, just track what was requested
@@ -558,10 +580,16 @@ def _process_structured_healing_effects(
 
         if healing_summary:
             summary_text = ", ".join(healing_summary)
-            messages.append(
-                f"💚 **{target_name} healed: {summary_text}** "
-                f"({old_health} HP → {target_entity.health} HP)"
-            )
+            if is_unconscious and heal_type == "hp":
+                messages.append(
+                    f"🩹 **{target_name} stabilized: {summary_text}** "
+                    f"({old_health} HP → {target_entity.health} HP)"
+                )
+            else:
+                messages.append(
+                    f"💚 **{target_name} healed: {summary_text}** "
+                    f"({old_health} HP → {target_entity.health} HP)"
+                )
 
             logger_instance.info(
                 f"Healing applied: {summary_text} to {target_name} "
@@ -570,14 +598,20 @@ def _process_structured_healing_effects(
 
             # === LOG HEALING ACTION (ML TRAINING) ===
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                # Build healing log entry
-                # (Full implementation would extract healer details from resolution context)
+                # Determine status: stabilized (was unconscious) vs active (was conscious)
+                if is_unconscious:
+                    heal_status = "stabilized"
+                elif target_entity.health > 0:
+                    heal_status = "active"
+                else:
+                    heal_status = "defeated"
+
                 target_state_after = {
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
                     "alive": target_entity.health > 0,
-                    "status": "active" if target_entity.health > 0 else "defeated"
+                    "status": heal_status
                 }
 
                 # Note: Would ideally log as 'healing_action' event type
@@ -4797,7 +4831,7 @@ For **other actions** (flee, hide, assist, attack):
                                 npc_entity = npc
                                 break
 
-                    # Check if target is dead (wounds >= 6)
+                    # Check if target is dead (wounds >= 6) or defeated (health <= 0)
                     target_entity = None
                     target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                     if target and target.startswith('tgt_') and target_id_mapper:
@@ -4814,7 +4848,12 @@ For **other actions** (flee, hide, assist, attack):
                                     target_entity = npc
                                     break
 
+                    # Track roll data for JSONL logging
+                    npc_heal_roll_data = None
+                    npc_heal_amount = 0
+
                     target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
+                    target_health = getattr(target_entity, 'health', 1) if target_entity else 1
                     if target_wounds >= 6:
                         # Target is dead - cannot heal
                         narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
@@ -4834,20 +4873,34 @@ For **other actions** (flee, hide, assist, attack):
                         total = base_roll + d20
                         dc = 18
 
+                        # Capture roll data for JSONL logging
+                        npc_heal_roll_data = {
+                            "skill": "Medicine",
+                            "attribute": "Intelligence",
+                            "attribute_value": intelligence,
+                            "skill_value": medicine_skill,
+                            "d20": d20,
+                            "total": total,
+                            "dc": dc,
+                            "margin": total - dc,
+                            "success": total >= dc,
+                        }
+
                         if total >= dc:
                             # Success: create healing effect
                             from .schemas.action_effects import HealingEffect
+                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 HP + margin
                             effects.healing = [
                                 HealingEffect(
                                     target=target,
                                     heal_type="hp",
-                                    amount=max(1, total - dc + 5),  # Base 5 HP + margin
+                                    amount=npc_heal_amount,
                                     source=f"Medicine ({character_name})"
                                 )
                             ]
                             success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.GOOD
                             margin = total - dc
-                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {effects.healing[0].amount} HP.]"
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} HP.]"
                             logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
                         else:
                             # Failure: no healing applied
@@ -4998,21 +5051,41 @@ For **other actions** (flee, hide, assist, attack):
                     mechanics = self.shared_state.mechanics_engine
                     if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                         current_round = mechanics.current_round
+
+                        # Build context with roll data for JSONL
+                        log_context = {
+                            "action_type": npc_action_type,
+                            "is_npc": True,
+                            "dialogue_content": action.get('dialogue_content'),
+                            "fallback": is_fallback,
+                        }
+
+                        # Add heal-specific roll data if available
+                        if npc_action_type == 'heal':
+                            log_context["heal_target"] = target
+                            log_context["heal_amount"] = npc_heal_amount
+                            if npc_heal_roll_data:
+                                log_context["npc_roll"] = npc_heal_roll_data
+                            elif target_wounds >= 6:
+                                log_context["heal_rejected"] = "target_dead"
+
+                        # Build effects dict with healing data
+                        log_effects = {}
+                        if effects.healing:
+                            log_effects["healing"] = [
+                                h.model_dump() for h in effects.healing
+                            ]
+
                         mechanics.jsonl_logger.log_action_resolution(
                             round_num=current_round,
                             phase="adjudicate_npc",
                             agent_name=character_name,
                             action=intent,
-                            resolution=npc_resolution.model_dump(),
+                            resolution=npc_resolution,  # Pass object, not .model_dump()
                             economy_changes={},
                             clock_states={},
-                            effects={},
-                            context={
-                                "action_type": npc_action_type,
-                                "is_npc": True,
-                                "dialogue_content": action.get('dialogue_content'),
-                                "fallback": is_fallback
-                            }
+                            effects=log_effects,
+                            context=log_context,
                         )
 
             # Return lightweight resolution matching player format (with outcome dict)
@@ -5391,6 +5464,7 @@ The following actions ALREADY resolved (faster initiative):
                                 damage_roll_data = {
                                     "base_damage": combat_data.get('damage', damage_dealt) if combat_data else damage_dealt,
                                     "soak": combat_data.get('soak', 0) if combat_data else 0,
+                                    "mechanical_soak": getattr(target_entity, 'soak', None),
                                     "dealt": damage_dealt
                                 }
 
