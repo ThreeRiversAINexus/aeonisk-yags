@@ -36,6 +36,14 @@ Usage:
         --workers 20 \\
         --proxy http://localhost:8000
 
+    # With proxy in direct mode (no batching, immediate API calls)
+    python scripts/bulk_session_runner.py \\
+        --config session_config.json \\
+        --runs 10 \\
+        --workers 4 \\
+        --proxy http://localhost:8000 \\
+        --direct
+
     # Resume failed runs (replay enabled by default - saves API cost)
     python scripts/bulk_session_runner.py \\
         --resume \\
@@ -74,6 +82,7 @@ Options:
     --workers N             Parallel workers (default: 4)
     --output-dir DIR        Output directory (default: bulk_output/)
     --proxy URL             Batch proxy URL (e.g., http://localhost:8000)
+    --direct                Force direct mode through proxy (no batching)
     --resume                Resume from --run-dir, skip completed sessions.
                             Config loaded from metadata.json in run directory.
                             By default uses replay (cached LLM calls) to save cost.
@@ -451,7 +460,8 @@ def modify_config_for_bulk_run(
     config: Dict,
     run_id: int,
     output_path: str,
-    proxy_url: Optional[str] = None
+    proxy_url: Optional[str] = None,
+    proxy_strategy: str = 'auto'
 ) -> Dict:
     """
     Modify session config for bulk run.
@@ -461,6 +471,7 @@ def modify_config_for_bulk_run(
         run_id: Unique run identifier
         output_path: Output JSONL path for this run
         proxy_url: Optional proxy URL to inject
+        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
 
     Returns:
         Modified config dict
@@ -483,7 +494,7 @@ def modify_config_for_bulk_run(
 
     # If proxy_url provided, inject into all agent LLM configs
     if proxy_url:
-        modified = inject_proxy_config(modified, proxy_url)
+        modified = inject_proxy_config(modified, proxy_url, proxy_strategy)
 
     # Disable human interface for bulk runs (prevents Observer> prompt spam)
     modified['enable_human_interface'] = False
@@ -491,17 +502,17 @@ def modify_config_for_bulk_run(
     return modified
 
 
-def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str) -> None:
+def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> None:
     """Switch a single LLM config dict to use batch_proxy provider."""
     llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
     llm_config['provider'] = 'batch_proxy'
     llm_config['use_proxy'] = True
     llm_config['proxy_url'] = proxy_url
     llm_config['proxy_priority'] = 'normal'
-    llm_config['proxy_strategy'] = 'auto'
+    llm_config['proxy_strategy'] = proxy_strategy
 
 
-def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
+def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> Dict:
     """
     Inject proxy configuration into all agents' LLM configs.
 
@@ -511,6 +522,7 @@ def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
     Args:
         config: Session config dict
         proxy_url: Proxy server URL
+        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
 
     Returns:
         Modified config dict
@@ -520,18 +532,18 @@ def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
     # Inject into DM
     if 'dm' in agents:
         dm_llm = agents['dm'].get('llm', {})
-        _switch_llm_to_proxy(dm_llm, proxy_url)
+        _switch_llm_to_proxy(dm_llm, proxy_url, proxy_strategy)
         agents['dm']['llm'] = dm_llm
 
     # Inject into players
     for player in agents.get('players', []):
         player_llm = player.get('llm', {})
-        _switch_llm_to_proxy(player_llm, proxy_url)
+        _switch_llm_to_proxy(player_llm, proxy_url, proxy_strategy)
         player['llm'] = player_llm
 
     # Inject into enemy agents
     if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
-        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url)
+        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url, proxy_strategy)
 
     return config
 
@@ -544,7 +556,8 @@ def run_single_session(
     log_level: str = "INFO",
     use_stored_config: bool = False,
     session_timeout: int = 90000,
-    attempt_replay: bool = False
+    attempt_replay: bool = False,
+    proxy_strategy: str = 'auto'
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -628,7 +641,7 @@ def run_single_session(
 
             # Modify config for this run
             modified_config = modify_config_for_bulk_run(
-                config, run_id, str(output_path), proxy_url
+                config, run_id, str(output_path), proxy_url, proxy_strategy
             )
 
             # Write modified config to run directory
@@ -1452,6 +1465,13 @@ def main():
         help='Log level for sessions (default: INFO)'
     )
     parser.add_argument(
+        '--direct',
+        action='store_true',
+        help='Force direct API mode through proxy (no batching). '
+             'Requests still route through the proxy but are sent to the '
+             'upstream API immediately instead of being queued for batch processing.'
+    )
+    parser.add_argument(
         '--skip-health-check',
         action='store_true',
         help='Skip proxy health check'
@@ -1707,7 +1727,10 @@ def main():
     logger.info(f"Starting bulk run: {total_runs} sessions across {args.workers} workers")
     logger.info(f"Output directory: {output_dir}")
     if args.proxy:
-        logger.info(f"Proxy URL: {args.proxy}")
+        proxy_strategy = 'direct' if args.direct else 'auto'
+        logger.info(f"Proxy URL: {args.proxy} (strategy: {proxy_strategy})")
+    else:
+        proxy_strategy = 'auto'
     if args.resume and not args.no_replay:
         logger.info(f"🔄 Replay enabled: will try cached LLM replay before fresh restart")
     elif args.resume and args.no_replay:
@@ -1746,7 +1769,8 @@ def main():
                     args.log_level,
                     use_stored_config,
                     args.session_timeout,
-                    attempt_replay
+                    attempt_replay,
+                    proxy_strategy
                 ): (config_path, run_id)
                 for config_path, run_id, use_stored_config in tasks
             }
