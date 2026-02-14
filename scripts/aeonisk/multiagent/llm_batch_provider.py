@@ -204,7 +204,7 @@ class BatchProxyProvider(LLMProvider):
             )
 
             # Parse JSON response
-            if not content:
+            if not content or not content.strip():
                 last_error = f"Batch proxy returned empty/null content for {result_type.__name__}"
                 logger.warning(f"Attempt {attempt + 1}: {last_error}")
                 continue
@@ -228,7 +228,8 @@ class BatchProxyProvider(LLMProvider):
                 last_error = str(e)
                 last_data = None
                 logger.warning(
-                    f"Attempt {attempt + 1}/{1 + max_retries}: JSON parse failed: {e}"
+                    f"Attempt {attempt + 1}/{1 + max_retries}: JSON parse failed: {e}. "
+                    f"Content preview: {repr(content[:200])}"
                 )
                 continue
 

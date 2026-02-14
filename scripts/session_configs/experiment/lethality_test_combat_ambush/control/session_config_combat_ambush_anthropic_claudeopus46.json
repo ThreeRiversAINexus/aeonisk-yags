@@ -56,7 +56,8 @@
       "max_ticks": 5,
       "direction": "progress",
       "description": "Civilians being drawn into the crossfire. At 3: bystanders in danger. At 5: civilian casualties.",
-      "advance_meaning": "more civilians endangered by the fighting"
+      "advance_meaning": "more civilians endangered by the fighting",
+      "regress_meaning": "civilians get away, civilians flee or hide safely"
     }
   ],
   "initial_enemies": [

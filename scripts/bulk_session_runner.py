@@ -1753,8 +1753,11 @@ def main():
             logger.info(f"Resuming: skipping {skipped_count} completed runs (discovered)")
     else:
         # Normal task generation from config_paths
-        for config_path in config_paths:
-            for run_offset in range(runs_per_config):
+        # Interleave configs (round-robin) so workers run diverse models concurrently.
+        # With configs [A, B, C] × 3 runs each, task order is: A1, B1, C1, A2, B2, C2, ...
+        # This ensures workers pick up different models before doubling up on one.
+        for run_offset in range(runs_per_config):
+            for config_path in config_paths:
                 run_id = len(tasks) + 1
                 tasks.append((str(config_path), run_id, False))  # use_stored_config=False
 

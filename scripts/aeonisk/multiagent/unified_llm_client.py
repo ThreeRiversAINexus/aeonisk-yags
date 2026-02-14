@@ -283,7 +283,7 @@ class UnifiedAIClient:
 
                 if result.get("status") == "completed":
                     content = result.get("content")
-                    if not content:
+                    if not content or not content.strip():
                         logger.error(
                             "PROXY BUG: Batch completed but content is null/empty. "
                             "Falling back to direct API."
