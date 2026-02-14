@@ -316,6 +316,7 @@ class TargetIDMapper:
             # Player agent
             cs = agent.character_state
             info['name'] = cs.name
+            info['pronouns'] = getattr(cs, 'pronouns', 'they/them')
             # Health is stored on agent, not character_state
             info['health'] = getattr(agent, 'health', 0)
             info['max_health'] = getattr(agent, 'max_health', 0)
@@ -324,6 +325,7 @@ class TargetIDMapper:
         elif hasattr(agent, 'name'):
             # Enemy, NPC, or Vendor
             info['name'] = agent.name
+            info['pronouns'] = getattr(agent, 'pronouns', 'they/them')
             info['health'] = getattr(agent, 'health', 0)
             info['max_health'] = getattr(agent, 'max_health', 0)
             info['position'] = str(getattr(agent, 'position', 'Unknown'))

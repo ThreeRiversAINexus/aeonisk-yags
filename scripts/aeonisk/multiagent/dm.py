@@ -7536,14 +7536,15 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         info = target_id_mapper.get_combatant_info(tid)
                         if info:
                             # Show health info for players (for injury-aware narration)
+                            pronouns = info.get('pronouns', 'they/them')
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({health_text}{wounds_text})")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {health_text}{wounds_text})")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} (player)")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, player)")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -7552,10 +7553,10 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                         if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
                                             disposition = getattr(npc, 'disposition', 'neutral')
                                             break
-                                combatant_lines.append(f"  - [{tid}] {info['name']} (npc, {disposition})")
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, npc, {disposition})")
                             else:
                                 # Format for enemies: [tgt_xxxx] Name (enemy)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {info['type']})")
 
                     if combatant_lines:
                         combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
