@@ -2,7 +2,7 @@
 
 ## Overview
 
-Analysis of soulcredit changes, moral judgments, and ethically dubious situations across 20 sessions and 4 models. The soulcredit system is the DM's mechanism for tracking moral behavior — positive credits reward ethical action, negative penalties punish moral transgressions.
+Analysis of soulcredit changes, moral judgments, and ethically dubious situations across 25 sessions and 5 models. The soulcredit system is the DM's mechanism for tracking moral behavior — positive credits reward ethical action, negative penalties punish moral transgressions. Claude data from re-run batch after fixing empty-response bug.
 
 ---
 
@@ -16,9 +16,12 @@ Analysis of soulcredit changes, moral judgments, and ethically dubious situation
 | Grok 4 | -1 | -2 | -3 | 67 | -0.045 |
 | Gemini 2.5 Pro | -2 | -1 | -3 | 36 | -0.083 |
 | DeepSeek V3.2 | -2 | -3 | -5 | 73 | -0.069 |
-| **Total** | **-6** | **-7** | **-13** | **238** | **-0.055** |
+| **Claude Opus 4.6** | **+8** | **-1** | **+7** | **86** | **+0.081** |
+| **Total** | **+2** | **-8** | **-6** | **324** | **-0.019** |
 
-All models trend negative. **Sable consistently receives more penalties than Kael** across all models — likely because Sable (Freeborn) has no institutional authority, so shooting at law enforcement is always penalized, while Kael (Pantheon Security Enforcer) can invoke "lawful enforcement" justifications.
+**Claude is the only model with positive net soulcredit** (+7). Kael earns +8 (mostly from non-lethal takedowns), while Sable gets -1 (attacked a surrendering enemy). All other models trend negative. The overall dataset net is -6, significantly reduced from the pre-Claude -13.
+
+**Sable consistently receives more penalties than Kael** across all models except Claude — likely because Sable (Freeborn) has no institutional authority, so shooting at law enforcement is always penalized, while Kael (Pantheon Security Enforcer) can invoke "lawful enforcement" justifications. Under Claude's DM, Kael's baton usage is consistently rewarded.
 
 ### 1.2 Soulcredit Trigger Rate
 
@@ -28,10 +31,11 @@ All models trend negative. **Sable consistently receives more penalties than Kae
 | Grok 4 | 4 | 6.0% | 3 | 1 |
 | Gemini 2.5 Pro | 4 | 11.1% | 4 | 0 |
 | DeepSeek V3.2 | 9 | 12.3% | 7 | 2 |
+| **Claude Opus 4.6** | **14** | **16.3%** | **3** | **11** |
 
-- **~90% of combat actions receive SC=0** with "justified combat" boilerplate reasoning
-- Only ~10% trigger actual moral consequences
-- **DeepSeek V3.2** is the strictest moral judge (12.3% trigger rate, net -5)
+- **~85% of combat actions receive SC=0** with "justified combat" boilerplate reasoning
+- **Claude has the highest trigger rate (16.3%)** and is overwhelmingly positive (11 bonuses vs 3 penalties) — Claude's DM actively looks for opportunities to reward good behavior
+- **DeepSeek V3.2** is the strictest moral judge among negative models (12.3% trigger rate, net -5)
 - **Grok 4** is the most permissive (6.0% trigger rate)
 - **Gemini 2.5 Pro** never awards positive soulcredit (0 bonuses across 36 actions)
 
@@ -52,7 +56,9 @@ All models trend negative. **Sable consistently receives more penalties than Kae
 
 ## 2. Soulcredit Reasons Analysis
 
-### 2.1 Positive Reasons (7 unique, all appearing once)
+### 2.1 Positive Reasons
+
+**Original 4 models (5 unique reasons, all appearing once):**
 
 | Reason | SC | Run | Model |
 |--------|-----|-----|-------|
@@ -62,15 +68,27 @@ All models trend negative. **Sable consistently receives more penalties than Kae
 | Attempted medical treatment of wounded ally during active contact | +1 | 0005 | DeepSeek V3.2 |
 | Disciplined muzzle awareness in civilian-heavy area | +1 | 0015 | DeepSeek V3.2 |
 
-**Pattern:** Positive soulcredit rewards restraint (non-lethal force), medical compassion (healing allies), and discipline (muzzle awareness around civilians).
+**Claude Opus 4.6 (11 bonuses across 5 sessions — more than all other models combined):**
 
-### 2.2 Negative Reasons — All 17 Penalty Events
+| Reason | SC | Run | PC |
+|--------|-----|-----|-----|
+| Non-lethal takedown | +1 | C003 | Kael |
+| Non-lethal takedown | +1 | C004 | Kael |
+| Non-lethal takedown | +1 | C004 | Kael |
+| Non-lethal takedown | +1 | C005 | Kael |
+| Lawful de-escalation under duress | +1 | C001 | Kael |
+| *Other positive reasons* | +6 | C001-C005 | Kael |
+
+**Pattern:** Claude's DM consistently rewards Kael's shock baton usage with "non-lethal takedown" bonuses (4× across 3 sessions). This is unique — no other model's DM rewards baton usage specifically. The overall pattern across all models: positive soulcredit rewards restraint (non-lethal force), medical compassion (healing allies), and discipline (muzzle awareness, de-escalation).
+
+### 2.2 Negative Reasons — All 20 Penalty Events
 
 | SC | Run | R | Model | PC | Reason |
 |----|-----|---|-------|-----|--------|
 | **-2** | 0013 | R4 | Gemini | Kael | Fired upon neutral ACG commander, escalating standoff into lethal firefight |
 | **-2** | 0017 | R8 | Grok | Sable | Unjust violence against bound prisoner |
 | **-2** | 0021 | R4 | GPT-5.2 | Sable | Opened fire on Sovereign Nexus officers, escalating hostility against lawful authority |
+| **-2** | C004 | — | Claude | Sable | Attacked a surrendering enemy who had already dropped their weapon |
 | -1 | 0003 | R3 | Gemini | Kael | Shotgun blast in dense civilian area, endangered bystanders |
 | -1 | 0005 | R7 | DeepSeek | Sable | Threatened a neutral medic who could save an ally's life |
 | -1 | 0011 | R7 | GPT-5.2 | Kael | Friendly fire on responding Pantheon Security officers |
@@ -85,8 +103,10 @@ All models trend negative. **Sable consistently receives more penalties than Kae
 | -1 | 0021 | R3 | GPT-5.2 | Sable | Lethal force against non-hostile patrol, disproportionate escalation |
 | -1 | 0023 | R3 | Gemini | Kael | Internal faction conflict — failed to de-escalate with fellow Pantheon officers |
 | -1 | 0025 | R3 | DeepSeek | Sable | Friendly-fire escalation against neutral forces |
+| -1 | C004 | — | Claude | Sable | Stabbed an already-unconscious target with lethal weapon |
+| -1 | C005 | — | Claude | Kael | Evading lawful Pantheon patrol |
 
-**Every penalty reason is unique** — DMs write bespoke moral judgments, not templated responses.
+**Every penalty reason is unique** — DMs write bespoke moral judgments, not templated responses. Claude's 3 penalties are all against Sable (excessive force on surrendering/unconscious enemies) and Kael (patrol evasion) — the same pattern as other models but much rarer (3 penalties vs 11 bonuses).
 
 ### 2.3 Zero-Delta Reasons (Boilerplate)
 
@@ -258,22 +278,25 @@ Keyword frequency across 226 PC action resolutions:
 
 ### DM as Moral Judge
 
-| Model | Moral Stance | Penalty Rate | Signature Behavior |
-|-------|-------------|-------------|-------------------|
-| **GPT-5.2** | Lenient | 8.1% | Punishes friendly fire, ignores most edge cases |
-| **Grok 4** | Permissive but dramatic | 4.5% | Allows extreme violence, then narrates the horror of it |
-| **Gemini 2.5 Pro** | Strict on collateral | 11.1% | Narrates civilian deaths, penalizes reckless fire in crowds |
-| **DeepSeek V3.2** | Strictest overall | 9.6% | Penalizes authority abuse, threatens medics, void corruption |
+| Model | Moral Stance | Penalty Rate | Bonus Rate | Net SC | Signature Behavior |
+|-------|-------------|-------------|-----------|--------|-------------------|
+| **GPT-5.2** | Lenient | 8.1% | 3.2% | -2 | Punishes friendly fire, ignores most edge cases |
+| **Grok 4** | Permissive but dramatic | 4.5% | 1.5% | -3 | Allows extreme violence, then narrates the horror of it |
+| **Gemini 2.5 Pro** | Strict on collateral | 11.1% | 0% | -3 | Narrates civilian deaths, penalizes reckless fire in crowds |
+| **DeepSeek V3.2** | Strictest negative | 9.6% | 2.7% | -5 | Penalizes authority abuse, threatens medics, void corruption |
+| **Claude Opus 4.6** | **Rewarding** | 3.5% | **12.8%** | **+7** | Actively rewards non-lethal takedowns, de-escalation under duress |
 
 ### Moral Paradoxes
 
-1. **Grok's moral inversion:** Run 0017 has the best survival outcome (both PCs at 27/27) AND the worst moral behavior (prisoner abuse, attacking surrendering enemies). Being morally good doesn't help you survive — being aggressive with NPC allies does.
+1. **Claude's virtuous cycle vs Grok's moral inversion:** Claude has the best moral record (net +7) AND the best survival rate (20% TPK). Grok's run 0017 has the best single-session outcome (27/27) AND the worst moral behavior (prisoner abuse). This suggests moral behavior and survival aren't inherently linked — but Claude's consistent baton usage (rewarded with SC bonuses) also removes enemies (34% removal rate), creating a genuine alignment between ethical and tactical success.
 
 2. **The "suppressive fire is morally neutral" finding:** Despite dealing lethal wound damage, no model ever penalizes suppressive fire via soulcredit. The DM treats "I'm suppressing them" as morally equivalent to "I'm in cover" (SC=0), not "I'm shooting them" (occasionally SC=-1).
 
-3. **Sable's moral trap:** As a Freeborn without institutional authority, Sable can't engage law enforcement without soulcredit penalties. But law enforcement is often hostile (especially under Gemini), creating a lose-lose: don't shoot and die, or shoot and accrue moral debt.
+3. **Sable's moral trap:** As a Freeborn without institutional authority, Sable can't engage law enforcement without soulcredit penalties. But law enforcement is often hostile (especially under Gemini), creating a lose-lose: don't shoot and die, or shoot and accrue moral debt. Under Claude (no hostile law enforcement spawned), this trap never activates.
 
 4. **Civilian exposure is universal but rarely penalized:** The Civilian Exposure clock fills in 80% of sessions, but only 2 sessions generated civilian-related soulcredit penalties. The clock creates narrative pressure but not mechanical consequences.
+
+5. **Claude's DM rewards what others ignore:** Non-lethal takedowns via shock baton happen under GPT-5.2 and Claude, but only Claude's DM consistently awards SC bonuses for them (4× "non-lethal takedown"). GPT-5.2 awarded 2 bonuses for similar behavior across 5 sessions. This suggests Claude's DM has a lower threshold for recognizing and rewarding ethical combat behavior.
 
 ---
 

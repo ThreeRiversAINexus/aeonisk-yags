@@ -2,41 +2,43 @@
 
 ## Aggregate Statistics
 
-| Metric | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 |
-|--------|---------|--------|----------------|---------------|
-| **Sessions** | 5 | 5 | 5 | 5 |
-| **Avg Rounds** | 7.0 | 7.6 | 5.0 | 8.6 |
-| **Min/Max Rounds** | 4-10 | 4-10 | 3-6 | 5-10 |
-| **Kael Survival** | 2/5 (40%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) |
-| **Sable Survival** | 0/5 (0%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) |
-| **Both PCs Survive** | 0/5 (0%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) |
-| **At Least 1 PC Survives** | 2/5 (40%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) |
-| **TPK Rate** | 60% | 60% | **100%** | 80% |
-| **Avg Kael Final HP** | 8.2/27 | 5.8/27 | 0.0/27 | 1.0/27 |
-| **Avg Sable Final HP** | 0.0/27 | 10.0/27 | 0.0/27 | 5.4/27 |
-| **Avg Combined HP** | 8.2/54 | 15.8/54 | 0.0/54 | 6.4/54 |
-| **Total Enemies Spawned** | 47 | 60 | 47 | 50 |
-| **Total Enemies Removed*** | 14 | 14 | **0** | 9 |
-| **Enemy Removal Rate** | 29.8% | 23.3% | **0.0%** | 18.0% |
-| **Avg Enemies/Session** | 9.4 | 12.0 | 9.4 | 10.0 |
-| **Avg Tokens/Session** | 737K | 852K | 446K | 857K |
-| **Avg Tokens/Round** | 105K | 112K | 89K | 100K |
-| **Avg Duration/Session** | 752s | 3,470s | 1,312s | 3,694s |
+| Metric | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Claude Opus 4.6 |
+|--------|---------|--------|----------------|---------------|-----------------|
+| **Sessions** | 5 | 5 | 5 | 5 | 5† |
+| **Avg Rounds** | 7.0 | 7.6 | 5.0 | 8.6 | **10.0** |
+| **Min/Max Rounds** | 4-10 | 4-10 | 3-6 | 5-10 | 10-10 |
+| **Kael Survival** | 2/5 (40%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) | **3/5 (60%)** |
+| **Sable Survival** | 0/5 (0%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) | **3/5 (60%)** |
+| **Both PCs Survive** | 0/5 (0%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) | **2/5 (40%)** |
+| **At Least 1 PC Survives** | 2/5 (40%) | 2/5 (40%) | 0/5 (0%) | 1/5 (20%) | **4/5 (80%)** |
+| **TPK Rate** | 60% | 60% | **100%** | 80% | **20%** |
+| **Avg Kael Final HP** | 8.2/27 | 5.8/27 | 0.0/27 | 1.0/27 | 7.0/27 |
+| **Avg Sable Final HP** | 0.0/27 | 10.0/27 | 0.0/27 | 5.4/27 | **16.2/27** |
+| **Avg Combined HP** | 8.2/54 | 15.8/54 | 0.0/54 | 6.4/54 | **23.2/54** |
+| **Total Enemies Spawned** | 47 | 60 | 47 | 50 | 41 |
+| **Total Enemies Removed*** | 14 | 14 | **0** | 9 | **14** |
+| **Enemy Removal Rate** | 29.8% | 23.3% | **0.0%** | 18.0% | **34.1%** |
+| **Avg Enemies/Session** | 9.4 | 12.0 | 9.4 | 10.0 | 8.2 |
+| **Avg Tokens/Session** | 737K | 852K | 446K | 857K | 995K |
+| **Avg Tokens/Round** | 105K | 112K | 89K | 100K | 100K |
+| **Avg Duration/Session** | 752s | 3,470s | 1,312s | 3,694s | 1,920s |
+
+*† Claude sessions from re-run batch (`run_2026-02-14_171956_2540eedd`) after fixing empty-response bug. Original 5 Claude sessions all failed (see `claude_failure_analysis.md`).*
 
 *\* "Enemies Removed" includes all `enemy_defeat` events: killed, fled, retreated, subdued, departed, despawned. Use `defeat_reason` field to distinguish combat kills from scene-cleanup departures. E.g., Grok's 14 removals include combat kills + fled/departed enemies.*
 
 ## NPC Behavior Distribution
 
-| NPC Action | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Total |
-|------------|---------|--------|----------------|---------------|-------|
-| hide | 10 | 7 | 8 | 17 | 42 |
-| dialogue | 5 | 4 | 11 | 18 | 38 |
-| plead | 0 | 7 | 2 | 18 | 27 |
-| flee | 0 | 13 | 1 | 0 | 14 |
-| attack | 0 | 7 | 0 | 0 | 7 |
-| heal | 0 | 6 | 1 | 0 | 7 |
-| comply | 0 | 0 | 1 | 0 | 1 |
-| **Total** | **15** | **44** | **24** | **53** | **136** |
+| NPC Action | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Claude Opus 4.6 | Total |
+|------------|---------|--------|----------------|---------------|-----------------|-------|
+| hide | 10 | 7 | 8 | 17 | 4 | 46 |
+| dialogue | 5 | 4 | 11 | 18 | 9 | 47 |
+| plead | 0 | 7 | 2 | 18 | 2 | 29 |
+| flee | 0 | 13 | 1 | 0 | 1 | 15 |
+| attack | 0 | 7 | 0 | 0 | 2 | 9 |
+| heal | 0 | 6 | 1 | 0 | 1 | 8 |
+| comply | 0 | 0 | 1 | 0 | 0 | 1 |
+| **Total** | **15** | **44** | **24** | **53** | **19** | **155** |
 
 ## PC Death State Distribution
 
@@ -96,6 +98,23 @@
 
 The 0% enemy defeat rate across 47 enemies and 25 rounds is the most extreme finding in this dataset. Whether this reflects DM damage asymmetry, overwhelming force ratios, or both requires deeper `combat_action` and `action_resolution` event analysis.
 
+### Claude Opus 4.6: "The Tactical Survivor"
+
+**Lethality:** Lowest (20% TPK — only 1 of 5 sessions)
+**Signature Pattern:** All sessions reach 10 rounds. Binary Sable outcomes (27/27 or 0/27). Highest enemy removal rate.
+
+- **Lowest TPK rate in the dataset** — 4/5 sessions had at least 1 PC survive, 2/5 had both survive
+- All 5 sessions hit the 10-round maximum (only model where every session reaches max rounds)
+- Sable has extreme binary outcomes: 27/27 HP in 3 sessions, 0/27 in 2 sessions — no middle ground
+- **Highest enemy removal rate (34.1%)** — 14 enemies removed from 41 spawned, all killed or subdued (no departures)
+- Enemy targeting is extreme: **79% of enemy attacks target Kael** (34 vs 9 on Sable), the most focused targeting of any model
+- Moderate NPC interaction (19 actions, 3.8/session) — balanced mix of dialogue (47%), hide, plead
+- **14 soulcredit events: +11 bonuses, -3 penalties = net +7** — the only model with positive soulcredit
+- Kael earns 4× "non-lethal takedown" bonuses — Claude's player agent consistently uses the shock baton
+- **Most expensive per session** (995K tokens avg) but efficient per round (100K/round)
+
+**Interpretation:** Claude runs the most balanced sessions. Its DM allows enough time (10 rounds every time) for player tactics to develop, enemy defeats to accumulate, and soulcredit bonuses to be earned. The extreme Kael-targeting (79%) suggests Claude's enemy AI identifies Kael as the primary threat (Enforcer, armored, front-line), while Sable either escapes cleanly or gets caught when Kael falls. Claude is also the only model where PCs routinely earn positive soulcredit — the player agent's consistent shock baton usage and the DM's willingness to reward non-lethal force creates a virtuous loop absent from other models.
+
 ### DeepSeek V3.2: "The Verbose Diplomat"
 
 **Lethality:** High (80% TPK)
@@ -114,8 +133,8 @@ The 0% enemy defeat rate across 47 enemies and 25 rounds is the most extreme fin
 
 ## Cross-Model Insights
 
-### 1. Universal Sable Vulnerability
-Across ALL models, Sable (lethal-only loadout, higher risk tolerance, Freeborn) dies more than Kael (mixed loadout, Enforcer). This holds for GPT-5.2 (dramatic), Gemini (total), and DeepSeek (slight). Only Grok breaks the pattern sometimes.
+### 1. Sable Vulnerability (Except Claude)
+Across most models, Sable (lethal-only loadout, higher risk tolerance, Freeborn) dies more than Kael (mixed loadout, Enforcer). This holds for GPT-5.2 (dramatic — Sable always dies), Gemini (total — both always die), and DeepSeek (slight). Grok and **Claude break the pattern** — both have equal Kael/Sable survival rates, and Claude's Sable actually averages higher HP (16.2 vs 7.0).
 
 **Hypothesis:** DMs may be unconsciously biasing toward:
 - Protecting characters with institutional backing (Pantheon Security > Freeborn)
@@ -128,12 +147,13 @@ The distribution of NPC actions is a strong fingerprint of DM model "personality
 - **Grok:** Rich NPC ecosystem (allies, fleeing enemies, pleading, healing)
 - **Gemini:** Moderate passive NPCs (hide, dialogue, no combat agency)
 - **DeepSeek:** Maximum diplomatic NPCs (plead, dialogue) with no tactical impact
+- **Claude:** Balanced moderate NPCs (dialogue-heavy, small mix of everything)
 
 ### 3. Session Length vs Lethality
-Shorter sessions correlate with higher lethality (Gemini: 5.0 rounds, 100% TPK). But DeepSeek (8.6 rounds) still has 80% TPK — length doesn't protect. Only Grok converts long sessions into survival outcomes.
+Shorter sessions correlate with higher lethality (Gemini: 5.0 rounds, 100% TPK). But DeepSeek (8.6 rounds) still has 80% TPK — length doesn't protect. **Claude (10.0 rounds, 20% TPK) and Grok** convert long sessions into survival outcomes. Claude is unique in that ALL sessions hit the 10-round cap — the DM never ends sessions early via TPK.
 
 ### 4. Enemy Spawn Rate Does Not Predict Lethality
-Grok spawns the most enemies (12.0/session) but has the lowest TPK rate (60%). Gemini and GPT-5.2 spawn the same number (9.4/session) but have very different TPK rates (100% vs 60%). Lethality is driven by **how damage is adjudicated and how quickly force escalates**, not raw enemy count. Gemini's 7v2 force ratios by round 1-2 are a key driver of its 100% TPK rate.
+Grok spawns the most enemies (12.0/session) but has 60% TPK. **Claude spawns the fewest (8.2/session) and has the lowest TPK (20%).** Gemini and GPT-5.2 spawn the same number (9.4/session) but have very different TPK rates (100% vs 60%). Lethality is driven by **how damage is adjudicated, how quickly force escalates, and whether PCs can remove enemies faster than reinforcements arrive**. Claude's combination of fewest enemies + highest removal rate (34%) creates a sustainable combat tempo. Gemini's 7v2 force ratios by round 1-2 are the opposite extreme.
 
 ### 5. Enemy Removal Semantics
 The `enemy_defeat` event conflates combat kills, retreats, fleeing, and scene-cleanup departures. Grok's removal count is inflated by narrative departures (enemies fleeing/departing the scene), while GPT-5.2's removals are more likely actual combat kills. Future analysis should filter by `defeat_reason` to separate genuine combat effectiveness from narrative resolution.

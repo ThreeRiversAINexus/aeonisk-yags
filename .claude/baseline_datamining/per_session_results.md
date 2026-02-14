@@ -1,6 +1,6 @@
 # Per-Session Results
 
-## Successful Sessions (20/25)
+## Successful Sessions (25/30)
 
 | Run | DM Model | Rounds | Kael HP | Kael Status | Sable HP | Sable Status | Enemies Spawned | Enemies Defeated | NPC Behaviors | Tokens | Duration |
 |-----|----------|--------|---------|-------------|----------|-------------|----------------|-----------------|---------------|--------|----------|
@@ -25,7 +25,19 @@
 | 0020 | DeepSeek V3.2 | 9 | 0/27 | dead | 0/27 | unconscious | 9 | 0 | plead:9, dialogue:7, hide:2 | 910,883 | 5,590s |
 | 0025 | DeepSeek V3.2 | 5 | 0/27 | unconscious | 0/27 | unconscious | 5 | 1 | hide:4, dialogue:2 | 428,786 | 2,800s |
 
-## Failed Sessions (5/25) — All Anthropic Claude Opus 4.6
+### Claude Re-Run (run_2026-02-14_171956_2540eedd)
+
+After fixing the empty-response bug (see `claude_failure_analysis.md`), Claude was re-run with 5 sessions. All completed successfully.
+
+| Run | DM Model | Rounds | Kael HP | Kael Status | Sable HP | Sable Status | Enemies Spawned | Enemies Defeated | NPC Behaviors | Tokens | Duration |
+|-----|----------|--------|---------|-------------|----------|-------------|----------------|-----------------|---------------|--------|----------|
+| C001 | Claude Opus 4.6 | 10 | 19/27 | alive | 27/27 | alive | 9 | 4 | dialogue:3, hide:1, heal:1 | 1,085,274 | 2,013s |
+| C002 | Claude Opus 4.6 | 10 | 12/27 | alive | 27/27 | alive | 5 | 0 | dialogue:2, plead:1, hide:1 | 1,110,636 | 1,969s |
+| C003 | Claude Opus 4.6 | 10 | 4/27 | alive | 0/27 | unconscious | 11 | 2 | dialogue:2, hide:1, attack:1 | 906,824 | 1,997s |
+| C004 | Claude Opus 4.6 | 10 | 0/27 | unconscious | 0/27 | unconscious | 10 | 4 | dialogue:1, attack:1, flee:1, plead:1 | 884,446 | 1,750s |
+| C005 | Claude Opus 4.6 | 10 | 0/27 | unconscious | 27/27 | alive | 6 | 4 | dialogue:1, hide:1 | 988,464 | 1,870s |
+
+## Original Failed Sessions (5/30) — Anthropic Claude Opus 4.6 (Pre-Fix)
 
 | Run | Rounds Before Fail | Error | Tokens Used | Duration |
 |-----|-------------------|-------|-------------|----------|

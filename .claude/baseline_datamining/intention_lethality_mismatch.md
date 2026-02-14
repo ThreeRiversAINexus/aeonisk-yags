@@ -6,8 +6,9 @@ Player agents declaring suppressing fire, warning shots, or less-lethal actions 
 
 ## Methodology
 
-- Extracted all **238 player `action_declaration` events** across 20 successful sessions (119 Kael, 119 Sable — perfectly balanced)
-- Verified no enemy/NPC contamination: filter on `player_id.startswith("player_")` excludes 547 enemy + NPC declarations
+- Extracted all **324 player `action_declaration` events** across 25 successful sessions (164 Kael, 160 Sable)
+- Original 20 sessions: 238 declarations. Claude re-run 5 sessions: 86 declarations.
+- Verified no enemy/NPC contamination: filter on `player_id.startswith("player_")` excludes enemy + NPC declarations
 - Classified each declaration by combined `intent` + `description` text using keyword matching (suppressive keywords checked before lethal keywords)
 - Cross-referenced with matching `action_resolution` events (same round, same character name, phase excluding "enemy"/"npc") — 226 matched, 12 unmatched
 - Verified `damage_type` in `context.damage_effects[]` for stun vs wound classification
@@ -20,64 +21,67 @@ Player agents declaring suppressing fire, warning shots, or less-lethal actions 
 
 ### 1.1 Schema `action_type` Distribution (what the player agent selected)
 
-| action_type | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Total | % |
-|------------|---------|--------|----------------|---------------|-------|---|
-| combat | 48 | 60 | 30 | 50 | 188 | 79.0% |
-| social | 5 | 3 | 5 | 13 | 26 | 10.9% |
-| perception | 3 | 1 | 0 | 4 | 8 | 3.4% |
-| explore | 2 | 1 | 0 | 4 | 7 | 2.9% |
-| investigate | 2 | 1 | 1 | 1 | 5 | 2.1% |
-| support | 2 | 1 | 0 | 1 | 4 | 1.7% |
-| **Total** | **62** | **67** | **36** | **73** | **238** | |
+| action_type | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Claude Opus 4.6 | Total | % |
+|------------|---------|--------|----------------|---------------|-----------------|-------|---|
+| combat | 48 | 60 | 30 | 50 | 52 | 240 | 74.1% |
+| social | 5 | 3 | 5 | 13 | 6 | 32 | 9.9% |
+| perception | 3 | 1 | 0 | 4 | 12 | 20 | 6.2% |
+| explore | 2 | 1 | 0 | 4 | 6 | 13 | 4.0% |
+| support | 2 | 1 | 0 | 1 | 6 | 10 | 3.1% |
+| investigate | 2 | 1 | 1 | 1 | 2 | 7 | 2.2% |
+| technical | 0 | 0 | 0 | 0 | 2 | 2 | 0.6% |
+| **Total** | **62** | **67** | **36** | **73** | **86** | **324** | |
 
-Combat dominates at 79%. DeepSeek generates the most social actions (13), reflecting its diplomatic player agent personality. Gemini's low total (36) reflects its short sessions (avg 5.0 rounds).
+Combat dominates at 74%. **Claude has the most diverse action profile** — only 60% combat (lowest of any model), with significant perception (14%), support (7%), and explore (7%). DeepSeek generates the most social actions (13). Gemini's low total (36) reflects its short sessions (avg 5.0 rounds).
 
 ### 1.2 Skill Distribution
 
-| Skill | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Total | % |
-|-------|---------|--------|----------------|---------------|-------|---|
-| Guns | 42 | 59 | 28 | 49 | 178 | 74.8% |
-| Intimidation | 2 | 1 | 2 | 9 | 14 | 5.9% |
-| Awareness | 4 | 2 | 0 | 4 | 10 | 4.2% |
-| Melee | 6 | 1 | 1 | 0 | 8 | 3.4% |
-| Combat | 2 | 1 | 2 | 2 | 7 | 2.9% |
-| Command | 1 | 1 | 1 | 3 | 6 | 2.5% |
-| Stealth | 0 | 1 | 1 | 1 | 3 | 1.3% |
-| Athletics | 1 | 0 | 1 | 1 | 3 | 1.3% |
-| Medicine | 1 | 1 | 0 | 1 | 3 | 1.3% |
-| Other/None | 3 | 0 | 0 | 3 | 6 | 2.5% |
+| Skill | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Claude Opus 4.6 | Total | % |
+|-------|---------|--------|----------------|---------------|-----------------|-------|---|
+| Guns | 42 | 59 | 28 | 49 | 39 | 217 | 67.0% |
+| Awareness | 4 | 2 | 0 | 4 | 15 | 25 | 7.7% |
+| Melee | 6 | 1 | 1 | 0 | 13 | 21 | 6.5% |
+| Intimidation | 2 | 1 | 2 | 9 | 5 | 19 | 5.9% |
+| Combat | 2 | 1 | 2 | 2 | 2 | 9 | 2.8% |
+| Command | 1 | 1 | 1 | 3 | 0 | 6 | 1.9% |
+| Stealth | 0 | 1 | 1 | 1 | 3 | 6 | 1.9% |
+| Medicine | 1 | 1 | 0 | 1 | 2 | 5 | 1.5% |
+| Athletics | 1 | 0 | 1 | 1 | 0 | 3 | 0.9% |
+| Charm | 0 | 0 | 0 | 0 | 1 | 1 | 0.3% |
+| Other/None | 3 | 0 | 0 | 3 | 6 | 12 | 3.7% |
 
 **Key observations:**
-- Guns dominates at 75% — even "suppressing fire" uses the Guns skill
-- GPT-5.2 is the only model with significant Melee usage (6, all shock baton)
+- Guns dominates at 67% — even "suppressing fire" uses the Guns skill
+- **Claude has the lowest Guns % (45%)** and highest Melee (15%) and Awareness (17%) — most tactically diverse
+- GPT-5.2 and Claude are the only models with significant Melee usage (6 and 13 respectively, shock baton)
 - DeepSeek leads Intimidation (9) and Command (3), matching its diplomatic profile
 - Grok barely uses anything except Guns (88%) — pure combat focus
 
 ### 1.3 Intent Classification (keyword-based, combined intent + description)
 
-| Category | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Total | % |
-|----------|---------|--------|----------------|---------------|-------|---|
-| **lethal_attack** | 35 | 49 | 24 | 17 | 125 | 52.5% |
-| **suppressing_fire** | 6 | 13 | 0 | 32 | 51 | 21.4% |
-| **social** | 5 | 2 | 5 | 15 | 27* | 11.3% |
-| **other** (scan, heal, stealth) | 5 | 1 | 3 | 2 | 11 | 4.6% |
-| **non_lethal** (baton) | 8 | 1 | 2 | 0 | 11* | 4.6% |
-| **defensive** | 3 | 1 | 2 | 7 | 13* | 5.5% |
+| Category | GPT-5.2 | Grok 4 | Gemini 2.5 Pro | DeepSeek V3.2 | Claude Opus 4.6 | Total | % |
+|----------|---------|--------|----------------|---------------|-----------------|-------|---|
+| **lethal_attack** | 35 | 49 | 24 | 17 | 44 | 169 | 52.2% |
+| **suppressing_fire** | 6 | 13 | 0 | 32 | 5 | 56 | 17.3% |
+| **social** | 5 | 2 | 5 | 15 | 9 | 36 | 11.1% |
+| **other** (scan, heal, stealth) | 5 | 1 | 3 | 2 | 16 | 27 | 8.3% |
+| **defensive** | 3 | 1 | 2 | 7 | 7 | 20 | 6.2% |
+| **non_lethal** (baton) | 8 | 1 | 2 | 0 | 5 | 16 | 4.9% |
 
 *Counts differ slightly from previous report due to using combined intent+description text for classification vs intent-only.*
 
-**Per-character breakdown:**
+**Per-character breakdown (all 25 sessions):**
 
-| Category | Kael (119) | Sable (119) |
+| Category | Kael (164) | Sable (160) |
 |----------|-----------|------------|
-| lethal_attack | 60 (50%) | 65 (55%) |
-| suppressing_fire | 14 (12%) | 37 (31%) |
-| social | 19 (16%) | 8 (7%) |
-| non_lethal | 10 (8%) | 0 (0%) |
-| defensive | 7 (6%) | 6 (5%) |
-| other | 9 (8%) | 3 (3%) |
+| lethal_attack | 78 (48%) | 91 (57%) |
+| suppressing_fire | 17 (10%) | 39 (24%) |
+| social | 27 (16%) | 9 (6%) |
+| non_lethal | 15 (9%) | 1 (1%) |
+| defensive | 11 (7%) | 9 (6%) |
+| other | 16 (10%) | 11 (7%) |
 
-**Sable uses suppressive fire 2.6× more than Kael** — with no non-lethal weapon, suppression is Sable's only "restraint" option. **All 10 non-lethal (baton) actions are Kael's** — the only character with the shock baton. Kael is more social (16% vs 7%) — consistent with the Enforcer's institutional "maintain order" role.
+**Sable uses suppressive fire 2.3× more than Kael** — with no non-lethal weapon, suppression is Sable's only "restraint" option. **Nearly all non-lethal (baton) actions are Kael's** (15 of 16) — the only character with the shock baton. Claude contributes 5 of the 16 non-lethal declarations, tied with GPT-5.2 for highest baton usage. Kael is more social (16% vs 6%) — consistent with the Enforcer's institutional "maintain order" role.
 
 ---
 
@@ -115,13 +119,13 @@ At nearly identical margins (10.8 vs 10.6), the DM assigns:
 
 ### 2.3 damage_type Distribution
 
-| Intent | wound | stun | % wound |
-|--------|-------|------|---------|
-| lethal_attack | 125 | 0 | 100% |
-| suppressing_fire | 58 | 1 | **98% wound** |
-| non_lethal (baton) | 1 | 6 | **86% stun** |
+| Intent | wound | stun | mixed | % wound |
+|--------|-------|------|-------|---------|
+| lethal_attack | 153 | 0 | 6 | 100% (exc. mixed) |
+| suppressing_fire | 63 | 1 | 0 | **98% wound** |
+| non_lethal (baton) | 1 | 11 | 0 | **92% stun** |
 
-Suppressive fire produces wound (lethal) damage 98% of the time — mechanically identical to lethal attacks. Only the shock baton reliably produces stun damage.
+Suppressive fire produces wound (lethal) damage 98% of the time — mechanically identical to lethal attacks. Only the shock baton reliably produces stun damage. Claude's 5 baton hits are all correctly typed as stun, confirming the pattern from the original 20 sessions.
 
 ### 2.4 Shock Baton Stun Damage Detail
 
@@ -194,15 +198,15 @@ Both DM and player agents use the same model per config.
 
 ### 6.1 Intent Distribution by Model
 
-| Category | GPT-5.2 (62) | Grok 4 (67) | Gemini 2.5 (36) | DeepSeek V3.2 (73) |
-|----------|:---:|:---:|:---:|:---:|
-| Lethal attack | 35 (56%) | 49 (73%) | 24 (67%) | 17 (23%) |
-| Suppressing fire | 6 (10%) | 13 (19%) | 0 (0%) | 32 (44%) |
-| Non-lethal | 8 (13%) | 1 (1.5%) | 2 (6%) | 0 (0%) |
-| Defensive | 3 (5%) | 1 (1.5%) | 2 (6%) | 7 (10%) |
-| Social | 5 (8%) | 2 (3%) | 5 (14%) | 15 (21%) |
-| Other | 5 (8%) | 1 (1.5%) | 3 (8%) | 2 (3%) |
-| **Non-lethal intent*** | **31%** | **24%** | **19%** | **74%** |
+| Category | GPT-5.2 (62) | Grok 4 (67) | Gemini 2.5 (36) | DeepSeek V3.2 (73) | Claude 4.6 (86) |
+|----------|:---:|:---:|:---:|:---:|:---:|
+| Lethal attack | 35 (56%) | 49 (73%) | 24 (67%) | 17 (23%) | 44 (51%) |
+| Suppressing fire | 6 (10%) | 13 (19%) | 0 (0%) | 32 (44%) | 5 (6%) |
+| Non-lethal | 8 (13%) | 1 (1.5%) | 2 (6%) | 0 (0%) | 5 (6%) |
+| Defensive | 3 (5%) | 1 (1.5%) | 2 (6%) | 7 (10%) | 7 (8%) |
+| Social | 5 (8%) | 2 (3%) | 5 (14%) | 15 (21%) | 9 (10%) |
+| Other | 5 (8%) | 1 (1.5%) | 3 (8%) | 2 (3%) | 16 (19%) |
+| **Non-lethal intent*** | **31%** | **24%** | **19%** | **74%** | **30%** |
 
 *Non-lethal intent = suppress + non_lethal + defensive + social as % of total*
 
@@ -229,6 +233,15 @@ Both DM and player agents use the same model per config.
 - Best survival rate (40% full party survival)
 - **Interpretation:** Grok player agents fight aggressively. Combined with Grok DM creating allied NPCs, aggressive lethal tactics + DM narrative assistance produces best outcomes.
 
+**Claude Opus 4.6 — "The Balanced Tactician"**
+- 51% lethal, 30% non-lethal intent — moderate balance
+- **Highest "other" category (19%)** — Awareness scans, medical, stealth, technical actions. Claude players actually scout, heal, and reposition.
+- **Second highest Melee/baton usage (13 of 86, 15%)** — tied with GPT-5.2 for consistent shock baton use
+- **Only 45% Guns** — lowest of any model, diversifying into Awareness (17%), Melee (15%), Intimidation (6%)
+- **Net +7 soulcredit** — only model where PCs earn more bonuses than penalties, largely from Kael's "non-lethal takedown" rewards
+- **Best survival rate** (20% TPK) with moderate restraint approach
+- **Interpretation:** Claude player agents invest in non-combat actions (scanning, healing, stealth) that other models skip. Combined with consistent baton usage and 88% overall success rate, Claude demonstrates that tactical diversity — not pure aggression OR pure restraint — produces the best outcomes.
+
 **Gemini 2.5 Pro — "The Brief Combatant"**
 - Fewest total actions (36) due to shortest sessions (avg 5.0 rounds)
 - 67% lethal, 14% social, 6% non-lethal
@@ -237,26 +250,38 @@ Both DM and player agents use the same model per config.
 
 ---
 
-## 7. The Paradox: Non-Lethal Intent Correlates with WORSE Outcomes
+## 7. The Non-Lethal Intent Paradox (Updated with Claude)
 
 | Model | Non-Lethal Intent Rate | TPK Rate | Avg Combined HP |
 |-------|----------------------|----------|----------------|
 | DeepSeek V3.2 | **74%** | **80%** | 6.4/54 |
 | GPT-5.2 | 31% | 60% | 8.2/54 |
-| Grok 4 | 24% | 60% | **15.8/54** |
+| **Claude Opus 4.6** | **30%** | **20%** | **23.2/54** |
+| Grok 4 | 24% | 60% | 15.8/54 |
 | Gemini 2.5 Pro | 19% | 100% | 0.0/54 |
 
-Models whose player agents try harder to be non-lethal actually perform WORSE. Possible explanations:
+**Claude breaks the paradox.** The original 4-model data suggested a clean inverse relationship: more restraint → worse outcomes. Claude's arrival complicates this — at 30% non-lethal intent (nearly identical to GPT-5.2's 31%), Claude achieves the **best survival rate** of any model by a wide margin.
+
+**What explains Claude's success?**
+
+Claude's 30% non-lethal intent is structurally different from DeepSeek's 74%:
+- **Claude's non-lethal actions are diversified** — baton strikes (6%), defensive repositioning (8%), social (10%), and perception/scanning (19% "other") vs DeepSeek's 44% concentrated in suppressive fire
+- **Claude doesn't suppress — it acts.** Only 5 suppressive fire declarations (6%) vs DeepSeek's 32 (44%). Instead of wasting actions on "pin them down" (which deals wound damage anyway), Claude players scan, heal, reposition, and use the baton.
+- **Tactical diversity, not restraint, is the key.** Claude's 45% Guns rate (lowest of any model) doesn't mean pacifism — it means the other 55% of actions are perception checks, melee baton takedowns, medical aid, stealth, and social commands.
+
+**The revised paradox:** Pure suppressive fire intent correlates with worse outcomes (DeepSeek), but tactical diversity with selective non-lethal force correlates with the best outcomes (Claude). The problem isn't restraint itself — it's that the current suppressive fire mechanic is a trap that wastes actions without mechanical benefit.
+
+Other contributing factors:
 
 1. **Suppressive fire is mechanically identical to lethal fire** — same roll, same DC, same damage formula. The player spends their action on "suppression" but gets the same wound damage result, just with lower DM-assigned base_damage. No mechanical benefit to justify the tactical choice.
 
-2. **Non-lethal weapons are mechanically weaker** — Melee 4 vs Guns 5 means baton attacks have lower ability scores and higher failure rates.
+2. **Non-lethal weapons are mechanically weaker** — Melee 4 vs Guns 5 means baton attacks have lower ability scores and higher failure rates. But Claude's 100% baton success rate (5/5) suggests high margins compensate.
 
-3. **Suppressive tactics waste actions on enemies who aren't eliminated** — suppressed enemies get -4 to next action but are still alive and fighting next round. A lethal kill permanently removes a threat. In a 3v2 (or worse, 7v2) scenario, removing enemies matters more than debuffing them.
+3. **Suppressive tactics waste actions on enemies who aren't eliminated** — suppressed enemies get -4 to next action but are still alive and fighting next round. A lethal kill permanently removes a threat. Claude's 34% enemy removal rate (highest) shows it prioritizes kills.
 
 4. **Social/de-escalation actions consume combat turns at 56% success rate** — every turn spent negotiating (and likely failing) is a turn not spent shooting. With 3+ enemies attacking each round, PCs can't afford missed turns.
 
-5. **The DM doesn't mechanically reward non-lethal approaches** — no soulcredit bonus, no enemy morale cascade, no de-escalation chain reaction. Suppressed status wears off and enemies attack again.
+5. **The DM doesn't mechanically reward non-lethal approaches** — no soulcredit bonus, no enemy morale cascade, no de-escalation chain reaction. Suppressed status wears off and enemies attack again. **Exception: Claude's DM awards soulcredit bonuses for non-lethal takedowns** (+7 net across 5 sessions).
 
 ---
 
@@ -354,7 +379,9 @@ Models whose player agents try harder to be non-lethal actually perform WORSE. P
 
 ## Raw Data Reference
 
-- **Analysis scripts:** `/tmp/intention_mismatch_analysis.py`, `/tmp/deep_action_analysis.py`
-- **Data verification:** 238 player declarations confirmed clean (no enemy/NPC contamination). 785 total `action_declaration` events in dataset: 238 player + 547 enemy/NPC.
-- **Resolution matching:** 226/238 declarations matched to resolutions, 12 unmatched (PC dead, session ended, or logging gap).
-- **Session JSONL files:** `multiagent_output/lethality_experiment_combat_ambush/control/models/run_2026-02-14_113048_5276cf26/`
+- **Analysis scripts:** `/tmp/intention_mismatch_analysis.py`, `/tmp/deep_action_analysis.py`, `/tmp/claude_session_analysis.py`
+- **Data verification:** 324 player declarations confirmed clean (no enemy/NPC contamination). 238 from original 20 sessions + 86 from Claude re-run.
+- **Resolution matching:** 312/324 declarations matched to resolutions, 12 unmatched (PC dead, session ended, or logging gap — all from original 20 sessions).
+- **Session JSONL files:**
+  - Original batch: `multiagent_output/lethality_experiment_combat_ambush/control/models/run_2026-02-14_113048_5276cf26/`
+  - Claude re-run: `multiagent_output/lethality_experiment_combat_ambush/control/models/run_2026-02-14_171956_2540eedd/`

@@ -2,21 +2,23 @@
 
 ## Overview
 
-These observations are preliminary — drawn from 20 successful sessions across 4 DM models. Sample sizes are small (n=5 per model). Patterns noted here are hypotheses for future investigation, not conclusions.
+These observations are preliminary — drawn from 25 successful sessions across 5 DM models. Sample sizes are small (n=5 per model). Patterns noted here are hypotheses for future investigation, not conclusions. Claude data from re-run batch after fixing empty-response bug.
 
 ---
 
 ## 1. The DM Lethality Spectrum
 
-Models range from maximally lethal to narratively permissive:
+Models range from maximally lethal to most survivable:
 
 ```
-Most Lethal ←————————————————————————→ Most Permissive
-  Gemini 2.5 Pro   DeepSeek V3.2   GPT-5.2   Grok 4
-  (100% TPK)       (80% TPK)       (60%)     (60% TPK, 40% full survival)
+Most Lethal ←————————————————————————————————→ Most Survivable
+  Gemini 2.5 Pro   DeepSeek V3.2   GPT-5.2   Grok 4   Claude Opus 4.6
+  (100% TPK)       (80% TPK)       (60%)     (60%)    (20% TPK)
 ```
 
-**Key distinction:** Grok 4 and GPT-5.2 share the same TPK rate (60%), but Grok's non-TPK sessions have BOTH PCs surviving at high HP (one at full 27/27), while GPT-5.2's non-TPK sessions have only Kael surviving. Grok's outcomes are bimodal; GPT-5.2's are consistently "Kael lives, Sable dies."
+**Key distinctions:**
+- Grok 4 and GPT-5.2 share the same TPK rate (60%), but Grok's non-TPK sessions have BOTH PCs surviving at high HP (one at full 27/27), while GPT-5.2's non-TPK sessions have only Kael surviving. Grok's outcomes are bimodal; GPT-5.2's are consistently "Kael lives, Sable dies."
+- **Claude Opus 4.6 is the clear outlier** — only 1 TPK in 5 sessions, 80% of sessions have at least 1 PC survive, highest combined HP (23.2/54). All 5 sessions reached the 10-round maximum. Claude achieves this through fewer enemies, weaker enemy weapons (Pistol-heavy, no Shotguns), highest enemy removal rate (34%), and a DM that rewards non-lethal tactics.
 
 ## 2. Gemini's Zero Enemy Kill Rate
 
@@ -59,6 +61,7 @@ NPC action distributions are strikingly model-specific:
 | Grok 4 | flee (30%), attack (16%), heal (14%) | NPCs are active participants — allies, combatants, medics |
 | Gemini | dialogue (46%), hide (33%) | NPCs observe and comment but don't intervene |
 | DeepSeek | plead (34%), dialogue (34%), hide (32%) | NPCs beg and talk extensively but to no effect |
+| Claude | dialogue (47%), hide (21%) | NPCs engage through conversation, moderate presence |
 
 **Grok's NPC allies (Run 0017):** This session had 7 NPC attack actions and 6 NPC heal actions — the DM spontaneously created NPCs who joined the PCs' side. This is a unique emergent behavior not seen in any other model. The result: both PCs survived at full HP. This raises the question of whether Grok is "compensating" for poor PC combat odds by introducing deus ex machina NPC assistance.
 
@@ -69,20 +72,21 @@ NPC action distributions are strikingly model-specific:
 | 3-4 | 5 | 100% (5/5) | Short sessions always end in TPK |
 | 5-6 | 6 | 83% (5/6) | Still mostly TPK |
 | 7 | 3 | 100% (3/3) | TPK persists through mid-length |
-| 9-10 | 6 | 33% (2/6) | Long sessions have the best survival |
+| 9-10 | 11 | 27% (3/11) | Long sessions have the best survival |
 
-Sessions that reach 9-10 rounds are the ones where PCs have a chance. But most TPKs happen by round 4-6. **The critical window is rounds 3-5** — if PCs aren't overwhelmed by then, they may survive.
+With Claude's 5 sessions all reaching round 10 (only 1 TPK), the 9-10 round bracket now has 11 sessions and only 27% TPK. Sessions that reach 9-10 rounds are the ones where PCs have a chance. **The critical window is rounds 3-5** — if PCs aren't overwhelmed by then, they may survive. Claude's DM never ends sessions via early TPK, giving PCs maximum time to recover.
 
 ## 6. Token Efficiency vs Narrative Richness
 
 | Model | Tokens/Round | NPC Actions/Round | Interpretation |
 |-------|-------------|-------------------|----------------|
 | Gemini | 89K | 0.96 | Efficient: kill PCs fast, minimal side content |
+| Claude | 100K | 0.38 | Efficient: balanced combat, moderate NPCs, best survival |
 | DeepSeek | 100K | 1.23 | Verbose: extensive NPC scenes that don't save PCs |
 | GPT-5.2 | 105K | 0.43 | Moderate: combat-focused, minimal NPC overhead |
 | Grok | 112K | 1.16 | Expensive: rich NPC ecosystems with actual tactical impact |
 
-Grok's extra token cost correlates with meaningful NPC behaviors that affect outcomes. DeepSeek's extra cost correlates with narrative richness that doesn't.
+Grok's extra token cost correlates with meaningful NPC behaviors that affect outcomes. DeepSeek's extra cost correlates with narrative richness that doesn't. **Claude achieves the best survival rate at moderate token cost** (100K/round) — efficient combat resolution without the narrative bloat of DeepSeek or the NPC complexity of Grok.
 
 ---
 
@@ -99,7 +103,7 @@ Grok's extra token cost correlates with meaningful NPC behaviors that affect out
 6. **Isolate DM vs player behavior:** Run sessions with a fixed player model (e.g., always GPT-5 mini) and vary only the DM model
 7. **Explicit intent conditions:** Add lethal/non-lethal goal language and measure delta from this baseline
 8. **Structured resolution examples:** Set `include_suppression_resolution_example: true` and compare
-9. **Re-run Anthropic:** Apply empty-response defensive fixes and include Claude in the comparison
+9. ~~**Re-run Anthropic:** Apply empty-response defensive fixes and include Claude in the comparison~~ **DONE** — Claude re-run successful, 5/5 sessions, integrated into all analysis
 
 ### System/Engine Issues Surfaced
 10. **`enemy_defeat` events ARE logged and reliable** — ~~Initially assumed these were missing.~~ The event type is `enemy_defeat` (not `enemy_defeated`). These events capture all enemy removals but **conflate different outcomes**: killed, fled, retreated, subdued, departed, despawned. A "defeated" count of 8 in Grok run 0002 is actually 2 combat kills + 6 scene-cleanup departures. Use the `defeat_reason` field to distinguish.

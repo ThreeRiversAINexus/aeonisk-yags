@@ -73,9 +73,23 @@ Line 73: session_error (round 2) — session crashes
 - **Structured output retry:** `scripts/aeonisk/multiagent/llm_batch_provider.py` (lines 182-307: `generate_structured`)
 - **DM resolution entry:** `scripts/aeonisk/multiagent/structured_output_helpers.py` (lines 36-165)
 
+## Successful Re-Run
+
+**After applying the defensive fixes above, Claude was re-run successfully.**
+
+- **Batch ID:** `run_2026-02-14_171956_2540eedd`
+- **Result:** 5/5 sessions completed (100% success)
+- **All sessions reached 10 rounds** (the maximum)
+- **Total tokens:** 4,975,644 (avg 995K/session)
+- **Total duration:** 33.5 minutes (avg 1,920s/session)
+
+The fix was straightforward: checking `if not content or not content.strip()` instead of just `if not content` caught whitespace-only responses and triggered direct API fallback. Combined with `repr(content[:200])` debug logging for parse failures, the empty-response bug is now detectable and recoverable.
+
+Claude data has been integrated into all analysis documents in this directory. All 25 sessions (20 original + 5 Claude re-run) now form the complete baseline dataset.
+
 ## Impact on Experiment
 
-- Claude Opus 4.6 has **zero usable combat data** from this batch
-- The failure is likely transient API degradation, not a fundamental incompatibility
-- The 20 successful sessions across 4 models provide valid baseline data
-- Retry with defensive fixes above before attributing behavioral differences to Claude
+- ~~Claude Opus 4.6 has zero usable combat data from this batch~~
+- **RESOLVED:** Claude re-run produced 5 successful sessions, now included in all analysis
+- Claude turned out to be the **best-performing model**: lowest TPK (20%), highest combined HP (23.2/54), highest enemy removal rate (34%), and only model with positive soulcredit (+7)
+- The failure was transient API degradation + insufficient empty-content guard, not a fundamental incompatibility

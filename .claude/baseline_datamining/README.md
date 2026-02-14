@@ -2,8 +2,10 @@
 
 **Date:** 2026-02-14
 **Branch:** `intention-lethality-mismatch`
-**Bulk Run ID:** `run_2026-02-14_113048_5276cf26`
-**Output:** `multiagent_output/lethality_experiment_combat_ambush/control/models/run_2026-02-14_113048_5276cf26/`
+**Bulk Run IDs:**
+- `run_2026-02-14_113048_5276cf26` — Original batch (GPT-5.2, Grok 4, Gemini 2.5 Pro, DeepSeek V3.2; Claude failed)
+- `run_2026-02-14_171956_2540eedd` — Claude re-run (5/5 success after empty-response fix)
+**Output:** `multiagent_output/lethality_experiment_combat_ambush/control/models/`
 
 ## Files in This Directory
 
@@ -11,9 +13,9 @@
 |------|-------------|
 | `README.md` | This overview |
 | `experiment_design.md` | Scenario setup, character sheets, clocks, hypothesis |
-| `per_session_results.md` | Raw per-session data table (20 successful + 5 failed) |
-| `model_comparison.md` | Per-model aggregated stats, behavioral profiles, key findings |
-| `claude_failure_analysis.md` | Root cause analysis of Anthropic Claude Opus 4.6 100% failure rate |
+| `per_session_results.md` | Raw per-session data table (25 successful + 5 original failed) |
+| `model_comparison.md` | Per-model aggregated stats across 5 models, behavioral profiles, key findings |
+| `claude_failure_analysis.md` | Root cause of original Claude failure + successful re-run results |
 | `research_observations.md` | Agent psychology observations, DM behavior patterns, open questions |
 | `intention_lethality_mismatch.md` | Deep-dive: suppressing fire, shock baton, and non-lethal intent vs DM adjudication |
 | `enemy_npc_analysis.md` | Enemy combat behavior, NPC actions, spawning patterns, entity lifecycle per model |
@@ -21,11 +23,12 @@
 
 ## Quick Summary
 
-- **25 sessions** across 5 DM models (5 runs each), identical scenario
-- **20 succeeded**, 5 failed (all Anthropic Claude Opus 4.6)
-- **75% total party kill rate** across successful sessions
-- **0% enemy kills by Gemini** (most lethal DM), **40% both-PCs-survive by Grok** (most permissive)
-- **14.5M total tokens**, ~4 hours wall-clock time
+- **30 sessions** across 5 DM models (5 runs each + 5 Claude re-run), identical scenario
+- **25 succeeded**, 5 failed (original Claude batch — fixed and re-run)
+- **64% total party kill rate** across 25 successful sessions
+- **Claude Opus 4.6 lowest TPK (20%)**, Gemini highest (100%), Grok/GPT tied (60%)
+- **0% enemy kills by Gemini** (most lethal DM), **40% both-PCs-survive by Grok and Claude** (most permissive)
+- **~19.5M total tokens**, ~5.5 hours wall-clock time
 - Both DM and player agents use the **same model** per config (not GPT-5 mini — naming artifact)
 - **40% of player declarations contain non-lethal/suppressive intent**, but all gun-based suppression deals lethal wound damage
 
