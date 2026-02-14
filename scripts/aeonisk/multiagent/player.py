@@ -254,6 +254,7 @@ class AIPlayerAgent(Agent):
         # Stabilization state (YAGS First Aid system)
         self.is_stabilized = False  # True = bleeding stopped, no more death checks needed
         self.is_extracted = False  # True = medevac arrived, character removed from combat
+        self._permanently_dead = False  # True = failed death save, cannot be healed/resurrected
 
         # Weapon inventory (initialized in on_start)
         from .weapons import Weapon
@@ -498,7 +499,9 @@ class AIPlayerAgent(Agent):
 
     @property
     def is_alive(self) -> bool:
-        """Check if player is alive (health > 0)."""
+        """Check if player is alive (health > 0 and not permanently dead from failed death save)."""
+        if self._permanently_dead:
+            return False
         return self.health is not None and self.health > 0
 
     @property
@@ -570,6 +573,7 @@ class AIPlayerAgent(Agent):
         # Fumble (nat 1) = automatic death
         if roll == 1:
             logger.warning(f"{self.character_state.name} FUMBLED death save - KILLED!")
+            self._permanently_dead = True
             return False, "dead"
 
         # Good success (beat DC by 10+) = can keep fighting
@@ -585,6 +589,7 @@ class AIPlayerAgent(Agent):
         # Failure = dead
         else:
             logger.warning(f"{self.character_state.name} FAILED death save - KILLED!")
+            self._permanently_dead = True
             return False, "dead"
 
     def add_buff(self, effect: str, bonus: int, duration: int, source: str = "unknown"):

@@ -538,6 +538,14 @@ def _process_structured_healing_effects(
         target_wounds = getattr(target_entity, 'wounds', 0)
         target_health = getattr(target_entity, 'health', 1)
 
+        # Permanently dead (failed death save): reject all healing
+        if getattr(target_entity, '_permanently_dead', False):
+            logger_instance.warning(
+                f"⚠️ Healing rejected: {target_name} is permanently dead (failed death save) — beyond saving"
+            )
+            messages.append(f"⚠️ **{target_name} is dead (failed death save) — beyond saving**")
+            continue
+
         # Dead (wounds >= 6): reject all healing
         if target_wounds >= 6:
             logger_instance.warning(
@@ -3939,6 +3947,16 @@ enemy_spawns=[
                 player_status_context += "\n\n⚠️  IMPORTANT: If players took significant damage this round, MENTION their injuries in your narration!"
                 player_status_context += "\n⚠️  Players near death (≤20% HP) or critically wounded (≥4 wounds) should be described struggling/desperate."
 
+                # Add defeated character rules if anyone is at 0 HP
+                defeated_chars = [line for line in player_lines if "0/" in line or "CRITICAL" in line]
+                if defeated_chars or casualties_this_round:
+                    player_status_context += "\n\n**DEFEATED CHARACTER RULES:**"
+                    player_status_context += "\n- Characters at 0 HP are UNCONSCIOUS or DEAD. They cannot speak, act, or contribute."
+                    player_status_context += "\n- Do NOT give dying words to characters who died rounds ago."
+                    player_status_context += "\n- Do NOT narrate unconscious characters as participating in conversations."
+                    player_status_context += "\n- If someone stabilized a character, narrate them as \"stabilized but unconscious\" NOT \"back on their feet.\""
+                    player_status_context += "\n- Check Party Health Status above — anyone at 0 HP is DOWN."
+
         # Build fled NPCs context (for narrative consistency)
         fled_npcs_context = ""
         if resolution_state and hasattr(resolution_state, 'fled_npcs') and resolution_state.fled_npcs:
@@ -6788,6 +6806,23 @@ The following actions ALREADY resolved (faster initiative):
             prompt_parts.append(f"\nPlayer Action: {description}")
             prompt_parts.append(f"Action Type: {action_type}")
 
+            # Add declared target explicitly so DM knows who the player is targeting
+            if target_id:
+                target_name_resolved = None
+                if self.shared_state:
+                    target_id_mapper = self.shared_state.get_target_id_mapper()
+                    if target_id_mapper and target_id_mapper.enabled:
+                        target_entity = target_id_mapper.resolve_target(target_id)
+                        if target_entity:
+                            if hasattr(target_entity, 'character_state'):
+                                target_name_resolved = target_entity.character_state.name
+                            elif hasattr(target_entity, 'name'):
+                                target_name_resolved = target_entity.name
+                if target_name_resolved:
+                    prompt_parts.append(f"⚠️ DECLARED TARGET: [{target_id}] {target_name_resolved} — use this target ID in DamageEffect/Condition target fields.")
+                else:
+                    prompt_parts.append(f"⚠️ DECLARED TARGET: {target_id} — use this target ID in DamageEffect/Condition target fields.")
+
             if void_impact:
                 prompt_parts.append(void_impact)
             if tactical_combat_context:
@@ -7415,8 +7450,19 @@ Note: NPCs and other characters are aware of this affiliation.
         resolution_context = ""
         if resolution:
             outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
+            attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
+            attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+            skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'unskilled'
+            skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+            d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+            total = resolution.total if hasattr(resolution, 'total') else 0
+            dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+            failure_warning = ""
+            if resolution.margin < 0:
+                failure_warning = "\n⚠️ FAILURE — the intended action FAILED. Narrate the failure honestly. Do NOT soften into a partial success."
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {total} vs DC {dc}{failure_warning}
 """
 
         # Extract target_id from action if present
@@ -7494,8 +7540,17 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                                     combatant_lines.append(f"  - [{tid}] {info['name']} ({health_text}{wounds_text})")
                                 else:
                                     combatant_lines.append(f"  - [{tid}] {info['name']} (player)")
+                            elif info['type'] == 'npc':
+                                # Show NPC with disposition so DM knows not to attack them
+                                disposition = 'neutral'
+                                if self.shared_state and self.shared_state.npc_agents:
+                                    for npc in self.shared_state.npc_agents:
+                                        if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
+                                            disposition = getattr(npc, 'disposition', 'neutral')
+                                            break
+                                combatant_lines.append(f"  - [{tid}] {info['name']} (npc, {disposition})")
                             else:
-                                # Format for enemies/NPCs: [tgt_xxxx] Name (type)
+                                # Format for enemies: [tgt_xxxx] Name (enemy)
                                 combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
 
                     if combatant_lines:
@@ -7614,8 +7669,19 @@ Note: NPCs and other characters are aware of this affiliation. Consider how fact
         resolution_context = ""
         if resolution:
             outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
+            attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
+            attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+            skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'unskilled'
+            skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+            d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+            total = resolution.total if hasattr(resolution, 'total') else 0
+            dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+            failure_warning = ""
+            if resolution.margin < 0:
+                failure_warning = "\n⚠️ FAILURE — the intended action FAILED. Narrate the failure honestly. Do NOT soften into a partial success."
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {total} vs DC {dc}{failure_warning}
 """
 
         # Build success-specific guidance

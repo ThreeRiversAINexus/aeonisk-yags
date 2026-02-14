@@ -1766,21 +1766,90 @@ Generate narratives (numbered list only):"""
                         # Append narrative context to main context
                         context += narrative_context
 
-                        # Add combatant list with target IDs for assist/dialogue targeting
+                        # Add combatant list with health and status for informed NPC decisions
                         if self.shared_state and hasattr(self.shared_state, 'target_id_mapper'):
                             mapper = self.shared_state.target_id_mapper
                             if mapper and mapper.enabled:
-                                combatant_list = []
+                                active_combatants = []
+                                down_combatants = []
+
                                 for target_id in mapper.get_all_target_ids():
                                     info = mapper.get_combatant_info(target_id)
-                                    if info:
-                                        combatant_list.append(f"{info['name']} ({target_id})")
+                                    if not info:
+                                        continue
 
-                                if combatant_list:
-                                    context += "\n\n## Available Targets (for assist/dialogue):\n"
-                                    context += "**⚠️ Use target IDs (tgt_xxxx) when specifying targets**\n"
-                                    for c in combatant_list:
-                                        context += f"- {c}\n"
+                                    # Skip self
+                                    if info.get('agent_id') == agent.agent_id:
+                                        continue
+
+                                    death_state = info.get('death_state', 'alive')
+                                    health = info.get('health', 0)
+                                    max_health = info.get('max_health', 0)
+                                    wounds = info.get('wounds', 0)
+
+                                    # Status tag
+                                    if death_state == 'dead':
+                                        status = " [DEAD — cannot be saved]"
+                                    elif death_state == 'unconscious':
+                                        status = f" [UNCONSCIOUS — wounds: {wounds}, healable]" if wounds < 6 else " [DEAD]"
+                                    elif max_health > 0 and health <= max_health * 0.25:
+                                        status = " [CRITICAL]"
+                                    else:
+                                        status = ""
+
+                                    entity_type = info.get('type', 'unknown')
+                                    type_label = {'player': 'ally', 'npc': 'npc', 'enemy': 'hostile'}.get(entity_type, entity_type)
+
+                                    entry = f"{info['name']} ({target_id}, {type_label}) — {health}/{max_health} HP, wounds: {wounds}{status}"
+
+                                    if death_state in ('dead', 'unconscious'):
+                                        down_combatants.append(entry)
+                                    else:
+                                        active_combatants.append(entry)
+
+                                # Also show defeated enemies not in mapper (for awareness)
+                                if self.enemy_combat and self.enemy_combat.enabled:
+                                    mapper_agent_ids = set()
+                                    for tid in mapper.get_all_target_ids():
+                                        tid_info = mapper.get_combatant_info(tid)
+                                        if tid_info:
+                                            mapper_agent_ids.add(tid_info.get('agent_id'))
+
+                                    for enemy in self.enemy_combat.enemy_agents:
+                                        if not enemy.is_active and enemy.agent_id not in mapper_agent_ids:
+                                            ewounds = getattr(enemy, 'wounds', 0)
+                                            ehealth = getattr(enemy, 'health', 0)
+                                            emax = getattr(enemy, 'max_health', 0)
+                                            down_combatants.append(
+                                                f"{enemy.name} — {ehealth}/{emax} HP, wounds: {ewounds} [DEFEATED]"
+                                            )
+
+                                if active_combatants or down_combatants:
+                                    context += "\n\n## People in Scene:\n"
+                                    context += "**Use target IDs (tgt_xxxx) when specifying targets**\n"
+
+                                    if active_combatants:
+                                        context += "\n**Active:**\n"
+                                        for c in active_combatants:
+                                            context += f"- {c}\n"
+
+                                    if down_combatants:
+                                        context += "\n**Down (cannot act or be targeted for dialogue):**\n"
+                                        for c in down_combatants:
+                                            context += f"- {c}\n"
+
+                                    # Tactical summary
+                                    n_active = len(active_combatants)
+                                    n_unconscious = sum(1 for c in down_combatants if 'UNCONSCIOUS' in c)
+                                    n_dead = sum(1 for c in down_combatants if 'DEAD' in c or 'DEFEATED' in c)
+                                    parts = []
+                                    if n_active:
+                                        parts.append(f"{n_active} active")
+                                    if n_unconscious:
+                                        parts.append(f"{n_unconscious} unconscious (healable)")
+                                    if n_dead:
+                                        parts.append(f"{n_dead} dead/defeated")
+                                    context += f"\n**Battlefield:** {', '.join(parts)}\n"
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)

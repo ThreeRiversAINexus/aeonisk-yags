@@ -300,6 +300,8 @@ class TargetIDMapper:
             entity_type = 'player'
         elif hasattr(agent, 'vendor_id') and not hasattr(agent, 'agent_id'):
             entity_type = 'vendor'
+        elif hasattr(agent, 'agent_id') and agent.agent_id in self.npc_registry:
+            entity_type = 'npc'
         else:
             entity_type = 'enemy'
 
@@ -325,6 +327,18 @@ class TargetIDMapper:
             info['health'] = getattr(agent, 'health', 0)
             info['max_health'] = getattr(agent, 'max_health', 0)
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
+
+        # Wounds, stuns, and death state (available for all combatant types)
+        info['wounds'] = getattr(agent, 'wounds', 0)
+        info['stuns'] = getattr(agent, 'stuns', 0)
+
+        permanently_dead = getattr(agent, '_permanently_dead', False)
+        if permanently_dead or info['wounds'] >= 6:
+            info['death_state'] = 'dead'
+        elif info.get('health', 0) <= 0 and info.get('max_health', 0) > 0:
+            info['death_state'] = 'unconscious'
+        else:
+            info['death_state'] = 'alive'
 
         return info
 

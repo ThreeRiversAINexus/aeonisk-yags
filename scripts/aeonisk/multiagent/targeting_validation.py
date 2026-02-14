@@ -108,7 +108,37 @@ def validate_and_correct_targeting(
             return (False, None, error)
         raise TargetingValidationError(error)
 
-    # STEP 5: All validations passed
+    # STEP 5: Check for cross-type target mismatch (DM redirected damage to wrong entity type)
+    # If player declared an enemy target but DM's damage hits a PC (or vice versa), correct it.
+    # This prevents the DM from hallucinating friendly fire when the player targeted an enemy.
+    declared_target = declared_action.get('target')
+    if (declared_target and declared_target.startswith('tgt_') and
+            effect.target != declared_target):
+        # DM used a different target than what was declared — check entity types
+        declared_is_player = target_id_mapper.is_player(declared_target)
+        effect_is_player = target_id_mapper.is_player(effect.target)
+
+        if declared_is_player != effect_is_player:
+            # Cross-type mismatch: DM redirected between PC and enemy
+            declared_entity = target_id_mapper.resolve_target(declared_target)
+            effect_entity = resolved_entity
+            declared_name = _get_entity_name(declared_entity) if declared_entity else declared_target
+            effect_name = _get_entity_name(effect_entity) if effect_entity else effect.target
+
+            if declared_is_player and not effect_is_player:
+                # Player targeted a PC (intentional FF), DM redirected to enemy — allow
+                logger.debug(f"✓ DM redirected PC-targeted damage to enemy {effect.target} — allowing")
+            else:
+                # Player targeted an enemy, DM redirected to a PC — BLOCK and correct
+                logger.warning(
+                    f"⚠️  TARGETING VALIDATION: DM redirected damage from declared enemy target "
+                    f"'{declared_name}' ({declared_target}) to PC '{effect_name}' ({effect.target}). "
+                    f"Correcting back to declared target."
+                )
+                corrected = effect.model_copy(update={'target': declared_target})
+                return (True, corrected, None)
+
+    # STEP 6: All validations passed
     logger.debug(f"✓ Target validation passed for {effect.target}")
     return (True, effect, None)
 

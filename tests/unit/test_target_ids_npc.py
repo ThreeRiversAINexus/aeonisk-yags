@@ -7,11 +7,13 @@ Tests verify that TargetIDMapper correctly:
 - Registers NPCs for tracking
 - Differentiates between NPCs, enemies, and players
 - Handles NPC targeting rules
+- Returns type='npc' from get_combatant_info() for converted NPCs
 """
 
 import pytest
 from scripts.aeonisk.multiagent.target_ids import TargetIDMapper
 from scripts.aeonisk.multiagent.npc_agent import NPCAgent
+from scripts.aeonisk.multiagent.enemy_agent import EnemyAgent, Position
 
 
 def create_test_npc(
@@ -279,3 +281,106 @@ class TestTargetIDMapperNPC:
             result = mapper.get_agent_type(agent_id)
             assert result == expected_type, \
                 f"Expected {expected_type} for {agent_id}, got {result}"
+
+
+def create_test_enemy(
+    agent_id="enemy_grunt_001",
+    name="Test Grunt",
+    health=12,
+    max_health=12,
+):
+    """Create test EnemyAgent for target ID testing."""
+    return EnemyAgent(
+        agent_id=agent_id,
+        name=name,
+        template="grunt",
+        attributes={"Agility": 3, "Strength": 3, "Perception": 3, "Intelligence": 2, "Empathy": 2, "Willpower": 2, "Endurance": 3, "Dexterity": 3},
+        skills={"Guns": 3, "Melee": 1, "Awareness": 2},
+        health=health,
+        max_health=max_health,
+        soak=8,
+        wounds=0,
+        position=Position(ring="Near", side="Enemy"),
+        initiative=0,
+    )
+
+
+class TestGetCombatantInfoNPC:
+    """Tests for get_combatant_info() returning correct type for NPCs."""
+
+    def test_enemy_returns_type_enemy(self):
+        """get_combatant_info returns type='enemy' for a normal enemy."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+
+        enemy = create_test_enemy(agent_id="enemy_grunt_001", name="Grunt #1")
+        target_id = mapper.register_enemy(enemy)
+
+        info = mapper.get_combatant_info(target_id)
+        assert info is not None
+        assert info['type'] == 'enemy'
+        assert info['name'] == 'Grunt #1'
+
+    def test_converted_npc_returns_type_npc(self):
+        """get_combatant_info returns type='npc' for a converted NPC (enemy→NPC via deescalation)."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+
+        # Step 1: Register as enemy (gets target_id)
+        enemy = create_test_enemy(agent_id="enemy_thug_001", name="Independent Thug #1")
+        target_id = mapper.register_enemy(enemy)
+        assert target_id is not None
+
+        # Verify starts as enemy
+        info = mapper.get_combatant_info(target_id)
+        assert info['type'] == 'enemy'
+
+        # Step 2: De-escalate — register as NPC (simulates what agent_conversion does)
+        npc = create_test_npc(agent_id="enemy_thug_001", name="Independent Thug #1", entity_type="prisoner")
+        mapper.register_npc(npc)
+
+        # Step 3: get_combatant_info should now return 'npc'
+        info = mapper.get_combatant_info(target_id)
+        assert info is not None
+        assert info['type'] == 'npc', f"Expected 'npc' but got '{info['type']}' — converted NPC still labeled as enemy!"
+        assert info['name'] == 'Independent Thug #1'
+
+    def test_fresh_npc_with_target_id_returns_npc(self):
+        """get_combatant_info returns type='npc' for a fresh NPC registered in target map."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+
+        # Create NPC and manually add to target_id_map (simulates NPC spawn with target)
+        npc = create_test_npc(agent_id="npc_civilian_001", name="Dock Worker")
+        mapper.register_npc(npc)
+
+        # Manually add to target_id_map (normally done by session code)
+        target_id = "tgt_test"
+        mapper.target_id_map[target_id] = npc
+        mapper.reverse_map["npc_civilian_001"] = target_id
+
+        info = mapper.get_combatant_info(target_id)
+        assert info is not None
+        assert info['type'] == 'npc'
+        assert info['name'] == 'Dock Worker'
+
+    def test_escalated_npc_returns_enemy_after_unregister(self):
+        """After NPC escalation (NPC→enemy), get_combatant_info returns 'enemy'."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+
+        # Register as enemy first
+        enemy = create_test_enemy(agent_id="enemy_raider_001", name="Raider")
+        target_id = mapper.register_enemy(enemy)
+
+        # De-escalate to NPC
+        npc = create_test_npc(agent_id="enemy_raider_001", name="Raider")
+        mapper.register_npc(npc)
+        assert mapper.get_combatant_info(target_id)['type'] == 'npc'
+
+        # Re-escalate to enemy (register_enemy removes from npc_registry)
+        new_enemy = create_test_enemy(agent_id="enemy_raider_001", name="Raider")
+        mapper.register_enemy(new_enemy)
+
+        info = mapper.get_combatant_info(target_id)
+        assert info['type'] == 'enemy', "After re-escalation, should be 'enemy' again"

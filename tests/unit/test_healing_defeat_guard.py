@@ -27,6 +27,7 @@ class TestHealingDefeatGuard:
         entity.wounds = wounds
         entity.stuns = 0
         entity.is_active = health > 0
+        entity._permanently_dead = False
         if is_player:
             entity.agent_id = "player_kael"
             entity.character_state = MagicMock()
@@ -173,3 +174,30 @@ class TestHealingDefeatGuard:
         assert target.health == 1
         assert any("stabiliz" in m.lower() for m in messages), \
             f"Expected stabilization message, got: {messages}"
+
+    def test_permanently_dead_character_cannot_be_healed(self):
+        """Character who failed death save (_permanently_dead=True) cannot be healed,
+        even if wounds < 6. This prevents the resurrection bug where a character
+        KILLED by death save at 5 wounds gets healed back to 1 HP."""
+        target = self._make_target(health=0, wounds=5)
+        target._permanently_dead = True  # Failed death save
+        shared_state = self._make_shared_state(target)
+
+        messages = self._call_healing(target, shared_state, heal_amount=20)
+
+        # Health should NOT change
+        assert target.health == 0, f"Dead character HP changed: {target.health}"
+        # Message should indicate rejection
+        assert any("dead" in m.lower() or "beyond saving" in m.lower() for m in messages), \
+            f"Expected rejection message, got: {messages}"
+
+    def test_permanently_dead_wound_healing_rejected(self):
+        """Wound healing on permanently dead character should be rejected."""
+        target = self._make_target(health=-2, wounds=5)
+        target._permanently_dead = True
+        shared_state = self._make_shared_state(target)
+
+        old_wounds = target.wounds
+        self._call_healing(target, shared_state, heal_amount=2, heal_type="wound")
+
+        assert target.wounds == old_wounds, f"Dead character wounds changed: {target.wounds}"

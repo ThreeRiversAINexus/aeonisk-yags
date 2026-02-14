@@ -31,6 +31,11 @@
    - Media, broadcast temples
    - Information control, propaganda
 
+6. **Aether Dynamics**
+   - Leyline power generation
+   - Attunement specialists
+   - Spaceship slipstream pilots
+
 ### Anti-Nexus (Rebels)
 6. **Tempest Industries**
    - Void research, dissolution advocacy

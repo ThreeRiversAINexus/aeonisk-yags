@@ -171,3 +171,11 @@ content: |-
   - For misses, describe how they evade or the shot goes wide
   - For STUN attacks: describe knockout, daze, or stagger — NOT bleeding/death
   - For WOUND attacks: describe lethality, blood, lasting injury
+
+  ## COMBAT FIDELITY REMINDER
+
+  The universal mechanical fidelity rules (from dm_core) apply here:
+  - Missed attacks (margin < 0): show the dodge, the deflection, the shot going wide. The target takes NO damage from the primary attack.
+  - Damage proportionality: 2-4 = scratch/graze, 5-7 = solid hit, 8-12 = heavy blow, 15+ = brutal/devastating.
+  - Defeated enemies (0 HP) go DOWN in this narration. They do not keep fighting.
+  - Collateral damage on bystanders or allies MUST be narrated explicitly — name them.

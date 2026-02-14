@@ -12,6 +12,8 @@ from unittest.mock import Mock, AsyncMock
 from datetime import datetime
 
 from scripts.aeonisk.multiagent.npc_agent import NPCAgent, NPCLLMClient, NPCAction
+from scripts.aeonisk.multiagent.target_ids import TargetIDMapper
+from scripts.aeonisk.multiagent.enemy_agent import EnemyAgent, Position
 
 
 class TestNPCActionBroadcast:
@@ -469,3 +471,155 @@ class TestNPCContextIntegration:
         # Fixture should have multiple characters taking actions
         assert len(character_names) >= 2, \
             f"Fixture should have actions from multiple characters, got {character_names}"
+
+
+# === Helpers for enriched combatant info tests ===
+
+def _create_test_npc(agent_id="npc_test_1", name="Test NPC", health=20, max_health=20,
+                     wounds=0, stuns=0):
+    """Create test NPC with configurable health/wounds."""
+    return NPCAgent(
+        agent_id=agent_id,
+        name=name,
+        faction="Test Faction",
+        entity_type="neutral",
+        disposition="neutral",
+        threat_level="non_combatant",
+        description="Test NPC",
+        health=health,
+        max_health=max_health,
+        soak=0,
+        void_score=0,
+        skills={},
+        stuns=stuns,
+        wounds=wounds,
+    )
+
+
+def _create_test_enemy(agent_id="enemy_grunt_001", name="Test Grunt", health=12,
+                       max_health=12, wounds=0):
+    """Create test EnemyAgent with configurable health/wounds."""
+    enemy = EnemyAgent(
+        agent_id=agent_id,
+        name=name,
+        template="grunt",
+        attributes={"Agility": 3, "Strength": 3, "Perception": 3, "Intelligence": 2,
+                     "Empathy": 2, "Willpower": 2, "Endurance": 3, "Dexterity": 3},
+        skills={"Guns": 3, "Melee": 1, "Awareness": 2},
+        health=health,
+        max_health=max_health,
+        soak=8,
+        wounds=wounds,
+        position=Position(ring="Near", side="Enemy"),
+        initiative=0,
+    )
+    return enemy
+
+
+def _create_test_player(agent_id="player_01", name="Test Player", health=27,
+                        max_health=27, wounds=0, stuns=0, permanently_dead=False):
+    """Create mock player agent with configurable health/wounds/death state."""
+    player = Mock()
+    player.agent_id = agent_id
+    player.character_state = Mock()
+    player.character_state.name = name
+    player.character_state.void_score = 0
+    player.health = health
+    player.max_health = max_health
+    player.wounds = wounds
+    player.stuns = stuns
+    player.position = "Near"
+    player._permanently_dead = permanently_dead
+    return player
+
+
+class TestGetCombatantInfoEnriched:
+    """Tests for enriched get_combatant_info() with wounds, stuns, death_state."""
+
+    def test_alive_enemy_has_death_state_alive(self):
+        """Healthy enemy returns death_state='alive'."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        enemy = _create_test_enemy(health=12, max_health=12, wounds=0)
+        tid = mapper.register_enemy(enemy)
+
+        info = mapper.get_combatant_info(tid)
+        assert info['wounds'] == 0
+        assert info['stuns'] == 0
+        assert info['death_state'] == 'alive'
+
+    def test_alive_npc_has_death_state_alive(self):
+        """Healthy NPC returns death_state='alive'."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        npc = _create_test_npc(health=20, max_health=20, wounds=0)
+        mapper.register_npc(npc)
+        tid = "tgt_npc1"
+        mapper.target_id_map[tid] = npc
+        mapper.reverse_map[npc.agent_id] = tid
+
+        info = mapper.get_combatant_info(tid)
+        assert info['wounds'] == 0
+        assert info['stuns'] == 0
+        assert info['death_state'] == 'alive'
+
+    def test_unconscious_enemy_has_death_state_unconscious(self):
+        """Enemy at 0 HP with wounds < 6 returns death_state='unconscious'."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        enemy = _create_test_enemy(health=0, max_health=12, wounds=3)
+        tid = mapper.register_enemy(enemy)
+
+        info = mapper.get_combatant_info(tid)
+        assert info['health'] == 0
+        assert info['wounds'] == 3
+        assert info['death_state'] == 'unconscious'
+
+    def test_dead_enemy_wounds_6_has_death_state_dead(self):
+        """Enemy with wounds >= 6 returns death_state='dead'."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        enemy = _create_test_enemy(health=0, max_health=12, wounds=6)
+        tid = mapper.register_enemy(enemy)
+
+        info = mapper.get_combatant_info(tid)
+        assert info['wounds'] == 6
+        assert info['death_state'] == 'dead'
+
+    def test_permanently_dead_player_has_death_state_dead(self):
+        """Player with _permanently_dead=True returns death_state='dead' even at wounds=5."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        player = _create_test_player(health=0, wounds=5, permanently_dead=True)
+        tid = "tgt_p1"
+        mapper.target_id_map[tid] = player
+        mapper.reverse_map[player.agent_id] = tid
+
+        info = mapper.get_combatant_info(tid)
+        assert info['death_state'] == 'dead'
+
+    def test_alive_player_has_wounds_and_stuns(self):
+        """Player with some wounds/stuns returns correct values."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        player = _create_test_player(health=15, max_health=27, wounds=2, stuns=1)
+        tid = "tgt_p2"
+        mapper.target_id_map[tid] = player
+        mapper.reverse_map[player.agent_id] = tid
+
+        info = mapper.get_combatant_info(tid)
+        assert info['wounds'] == 2
+        assert info['stuns'] == 1
+        assert info['death_state'] == 'alive'
+
+    def test_enemy_with_stuns_reported(self):
+        """Enemy stuns field is reported in combatant info."""
+        mapper = TargetIDMapper()
+        mapper.enable()
+        enemy = _create_test_enemy(health=8, max_health=12, wounds=1)
+        enemy.stuns = 2
+        tid = mapper.register_enemy(enemy)
+
+        info = mapper.get_combatant_info(tid)
+        assert info['stuns'] == 2
+        assert info['wounds'] == 1
