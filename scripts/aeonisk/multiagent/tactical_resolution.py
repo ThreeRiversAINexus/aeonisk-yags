@@ -60,6 +60,10 @@ class ResolutionState:
     # They'll be converted to NPCs after resolution phase
     surrendered: Set[str] = field(default_factory=set)  # Set of enemy agent_ids
 
+    # Incapacitated combatants (stun KO, non-lethal)
+    # These combatants are unconscious but not dead — can't act this round
+    incapacitated: Set[str] = field(default_factory=set)  # Set of agent_ids
+
     # Fled NPCs (ran away, left scene)
     # These NPCs are no longer present and should not appear in narration
     fled_npcs: Set[str] = field(default_factory=set)  # Set of NPC agent_ids
@@ -140,6 +144,30 @@ class ResolutionState:
         self.fled_npcs.add(agent_id)
         logger.info(f"{agent_id} marked as fled")
 
+    def mark_incapacitated(self, agent_id: str):
+        """
+        Mark combatant as incapacitated (stun KO, non-lethal unconsciousness).
+
+        Incapacitated combatants:
+        - Have their actions invalidated for this round
+        - Are unconscious but NOT dead
+        - Cannot attack, move, or claim tokens
+
+        Args:
+            agent_id: Agent ID to mark as incapacitated
+        """
+        self.incapacitated.add(agent_id)
+        logger.info(f"{agent_id} marked as incapacitated (stun KO)")
+
+    def is_incapacitated(self, agent_id: str) -> bool:
+        """
+        Check if combatant is incapacitated (stun KO).
+
+        Returns:
+            True if combatant is incapacitated (action should be invalidated)
+        """
+        return agent_id in self.incapacitated
+
     def has_fled(self, agent_id: str) -> bool:
         """
         Check if NPC has fled during resolution.
@@ -198,9 +226,17 @@ class ActionValidator:
         if resolution_state.is_surrendered(attacker_id):
             return False, "attacker_surrendered"
 
+        # Check if attacker is incapacitated (stun KO)
+        if resolution_state.is_incapacitated(attacker_id):
+            return False, "attacker_incapacitated"
+
         # Check if target is defeated
         if resolution_state.is_defeated(target_id):
             return False, "target_defeated"
+
+        # Check if target is incapacitated (can't attack unconscious targets)
+        if resolution_state.is_incapacitated(target_id):
+            return False, "target_incapacitated"
 
         # Attack can proceed
         return True, None
@@ -224,6 +260,10 @@ class ActionValidator:
         # Check if claimant surrendered
         if resolution_state.is_surrendered(claimant_id):
             return False, "claimant_surrendered"
+
+        # Check if claimant is incapacitated (stun KO)
+        if resolution_state.is_incapacitated(claimant_id):
+            return False, "claimant_incapacitated"
 
         # Check if token already claimed
         holder = resolution_state.get_token_holder(token_name)
@@ -251,6 +291,10 @@ class ActionValidator:
         # Check if mover surrendered
         if resolution_state.is_surrendered(mover_id):
             return False, "mover_surrendered"
+
+        # Check if mover is incapacitated (stun KO)
+        if resolution_state.is_incapacitated(mover_id):
+            return False, "mover_incapacitated"
 
         # Movement can proceed
         return True, None
@@ -281,11 +325,17 @@ def generate_invalidation_message(
     if failure_reason == "attacker_defeated":
         return f"❌ {agent_name} cannot act - already defeated earlier in the round"
 
+    elif failure_reason == "attacker_incapacitated":
+        return f"😵 {agent_name} cannot act - knocked unconscious earlier in the round"
+
     elif failure_reason == "attacker_surrendered":
         return f"🏳️  {agent_name} lowers their weapon - they surrendered earlier in the round and will not fight"
 
     elif failure_reason == "target_defeated":
         return f"❌ {agent_name}'s attack fails - {target_name} was already defeated by a faster actor"
+
+    elif failure_reason == "target_incapacitated":
+        return f"❌ {agent_name}'s attack fails - {target_name} was already knocked unconscious"
 
     elif failure_reason.startswith("token_taken_by_"):
         holder = failure_reason.replace("token_taken_by_", "")
@@ -297,11 +347,17 @@ def generate_invalidation_message(
     elif failure_reason == "claimant_surrendered":
         return f"🏳️  {agent_name} does not claim token - they surrendered earlier in the round"
 
+    elif failure_reason == "claimant_incapacitated":
+        return f"😵 {agent_name} cannot claim token - knocked unconscious before action resolved"
+
     elif failure_reason == "mover_defeated":
         return f"❌ {agent_name} cannot move - defeated before action resolved"
 
     elif failure_reason == "mover_surrendered":
         return f"🏳️  {agent_name} remains in place - they surrendered earlier in the round"
+
+    elif failure_reason == "mover_incapacitated":
+        return f"😵 {agent_name} cannot move - knocked unconscious before action resolved"
 
     else:
         return f"❌ {agent_name}'s {action_type} action failed: {failure_reason}"

@@ -82,6 +82,7 @@ _rate_limiter = APIRateLimiter()
 SUPPORTED_MODELS = {
     'anthropic': {
         'models': [
+            'claude-opus-4-6',
             'claude-sonnet-4-5',
             'claude-sonnet-4-5-20250929',
             'claude-3-5-sonnet-20241022',
@@ -94,6 +95,7 @@ SUPPORTED_MODELS = {
     'openai': {
         'models': [
             # GPT-5 family (2025+)
+            'gpt-5.2-2025-12-11',
             'gpt-5.1',
             'gpt-5',
             'gpt-5-mini',
@@ -127,10 +129,10 @@ SUPPORTED_MODELS = {
     'batch_proxy': {
         'models': [
             # OpenAI models via proxy
-            'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano',
+            'gpt-5.2-2025-12-11', 'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano',
             'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini',
             # Anthropic models via proxy
-            'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+            'claude-opus-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
         ],
         'recommended': 'gpt-5-mini (50% cheaper via proxy)',
         'pricing_url': 'https://docs.anthropic.com/en/docs/build-with-claude/message-batches'

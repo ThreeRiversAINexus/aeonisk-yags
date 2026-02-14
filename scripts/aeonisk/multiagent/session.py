@@ -100,12 +100,16 @@ def _mark_defeated_from_resolution(
     resolution_state: ResolutionState
 ) -> None:
     """
-    Sync resolution_state with enemies defeated by PC actions.
+    Sync resolution_state with enemies defeated or incapacitated by PC actions.
 
     After a PC action resolves and _process_structured_damage_effects sets
     is_active=False on killed enemies, this marks them as defeated in
     resolution_state so ActionValidator properly invalidates their later
     actions (with JSONL events and narration).
+
+    Also catches safety-net cases:
+    - health <= 0 but is_active wasn't set to False
+    - stuns >= 6 (stun KO / unconscious) but is_active wasn't set to False
 
     Args:
         enemy_combat: EnemyCombatManager (or None if not in tactical combat)
@@ -114,9 +118,29 @@ def _mark_defeated_from_resolution(
     if not enemy_combat or not hasattr(enemy_combat, 'enemy_agents'):
         return
     for enemy in enemy_combat.enemy_agents:
-        if not enemy.is_active and not resolution_state.is_defeated(enemy.agent_id):
-            resolution_state.mark_defeated(enemy.agent_id)
-            logger.info(f"Marked {enemy.name} ({enemy.agent_id}) as defeated in resolution_state")
+        agent_id = enemy.agent_id
+        already_tracked = resolution_state.is_defeated(agent_id) or resolution_state.is_incapacitated(agent_id)
+        if already_tracked:
+            continue
+
+        # Primary check: is_active flag (set by _process_structured_damage_effects)
+        if not enemy.is_active:
+            resolution_state.mark_defeated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as defeated in resolution_state")
+            continue
+
+        # Safety net: health <= 0 but is_active not set
+        health = getattr(enemy, 'health', None)
+        if isinstance(health, (int, float)) and health <= 0:
+            resolution_state.mark_defeated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as defeated (health={health}, safety net)")
+            continue
+
+        # Stun KO: stuns >= 6 means unconscious (YAGS Beaten threshold)
+        stuns = getattr(enemy, 'stuns', 0)
+        if isinstance(stuns, int) and stuns >= 6:
+            resolution_state.mark_incapacitated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
 
 
 def _get_energy_purse(agent):
@@ -2920,7 +2944,7 @@ Generate narratives (numbered list only):"""
                                 logger.info(f"⚔️  Enemy departed (entity lifecycle): {enemy_identifier}")
                                 print(f"\n⚔️  Enemy departed: {enemy_name}")
                             else:
-                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+                                logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping departure")
 
                 except Exception as e:
                     logger.warning(f"Conversion check failed: {type(e).__name__}: {e}")
@@ -4037,6 +4061,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         exp_type = event.get('expiration_type', 'unknown')
                         print(f"  Round {round_num}: ⏰ EXPIRED - {clock_name} ({final_val}) - {exp_type}")
                         print(f"             {description}")
+                    elif event_type == 'removed':
+                        current_val = event.get('current', 0)
+                        max_val = event.get('max', '?')
+                        reason = event.get('removal_reason', 'unknown')
+                        print(f"  Round {round_num}: 🗑️  REMOVED - {clock_name} ({current_val}/{max_val}) - {reason}")
                 print()
 
             print("=" * 40)
@@ -4061,6 +4090,15 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             },
                             round_num=mechanics.current_round
                         )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'session_end'
+                        })
 
                 mechanics.jsonl_logger.log_session_end(state_summary)
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
@@ -5141,8 +5179,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Clear clocks (always happens on story advancement)
             if mechanics and mechanics.scene_clocks:
                 # Log each clock removal before clearing
-                if mechanics.jsonl_logger:
-                    for clock_name, clock in mechanics.scene_clocks.items():
+                for clock_name, clock in mechanics.scene_clocks.items():
+                    if mechanics.jsonl_logger:
                         mechanics.jsonl_logger.log_event(
                             event_type="clock_removal",
                             data={
@@ -5157,6 +5195,15 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             },
                             round_num=mechanics.current_round
                         )
+                    mechanics.clock_history.append({
+                        'event_type': 'removed',
+                        'clock_name': clock_name,
+                        'round': mechanics.current_round,
+                        'current': clock.current,
+                        'max': clock.maximum,
+                        'description': clock.description,
+                        'removal_reason': 'story_advancement'
+                    })
 
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
@@ -5339,7 +5386,7 @@ NO conversions/morale checks needed (scene just started).
                                 logger.info(f"⚔️  Enemy departed (post-advancement): {enemy_identifier}")
                                 print(f"\n✓ Enemy doesn't follow to new scene: {enemy_name}")
                             else:
-                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+                                logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping post-advancement departure")
 
                     # Process enemy spawns for new scene
                     if post_advancement_decisions.enemy_spawns and self.enemy_combat:
@@ -5435,6 +5482,15 @@ NO conversions/morale checks needed (scene just started).
                                 },
                                 round_num=mechanics.current_round
                             )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'scene_pivot'
+                        })
 
                         del mechanics.scene_clocks[clock_name]
                         logger.info(f"Cleared clock: {clock_name}")
@@ -5466,7 +5522,7 @@ NO conversions/morale checks needed (scene just started).
                         logger.info(f"⚔️  Enemy departed (scene pivot): {enemy_identifier}")
                         print(f"   Enemy departed: {enemy_name}")
                     else:
-                        logger.warning(f"Failed to remove enemy '{enemy_identifier}' during scene pivot - not found or already inactive")
+                        logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping scene pivot departure")
 
             print(f"\n🔄 SCENE PIVOT")
             print(f"   New Area: {pivot.new_room}")

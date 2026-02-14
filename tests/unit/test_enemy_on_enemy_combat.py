@@ -132,8 +132,10 @@ def _make_resolution_state():
     rs = MagicMock()
     rs.is_defeated.return_value = False
     rs.is_surrendered.return_value = False
+    rs.is_incapacitated.return_value = False
     rs.has_acted.return_value = False
     rs.mark_defeated = MagicMock()
+    rs.mark_incapacitated = MagicMock()
     rs.record_position_change = MagicMock()
     return rs
 

@@ -1093,8 +1093,17 @@ class EnemyCombatManager:
                         result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({stun_status}/{wound_status})"
 
                 # Mark target as defeated if killed or unconscious
-                if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
-                    # Check for death/unconsciousness (YAGS death saves)
+                # Check stun KO FIRST (stuns >= 6 = Beaten/unconscious, independent of wounds)
+                is_stun_ko = (damage_result and damage_result.get('unconscious_check_needed')
+                              and damage_type == "stun")
+                if is_stun_ko:
+                    # Stun KO — non-lethal incapacitation (bypass wound-based death save)
+                    result['narration'] += f" - {target_name} KNOCKED UNCONSCIOUS (stun)"
+                    logger.info(f"{target_name} knocked unconscious by stun damage from {enemy.name}")
+                    resolution_state.mark_incapacitated(target_id)
+                    result['target_defeated'] = True
+                elif target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
+                    # Wound/mixed KO — check death saves
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
 
