@@ -235,6 +235,10 @@ class BatchProxyProvider(LLMProvider):
             # Pre-filter invalid position_changes
             data = self._filter_invalid_position_changes(data)
 
+            # Preemptive truncation when force_truncate is enabled
+            if self.config.force_truncate:
+                data = self._pre_validate_fields(data, schema)
+
             # Try to validate against Pydantic schema
             try:
                 validated = result_type(**data)
@@ -303,75 +307,14 @@ class BatchProxyProvider(LLMProvider):
         )
 
     def _pre_validate_fields(self, data: Dict, schema: Dict) -> Dict:
-        """
-        Recursively walk parsed JSON data and truncate string fields exceeding maxLength.
-
-        Only called as a last resort after retries are exhausted. Truncates narrative
-        text fields so Pydantic validation can succeed.
-
-        Args:
-            data: Parsed JSON data dict
-            schema: JSON schema from result_type.model_json_schema()
-
-        Returns:
-            Data dict with long strings truncated to their maxLength limits
-        """
-        if not isinstance(data, dict):
-            return data
-
-        defs = schema.get("$defs", {})
-        properties = schema.get("properties", {})
-
-        for field_name, field_schema in properties.items():
-            if field_name not in data or data[field_name] is None:
-                continue
-
-            # Resolve $ref
-            resolved = self._resolve_schema_ref(field_schema, defs)
-
-            value = data[field_name]
-
-            if isinstance(value, str):
-                max_length = resolved.get("maxLength")
-                if max_length and len(value) > max_length:
-                    logger.warning(
-                        f"Truncating field '{field_name}': {len(value)} → {max_length} chars"
-                    )
-                    data[field_name] = value[:max_length]
-
-            elif isinstance(value, dict):
-                # Could be a nested object or a dict with additionalProperties
-                if "properties" in resolved:
-                    # Nested object — recurse with its own schema
-                    nested_schema = {**resolved, "$defs": defs}
-                    data[field_name] = self._pre_validate_fields(value, nested_schema)
-                elif "additionalProperties" in resolved:
-                    # Dict[str, SomeModel] — resolve the value schema and apply to each entry
-                    val_schema = self._resolve_schema_ref(resolved["additionalProperties"], defs)
-                    if "properties" in val_schema:
-                        for key in value:
-                            if isinstance(value[key], dict):
-                                nested = {**val_schema, "$defs": defs}
-                                value[key] = self._pre_validate_fields(value[key], nested)
-
-        return data
+        """Truncate string fields exceeding maxLength. Delegates to standalone utility."""
+        from .llm_provider import truncate_to_schema_limits
+        return truncate_to_schema_limits(data, schema)
 
     def _resolve_schema_ref(self, field_schema: Dict, defs: Dict) -> Dict:
-        """Resolve a $ref or anyOf reference in JSON schema."""
-        if "$ref" in field_schema:
-            ref_name = field_schema["$ref"].split("/")[-1]
-            return defs.get(ref_name, field_schema)
-
-        # Handle anyOf (e.g. Optional[SomeModel] generates anyOf with null)
-        if "anyOf" in field_schema:
-            for option in field_schema["anyOf"]:
-                if "$ref" in option:
-                    ref_name = option["$ref"].split("/")[-1]
-                    return defs.get(ref_name, option)
-                if option.get("type") != "null":
-                    return option
-
-        return field_schema
+        """Resolve a $ref or anyOf reference in JSON schema. Delegates to standalone utility."""
+        from .llm_provider import _resolve_schema_ref
+        return _resolve_schema_ref(field_schema, defs)
 
     def _repair_json(self, content: str) -> str:
         """

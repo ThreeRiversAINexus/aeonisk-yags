@@ -231,6 +231,10 @@ class LLMConfig:
     max_concurrent_requests: int = 3  # Max concurrent API calls across all agents
     min_request_interval: float = 0.8  # Minimum seconds between request starts
 
+    # Force-truncate long string fields instead of retrying LLM calls
+    # When True, providers truncate strings to maxLength on first attempt
+    force_truncate: bool = False
+
     # Provider-specific kwargs
     extra_params: Dict[str, Any] = None
 
@@ -309,6 +313,76 @@ class LLMConfig:
                 extra[key] = value
 
         return cls(**known, extra_params=extra)
+
+
+# =============================================================================
+# Truncation utilities (used by multiple providers)
+# =============================================================================
+
+def _resolve_schema_ref(field_schema: Dict, defs: Dict) -> Dict:
+    """Resolve a $ref or anyOf reference in JSON schema."""
+    if "$ref" in field_schema:
+        ref_name = field_schema["$ref"].split("/")[-1]
+        return defs.get(ref_name, field_schema)
+
+    # Handle anyOf (e.g. Optional[SomeModel] generates anyOf with null)
+    if "anyOf" in field_schema:
+        for option in field_schema["anyOf"]:
+            if "$ref" in option:
+                ref_name = option["$ref"].split("/")[-1]
+                return defs.get(ref_name, option)
+            if option.get("type") != "null":
+                return option
+
+    return field_schema
+
+
+def truncate_to_schema_limits(data: Dict, schema: Dict) -> Dict:
+    """
+    Recursively walk parsed JSON data and truncate string fields exceeding maxLength.
+
+    Args:
+        data: Parsed JSON data dict
+        schema: JSON schema from result_type.model_json_schema()
+
+    Returns:
+        Data dict with long strings truncated to their maxLength limits
+    """
+    if not isinstance(data, dict):
+        return data
+
+    defs = schema.get("$defs", {})
+    properties = schema.get("properties", {})
+
+    for field_name, field_schema in properties.items():
+        if field_name not in data or data[field_name] is None:
+            continue
+
+        resolved = _resolve_schema_ref(field_schema, defs)
+        value = data[field_name]
+
+        if isinstance(value, str):
+            max_length = resolved.get("maxLength")
+            if max_length and len(value) > max_length:
+                logger.warning(
+                    f"⚠️ Force-truncating field '{field_name}': "
+                    f"{len(value)} → {max_length} chars"
+                )
+                data[field_name] = value[:max_length]
+
+        elif isinstance(value, dict):
+            if "properties" in resolved:
+                nested_schema = {**resolved, "$defs": defs}
+                data[field_name] = truncate_to_schema_limits(value, nested_schema)
+            elif "additionalProperties" in resolved:
+                val_schema = _resolve_schema_ref(resolved["additionalProperties"], defs)
+                if "properties" in val_schema:
+                    for key in value:
+                        if isinstance(value[key], dict):
+                            nested = {**val_schema, "$defs": defs}
+                            value[key] = truncate_to_schema_limits(value[key], nested)
+
+    return data
 
 
 @dataclass
@@ -817,6 +891,22 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         + (f"  Raw response available: YES ({len(error_details.get('raw_model_response', ''))} chars)\n" if 'raw_model_response' in error_details else "")
                     )
 
+                    # Force-truncate recovery: parse raw response, truncate, validate
+                    if self.config.force_truncate and hasattr(e, 'body') and e.body:
+                        try:
+                            import json as _json
+                            raw_data = _json.loads(e.body)
+                            schema = result_type.model_json_schema()
+                            truncated = truncate_to_schema_limits(raw_data, schema)
+                            validated = result_type.model_validate(truncated)
+                            logger.warning(
+                                f"⚠️ Force-truncate recovered {result_type.__name__} "
+                                f"from raw response (attempt {attempt + 1})"
+                            )
+                            return validated
+                        except Exception:
+                            pass  # Fall through to normal retry/error handling
+
                     # Check if error is retryable
                     if not self._is_retryable_error(e):
                         # Non-retryable error, fail immediately
@@ -1184,6 +1274,7 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         agent_id=agent_id,
                         current_round=current_round,
                         call_sequence=call_sequence,
+                        force_truncate=self.config.force_truncate,
                         **kwargs
                     )
 

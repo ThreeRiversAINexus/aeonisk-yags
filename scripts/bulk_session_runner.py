@@ -461,7 +461,8 @@ def modify_config_for_bulk_run(
     run_id: int,
     output_path: str,
     proxy_url: Optional[str] = None,
-    proxy_strategy: str = 'auto'
+    proxy_strategy: str = 'auto',
+    force_truncate: bool = False
 ) -> Dict:
     """
     Modify session config for bulk run.
@@ -472,6 +473,7 @@ def modify_config_for_bulk_run(
         output_path: Output JSONL path for this run
         proxy_url: Optional proxy URL to inject
         proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
+        force_truncate: If True, inject force_truncate into all agent LLM configs
 
     Returns:
         Modified config dict
@@ -495,6 +497,10 @@ def modify_config_for_bulk_run(
     # If proxy_url provided, inject into all agent LLM configs
     if proxy_url:
         modified = inject_proxy_config(modified, proxy_url, proxy_strategy)
+
+    # If force_truncate, inject into all agent LLM configs
+    if force_truncate:
+        modified = inject_force_truncate(modified)
 
     # Disable human interface for bulk runs (prevents Observer> prompt spam)
     modified['enable_human_interface'] = False
@@ -548,6 +554,36 @@ def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'aut
     return config
 
 
+def inject_force_truncate(config: Dict) -> Dict:
+    """
+    Inject force_truncate=True into all agent LLM configs.
+
+    When enabled, providers truncate string fields to their maxLength limits
+    on first attempt instead of retrying the entire LLM call.
+
+    Args:
+        config: Session config dict
+
+    Returns:
+        Modified config dict
+    """
+    agents = config.get('agents', {})
+
+    # Inject into DM
+    if 'dm' in agents:
+        agents['dm'].setdefault('llm', {})['force_truncate'] = True
+
+    # Inject into players
+    for player in agents.get('players', []):
+        player.setdefault('llm', {})['force_truncate'] = True
+
+    # Inject into enemy agents
+    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
+        agents['enemy_agents']['llm']['force_truncate'] = True
+
+    return config
+
+
 def run_single_session(
     config_path: str,
     run_id: int,
@@ -557,7 +593,8 @@ def run_single_session(
     use_stored_config: bool = False,
     session_timeout: int = 90000,
     attempt_replay: bool = False,
-    proxy_strategy: str = 'auto'
+    proxy_strategy: str = 'auto',
+    force_truncate: bool = False
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -641,7 +678,8 @@ def run_single_session(
 
             # Modify config for this run
             modified_config = modify_config_for_bulk_run(
-                config, run_id, str(output_path), proxy_url, proxy_strategy
+                config, run_id, str(output_path), proxy_url, proxy_strategy,
+                force_truncate
             )
 
             # Write modified config to run directory
@@ -1513,6 +1551,12 @@ def main():
         help='Auto-extract fixtures after generation (use with --regenerate-fixtures). '
              'Reads _fixture_target from configs and extracts to tests/fixtures/sessions/.'
     )
+    parser.add_argument(
+        '--truncate',
+        action='store_true',
+        help='Force-truncate long string fields instead of retrying LLM calls. '
+             'Saves tokens in bulk runs. Truncation events logged to stdout.log.'
+    )
 
     args = parser.parse_args()
 
@@ -1759,6 +1803,7 @@ def main():
             # Note: attempt_replay is only meaningful when resuming incomplete sessions
             # Replay is enabled by default when resuming, unless --no-replay is specified
             attempt_replay = args.resume and not args.no_replay
+            force_truncate = getattr(args, 'truncate', False)
             futures = {
                 executor.submit(
                     run_single_session,
@@ -1770,7 +1815,8 @@ def main():
                     use_stored_config,
                     args.session_timeout,
                     attempt_replay,
-                    proxy_strategy
+                    proxy_strategy,
+                    force_truncate
                 ): (config_path, run_id)
                 for config_path, run_id, use_stored_config in tasks
             }
