@@ -794,8 +794,16 @@ class AIDMAgent(Agent):
                 'consume': 'dm_consumption',        # Already specialized
             }
             if action_type_lower in resolution_map:
-                modules.append(resolution_map[action_type_lower])
-                logger.debug(f"DM: Loading action-specific module for {action_type}: {resolution_map[action_type_lower]}")
+                module_name = resolution_map[action_type_lower]
+                # Experiment: swap combat resolution for suppression-inclusive variant
+                if module_name == 'dm_resolution_combat':
+                    session_cfg = getattr(self, 'session_config', {})
+                    experiment = session_cfg.get('experiment', {}) if session_cfg else {}
+                    if experiment.get('include_suppression_resolution_example', False):
+                        module_name = 'dm_resolution_combat_with_suppression'
+                        logger.debug("DM: Swapping combat module for suppression-inclusive variant (experiment flag)")
+                modules.append(module_name)
+                logger.debug(f"DM: Loading action-specific module for {action_type}: {module_name}")
             else:
                 # Unknown action type - load generic discovery for fallback
                 logger.debug(f"DM: Unknown action type '{action_type}', no action-specific module")
