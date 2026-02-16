@@ -456,6 +456,30 @@ def load_session_config(config_path: str) -> Dict:
         return json.load(f)
 
 
+def extract_model_from_config(config_path: str, _cache: Dict[str, str] = {}) -> str:
+    """Extract DM model name from session config for logging.
+
+    Caches results per config path since multiple runs share the same config.
+
+    Args:
+        config_path: Path to session config JSON
+
+    Returns:
+        Model name string (e.g. 'gpt-5.2-2025-12-11') or 'unknown' on failure
+    """
+    if config_path in _cache:
+        return _cache[config_path]
+
+    try:
+        config = load_session_config(config_path)
+        model = config.get('agents', {}).get('dm', {}).get('llm', {}).get('model', 'unknown')
+        _cache[config_path] = model
+        return model
+    except Exception:
+        _cache[config_path] = 'unknown'
+        return 'unknown'
+
+
 def modify_config_for_bulk_run(
     config: Dict,
     run_id: int,
@@ -1807,8 +1831,14 @@ def main():
             # Replay is enabled by default when resuming, unless --no-replay is specified
             attempt_replay = args.resume and not args.no_replay
             force_truncate = getattr(args, 'truncate', False)
-            futures = {
-                executor.submit(
+            # Build model lookup for logging and submit tasks
+            task_models: Dict[Tuple[str, int], str] = {}
+            futures = {}
+            for config_path, run_id, use_stored_config in tasks:
+                model = extract_model_from_config(config_path)
+                task_models[(config_path, run_id)] = model
+                logger.info(f"Launching run {run_id} ({model})")
+                future = executor.submit(
                     run_single_session,
                     config_path,
                     run_id,
@@ -1820,9 +1850,8 @@ def main():
                     attempt_replay,
                     proxy_strategy,
                     force_truncate
-                ): (config_path, run_id)
-                for config_path, run_id, use_stored_config in tasks
-            }
+                )
+                futures[future] = (config_path, run_id)
 
             # Process completed runs
             for i, future in enumerate(as_completed(futures), 1):
@@ -1839,16 +1868,18 @@ def main():
                         else:
                             progress_monitor.mark_failed(result.run_id, result.duration_seconds)
 
+                    model = task_models.get((config_path, run_id), 'unknown')
                     if result.success:
                         logger.info(
                             f"[{i}/{total_runs}] ✓ Run {result.run_id} completed "
-                            f"({result.duration_seconds:.1f}s, "
+                            f"({model}, {result.duration_seconds:.1f}s, "
                             f"{result.total_tokens or 0} tokens, "
                             f"{result.total_rounds or 0} rounds)"
                         )
                     else:
                         logger.error(
-                            f"[{i}/{total_runs}] ✗ Run {result.run_id} failed: "
+                            f"[{i}/{total_runs}] ✗ Run {result.run_id} failed "
+                            f"({model}): "
                             f"{result.error[:100] if result.error else 'Unknown error'}"
                         )
 
