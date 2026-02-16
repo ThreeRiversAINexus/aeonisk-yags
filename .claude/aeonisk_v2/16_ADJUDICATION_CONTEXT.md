@@ -123,7 +123,7 @@ The user prompt includes:
 | Section | Present? | Contains Historical Context? |
 |---------|----------|------------------------------|
 | Scenario context | Yes | No (static scenario description) |
-| Character name + faction | Yes | No (identity only) |
+| Character name + faction | Yes | No (identity only, **no pronouns**) |
 | Party personalities | Yes | No (static character descriptions) |
 | Roll result + margin | Yes | No (current action only) |
 | Player action description | Yes | No (current action only) |
@@ -133,10 +133,51 @@ The user prompt includes:
 | Bond matrix | Yes | Partially (bond status reflects prior actions) |
 | Combatant list | Yes | No (current state snapshot) |
 | Weapon context | Yes | No (static weapon stats) |
+| **Character pronouns** | **Partial** | No (in combatant list only, not character_context) |
 | **Prior action summaries** | **No** | -- |
 | **Running soulcredit totals** | **No** | -- |
 | **Round-by-round narrative** | **No** | -- |
 | **Prior soulcredit awards** | **No** | -- |
+
+### Pronoun Gap in DM Narration Context
+
+**Problem:** Models frequently use wrong pronouns in round synthesis narration.
+
+**Root cause:** Pronouns are available in the combatant target list (formatted as
+`[tgt_7a3f] Sera Karsel (she/her, 27/27 HP)`) but are **absent from the
+character_context string** that accompanies each action resolution.
+
+The character_context (`dm.py:7451-7460`) builds:
+
+```python
+character_context = f"""
+Character: {character_name} ({faction})
+Note: NPCs and other characters are aware of this affiliation.
+{party_personalities}
+"""
+```
+
+No pronouns. The DM must cross-reference the combatant list — a separate reference
+section — to find the correct pronouns. In practice, models often skip this and
+default to "they" or guess based on name.
+
+**Contrast with player prompts:** Player agents see pronouns prominently in their
+character introduction (`"You are playing {character_name} ({pronouns})"`) and in
+their character sheet (`"**Pronouns:** {pronouns}"`). The DM gets neither.
+
+**Fix (Phase 0, trivial):** Add pronouns to the character_context string:
+
+```python
+character_context = f"""
+Character: {character_name} ({pronouns}, {faction})
+Note: NPCs and other characters are aware of this affiliation.
+{party_personalities}
+"""
+```
+
+The pronouns are already available at this call site — `CharacterState.pronouns`
+for PCs, `agent.pronouns` for enemies/NPCs. This is a one-line change that gives
+the DM pronouns in the primary narrative context, not just the reference table.
 
 ### Soulcredit Rules in Prompts
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains 17 specification files that define the Aeonisk v2 system
+This directory contains 18 specification files that define the Aeonisk v2 system
 overhaul. The specs were generated from baseline datamining of **25 sessions
 across 5 LLM providers** (GPT-5.2, Grok 4, Gemini 2.5 Pro, DeepSeek V3.2,
 Claude Opus 4.6) using the Combat Ambush scenario as the control condition.
@@ -38,6 +38,7 @@ that seeded these specs is in `.claude/human_curated_todo/2026--02-14.md`.
 | 14 | **P0** | Conditions & Modifiers | Condition pipeline has 6 bugs: descriptions claim selective targeting but apply to all rolls; `target` field lost in extraction; duration hardcoded to 3 and never ticked; `affects` dead code; `protection_amount` not propagated. |
 | 15 | **P1** | Resolution Phase Skip | Player actions bypass all mid-round state validation; no structured output path for DM to declare narrative preemption; skipped actions invisible to later agents. Two-phase fix: hard auto-skip via ActionValidator for players, DM narrative skip via new `action_skipped` field on ActionResolution. |
 | 16 | **P1** | Adjudication Context | DM adjudicates every action statelessly (2 messages, no history); soulcredit scoring has no visibility into prior cooperation arcs, repeated behavior, or in-round context. Causes false betrayal penalties, inconsistent scoring, noisy ML labels. Fix: inject soulcredit ledger, in-round action recap, and rolling narrative digest into adjudication prompt. |
+| 17 | **P1** | Clock Persistence | Story advancement blanket-clears all scene clocks; kills multi-scene arcs. ScenePivot already has selective clearing (`clear_specific_clocks`) but StoryAdvancement has no equivalent. Fix: add `keep_clocks` field so DM can carry forward ongoing threats/objectives across scene boundaries. |
 
 ---
 
@@ -75,6 +76,7 @@ pipeline being stable after Wave 1.
 | 4 | 08_SUPPRESSION | Wave 1 complete (NPC combat + target validation must be stable) |
 | 5 | 15_RESOLUTION_SKIP | 14_CONDITIONS (condition ticking must work for condition-based skip triggers) |
 | 6 | 16_ADJUDICATION_CONTEXT | None (independent, but benefits from 06_IFF_ROE for Phase 3 faction relationships) |
+| 7 | 17_CLOCK_PERSISTENCE | None (independent, parallel with any Wave 2 spec) |
 
 ### Wave 3 -- P2, Parallel After Wave 1
 
@@ -135,6 +137,11 @@ Quality-of-life and completeness work. No other specs depend on these.
           |  12_DISPLAY     |  |  w/ Wave 2; Phase 3        |
           |  13_BONDS_VEND. |  |  benefits from 06_IFF_ROE) |
           +-----------------+  +---------------------------+
+                               +---------------------------+
+                               | 17_CLOCK_PERSIST (P1)     |
+                               | (no deps, parallel w/     |
+                               |  Wave 2; small scope)     |
+                               +---------------------------+
 ```
 
 Key dependency relationships:
@@ -301,6 +308,7 @@ The game loop processes each round in four phases:
 | [14_CONDITIONS_MODIFIERS.md](./14_CONDITIONS_MODIFIERS.md) | Not started |
 | [15_RESOLUTION_PHASE_SKIP.md](./15_RESOLUTION_PHASE_SKIP.md) | Not started |
 | [16_ADJUDICATION_CONTEXT.md](./16_ADJUDICATION_CONTEXT.md) | Not started |
+| [17_CLOCK_PERSISTENCE.md](./17_CLOCK_PERSISTENCE.md) | Not started |
 
 ---
 
