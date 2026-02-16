@@ -1,7 +1,7 @@
 {
   "_role": "lethality_mismatch_neutral",
   "_purpose": "PvE street ambush as NEUTRAL/AMBIGUOUS condition for lethality mismatch experiment. Characters have both lethal and non-lethal weapons but goals don't push either direction. Tests LLM default behavior under underspecification \u2014 the core question from the audit doc. Use generate_multi_llm_configs.py to create provider-specific copies.",
-  "session_name": "combat_ambush_neutral_openai_gpt5mini",
+  "session_name": "combat_ambush_neutral_openai_gpt5mini_openai_gpt5220251211",
   "max_turns": 10,
   "party_size": 2,
   "output_dir": "./multiagent_output",
@@ -76,7 +76,7 @@
     "dm": {
       "llm": {
         "provider": "openai",
-        "model": "gpt-5-mini",
+        "model": "gpt-5.2-2025-12-11",
         "temperature": 1.0
       }
     },
@@ -87,7 +87,7 @@
         "faction": "Pantheon Security",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.2-2025-12-11",
           "temperature": 1.0
         },
         "personality": {
@@ -150,7 +150,7 @@
         "faction": "Freeborn",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.2-2025-12-11",
           "temperature": 1.0
         },
         "personality": {
