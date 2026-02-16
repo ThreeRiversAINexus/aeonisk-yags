@@ -1,0 +1,469 @@
+# Confirming the Bug is Real
+
+## The Experiment
+
+25 sessions across 5 LLM providers (GPT-5.2, Grok 4, Gemini 2.5 Pro, DeepSeek V3.2, Claude Opus 4.6), all running the identical street ambush scenario. Two player characters: Enforcer Kael Dren (shotgun primary, shock baton sidearm) and Drifter Sable (rifle primary, combat knife sidearm). 324 player action declarations total, 312 matched to DM resolutions.
+
+Each player declaration was keyword-classified by intent: suppressive patterns ("suppress," "pin down," "covering fire") checked before lethal patterns ("shoot," "fire," "attack"), so "suppressive fire" always classifies as suppressive, not lethal.
+
+## The Raw Numbers
+
+$$
+\begin{array}{l c c c c}
+
+\textbf{Intent} & \textbf{Hits} & \textbf{Avg Margin} & \textbf{Avg Base Dmg} & \textbf{Avg Dealt} \\
+
+\hline
+
+\text{Lethal attack} & 141 & 10.9 & 19.2 & 14.8 \\
+
+\text{Suppressive fire} & 48 & 11.1 & 20.9 & 14.4 \\
+
+\text{Non-lethal (baton)} & 12 & 10.1 & 13.6 & 11.0 \\
+
+\end{array}
+$$
+
+At nearly identical roll margins (10.9 vs 11.1), the DM assigns suppressive fire a `base_damage` of 20.9 — actually *higher* than lethal's 19.2.
+
+A critical detail: `base_damage` for PC attacks is not a mechanical calculation. It's a number the DM writes into its structured output. The DM could write 3. It writes 20.
+
+But these aggregate numbers have a confound. Suppressive fire often hits multiple targets — the DM generates several `damage_effect` entries from a single action. That inflates the per-action total. And the two characters use different weapons. Before we can claim a mismatch, we need to control for both.
+
+## Controlling for Weapon Type
+
+The two PCs have different loadouts:
+
+- **Sable** (Drifter): rifle primary. Uses rifle for *both* lethal and suppressive fire. Guns 5.
+- **Kael** (Enforcer): shotgun primary, shock baton sidearm. Uses shotgun for lethal and suppressive, baton for non-lethal. Guns 5, Melee 4.
+
+Sable is the clean comparison — same character, same weapon, same skill, different declared intent:
+
+$$
+\begin{array}{l c c}
+
+& \textbf{Sable Lethal (rifle)} & \textbf{Sable Suppressive (rifle)} \\
+
+\hline
+
+\text{N (hits)} & 70 & 31 \\
+
+\text{Avg Margin} & 9.5 & 10.7 \\
+
+\text{Avg Base Damage} & 17.8 & 21.7 \\
+
+\text{Avg Dealt} & 13.1 & 15.0 \\
+
+\end{array}
+$$
+
+With the same rifle, the same Guns 5, at comparable margins, Sable's suppressive fire gets *higher* base_damage than lethal fire. Not lower. Not zero. Higher.
+
+Kael shows the same pattern with shotgun:
+
+$$
+\begin{array}{l c c}
+
+& \textbf{Kael Lethal (shotgun)} & \textbf{Kael Suppressive (shotgun)} \\
+
+\hline
+
+\text{N (hits)} & 71 & 17 \\
+
+\text{Avg Margin} & 12.4 & 11.8 \\
+
+\text{Avg Base Damage} & 20.5 & 19.2 \\
+
+\text{Avg Dealt} & 16.6 & 13.3 \\
+
+\end{array}
+$$
+
+Kael's numbers are closer — 20.5 vs 19.2 base — but at comparable margins, the DM assigns comparable damage regardless of declared intent.
+
+## Controlling for Roll Luck
+
+Margins already control for d20 variance — a margin of 10 means "beat the DC by 10" regardless of whether the d20 rolled 8 or 18. But to be thorough, here's the comparison restricted to margin 6-14 (the fat middle of the distribution):
+
+$$
+\begin{array}{l c c}
+
+& \textbf{Lethal (margin 6\text{-}14)} & \textbf{Suppressive (margin 6\text{-}14)} \\
+
+\hline
+
+\text{N} & 75 & 29 \\
+
+\text{Avg Margin} & 9.5 & 9.7 \\
+
+\text{Avg Base Damage} & 17.7 & 21.5 \\
+
+\text{Avg Dealt} & 13.4 & 15.1 \\
+
+\end{array}
+$$
+
+At nearly identical margins (9.5 vs 9.7), the gap persists. Suppressive base_damage is 21% higher than lethal. The DM is not reducing damage for suppressive intent — if anything, it assigns slightly *more* damage, probably because suppressive fire descriptions sound more dramatic ("laying down a hail of automatic fire" vs "aimed shot at thug").
+
+Sable alone, margin 6-14:
+
+$$
+\begin{array}{l c c}
+
+& \textbf{Sable Lethal (margin 6\text{-}14)} & \textbf{Sable Suppressive (margin 6\text{-}14)} \\
+
+\hline
+
+\text{N} & 37 & 18 \\
+
+\text{Avg Margin} & 9.6 & 9.2 \\
+
+\text{Avg Base Damage} & 17.7 & 22.8 \\
+
+\end{array}
+$$
+
+Same character, same weapon, same margin range. 29% higher base_damage for suppressive.
+
+## The Multi-Target Factor
+
+Part of the per-action base_damage inflation comes from suppressive fire hitting multiple targets. Looking at individual `damage_effect` entries from suppressive actions:
+
+$$
+\begin{array}{l c l l c c c l}
+
+\textbf{Run} & \textbf{R} & \textbf{Char} & \textbf{Model} & \textbf{Margin} & \textbf{base_dmg} & \textbf{dealt} & \textbf{type} \\
+
+\hline
+
+\text{run_0002} & 1 & \text{Sable} & \text{Grok 4} & 12 & 15 & 10 & \text{wound} \\
+
+\text{run_0002} & 1 & \text{Sable} & \text{Grok 4} & 12 & 12 & 8 & \text{wound} \\
+
+\text{run_0002} & 1 & \text{Sable} & \text{Grok 4} & 12 & 12 & 8 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0002} & 4 & \text{Sable} & \text{Grok 4} & 10 & 12 & 12 & \text{wound} \\
+
+\text{run_0005} & 1 & \text{Sable} & \text{DeepSeek V3.2} & 13 & 8 & 8 & \text{wound} \\
+
+\text{run_0005} & 3 & \text{Sable} & \text{DeepSeek V3.2} & 9 & 15 & 8 & \text{wound} \\
+
+\text{run_0005} & 8 & \text{Sable} & \text{DeepSeek V3.2} & 8 & 18 & 8 & \text{wound} \\
+
+\end{array}
+$$
+
+Grok 4 run_0002 Round 4: one suppressive fire action, six targets, each taking 12 wound damage. The DM resolved "pin them down" as "wound all six of them for 12 each." The per-target damage (8-18) is in the same range as a typical lethal single-target hit. The DM doesn't reduce per-target damage for suppression — it just applies it to more people.
+
+This is arguably *worse* than lethal fire. A lethal attack kills one enemy. A suppressive fire action wounds six.
+
+## Why `damage_type` Is Not Evidence
+
+One table that *looks* damning but isn't:
+
+$$
+\begin{array}{l c c c}
+
+\textbf{Intent} & \textbf{wound} & \textbf{stun} & \textbf{\% wound} \\
+
+\hline
+
+\text{Lethal attack} & 100\% & 0\% & 100\% \\
+
+\text{Suppressive fire} & 98\% & 2\% & 98\% \\
+
+\text{Non-lethal (baton)} & 8\% & 92\% & 8\% \\
+
+\end{array}
+$$
+
+This is not a DM choice. The `damage_type` field is **mechanically enforced by the backend** based on weapon type. The code resolves the player's equipped weapon, looks up its `damage_type` in the weapon library (rifle = wound, shotgun = wound, shock_baton = stun), injects it into the DM's prompt as `WEAPON CONTEXT: Damage Type: WOUND`, and then overrides whatever the DM actually writes:
+
+```python
+# Priority: backend-resolved weapon type > LLM's DamageEffect.damage_type
+mechanical_type = resolved_damage_type or damage_effect.damage_type or "wound"
+```
+
+So "98% wound for suppressive fire" just means "guns are wound weapons." That's by design. The baton producing stun isn't the DM recognizing non-lethal intent — it's the weapon lookup returning `damage_type: "stun"` for the shock_baton entry.
+
+The actual evidence of the mismatch is `base_damage`, which *is* a DM choice — a number the LLM writes freely into its structured output, with no backend override.
+
+## Soulcredit: The DM Doesn't Distinguish
+
+If the DM recognized a mechanical difference between suppressive and lethal intent, it would show up in soulcredit — the morality scoring system. It doesn't.
+
+$$
+\begin{array}{l c c c c c c}
+
+\textbf{Intent} & \textbf{N} & \textbf{SC=0} & \textbf{SC>0} & \textbf{SC<0} & \textbf{Net SC} & \textbf{Avg SC/Action} \\
+
+\hline
+
+\text{Lethal attack} & 170 & 157 \; (92\%) & 3 & 10 & -10 & -0.059 \\
+
+\text{Suppressive fire} & 55 & 52 \; (95\%) & 1 & 2 & -1 & -0.018 \\
+
+\text{Non-lethal (baton)} & 15 & 9 \; (60\%) & 6 & 0 & +6 & +0.400 \\
+
+\end{array}
+$$
+
+Both lethal and suppressive fire score SC=0 over 92% of the time. The DM applies the same boilerplate — "justified combat against hostile targets," "justified suppressive fire against clear ambush" — and moves on. Neither is rewarded, neither is meaningfully penalized.
+
+The three non-zero suppressive events tell the story:
+
+- **SC=-1**: "Excessive suppressive fire with lethal ordinance in populated urban area" (DeepSeek, Kael)
+- **SC=+1**: "Justified defensive fire to protect an ally from imminent harm" (DeepSeek, Sable)
+- **SC=-1**: "Firing on law enforcement officers (though provoked)" (DeepSeek, Sable)
+
+None of these reference suppression itself. The +1 is for protecting an ally, not for choosing suppression over lethal force. The -1s are for context (populated area, shooting cops) unrelated to the suppressive intent.
+
+Meanwhile, baton non-lethal gets SC>0 in 40% of actions and nets +6. The DM *does* reward non-lethal approach — but only when the player switches to a designated non-lethal weapon. Declaring suppressive intent with the same gun doesn't register.
+
+## Cross-Model Consistency
+
+Every model that generated suppressive fire data shows the same pattern:
+
+$$
+\begin{array}{l c c c}
+
+\textbf{Model} & \textbf{Supp. Hits} & \textbf{Avg Base} & \textbf{Avg Dealt} \\
+
+\hline
+
+\text{GPT-5.2} & 5 & 8.4 & 7.2 \\
+
+\text{Grok 4} & 11 & 28.3 & 21.1 \\
+
+\text{DeepSeek V3.2} & 26 & 20.1 & 12.5 \\
+
+\text{Claude Opus 4.6} & 6 & 20.8 & 16.2 \\
+
+\text{Gemini 2.5 Pro} & 0 & — & — \\
+
+\end{array}
+$$
+
+GPT-5.2's low numbers (N=5, base 8.4) come with the lowest average margin (5.8) — barely-successful rolls producing low damage, as expected. Grok 4 is the most extreme: 28.3 average base_damage for suppressive fire, 32% higher than its own lethal base of 21.4. Gemini sessions were too short for suppressive tactics to emerge.
+
+This is not one LLM's quirk.
+
+## Concrete Example: DeepSeek V3.2, Run 0005, Round 1
+
+**Player declares** (action_declaration):
+```
+intent: "Provide suppressing fire with assault rifle against
+        thugs to cover Enforcer Dren"
+
+description: "Seeing three thugs stepping out to block our patrol
+route with visible weapons, I raise my assault rifle and lay down
+suppressing fire. I'm not going for precision kills yet — I'm
+aiming near their positions and across the street to keep their
+heads down while Enforcer Dren assesses the tactical situation."
+```
+
+The player explicitly says "not going for precision kills" and "keep their heads down."
+
+**DM resolves** (action_resolution):
+```
+Roll: Agility 4 x Guns 5 + d20(11) = 31 vs DC 18
+Margin: +13 | Tier: GOOD
+
+effects:
+  damage:
+    target: tgt_7z9u
+    base_damage: 8
+    dealt: 8
+    damage_type: "wound"
+
+  status_effects:
+    - "Pinned: suppressed by automatic fire, -2 to next action"
+    - "Pinned: area suppression forces caution"
+
+  soulcredit:
+    amount: 0
+    reason: "justified suppressive fire against clear ambush"
+```
+
+The DM correctly applies suppression status effects — it *understands* this is suppressive fire. But it still deals 8 wound damage and scores SC=0.
+
+The DM's own pre-generated outcome tiers show the problem is baked in at the planning stage:
+
+```
+moderate_success: "Thug #1 takes 4 damage"
+good_success:     "Thug #1 takes 8 damage and Pinned (-2)"
+excellent_success: "Thug #1 takes 10 damage and Pinned (-3)"
+exceptional:      "Thug #1 takes 12 damage, Disarmed"
+```
+
+Every tier includes wound damage. There is no tier where suppression succeeds without wounding. The DM plans suppressive fire as "lethal damage plus status effects" rather than "status effects instead of damage."
+
+## What This Means
+
+The mismatch is not about luck, weapons, or roll quality. Controlling for all three, the finding is the same: **declared suppressive intent does not reduce the damage the DM assigns.** The DM processes the intent cognitively — it generates appropriate suppression narration and applies Pinned/Suppressed status effects — but when it fills in `base_damage`, it writes the same numbers as a declared lethal attack.
+
+The soulcredit data confirms this from a different angle. The DM doesn't treat suppressive fire as morally different from lethal fire. Both score SC=0 with near-identical boilerplate justifications.
+
+Note that `damage_type` (wound vs stun) is *not* part of this finding — it's mechanically enforced by the backend based on weapon type, not chosen by the DM. Guns always produce wound damage regardless of intent. What the DM *does* choose is `base_damage`, and that's where the mismatch lives.
+
+The implication: across five different LLM architectures, the DM's structured output treats player intent as flavor text for narration but not as input to mechanical resolution. Saying "suppress" changes the story the DM tells. It doesn't change the numbers the DM writes.
+
+## Treatment V1: Can We Fix It With Prompt Engineering?
+
+The baseline confirmed the bug exists. The next question: can we fix it by showing the DM what correct suppressive fire resolution looks like?
+
+### The Intervention
+
+We created a merged combat resolution module that replaces the standard one when an experiment flag is set. The original module says:
+
+> **damage (REQUIRED for attacks that hit)**
+
+The treatment module says:
+
+> **damage (REQUIRED for lethal attacks, optional for suppressive actions)**
+
+It adds two worked examples of suppressive fire resolution — one with `base_damage=3, dealt=0` and Pinned/-4 condition, one with zero damage entries and Pinned/-6 plus Shaken/-2 conditions. A scaling table maps margin ranges to condition severity and caps suppressive `base_damage` at 0-5 regardless of margin. All inserted inline alongside the existing lethal, stun, and void-forged examples so the DM sees one coherent module, not a contradictory afterthought.
+
+25 sessions, 5 models, same scenario. The treatment module was confirmed present in every DM combat resolution prompt via string matching on the JSONL `llm_call` events.
+
+### Did It Suppress Suppression?
+
+First concern: did adding suppression examples to the DM prompt somehow discourage players from attempting it? The player agents don't see the DM's resolution prompt directly, but the DM's narration of prior rounds could cascade into player decisions.
+
+$$
+\begin{array}{l c c c}
+
+\textbf{Model} & \textbf{Baseline \%} & \textbf{Treatment \%} & \textbf{Delta} \\
+
+\hline
+
+\text{DeepSeek V3.2} & 44\% & 31\% & -13 \\
+
+\text{Grok 4} & 19\% & 32\% & +13 \\
+
+\text{GPT-5.2} & 10\% & 20\% & +10 \\
+
+\text{Claude Opus 4.6} & 6\% & 13\% & +7 \\
+
+\text{Gemini 2.5 Pro} & 0\% & 9\% & +9 \\
+
+\text{Overall} & 17.3\% & 20.0\% & +2.7 \\
+
+\end{array}
+$$
+
+Four of five models increased their suppressive fire rate. DeepSeek dropped from its anomalously high baseline of 44%, but the other four all rose. Overall: 17.3% to 20.0%. The treatment didn't suppress intent — it modestly encouraged it.
+
+### Did DMs Actually Reduce Damage?
+
+This is the key test. When a player declares suppressive fire, does the DM now write lower `base_damage` numbers?
+
+$$
+\begin{array}{l c c c c c}
+
+\textbf{Model} & \textbf{N lethal} & \textbf{Avg base (lethal)} & \textbf{N suppress} & \textbf{Avg base (suppress)} & \textbf{Ratio} \\
+
+\hline
+
+\text{Grok 4} & 26 & 18.0 & 15 & 5.5 & 0.30 \\
+
+\text{GPT-5.2} & 32 & 17.1 & 9 & 6.3 & 0.37 \\
+
+\text{DeepSeek V3.2} & 41 & 19.5 & 20 & 13.5 & 0.69 \\
+
+\text{Gemini 2.5 Pro} & 34 & 20.2 & 3 & 16.7 & 0.82 \\
+
+\text{Claude Opus 4.6} & 49 & 16.7 & 7 & 21.7 & 1.30 \\
+
+\text{Overall} & 182 & 18.2 & 54 & 11.3 & 0.62 \\
+
+\end{array}
+$$
+
+Two distinct tiers emerge.
+
+**Grok 4 and GPT-5.2 follow the guidance.** Suppressive `base_damage` at 5.5 and 6.3 — within or near the scaling table's 0-5 range. Ratios of 0.30 and 0.37 mean suppressive fire does roughly a third the damage of lethal fire. These DMs read the table and applied it.
+
+**Gemini, DeepSeek, and Claude mostly or entirely ignore it.** Gemini reduces slightly (ratio 0.82). DeepSeek reduces modestly (0.69). Claude Opus actually resolves suppressive fire as *more* damaging than lethal (ratio 1.30) — the guidance somehow inverts.
+
+Compare to baseline, where the overall ratio was approximately 1.08 (suppressive slightly *exceeded* lethal). The treatment brought the overall ratio down to 0.62 — a meaningful shift, driven entirely by two compliant models.
+
+### Grok 4: The Gold Standard
+
+Grok's three suppressive fire resolutions from the initial 5-session pilot illustrate what correct compliance looks like:
+
+$$
+\begin{array}{l c c c c l}
+
+\textbf{Round} & \textbf{Margin} & \textbf{base\_damage} & \textbf{dealt} & \textbf{Condition} & \textbf{Penalty} \\
+
+\hline
+
+\text{R5} & +22 & 4, 5 & 1, 3 & \text{Fully Suppressed} & -6 \\
+
+\text{R7} & +8 & 3 & 0 & \text{Pinned} & -4 \\
+
+\text{R8} & +10 & 3 & 1 & \text{Pinned} & -4 \\
+
+\end{array}
+$$
+
+Even at an exceptional margin of +22, Grok held damage to 4 and 5 per target while applying Fully Suppressed/-6. At margin +8, zero damage dealt with Pinned/-4. This matches the scaling table exactly: higher margin produces stronger conditions, not more damage.
+
+### Claude Opus: The Inversion
+
+Claude's 1.30 ratio (suppressive > lethal) is not a fluke. Across 7 suppressive resolutions, Claude averaged `base_damage=21.7` — higher than its own lethal average of 16.7. The merged module's suppression examples, scaling table, and explicit "base_damage 0-5" guidance were all confirmed present in Claude's prompts. Claude read them and produced the opposite result.
+
+This may be a consequence of how Claude processes competing instructions. The prompt contains both lethal examples (`base_damage=15`) and suppressive examples (`base_damage=3`). Claude appears to weight the higher-damage examples more heavily, or interprets "optional for suppressive actions" as license rather than constraint. The suppression scaling table is descriptive guidance competing against three worked examples with double-digit damage values.
+
+### The Survival Paradox
+
+$$
+\begin{array}{l c c c}
+
+\textbf{Model} & \textbf{TPK \%} & \textbf{Suppress Rate} & \textbf{Avg Combined HP} \\
+
+\hline
+
+\text{Claude Opus 4.6} & 20\% & 13\% & 25.8 \\
+
+\text{Gemini 2.5 Pro} & 40\% & 9\% & 21.2 \\
+
+\text{GPT-5.2} & 80\% & 20\% & 5.4 \\
+
+\text{DeepSeek V3.2} & 80\% & 31\% & 1.8 \\
+
+\text{Grok 4} & 80\% & 32\% & 0.6 \\
+
+\end{array}
+$$
+
+Grok follows the suppression guidance most faithfully and has the worst survival rate. Players who suppress are spending their combat turns applying -4 to -6 penalties instead of eliminating threats. The suppressed enemies take a penalty for one round, then recover and keep shooting. A lethal kill permanently removes a threat. At 3+ enemies per encounter, the action economy punishes restraint.
+
+This echoes the baseline paradox where DeepSeek — the model whose players most frequently chose suppressive fire — had an 80% TPK rate, while Grok — the least restrained at baseline — had the best survival.
+
+### Why Prompt Engineering Partially Works
+
+The treatment module's content is identical for all five models. Two models comply, three don't. This tells us the failure is not in the prompt content — it's in the interaction between prompt content and model priors.
+
+The models that comply (Grok 4, GPT-5.2) appear to treat the scaling table as prescriptive: "the table says 0-5, I'll write 3." The models that don't comply (Claude, Gemini, DeepSeek) appear to treat it as informational: "the table shows one option; I'll generate what seems right for this margin." Their priors about what a high-margin combat result looks like outweigh a single table in the prompt.
+
+Three possible next steps:
+
+1. **Explicit classification gate.** Add a decision rule: "FIRST: Did the player declare suppressive fire? If YES → base_damage MUST be 0-5." Currently the DM has no branching point — it generates damage in one continuous pass. Forcing a classification token before the damage token would condition subsequent generation on the classification.
+
+2. **Negative examples.** Show the wrong answer: "WRONG: Player declares suppressive fire, margin=+12, you set base_damage=16." Models respond to contrastive pairs more reliably than to standalone guidance.
+
+3. **Schema-level enforcement.** Add a `combat_mode: Literal["lethal", "suppressive", "stun"]` field to the structured output schema. The DM would have to explicitly classify before generating damage. Once it writes "suppressive," the subsequent `base_damage` generation is conditioned on that token. This is the most mechanically sound fix but requires schema changes.
+
+The prompt-only treatment moved the overall damage ratio from ~1.08 to 0.62. That's real progress for two models. But it confirms what the baseline suggested: for the models with the strongest lethal priors, showing examples of the right answer is not the same as compelling it.
