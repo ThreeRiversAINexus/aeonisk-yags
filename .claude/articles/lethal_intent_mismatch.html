@@ -636,6 +636,69 @@ $$
 
 <p>The prompt-only treatment moved the overall damage ratio from ~1.08 to 0.63. That's real progress for two models. But it confirms what the baseline suggested: for the models with the strongest lethal priors, showing examples of the right answer is not the same as compelling it.</p>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="treatment-v2">Treatment v2: Classification Gate + Table Reference</h2>
+
+<p>Treatment v1 embedded damage guidance deep in the prompt after the model had already seen <code>base_damage=15</code> as the first concrete number. Two structural problems:</p>
+
+<ol>
+  <li><strong>Anchoring.</strong> The REQUIRED FIELDS section showed <code>base_damage=15</code> as the example value before the model ever reached the suppression guidance. That's the first concrete number it sees. By the time it reaches "base_damage 0&ndash;5 for suppression," the 15 is already anchored.</li>
+
+  <li><strong>No branching point.</strong> The model generates damage in one continuous pass. There is no explicit decision point where the model must classify the action as suppressive before generating numbers. It processes intent cognitively&mdash;understanding "suppressive fire" as a concept&mdash;but never commits to a classification token that conditions subsequent generation.</li>
+</ol>
+
+<h3>Two Levers</h3>
+
+<p><strong>Lever 1: Classification gate.</strong> Add a decision step at the very top of the prompt, before any field definitions or examples:</p>
+
+<div class="latex-table" style="text-align: left; padding: 1rem;">
+<p><strong>STEP 1: CLASSIFY INTENT</strong></p>
+<p>Before generating any damage numbers, classify the attacker's declared intent:</p>
+<p><em>Did the player declare suppressive fire, covering fire, warning shots, or pinning fire?</em></p>
+<ul style="margin: 0.5rem 0 0.5rem 1.5rem;">
+  <li><strong>YES &rarr; SUPPRESSIVE.</strong> Look up base_damage from the SUPPRESSION TABLE below.</li>
+  <li><strong>NO &rarr; LETHAL / STUN.</strong> Look up base_damage from the LETHAL TABLE below.</li>
+</ul>
+</div>
+
+<p>This forces the model to commit to a classification before encountering any damage numbers. The subsequent generation is conditioned on the classification decision.</p>
+
+<p>Crucially, instead of stating "base_damage MUST be 0&ndash;5" as a flat cap, the gate directs the model to look up the appropriate value from the margin-based table. This is more granular&mdash;margin 3 should produce 0&ndash;2, not allow up to 5&mdash;and creates a multi-step reasoning chain: classify intent &rarr; check margin &rarr; look up table &rarr; get range.</p>
+
+<p><strong>Lever 2: Neutralize the anchor.</strong> Replace the <code>base_damage=15</code> in REQUIRED FIELDS with an explicit placeholder:</p>
+
+<pre style="background: var(--surface); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin: 1rem 0;"><code>damage=[DamageEffect(
+    target="tgt_7a3f",
+    base_damage=...,         # Look up from DAMAGE TABLES below (intent + margin)
+    soak=...,                # Armor/resistance absorbed
+    dealt=...,               # base_damage - soak
+    damage_type="wound"      # From WEAPON CONTEXT
+)]</code></pre>
+
+<p>No concrete number appears before the tables. The model's first encounter with base_damage values is the damage tables themselves, which show both lethal and suppressive ranges side-by-side:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c}
+\textbf{Margin} & \textbf{Lethal base\_damage} & \textbf{Suppressive base\_damage} \\
+\hline
+0\text{-}5 & 8\text{-}12 & 0\text{-}2 \\
+6\text{-}10 & 12\text{-}16 & 0\text{-}3 \\
+11+ & 16\text{-}22 & 0\text{-}5 \\
+\end{array}
+$$
+</div>
+
+<h3>Prompt Structure Change</h3>
+
+<p>The v1 prompt structure was: field definitions (with <code>base_damage=15</code>) &rarr; lethal examples &rarr; suppression table &rarr; suppressive examples. The model sees 15, then 15 again in the lethal example, then encounters 0&ndash;5 guidance buried 140 lines later.</p>
+
+<p>The v2 structure is: <strong>classification gate</strong> &rarr; field definitions (with <code>base_damage=...</code>) &rarr; <strong>damage tables (both)</strong> &rarr; lethal example &rarr; suppressive examples. The model classifies first, sees no anchoring number, encounters both tables before any examples, and the examples reinforce the table values rather than competing with them.</p>
+
+<h3>What This Doesn't Address</h3>
+
+<p>Both the lethal and suppressive damage tables use flat ranges independent of weapon stats. A pistol and a heavy weapon produce the same base_damage range for a given margin. This is because the current WEAPON CONTEXT only passes weapon name and damage_type to the DM&mdash;not the weapon's damage bonus or the attacker's Strength. The DM's <code>base_damage</code> for PC attacks is ungrounded in weapon mechanics, unlike enemy attacks which use the formula <code>Strength + weapon.damage + d20</code>. Weapon-dependent damage scaling is a candidate for treatment v3.</p>
+
 <hr>
 
 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">

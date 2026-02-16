@@ -591,6 +591,18 @@ None. Treatment v1 is self-contained.
 
 ## Open Questions
 
+### Q0: PC base_damage is ungrounded in weapon stats (known gap)
+
+**Issue:** The WEAPON CONTEXT injected into the DM prompt (`dm.py:7580-7590`) only passes weapon **name** and **damage_type**. It does NOT pass weapon stats (damage bonus, attack bonus) or attacker attributes. The DM's `base_damage` for PC attacks is entirely DM-inferred from context and prompt examples.
+
+Meanwhile, enemy attacks use a hardcoded formula: `base_damage = Strength + weapon.damage + d20_roll` (enemy_combat.py:1067-1073). This creates an asymmetry: enemy damage is formula-driven, PC damage is DM-inferred. Note: the enemy formula's use of Strength as a flat damage modifier may not accurately reflect YAGS combat rules — needs verification against YAGS core.
+
+**Consequence for treatment v1/v2:** Both the lethal table (8-12 / 12-16 / 16-22) and suppression table (0-2 / 0-3 / 0-5) are flat ranges independent of weapon. This is intentional — keeping the variable constant isolates the effect of the classification gate and anchor removal.
+
+**Direction for v3:** Pass YAGS weapon stats and damage formulas to the DM in WEAPON CONTEXT so the DM can reason about appropriate damage. The goal is to provide formulas as *input* (how YAGS damage works), NOT tables that dictate output values. The DM should do the math and choose the final number — we're testing its reasoning ability, not replacing it with lookup tables. This requires a code change in `dm.py` and verification of YAGS damage mechanics.
+
+**Decision:** Do NOT change in v1/v2. Keep flat tables for experimental consistency.
+
 ### Q1: Should damage_type override to "stun" for suppressive attacks?
 
 **Current recommendation (v1-v2):** No. The suppression YAML (line 105) explicitly says: "The damage_type stays 'wound' (matching WEAPON CONTEXT for ballistic weapons). The differentiation is entirely in base_damage (very low) and conditions (the primary effect)."
