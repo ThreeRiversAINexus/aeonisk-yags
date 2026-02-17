@@ -131,6 +131,19 @@ class EvalCase:
     detected_modules: List[str] = field(default_factory=list)  # modules found in system prompt
     line_number: int = 0      # line number in JSONL file
 
+    # From DM user prompt (regex extraction from WEAPON CONTEXT section)
+    weapon_name: Optional[str] = None         # "Assault Rifle", "Shock Baton"
+    weapon_damage_type: Optional[str] = None  # "wound", "stun" (lowercased)
+    declared_target: Optional[str] = None     # "tgt_ic6o"
+
+    # From player llm_call (event correlation — same round)
+    player_intent: Optional[str] = None       # "Lay down suppressing fire to pin the thugs"
+
+    # From original DM response (parsed via MechanicalExtractor)
+    original_base_damage: Optional[int] = None
+    original_damage_type: Optional[str] = None
+    original_conditions: List[str] = field(default_factory=list)
+
 
 @dataclass
 class ReplayResult:
@@ -255,6 +268,130 @@ class ModuleSwapper:
 
 
 # ---------------------------------------------------------------------------
+# Extraction helpers
+# ---------------------------------------------------------------------------
+
+def _extract_weapon_context(round_events: List[dict]) -> Dict[str, Optional[str]]:
+    """
+    Extract weapon context from structured JSONL events, filtering to PC-only.
+
+    Uses structured fields to identify PC events:
+    - combat_action: attacker.id must start with "player_"
+    - action_resolution: phase must be "adjudicate" (or absent for legacy compat)
+
+    Enemy (enemy_*) and NPC (npc_*) events are excluded to prevent weapon
+    metadata contamination (e.g. enemy wound pistol overwriting PC stun baton).
+
+    Returns:
+        Dict with keys: weapon_name, weapon_damage_type, declared_target
+    """
+    result: Dict[str, Optional[str]] = {
+        "weapon_name": None,
+        "weapon_damage_type": None,
+        "declared_target": None,
+    }
+
+    for event in round_events:
+        et = event.get("event_type")
+
+        if et == "combat_action":
+            # Filter: PC attackers only (attacker.id starts with "player_")
+            attacker = event.get("attacker")
+            if not isinstance(attacker, dict):
+                continue
+            attacker_id = attacker.get("id", "")
+            if not attacker_id.startswith("player_"):
+                continue
+
+            if not result["weapon_name"] and event.get("weapon"):
+                result["weapon_name"] = event["weapon"]
+            damage = event.get("damage") or {}
+            if not result["weapon_damage_type"] and damage.get("damage_type"):
+                result["weapon_damage_type"] = damage["damage_type"].lower()
+
+        elif et == "action_resolution":
+            # Filter: PC phase only (adjudicate or absent for legacy)
+            phase = event.get("phase")
+            if phase is not None and phase != "adjudicate":
+                continue
+
+            context = event.get("context") or {}
+            if not result["declared_target"] and context.get("target"):
+                result["declared_target"] = context["target"]
+            if not result["weapon_damage_type"]:
+                for de in context.get("damage_effects") or []:
+                    if isinstance(de, dict) and de.get("damage_type"):
+                        result["weapon_damage_type"] = de["damage_type"].lower()
+                        break
+
+    return result
+
+
+def _extract_original_outcome(response_text: str) -> Dict[str, Any]:
+    """
+    Extract base_damage, damage_type, and condition names from original DM response.
+
+    Returns:
+        Dict with keys: original_base_damage, original_damage_type, original_conditions
+    """
+    parsed = MechanicalExtractor.parse_response(response_text)
+    effects = parsed.get("effects", {})
+
+    damage_list = effects.get("damage", [])
+    if isinstance(damage_list, dict):
+        damage_list = [damage_list]
+
+    total_base_damage = 0
+    damage_type = None
+    for d in damage_list:
+        if isinstance(d, dict):
+            total_base_damage += d.get("base_damage") or 0
+            if d.get("damage_type"):
+                damage_type = d["damage_type"]
+
+    conditions_list = effects.get("conditions", [])
+    if isinstance(conditions_list, dict):
+        conditions_list = [conditions_list]
+    condition_names = [
+        c.get("name", "") for c in conditions_list
+        if isinstance(c, dict) and c.get("name")
+    ]
+
+    return {
+        "original_base_damage": total_base_damage,
+        "original_damage_type": damage_type,
+        "original_conditions": condition_names,
+    }
+
+
+def _find_player_intent(round_events: List[dict]) -> Optional[str]:
+    """
+    Find player intent from player llm_call events in the same round.
+
+    Parses the response JSON of player llm_call events looking for the 'intent' field.
+
+    Returns:
+        The intent string, or None if not found.
+    """
+    for event in round_events:
+        if event.get("event_type") != "llm_call":
+            continue
+        if event.get("agent_type") != "player":
+            continue
+        response_text = event.get("response", "")
+        if not response_text:
+            continue
+        try:
+            response_data = json.loads(response_text)
+            intent = response_data.get("intent")
+            if intent:
+                return intent
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return None
+
+
+# ---------------------------------------------------------------------------
 # SessionExtractor
 # ---------------------------------------------------------------------------
 
@@ -293,6 +430,9 @@ class SessionExtractor:
         files: Optional[List[Path]] = None,
         action_type_filter: Optional[str] = None,
         intent_filter: Optional[str] = None,
+        intent_keywords: Optional[List[str]] = None,
+        exclude_keywords: Optional[List[str]] = None,
+        weapon_damage_type: Optional[str] = None,
         original_model_filter: Optional[str] = None,
         module_filter: Optional[str] = None,
         margin_range: Optional[Tuple[int, int]] = None,
@@ -302,14 +442,24 @@ class SessionExtractor:
         """
         Extract DM resolution cases from session files.
 
-        Filters:
+        Filters (all active filters are ANDed together):
             action_type_filter: Only cases where action type matches (e.g., 'combat')
-            intent_filter: Keyword match on player action text (e.g., 'suppress')
+            intent_filter: Single keyword match on player action text (backward compat)
+            intent_keywords: OR match against player_action_text AND player_intent
+            exclude_keywords: Exclude cases where any keyword matches player_action_text
+                              or player_intent (case-insensitive substring). ANDed with
+                              other filters.
+            weapon_damage_type: Exact match on extracted weapon damage type (e.g., 'wound')
             original_model_filter: Only cases from a specific original model
             module_filter: Only cases where a specific module was detected
             margin_range: Only cases with margin in [min, max] range
             max_cases: Stop after this many cases
         """
+        # Normalize intent_filter → intent_keywords for backward compat
+        effective_keywords = intent_keywords
+        if effective_keywords is None and intent_filter:
+            effective_keywords = [intent_filter]
+
         if files is None:
             files = self.find_session_files()
 
@@ -319,8 +469,9 @@ class SessionExtractor:
             try:
                 file_cases = self._extract_from_file(
                     jsonl_path, condition,
-                    action_type_filter, intent_filter, original_model_filter,
-                    module_filter, margin_range, module_swapper,
+                    action_type_filter, effective_keywords, exclude_keywords,
+                    weapon_damage_type,
+                    original_model_filter, module_filter, margin_range, module_swapper,
                 )
                 cases.extend(file_cases)
             except Exception as e:
@@ -338,15 +489,25 @@ class SessionExtractor:
         jsonl_path: Path,
         condition: str,
         action_type_filter: Optional[str],
-        intent_filter: Optional[str],
+        intent_keywords: Optional[List[str]],
+        exclude_keywords: Optional[List[str]],
+        weapon_damage_type: Optional[str],
         original_model_filter: Optional[str],
         module_filter: Optional[str],
         margin_range: Optional[Tuple[int, int]],
         module_swapper: Optional[ModuleSwapper],
     ) -> List[EvalCase]:
-        """Extract eval cases from a single JSONL file."""
-        cases = []
+        """
+        Extract eval cases from a single JSONL file using two-pass extraction.
+
+        Pass 1: Index all events by round, collect DM llm_calls separately.
+        Pass 2: For each DM llm_call, look up correlated events from the same round.
+        """
         session_hash = hashlib.md5(str(jsonl_path).encode()).hexdigest()[:8]
+
+        # --- Pass 1: Read all events, index by round ---
+        events_by_round: Dict[int, List[dict]] = {}
+        dm_llm_calls: List[Tuple[int, dict]] = []  # (line_num, event)
 
         with open(jsonl_path, "r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
@@ -358,76 +519,139 @@ class SessionExtractor:
                 except json.JSONDecodeError:
                     continue
 
-                # Only DM llm_call events
-                if event.get("event_type") != "llm_call":
+                round_num = event.get("round")
+                if round_num is not None:
+                    events_by_round.setdefault(round_num, []).append(event)
+
+                # Identify DM llm_call resolution events
+                if (event.get("event_type") == "llm_call"
+                        and event.get("agent_type") == "dm"):
+                    response_text = event.get("response", "")
+                    if '"narration"' in response_text and '"effects"' in response_text:
+                        dm_llm_calls.append((line_num, event))
+
+        # --- Pass 2: Process each DM llm_call with correlated events ---
+        cases = []
+
+        for line_num, event in dm_llm_calls:
+            response_text = event.get("response", "")
+
+            # Extract system and user prompts
+            prompt_messages = event.get("prompt", [])
+            system_prompt = ""
+            user_prompt = ""
+            for msg in prompt_messages:
+                if not isinstance(msg, dict):
                     continue
-                if event.get("agent_type") != "dm":
+                if msg.get("role") == "system":
+                    system_prompt = msg.get("content", "")
+                elif msg.get("role") == "user":
+                    user_prompt = msg.get("content", "")
+
+            if not system_prompt or not user_prompt:
+                continue
+
+            # Parse response for fields we need
+            parsed_response = MechanicalExtractor.parse_response(response_text)
+            margin = parsed_response.get("margin")
+            action_type = self._infer_action_type(user_prompt)
+            player_action_text = self._extract_player_action(user_prompt)
+
+            # Look up correlated events from the same round
+            round_num = event.get("round")
+            round_events = events_by_round.get(round_num, []) if round_num is not None else []
+
+            # Extract weapon context from structured JSONL events (PC-only)
+            weapon_ctx = _extract_weapon_context(round_events)
+
+            # Extract original outcome from DM response
+            outcome = _extract_original_outcome(response_text)
+
+            # Correlate with player intent from player llm_call in same round
+            player_intent = _find_player_intent(round_events)
+
+            # --- Apply filters ---
+            if action_type_filter and action_type != action_type_filter:
+                continue
+
+            # Intent keywords: OR match against player_action_text AND player_intent
+            if intent_keywords:
+                matched = False
+                search_texts = []
+                if player_action_text:
+                    search_texts.append(player_action_text.lower())
+                if player_intent:
+                    search_texts.append(player_intent.lower())
+                if not search_texts:
+                    continue  # No text to match against
+                for kw in intent_keywords:
+                    kw_lower = kw.lower()
+                    if any(kw_lower in text for text in search_texts):
+                        matched = True
+                        break
+                if not matched:
                     continue
 
-                # Check response contains ActionResolution fields
-                response_text = event.get("response", "")
-                if not ('"narration"' in response_text and '"effects"' in response_text):
+            # Exclude keywords: if ANY exclude keyword matches, skip this case
+            if exclude_keywords:
+                search_texts = []
+                if player_action_text:
+                    search_texts.append(player_action_text.lower())
+                if player_intent:
+                    search_texts.append(player_intent.lower())
+                excluded = False
+                for kw in exclude_keywords:
+                    kw_lower = kw.lower()
+                    if any(kw_lower in text for text in search_texts):
+                        excluded = True
+                        break
+                if excluded:
                     continue
 
-                # Extract system and user prompts from the prompt array
-                prompt_messages = event.get("prompt", [])
-                system_prompt = ""
-                user_prompt = ""
-                for msg in prompt_messages:
-                    if msg.get("role") == "system":
-                        system_prompt = msg.get("content", "")
-                    elif msg.get("role") == "user":
-                        user_prompt = msg.get("content", "")
-
-                if not system_prompt or not user_prompt:
+            # Weapon damage type filter
+            if weapon_damage_type:
+                if weapon_ctx["weapon_damage_type"] != weapon_damage_type.lower():
                     continue
 
-                # Parse response for fields we need
-                parsed_response = MechanicalExtractor.parse_response(response_text)
-                margin = parsed_response.get("margin")
-                action_type = self._infer_action_type(user_prompt)
-                player_action_text = self._extract_player_action(user_prompt)
-
-                # Apply filters
-                if action_type_filter and action_type != action_type_filter:
+            if original_model_filter:
+                model = event.get("model", "")
+                if original_model_filter not in model:
                     continue
-                if intent_filter and player_action_text:
-                    if intent_filter.lower() not in player_action_text.lower():
-                        continue
-                elif intent_filter and not player_action_text:
-                    continue
-                if original_model_filter:
-                    model = event.get("model", "")
-                    if original_model_filter not in model:
-                        continue
-                if margin_range and margin is not None:
-                    if not (margin_range[0] <= margin <= margin_range[1]):
-                        continue
-
-                # Detect modules
-                detected_modules = []
-                if module_swapper:
-                    detected_modules = module_swapper.detect_modules(system_prompt)
-                if module_filter and module_filter not in detected_modules:
+            if margin_range and margin is not None:
+                if not (margin_range[0] <= margin <= margin_range[1]):
                     continue
 
-                case_id = f"session_{session_hash}_{line_num}"
-                case = EvalCase(
-                    case_id=case_id,
-                    session_file=str(jsonl_path),
-                    condition=condition,
-                    round_num=event.get("round"),
-                    original_model=event.get("model", "unknown"),
-                    system_prompt=system_prompt,
-                    user_prompt=user_prompt,
-                    response_text=response_text,
-                    action_type=action_type,
-                    player_action_text=player_action_text,
-                    margin=margin,
-                    detected_modules=detected_modules,
-                    line_number=line_num,
-                )
-                cases.append(case)
+            # Detect modules
+            detected_modules = []
+            if module_swapper:
+                detected_modules = module_swapper.detect_modules(system_prompt)
+            if module_filter and module_filter not in detected_modules:
+                continue
+
+            case_id = f"session_{session_hash}_{line_num}"
+            case = EvalCase(
+                case_id=case_id,
+                session_file=str(jsonl_path),
+                condition=condition,
+                round_num=round_num,
+                original_model=event.get("model", "unknown"),
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_text=response_text,
+                action_type=action_type,
+                player_action_text=player_action_text,
+                margin=margin,
+                detected_modules=detected_modules,
+                line_number=line_num,
+                weapon_name=weapon_ctx["weapon_name"],
+                weapon_damage_type=weapon_ctx["weapon_damage_type"],
+                declared_target=weapon_ctx["declared_target"],
+                player_intent=player_intent,
+                original_base_damage=outcome["original_base_damage"],
+                original_damage_type=outcome["original_damage_type"],
+                original_conditions=outcome["original_conditions"],
+            )
+            cases.append(case)
 
         return cases
 
@@ -614,16 +838,23 @@ class DamageComparisonScorer(BaseScorer):
         }
 
 
-class SuppressionTableScorer(BaseScorer):
+class DamageRangeScorer(BaseScorer):
     """
     Check base_damage against margin-based expected ranges.
 
-    Suppressive fire: base_damage should be 0-5 for most margins.
-    Lethal fire: base_damage should be 8-22 based on margin.
+    Configurable: pass custom ranges via __init__(ranges=...) for lethal/stun
+    regression checks. Without custom ranges, uses suppression defaults.
+
+    Range format (from goal file YAML):
+        ranges:
+          - margin: [0, 5]
+            expected: [0, 6]
+          - margin: [6, 10]
+            expected: [2, 12]
     """
     name = "suppression_table"
 
-    # Expected suppress damage by margin range
+    # Default: expected suppress damage by margin range
     SUPPRESS_RANGES = {
         # (min_margin, max_margin): (min_bd, max_bd)
         (0, 5): (0, 0),
@@ -633,13 +864,32 @@ class SuppressionTableScorer(BaseScorer):
         (21, 99): (0, 5),
     }
 
+    def __init__(self, ranges: Optional[List[Dict]] = None, name: Optional[str] = None):
+        """
+        Args:
+            ranges: Optional list of dicts with 'margin' and 'expected' keys.
+                    Each: {"margin": [min, max], "expected": [min_bd, max_bd]}
+                    If None, uses hardcoded SUPPRESS_RANGES.
+            name: Override the scorer name (used for score dict keys).
+        """
+        if name:
+            self.name = name
+        if ranges:
+            self._ranges = {}
+            for r in ranges:
+                m = r["margin"]
+                e = r["expected"]
+                self._ranges[(m[0], m[1])] = (e[0], e[1])
+        else:
+            self._ranges = self.SUPPRESS_RANGES
+
     def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
         replay_bd = replay.get("total_base_damage", 0)
         margin = replay.get("margin") or case.margin or 0
 
         # Determine expected range
         expected_min, expected_max = 0, 99
-        for (m_min, m_max), (bd_min, bd_max) in self.SUPPRESS_RANGES.items():
+        for (m_min, m_max), (bd_min, bd_max) in self._ranges.items():
             if m_min <= abs(margin) <= m_max:
                 expected_min, expected_max = bd_min, bd_max
                 break
@@ -660,6 +910,10 @@ class SuppressionTableScorer(BaseScorer):
         }
 
 
+# Backward compatibility alias
+SuppressionTableScorer = DamageRangeScorer
+
+
 class SoulcreditScorer(BaseScorer):
     """Compare original vs replay soulcredit totals."""
     name = "soulcredit"
@@ -676,7 +930,8 @@ class SoulcreditScorer(BaseScorer):
 
 SCORER_REGISTRY = {
     "damage_comparison": DamageComparisonScorer,
-    "suppression_table": SuppressionTableScorer,
+    "damage_range": DamageRangeScorer,
+    "suppression_table": DamageRangeScorer,  # backward compat alias
     "soulcredit": SoulcreditScorer,
 }
 
@@ -716,6 +971,17 @@ class ReplayEngine:
             self._clients[provider] = UnifiedAIClient(**kwargs)
         return self._clients[provider]
 
+    # Errors that indicate an empty/whitespace response worth retrying
+    _EMPTY_RESPONSE_PATTERNS = [
+        "empty/whitespace",
+        "empty/whitespace-only content",
+    ]
+
+    def _is_empty_content_error(self, error: Exception) -> bool:
+        """Check if an exception is an empty-content error worth retrying."""
+        msg = str(error).lower()
+        return any(p in msg for p in self._EMPTY_RESPONSE_PATTERNS)
+
     def replay_case(
         self,
         case: EvalCase,
@@ -724,9 +990,13 @@ class ReplayEngine:
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 4000,
+        max_retries: int = 3,
     ) -> Tuple[str, float]:
         """
         Replay a single case and return (response_text, latency_ms).
+
+        Retries up to max_retries times on empty/whitespace responses or
+        proxy empty-content errors, with exponential backoff (1s, 2s, 4s).
         """
         client = self._get_client(provider)
 
@@ -748,17 +1018,45 @@ class ReplayEngine:
             print(f"  User tail:     ...{snippet}", file=sys.stderr)
 
         start = time.time()
-        response = client.chat_completion(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        latency_ms = (time.time() - start) * 1000
 
-        # Handle empty/whitespace responses
-        if not response or not response.strip():
-            raise ValueError("LLM returned empty/whitespace response")
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = client.chat_completion(
+                    messages=messages,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+
+                # Check for empty/whitespace response
+                if not response or not response.strip():
+                    if attempt < max_retries:
+                        delay = 2 ** (attempt - 1)  # 1s, 2s, 4s
+                        logger.warning(
+                            f"Empty response for {case.case_id} (attempt {attempt}/{max_retries}), "
+                            f"retrying in {delay}s..."
+                        )
+                        time.sleep(delay)
+                        continue
+                    raise ValueError(
+                        f"LLM returned empty/whitespace response after {max_retries} retries"
+                    )
+
+                # Valid response
+                break
+
+            except Exception as e:
+                if self._is_empty_content_error(e) and attempt < max_retries:
+                    delay = 2 ** (attempt - 1)
+                    logger.warning(
+                        f"Empty content error for {case.case_id} (attempt {attempt}/{max_retries}): "
+                        f"{e}, retrying in {delay}s..."
+                    )
+                    time.sleep(delay)
+                    continue
+                raise
+
+        latency_ms = (time.time() - start) * 1000
 
         if self.verbose:
             # Show response snippet
@@ -1063,7 +1361,7 @@ class ReportGenerator:
                         "delta": delta,
                     }
 
-            elif scorer.name == "suppression_table":
+            elif scorer.name in ("damage_range", "suppression_table"):
                 lines.append(f"{'Model':<30} | {'Avg BD':>6} | {'% in range':>10} | {'% w/ cond':>10}")
                 lines.append("-" * 70)
 
@@ -1154,12 +1452,18 @@ class SelfJudge:
 
         for scorer_name, scorer_targets in targets.items():
             for metric_name, target_value in scorer_targets.items():
+                # The max_ prefix is a comparison directive, not part of the
+                # score key. Strip it to find the actual scorer metric key.
+                score_key = metric_name
+                if metric_name.startswith("max_"):
+                    score_key = metric_name[4:]  # strip "max_"
+
                 # Find actual value across all models (use worst-case / average)
                 actual_values = []
                 if scorer_name in score_dict:
                     for model_scores in score_dict[scorer_name].values():
-                        if metric_name in model_scores:
-                            actual_values.append(model_scores[metric_name])
+                        if score_key in model_scores:
+                            actual_values.append(model_scores[score_key])
 
                 if not actual_values:
                     details[f"{scorer_name}.{metric_name}"] = {
@@ -1189,6 +1493,209 @@ class SelfJudge:
 
         return all_met, details
 
+    def _prepare_regression(
+        self,
+        reg_name: str,
+        reg_config: Dict,
+        module_name: str,
+        current_content: str,
+        module_swapper: ModuleSwapper,
+        session_extractor: SessionExtractor,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Prepare a single regression for replay: extract cases, build scorers, swap prompts.
+
+        Returns:
+            Prepared regression dict with cases/scorers/prompts, or None if no cases.
+        """
+        reg_subset = reg_config.get("eval_subset", {})
+        reg_targets = reg_config.get("targets", {})
+        reg_scorers_config = reg_config.get("scorers", {})
+        description = reg_config.get("description", "")
+
+        reg_cases = session_extractor.extract_cases(
+            action_type_filter=reg_subset.get("action_type"),
+            intent_keywords=reg_subset.get("intent_keywords"),
+            exclude_keywords=reg_subset.get("exclude_keywords"),
+            weapon_damage_type=reg_subset.get("weapon_damage_type"),
+            max_cases=reg_subset.get("max_cases"),
+            module_swapper=module_swapper,
+        )
+
+        if not reg_cases:
+            logger.warning(f"Regression '{reg_name}': no cases found, skipping")
+            return None
+
+        reg_scorers = []
+        for scorer_name in list(reg_targets.keys()):
+            if scorer_name in reg_scorers_config:
+                cfg = reg_scorers_config[scorer_name]
+                if scorer_name in ("damage_range", "suppression_table"):
+                    scorer = DamageRangeScorer(
+                        ranges=cfg.get("ranges"), name=scorer_name
+                    )
+                else:
+                    scorer_cls = SCORER_REGISTRY.get(scorer_name)
+                    if scorer_cls:
+                        scorer = scorer_cls()
+                    else:
+                        continue
+            else:
+                scorer_cls = SCORER_REGISTRY.get(scorer_name)
+                if scorer_cls:
+                    scorer = scorer_cls()
+                else:
+                    continue
+            reg_scorers.append(scorer)
+
+        if not reg_scorers:
+            return None
+
+        reg_prompts = {}
+        for case in reg_cases:
+            try:
+                reg_prompts[case.case_id] = module_swapper.swap_module(
+                    case.system_prompt, module_name, current_content
+                )
+            except ValueError:
+                reg_prompts[case.case_id] = case.system_prompt
+
+        return {
+            "name": reg_name,
+            "description": description,
+            "cases": reg_cases,
+            "scorers": reg_scorers,
+            "prompts": reg_prompts,
+            "targets": reg_targets,
+        }
+
+    @staticmethod
+    def _score_regression(
+        reg: Dict[str, Any],
+        replay_results: List[ReplayResult],
+        module_name: str,
+    ) -> Dict[str, Any]:
+        """Score a single regression's replay results against its targets."""
+        _, reg_score_dict = ReportGenerator.generate(
+            replay_results, module_name, reg["scorers"]
+        )
+
+        reg_details = {}
+        all_met = True
+        for scorer_name, scorer_targets in reg["targets"].items():
+            for metric_name, target_value in scorer_targets.items():
+                score_key = metric_name
+                if metric_name.startswith("max_"):
+                    score_key = metric_name[4:]
+
+                actual_values = []
+                if scorer_name in reg_score_dict:
+                    for model_scores in reg_score_dict[scorer_name].values():
+                        if score_key in model_scores:
+                            actual_values.append(model_scores[score_key])
+
+                if not actual_values:
+                    reg_details[f"{scorer_name}.{metric_name}"] = {
+                        "target": target_value,
+                        "actual": None,
+                        "met": False,
+                    }
+                    all_met = False
+                    continue
+
+                if metric_name.startswith("max_"):
+                    actual = max(actual_values)
+                    met = actual <= target_value
+                else:
+                    actual = sum(actual_values) / len(actual_values)
+                    met = actual >= target_value
+
+                reg_details[f"{scorer_name}.{metric_name}"] = {
+                    "target": target_value,
+                    "actual": round(actual, 1),
+                    "met": met,
+                }
+                if not met:
+                    all_met = False
+
+        status = "PASS" if all_met else "FAIL"
+        print(f"  Regression '{reg['name']}': {status} ({len(reg['cases'])} cases)", file=sys.stderr)
+        for metric, info in reg_details.items():
+            met_str = "PASS" if info["met"] else "FAIL"
+            print(f"    {metric}: {info['actual']} (target {info['target']}) → {met_str}", file=sys.stderr)
+
+        return {
+            "description": reg["description"],
+            "all_met": all_met,
+            "details": reg_details,
+        }
+
+    def _run_regressions(
+        self,
+        module_name: str,
+        current_content: str,
+        module_swapper: ModuleSwapper,
+        session_extractor: SessionExtractor,
+        replay_engine: ReplayEngine,
+        model_specs: List[Tuple[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 4000,
+    ) -> Dict[str, Any]:
+        """
+        Run regression checks defined in the goal file's `regressions` section.
+        All regression replays run concurrently.
+
+        Returns:
+            Dict mapping regression name → {description, all_met, details}
+        """
+        regressions = self.goal.get("regressions", {})
+        if not regressions:
+            return {}
+
+        # Phase 1: Prepare all regressions (extract cases, build prompts — fast)
+        prepared = {}
+        for reg_name, reg_config in regressions.items():
+            reg = self._prepare_regression(
+                reg_name, reg_config, module_name, current_content,
+                module_swapper, session_extractor,
+            )
+            if reg:
+                prepared[reg_name] = reg
+
+        if not prepared:
+            return {
+                name: {"description": cfg.get("description", ""), "all_met": True, "details": {}}
+                for name, cfg in regressions.items()
+            }
+
+        # Phase 2: Replay all regressions concurrently
+        futures = {}
+        with ThreadPoolExecutor(max_workers=len(prepared)) as pool:
+            for reg_name, reg in prepared.items():
+                futures[reg_name] = pool.submit(
+                    replay_engine.replay_batch,
+                    reg["cases"], reg["prompts"], model_specs, reg["scorers"],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            replay_results = {name: f.result() for name, f in futures.items()}
+
+        # Phase 3: Score all regressions
+        results = {}
+        for reg_name in regressions:
+            if reg_name in prepared:
+                results[reg_name] = self._score_regression(
+                    prepared[reg_name], replay_results[reg_name], module_name,
+                )
+            else:
+                results[reg_name] = {
+                    "description": regressions[reg_name].get("description", ""),
+                    "all_met": True,
+                    "details": {},
+                }
+
+        return results
+
     def build_judge_prompt(
         self,
         current_module_content: str,
@@ -1198,6 +1705,7 @@ class SelfJudge:
         retry_context: Optional[str] = None,
         iteration_history: Optional[List[Dict[str, Any]]] = None,
         success_examples: Optional[List[ReplayResult]] = None,
+        regression_results: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Build the prompt for the judge LLM to rewrite the module."""
         lines = [
@@ -1320,6 +1828,32 @@ class SelfJudge:
                     lines.append(f"- **{sname}:** {json.dumps(sresult)}")
             lines.append("")
 
+        # Regression check results
+        if regression_results:
+            lines.append("## Regression Check Results")
+            lines.append("")
+            for reg_name, reg_data in regression_results.items():
+                status = "PASS" if reg_data.get("all_met") else "FAIL"
+                desc = reg_data.get("description", "")
+                lines.append(f"### {reg_name} ({status})")
+                if desc:
+                    lines.append(f"  {desc}")
+                for metric, info in reg_data.get("details", {}).items():
+                    met = "PASS" if info.get("met") else "FAIL"
+                    actual = info.get("actual", "?")
+                    target = info.get("target", "?")
+                    # Direction hint for max_* metrics
+                    if metric.split(".")[-1].startswith("max_"):
+                        lines.append(f"  {metric}: {actual} <= {target} target  {met}")
+                    else:
+                        lines.append(f"  {metric}: {actual}% >= {target}% target  {met}")
+                if not reg_data.get("all_met"):
+                    lines.append(
+                        f"  → Your rewrite may have harmed {reg_name}. "
+                        f"Only suppressive fire should be low-damage."
+                    )
+                lines.append("")
+
         # Goal description
         goal_desc = self.goal.get("description", "")
         if goal_desc:
@@ -1399,6 +1933,9 @@ class SelfJudge:
         cases = session_extractor.extract_cases(
             action_type_filter=eval_subset.get("action_type"),
             intent_filter=eval_subset.get("intent_filter"),
+            intent_keywords=eval_subset.get("intent_keywords"),
+            exclude_keywords=eval_subset.get("exclude_keywords"),
+            weapon_damage_type=eval_subset.get("weapon_damage_type"),
             max_cases=eval_subset.get("max_cases"),
             module_swapper=module_swapper,
         )
@@ -1429,13 +1966,25 @@ class SelfJudge:
                     # Module not found in this case's prompt - use original
                     modified_prompts[case.case_id] = case.system_prompt
 
-            # Replay
-            results = replay_engine.replay_batch(
-                cases, modified_prompts, model_specs, scorers,
-                save_prompts=True,  # Need examples for judge
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            # Run main replay and regressions concurrently — both are
+            # independent API replay batches, no need to serialize
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                main_future = pool.submit(
+                    replay_engine.replay_batch,
+                    cases, modified_prompts, model_specs, scorers,
+                    save_prompts=True,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                reg_future = pool.submit(
+                    self._run_regressions,
+                    module_name, current_content, module_swapper,
+                    session_extractor, replay_engine, model_specs,
+                    temperature=temperature, max_tokens=max_tokens,
+                )
+
+                results = main_future.result()
+                regression_results = reg_future.result()
 
             # Score & report
             report, score_dict = ReportGenerator.generate(results, module_name, scorers)
@@ -1521,6 +2070,7 @@ class SelfJudge:
                     retry_context=retry_context,
                     iteration_history=convergence,
                     success_examples=success,
+                    regression_results=regression_results,
                 )
 
                 print(f"  Calling judge model ({self.judge_provider}:{self.judge_model})...", file=sys.stderr)
@@ -1557,6 +2107,9 @@ class SelfJudge:
             validation_cases = session_extractor.extract_cases(
                 action_type_filter=eval_subset.get("action_type"),
                 intent_filter=eval_subset.get("intent_filter"),
+                intent_keywords=eval_subset.get("intent_keywords"),
+                exclude_keywords=eval_subset.get("exclude_keywords"),
+                weapon_damage_type=eval_subset.get("weapon_damage_type"),
                 max_cases=None,  # No limit — use ALL matching cases
                 module_swapper=module_swapper,
             )
@@ -1664,7 +2217,16 @@ Examples:
 
     # Filters
     parser.add_argument("--action-type", type=str, default=None, help="Filter by action type (combat, investigate, ...)")
-    parser.add_argument("--intent-filter", type=str, default=None, help="Keyword match on player action text")
+    parser.add_argument("--intent-filter", type=str, default=None, help="Single keyword match on player action text (backward compat)")
+    parser.add_argument(
+        "--intent-keywords", nargs="+", default=None,
+        help="Multi-keyword OR match on player action text AND player intent (e.g., suppress \"covering fire\" \"pin down\")",
+    )
+    parser.add_argument(
+        "--exclude-keywords", nargs="+", default=None,
+        help="Exclude cases where any keyword matches player action text or intent (e.g., suppress \"covering fire\")",
+    )
+    parser.add_argument("--weapon-damage-type", type=str, default=None, help="Filter by weapon damage type (wound, stun)")
     parser.add_argument("--original-model", type=str, default=None, help="Filter by original model")
     parser.add_argument("--module-filter", type=str, default=None, help="Only cases where module was detected")
     parser.add_argument(
@@ -1728,7 +2290,7 @@ def _create_output_dir(
     If --resume and the output_dir already exists as a timestamped eval dir
     (contains metadata.json), reuse it instead of creating a new one.
     """
-    base_dir = Path(args.output_dir or "results")
+    base_dir = Path(args.output_dir or "evals/results")
 
     # Resume: if output_dir points to an existing eval dir, reuse it
     if args.resume and base_dir.exists() and (base_dir / "metadata.json").exists():
@@ -1747,6 +2309,8 @@ def _create_output_dir(
         "models": [f"{p}:{m}" for p, m in model_specs],
         "action_type": args.action_type,
         "intent_filter": args.intent_filter,
+        "intent_keywords": args.intent_keywords,
+        "weapon_damage_type": args.weapon_damage_type,
         "original_model": args.original_model,
         "margin_range": args.margin_range,
         "max_cases": args.max_cases,
@@ -1806,6 +2370,9 @@ def main(argv=None):
     cases = extractor.extract_cases(
         action_type_filter=args.action_type,
         intent_filter=args.intent_filter,
+        intent_keywords=args.intent_keywords,
+        exclude_keywords=args.exclude_keywords,
+        weapon_damage_type=args.weapon_damage_type,
         original_model_filter=args.original_model,
         module_filter=args.module_filter,
         margin_range=margin_range,

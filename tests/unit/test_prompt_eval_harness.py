@@ -32,14 +32,20 @@ from prompt_eval_harness import (
     MechanicalExtractor,
     EvalCase,
     ReplayResult,
+    ReplayEngine,
     DamageComparisonScorer,
+    DamageRangeScorer,
     SuppressionTableScorer,
     SoulcreditScorer,
     ReportGenerator,
     ResultStore,
     SelfJudge,
+    SCORER_REGISTRY,
     parse_model_spec,
     parse_args,
+    _extract_weapon_context,
+    _extract_original_outcome,
+    _find_player_intent,
 )
 
 
@@ -814,6 +820,8 @@ class TestCreateOutputDir:
             swap_module=str(src_yaml),
             action_type="combat",
             intent_filter="suppress",
+            intent_keywords=None,
+            weapon_damage_type=None,
             original_model=None,
             margin_range=None,
             max_cases=None,
@@ -869,6 +877,100 @@ class TestCreateOutputDir:
 
         result = _create_output_dir(args, "m", "c", [("openai", "gpt-5-mini")])
         assert result == eval_dir  # Reused, not new
+
+
+# ---------------------------------------------------------------------------
+# ReplayEngine retry tests
+# ---------------------------------------------------------------------------
+
+class TestReplayEngineRetry:
+    """Tests for retry logic on empty/whitespace responses."""
+
+    def test_retry_on_empty_response_succeeds(self):
+        """Empty response on first try, valid response on second try."""
+        engine = ReplayEngine(workers=1, request_delay=0)
+        case = _make_eval_case()
+
+        call_count = [0]
+        def mock_chat_completion(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return ""  # Empty response
+            return '{"narration": "Shot hits.", "effects": {"damage": [{"base_damage": 5}]}}'
+
+        mock_client = MagicMock()
+        mock_client.chat_completion.side_effect = mock_chat_completion
+        engine._clients["openai"] = mock_client
+
+        response, latency = engine.replay_case(case, "system", "openai", "gpt-5-mini")
+        assert '"narration"' in response
+        assert call_count[0] == 2  # First call empty, second succeeded
+
+    def test_retry_on_whitespace_response_succeeds(self):
+        """Whitespace-only response retried successfully."""
+        engine = ReplayEngine(workers=1, request_delay=0)
+        case = _make_eval_case()
+
+        call_count = [0]
+        def mock_chat_completion(**kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                return "   \n  "  # Whitespace
+            return '{"narration": "Hit.", "effects": {}}'
+
+        mock_client = MagicMock()
+        mock_client.chat_completion.side_effect = mock_chat_completion
+        engine._clients["openai"] = mock_client
+
+        response, latency = engine.replay_case(case, "system", "openai", "gpt-5-mini")
+        assert '"narration"' in response
+        assert call_count[0] == 3  # Two whitespace, third succeeded
+
+    def test_retry_exhausted_raises(self):
+        """All retries return empty → raises ValueError."""
+        engine = ReplayEngine(workers=1, request_delay=0)
+        case = _make_eval_case()
+
+        mock_client = MagicMock()
+        mock_client.chat_completion.return_value = ""  # Always empty
+        engine._clients["openai"] = mock_client
+
+        with pytest.raises(ValueError, match="empty.*after 3 retries"):
+            engine.replay_case(case, "system", "openai", "gpt-5-mini")
+        assert mock_client.chat_completion.call_count == 3
+
+    def test_retry_on_proxy_empty_content_error(self):
+        """Proxy error 'Direct API returned empty/whitespace-only content' triggers retry."""
+        engine = ReplayEngine(workers=1, request_delay=0)
+        case = _make_eval_case()
+
+        call_count = [0]
+        def mock_chat_completion(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise Exception("Proxy request failed with status: failed, error: Direct API returned empty/whitespace-only content")
+            return '{"narration": "Hit.", "effects": {}}'
+
+        mock_client = MagicMock()
+        mock_client.chat_completion.side_effect = mock_chat_completion
+        engine._clients["openai"] = mock_client
+
+        response, latency = engine.replay_case(case, "system", "openai", "gpt-5-mini")
+        assert '"narration"' in response
+        assert call_count[0] == 2
+
+    def test_non_retryable_error_not_retried(self):
+        """Non-empty-content errors should NOT be retried."""
+        engine = ReplayEngine(workers=1, request_delay=0)
+        case = _make_eval_case()
+
+        mock_client = MagicMock()
+        mock_client.chat_completion.side_effect = Exception("Authentication failed")
+        engine._clients["openai"] = mock_client
+
+        with pytest.raises(Exception, match="Authentication failed"):
+            engine.replay_case(case, "system", "openai", "gpt-5-mini")
+        assert mock_client.chat_completion.call_count == 1  # No retry
 
 
 # ---------------------------------------------------------------------------
@@ -1025,7 +1127,7 @@ class TestSelfJudgeTargets:
         assert all_met is False
 
     def test_check_targets_max_metric(self, tmp_dir):
-        """max_avg_base_damage should use max across models and check <=."""
+        """max_avg_base_damage should strip max_ prefix, use max across models, check <=."""
         goal_file = tmp_dir / "goals.yaml"
         with open(goal_file, "w") as f:
             yaml.dump({
@@ -1038,15 +1140,42 @@ class TestSelfJudgeTargets:
         from prompt_eval_harness import SelfJudge
         judge = SelfJudge(str(goal_file))
 
+        # Score dict uses the SCORER key (avg_base_damage), NOT the target key
+        # (max_avg_base_damage). The max_ prefix is a comparison directive.
         score_dict = {
             "damage_comparison": {
-                "gpt-5-mini": {"max_avg_base_damage": 3},
-                "deepseek": {"max_avg_base_damage": 7},
+                "gpt-5-mini": {"avg_base_damage": 3},
+                "deepseek": {"avg_base_damage": 7},
             },
         }
 
         all_met, details = judge.check_targets(score_dict)
         assert all_met is False  # max(3, 7) = 7 > 5
+        assert details["damage_comparison.max_avg_base_damage"]["actual"] == 7
+
+    def test_check_targets_max_metric_passes(self, tmp_dir):
+        """max_ target passes when all models are below threshold."""
+        goal_file = tmp_dir / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test goals",
+                "targets": {
+                    "damage_comparison": {"max_avg_base_damage": 10},
+                },
+            }, f)
+
+        from prompt_eval_harness import SelfJudge
+        judge = SelfJudge(str(goal_file))
+
+        score_dict = {
+            "damage_comparison": {
+                "gpt-5-mini": {"avg_base_damage": 3},
+            },
+        }
+
+        all_met, details = judge.check_targets(score_dict)
+        assert all_met is True
+        assert details["damage_comparison.max_avg_base_damage"]["actual"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -1485,3 +1614,1140 @@ class TestSelfJudgeImprovements:
         output_path = tmp_dir / "output"
         assert not (output_path / "validation_results.jsonl").exists()
         assert not (output_path / "validation_report.txt").exists()
+
+
+# ---------------------------------------------------------------------------
+# Weapon context extraction tests
+# ---------------------------------------------------------------------------
+
+class TestExtractWeaponContext:
+    """Tests for _extract_weapon_context() — PC-only structured JSONL filtering."""
+
+    def test_extracts_from_pc_combat_action(self):
+        """Weapon name and damage type from PC combat_action event."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "player_01", "name": "Enforcer Kael"},
+                "weapon": "Assault Rifle",
+                "damage": {"base_damage": 15, "damage_type": "wound", "dealt": 11},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] == "Assault Rifle"
+        assert result["weapon_damage_type"] == "wound"
+
+    def test_ignores_enemy_combat_action(self):
+        """Enemy combat_action events are filtered out entirely."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "enemy_grunt_37a177da", "name": "Independent Thug #1"},
+                "weapon": "Pistol",
+                "damage": {"base_damage": 8, "damage_type": "wound", "dealt": 4},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] is None
+        assert result["weapon_damage_type"] is None
+
+    def test_ignores_npc_combat_action(self):
+        """NPC combat_action events are filtered out."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "npc_guard_4032", "name": "Security Guard"},
+                "weapon": "Shock Baton",
+                "damage": {"base_damage": 3, "damage_type": "stun", "dealt": 1},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] is None
+        assert result["weapon_damage_type"] is None
+
+    def test_pc_extracted_despite_enemy_in_same_round(self):
+        """Core contamination fix: PC stun weapon not overwritten by enemy wound weapon."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "enemy_grunt_37a177da", "name": "Independent Thug #1"},
+                "weapon": "Pistol",
+                "damage": {"base_damage": 8, "damage_type": "wound", "dealt": 4},
+            },
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "player_02", "name": "Vessel Sera"},
+                "weapon": "Shock Baton",
+                "damage": {"base_damage": 3, "damage_type": "stun", "dealt": 1},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] == "Shock Baton"
+        assert result["weapon_damage_type"] == "stun"
+
+    def test_extracts_from_pc_action_resolution(self):
+        """Target and damage type from PC action_resolution (phase=adjudicate)."""
+        events = [
+            {
+                "event_type": "action_resolution",
+                "round": 1,
+                "phase": "adjudicate",
+                "context": {
+                    "action_type": "combat",
+                    "target": "tgt_ic6o",
+                    "damage_effects": [
+                        {"type": "damage", "base_damage": 15, "damage_type": "wound"},
+                    ],
+                },
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["declared_target"] == "tgt_ic6o"
+        assert result["weapon_damage_type"] == "wound"
+
+    def test_ignores_enemy_action_resolution(self):
+        """Enemy action_resolution (phase=enemy_execution) filtered out."""
+        events = [
+            {
+                "event_type": "action_resolution",
+                "round": 1,
+                "phase": "enemy_execution",
+                "context": {
+                    "action_type": "attack",
+                    "is_enemy": True,
+                    "enemy_id": "enemy_grunt_693bbf38",
+                },
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["declared_target"] is None
+        assert result["weapon_damage_type"] is None
+
+    def test_ignores_npc_action_resolution(self):
+        """NPC action_resolution (phase=adjudicate_npc) filtered out."""
+        events = [
+            {
+                "event_type": "action_resolution",
+                "round": 1,
+                "phase": "adjudicate_npc",
+                "context": {
+                    "action_type": "hide",
+                    "is_npc": True,
+                },
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["declared_target"] is None
+
+    def test_combined_pc_combat_action_and_resolution(self):
+        """Both PC event types contribute — combat_action for weapon, resolution for target."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "player_01", "name": "Enforcer Kael"},
+                "weapon": "Shock Baton",
+                "damage": {"base_damage": 3, "damage_type": "stun", "dealt": 1},
+            },
+            {
+                "event_type": "action_resolution",
+                "round": 1,
+                "phase": "adjudicate",
+                "context": {
+                    "target": "tgt_7eiu",
+                    "damage_effects": [{"damage_type": "stun"}],
+                },
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] == "Shock Baton"
+        assert result["weapon_damage_type"] == "stun"
+        assert result["declared_target"] == "tgt_7eiu"
+
+    def test_no_combat_events_returns_nones(self):
+        """Non-combat round with no combat_action or action_resolution."""
+        events = [
+            {"event_type": "llm_call", "agent_type": "player", "round": 1},
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] is None
+        assert result["weapon_damage_type"] is None
+        assert result["declared_target"] is None
+
+    def test_null_damage_handled(self):
+        """combat_action with damage: null doesn't crash (enemy miss)."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "attacker": {"id": "player_01", "name": "Enforcer Kael"},
+                "weapon": "Shotgun",
+                "damage": None,
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] == "Shotgun"
+        assert result["weapon_damage_type"] is None
+
+    def test_missing_attacker_field_skipped(self):
+        """combat_action without attacker field is skipped (defensive)."""
+        events = [
+            {
+                "event_type": "combat_action",
+                "round": 1,
+                "weapon": "Pistol",
+                "damage": {"base_damage": 5, "damage_type": "wound"},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["weapon_name"] is None
+        assert result["weapon_damage_type"] is None
+
+    def test_action_resolution_without_phase_treated_as_pc(self):
+        """Legacy action_resolution without phase field treated as PC (backward compat)."""
+        events = [
+            {
+                "event_type": "action_resolution",
+                "round": 1,
+                "context": {"target": "tgt_b8fj", "damage_effects": []},
+            },
+        ]
+        result = _extract_weapon_context(events)
+        assert result["declared_target"] == "tgt_b8fj"
+
+
+# ---------------------------------------------------------------------------
+# Original outcome extraction tests
+# ---------------------------------------------------------------------------
+
+class TestExtractOriginalOutcome:
+    """Tests for _extract_original_outcome() from DM response."""
+
+    def test_extracts_damage_and_conditions(self):
+        response_text = json.dumps({
+            "narration": "Shot hits the target.",
+            "success_tier": "GOOD",
+            "margin": 12,
+            "effects": {
+                "damage": [
+                    {"target": "tgt_1", "base_damage": 15, "soak": 7, "dealt": 8, "damage_type": "wound"},
+                ],
+                "conditions": [
+                    {"name": "Off-Balance", "penalty": -2, "duration": 1},
+                ],
+            },
+        })
+        result = _extract_original_outcome(response_text)
+        assert result["original_base_damage"] == 15
+        assert result["original_damage_type"] == "wound"
+        assert result["original_conditions"] == ["Off-Balance"]
+
+    def test_multiple_damage_sums_base_damage(self):
+        response_text = json.dumps({
+            "narration": "Burst fire.",
+            "effects": {
+                "damage": [
+                    {"base_damage": 10, "damage_type": "wound"},
+                    {"base_damage": 5, "damage_type": "wound"},
+                ],
+                "conditions": [],
+            },
+        })
+        result = _extract_original_outcome(response_text)
+        assert result["original_base_damage"] == 15
+        assert result["original_damage_type"] == "wound"
+
+    def test_no_damage_returns_zero(self):
+        response_text = json.dumps({
+            "narration": "Miss.",
+            "effects": {"damage": [], "conditions": []},
+        })
+        result = _extract_original_outcome(response_text)
+        assert result["original_base_damage"] == 0
+        assert result["original_damage_type"] is None
+        assert result["original_conditions"] == []
+
+    def test_stun_damage_type(self):
+        response_text = json.dumps({
+            "narration": "Baton strike.",
+            "effects": {
+                "damage": [{"base_damage": 3, "damage_type": "stun"}],
+                "conditions": [{"name": "Stunned", "penalty": -4}],
+            },
+        })
+        result = _extract_original_outcome(response_text)
+        assert result["original_damage_type"] == "stun"
+        assert result["original_conditions"] == ["Stunned"]
+
+
+# ---------------------------------------------------------------------------
+# Event correlation tests
+# ---------------------------------------------------------------------------
+
+class TestEventCorrelation:
+    """Tests for two-pass extraction with round-indexed event correlation."""
+
+    def _make_session_jsonl(self, tmp_path, events):
+        """Write events to a JSONL file and return the path."""
+        session_dir = tmp_path / "sessions" / "treatment_v2"
+        session_dir.mkdir(parents=True)
+        jsonl_path = session_dir / "session_correlation.jsonl"
+        with open(jsonl_path, "w") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+        return jsonl_path
+
+    def _make_dm_llm_call(self, round_num=1, weapon="Assault Rifle", damage_type="WOUND",
+                          target_id="tgt_ic6o", target_name="Independent Thug #1",
+                          player_action="fire suppressive shots at the guards"):
+        """Create a realistic DM llm_call event."""
+        return {
+            "event_type": "llm_call",
+            "agent_type": "dm",
+            "round": round_num,
+            "model": "gpt-5-mini",
+            "prompt": [
+                {"role": "system", "content": "# CORE DM RULES\n\nYou are the Dungeon Master."},
+                {"role": "user", "content": (
+                    f"Resolve the following action:\n"
+                    f"Player Action: {player_action}\n"
+                    f"Action Type: combat\n\n"
+                    f"\u26a0\ufe0f DECLARED TARGET: [{target_id}] {target_name}\n\n"
+                    f"**WEAPON CONTEXT:**\n"
+                    f"Weapon: {weapon}\n"
+                    f"Damage Type: {damage_type}\n"
+                    f'Set damage_type="{damage_type.lower()}" in all DamageEffect fields.\n'
+                )},
+            ],
+            "response": json.dumps({
+                "narration": "Bullets spray across the corridor. " * 5,
+                "success_tier": "GOOD",
+                "margin": 11,
+                "effects": {
+                    "damage": [{"target": target_id, "base_damage": 15, "soak": 4,
+                                "dealt": 11, "damage_type": damage_type.lower()}],
+                    "conditions": [{"name": "Pinned", "penalty": -2}],
+                    "void_changes": [],
+                    "soulcredit_changes": [],
+                    "clock_updates": [],
+                },
+            }),
+        }
+
+    def _make_player_llm_call(self, round_num=1, intent="Lay down suppressing fire to pin the thugs",
+                              action_type="combat"):
+        """Create a realistic player llm_call event."""
+        return {
+            "event_type": "llm_call",
+            "agent_type": "player",
+            "agent_id": "player_01",
+            "round": round_num,
+            "model": "gpt-5-mini",
+            "prompt": [
+                {"role": "system", "content": "You are Enforcer Kael Dren."},
+                {"role": "user", "content": "Choose your action."},
+            ],
+            "response": json.dumps({
+                "intent": intent,
+                "action_type": action_type,
+                "reasoning": "Need to suppress the enemy.",
+            }),
+        }
+
+    def _make_action_resolution(self, round_num=1, action_type="combat", damage_type="wound",
+                                base_damage=15, conditions=None):
+        """Create a realistic action_resolution event."""
+        return {
+            "event_type": "action_resolution",
+            "round": round_num,
+            "phase": "adjudicate",
+            "agent": "Enforcer Kael Dren",
+            "context": {
+                "action_type": action_type,
+                "damage_effects": [
+                    {"type": "damage", "base_damage": base_damage, "damage_type": damage_type},
+                ],
+            },
+            "roll": {"margin": 11, "tier": "good", "success": True},
+            "effects": {
+                "damage": {"dealt": 11},
+                "status_effects": conditions or ["Pinned: -2 to actions"],
+            },
+        }
+
+    def _make_combat_action(self, round_num=1, weapon="Assault Rifle", damage_type="wound",
+                            base_damage=15, attacker_id="player_01"):
+        """Create a realistic combat_action event."""
+        return {
+            "event_type": "combat_action",
+            "round": round_num,
+            "attacker": {"id": attacker_id, "name": "Enforcer Kael Dren"},
+            "weapon": weapon,
+            "attack": {"hit": True, "margin": 11},
+            "damage": {"base_damage": base_damage, "damage_type": damage_type, "dealt": 11},
+        }
+
+    def test_extract_player_intent_from_correlated_event(self, tmp_path, mock_dm_prompts):
+        """Player intent extracted from player llm_call in same round."""
+        events = [
+            self._make_player_llm_call(round_num=1, intent="Lay down covering fire to pin the thugs"),
+            self._make_dm_llm_call(round_num=1),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].player_intent == "Lay down covering fire to pin the thugs"
+
+    def test_weapon_context_from_structured_events(self, tmp_path, mock_dm_prompts):
+        """Weapon name and damage type extracted from combat_action/action_resolution."""
+        events = [
+            self._make_dm_llm_call(round_num=1, weapon="Shock Baton", damage_type="STUN"),
+            self._make_combat_action(round_num=1, weapon="Shock Baton", damage_type="stun", base_damage=3),
+            self._make_action_resolution(round_num=1, damage_type="stun", base_damage=3),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].weapon_name == "Shock Baton"
+        assert cases[0].weapon_damage_type == "stun"
+
+    def test_declared_target_from_action_resolution(self, tmp_path, mock_dm_prompts):
+        """Declared target extracted from action_resolution.context.target."""
+        events = [
+            self._make_dm_llm_call(round_num=1),
+            self._make_action_resolution(round_num=1),
+        ]
+        # Add target to the action_resolution
+        events[1]["context"]["target"] = "tgt_ic6o"
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].declared_target == "tgt_ic6o"
+
+    def test_original_outcome_extracted_from_response(self, tmp_path, mock_dm_prompts):
+        """Original base_damage, damage_type, conditions extracted from DM response."""
+        events = [
+            self._make_dm_llm_call(round_num=1),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].original_base_damage == 15
+        assert cases[0].original_damage_type == "wound"
+        assert "Pinned" in cases[0].original_conditions
+
+    def test_no_player_intent_when_no_player_event(self, tmp_path, mock_dm_prompts):
+        """player_intent is None when no player llm_call exists for the round."""
+        events = [
+            self._make_dm_llm_call(round_num=1),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].player_intent is None
+
+    def test_multi_round_correlation(self, tmp_path, mock_dm_prompts):
+        """Each round's DM call gets the correct player intent, not cross-round."""
+        events = [
+            self._make_player_llm_call(round_num=1, intent="Covering fire round 1"),
+            self._make_dm_llm_call(round_num=1),
+            self._make_player_llm_call(round_num=2, intent="Aimed shot round 2"),
+            self._make_dm_llm_call(round_num=2, player_action="take an aimed shot at the leader"),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 2
+        assert cases[0].player_intent == "Covering fire round 1"
+        assert cases[1].player_intent == "Aimed shot round 2"
+
+
+# ---------------------------------------------------------------------------
+# Multi-dimensional filtering tests
+# ---------------------------------------------------------------------------
+
+class TestMultiDimensionalFiltering:
+    """Tests for intent_keywords, weapon_damage_type, and combined filters."""
+
+    def _make_session_with_cases(self, tmp_path, case_specs):
+        """Create a JSONL file with DM llm_call + structured combat events.
+
+        case_specs: list of dicts with keys: weapon, damage_type, player_action, round, intent
+        """
+        session_dir = tmp_path / "sessions" / "treatment_v2"
+        session_dir.mkdir(parents=True)
+        jsonl_path = session_dir / "session_filter.jsonl"
+
+        with open(jsonl_path, "w") as f:
+            for i, spec in enumerate(case_specs):
+                round_num = spec.get("round", i + 1)
+                weapon = spec.get("weapon", "Assault Rifle")
+                damage_type = spec.get("damage_type", "WOUND")
+                player_action = spec.get("player_action", "fire at the enemy")
+                target_id = spec.get("target_id", f"tgt_{i:04x}")
+
+                # Player event (if intent provided)
+                if spec.get("intent"):
+                    player_event = {
+                        "event_type": "llm_call",
+                        "agent_type": "player",
+                        "agent_id": "player_01",
+                        "round": round_num,
+                        "model": "gpt-5-mini",
+                        "prompt": [
+                            {"role": "system", "content": "Player system"},
+                            {"role": "user", "content": "Choose action."},
+                        ],
+                        "response": json.dumps({
+                            "intent": spec["intent"],
+                            "action_type": "combat",
+                        }),
+                    }
+                    f.write(json.dumps(player_event) + "\n")
+
+                # DM llm_call event
+                user_prompt = (
+                    f"Player Action: {player_action}\n"
+                    f"Action Type: combat\n"
+                )
+                dm_event = {
+                    "event_type": "llm_call",
+                    "agent_type": "dm",
+                    "round": round_num,
+                    "model": "gpt-5-mini",
+                    "prompt": [
+                        {"role": "system", "content": "DM system prompt"},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "response": json.dumps({
+                        "narration": "Action occurs. " * 10,
+                        "margin": 10,
+                        "effects": {
+                            "damage": [{"base_damage": 12, "damage_type": damage_type.lower()}],
+                            "conditions": [],
+                        },
+                    }),
+                }
+                f.write(json.dumps(dm_event) + "\n")
+
+                # Structured combat_action event (source of weapon + damage_type)
+                combat_event = {
+                    "event_type": "combat_action",
+                    "round": round_num,
+                    "attacker": {"id": "player_01", "name": "Enforcer Kael Dren"},
+                    "weapon": weapon,
+                    "attack": {"hit": True, "margin": 10},
+                    "damage": {"base_damage": 12, "damage_type": damage_type.lower(), "dealt": 8},
+                }
+                f.write(json.dumps(combat_event) + "\n")
+
+                # Structured action_resolution event (source of target)
+                resolution_event = {
+                    "event_type": "action_resolution",
+                    "round": round_num,
+                    "phase": "adjudicate",
+                    "context": {
+                        "action_type": "combat",
+                        "target": target_id,
+                        "damage_effects": [{"damage_type": damage_type.lower(), "base_damage": 12}],
+                    },
+                    "effects": {"damage": {"dealt": 8}, "status_effects": []},
+                }
+                f.write(json.dumps(resolution_event) + "\n")
+
+        return jsonl_path
+
+    def test_intent_keywords_or_matching(self, tmp_path):
+        """Any keyword match in player_action_text passes filter."""
+        jsonl_path = self._make_session_with_cases(tmp_path, [
+            {"player_action": "fire suppressive shots at guards", "round": 1},
+            {"player_action": "lay down covering fire", "round": 2},
+            {"player_action": "aimed shot at the leader", "round": 3},
+            {"player_action": "pin them down with warning shots", "round": 4},
+        ])
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases(
+            intent_keywords=["suppress", "covering fire", "pin them"],
+        )
+        # Should match: "suppressive" (contains "suppress"), "covering fire", "pin them down"
+        # Should NOT match: "aimed shot at the leader"
+        assert len(cases) == 3
+        actions = [c.player_action_text for c in cases]
+        assert any("suppress" in a.lower() for a in actions)
+        assert any("covering fire" in a.lower() for a in actions)
+        assert any("pin them" in a.lower() for a in actions)
+
+    def test_intent_keywords_matches_player_intent(self, tmp_path):
+        """Keywords checked against correlated player_intent too."""
+        jsonl_path = self._make_session_with_cases(tmp_path, [
+            # player_action doesn't match, but player_intent does
+            {"player_action": "fire at the enemy",
+             "intent": "Lay down covering fire to keep their heads down",
+             "round": 1},
+            # Neither matches
+            {"player_action": "charge the enemy",
+             "intent": "Close to melee range",
+             "round": 2},
+        ])
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases(
+            intent_keywords=["covering fire"],
+        )
+        assert len(cases) == 1
+        assert cases[0].player_intent == "Lay down covering fire to keep their heads down"
+
+    def test_weapon_damage_type_filter(self, tmp_path):
+        """Cases filtered by weapon damage type."""
+        jsonl_path = self._make_session_with_cases(tmp_path, [
+            {"weapon": "Assault Rifle", "damage_type": "WOUND", "round": 1},
+            {"weapon": "Shock Baton", "damage_type": "STUN", "round": 2},
+            {"weapon": "Pistol", "damage_type": "WOUND", "round": 3},
+        ])
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases(weapon_damage_type="wound")
+        assert len(cases) == 2
+        assert all(c.weapon_damage_type == "wound" for c in cases)
+
+        cases = extractor.extract_cases(weapon_damage_type="stun")
+        assert len(cases) == 1
+        assert cases[0].weapon_name == "Shock Baton"
+
+    def test_combined_filters_and_logic(self, tmp_path):
+        """intent_keywords AND weapon_damage_type both applied."""
+        jsonl_path = self._make_session_with_cases(tmp_path, [
+            # Matches both: suppress + wound
+            {"player_action": "fire suppressive shots", "weapon": "Assault Rifle",
+             "damage_type": "WOUND", "round": 1},
+            # Matches keyword but wrong damage type
+            {"player_action": "fire suppressive stun rounds", "weapon": "Shock Baton",
+             "damage_type": "STUN", "round": 2},
+            # Matches damage type but wrong keyword
+            {"player_action": "aimed shot at the leader", "weapon": "Pistol",
+             "damage_type": "WOUND", "round": 3},
+        ])
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases(
+            intent_keywords=["suppress"],
+            weapon_damage_type="wound",
+        )
+        # Only case 1 matches both
+        assert len(cases) == 1
+        assert "suppress" in cases[0].player_action_text.lower()
+        assert cases[0].weapon_damage_type == "wound"
+
+    def test_backward_compat_intent_filter(self, tmp_path):
+        """Old intent_filter still works as single keyword."""
+        jsonl_path = self._make_session_with_cases(tmp_path, [
+            {"player_action": "fire suppressive shots at guards", "round": 1},
+            {"player_action": "aimed shot at the leader", "round": 2},
+        ])
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        # Old-style single keyword filter
+        cases = extractor.extract_cases(intent_filter="suppress")
+        assert len(cases) == 1
+        assert "suppress" in cases[0].player_action_text.lower()
+
+    def test_goal_file_intent_keywords(self, tmp_dir):
+        """Goal file intent_keywords list parsed and passed to extract_cases."""
+        goal_file = tmp_dir / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test",
+                "max_iterations": 1,
+                "eval_subset": {
+                    "action_type": "combat",
+                    "intent_keywords": ["suppress", "covering fire", "pin down", "warning shot"],
+                    "weapon_damage_type": "wound",
+                    "max_cases": 12,
+                },
+                "targets": {"suppression_table": {"in_range_pct": 80}},
+            }, f)
+
+        judge = SelfJudge(str(goal_file), max_iterations=1)
+        judge.call_judge = lambda prompt: "rewritten " * 50
+
+        mock_engine = MagicMock()
+        mock_engine.replay_batch.return_value = _make_scored_results(4, 4, n_total=5)
+
+        mock_swapper = MagicMock()
+        mock_swapper.load_replacement.return_value = ("test_mod", "initial content")
+        mock_swapper.swap_module.side_effect = lambda p, n, c: f"swapped:{c}"
+
+        mock_extractor = MagicMock()
+        mock_extractor.extract_cases.return_value = [
+            _make_eval_case(case_id=f"c{i}") for i in range(5)
+        ]
+
+        judge.run(
+            initial_module_path="dummy.yaml",
+            module_swapper=mock_swapper,
+            session_extractor=mock_extractor,
+            replay_engine=mock_engine,
+            scorers=[SuppressionTableScorer()],
+            model_specs=[("openai", "gpt-5-mini")],
+            output_dir=str(tmp_dir / "output"),
+        )
+
+        # Check that extract_cases was called with intent_keywords and weapon_damage_type
+        call_kwargs = mock_extractor.extract_cases.call_args_list[0][1]
+        assert call_kwargs.get("intent_keywords") == ["suppress", "covering fire", "pin down", "warning shot"]
+        assert call_kwargs.get("weapon_damage_type") == "wound"
+
+    def test_intent_keywords_cli_flag(self):
+        """--intent-keywords CLI flag parsed correctly."""
+        args = parse_args([
+            "--swap-module", "m.yaml",
+            "--intent-keywords", "suppress", "covering fire", "pin down",
+            "--weapon-damage-type", "wound",
+        ])
+        assert args.intent_keywords == ["suppress", "covering fire", "pin down"]
+        assert args.weapon_damage_type == "wound"
+
+    def test_intent_filter_and_keywords_coexist(self):
+        """--intent-filter and --intent-keywords can't both be specified (keywords wins)."""
+        # intent-filter still parses fine standalone
+        args = parse_args(["--swap-module", "m.yaml", "--intent-filter", "suppress"])
+        assert args.intent_filter == "suppress"
+        assert args.intent_keywords is None
+
+
+# ---------------------------------------------------------------------------
+# Exclude keywords tests
+# ---------------------------------------------------------------------------
+
+class TestExcludeKeywords:
+    """Tests for the exclude_keywords filter in case extraction."""
+
+    def _make_session_file(self, tmp_path, events):
+        """Create a JSONL session file from a list of events."""
+        session_dir = tmp_path / "sessions" / "treatment_v2" / "run_001"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        jsonl_path = session_dir / "session_test.jsonl"
+        with open(jsonl_path, "w") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+        return jsonl_path
+
+    def _make_dm_llm_event(self, round_num, player_action, margin=10, player_intent=None):
+        """Create a DM llm_call event with given player action text."""
+        response = json.dumps({
+            "narration": "The action resolves. " * 10,
+            "success_tier": "GOOD",
+            "margin": margin,
+            "effects": {
+                "damage": [{"base_damage": 10, "dealt": 5, "damage_type": "wound"}],
+                "conditions": [],
+                "soulcredit_changes": [],
+                "void_changes": [],
+                "clock_updates": [],
+            },
+        })
+        return {
+            "event_type": "llm_call",
+            "agent_type": "dm",
+            "round": round_num,
+            "model": "gpt-5-mini",
+            "prompt": [
+                {"role": "system", "content": "# CORE DM RULES\n\nYou are the Dungeon Master."},
+                {"role": "user", "content": f"Resolve the following action:\nAction type: combat\nPlayer action: {player_action}\nMargin: {margin}"},
+            ],
+            "response": response,
+        }
+
+    def _make_player_llm_event(self, round_num, intent):
+        """Create a player llm_call event with given intent."""
+        return {
+            "event_type": "llm_call",
+            "agent_type": "player",
+            "round": round_num,
+            "response": json.dumps({"intent": intent, "action": "test action"}),
+        }
+
+    def test_exclude_keywords_filters_cases(self, tmp_path):
+        """Cases with suppression keywords in player_action_text are excluded."""
+        events = [
+            self._make_dm_llm_event(1, "fire suppressive shots at the guards"),
+            self._make_dm_llm_event(2, "shoot the guard in the chest"),
+            self._make_dm_llm_event(3, "lay down covering fire to pin them"),
+        ]
+        jsonl_path = self._make_session_file(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent.parent])
+        cases = extractor.extract_cases(
+            action_type_filter="combat",
+            exclude_keywords=["suppress", "covering fire"],
+        )
+        # Only the lethal shot (round 2) should remain
+        assert len(cases) == 1
+        assert "shoot the guard" in cases[0].player_action_text
+
+    def test_exclude_keywords_and_intent_keywords_combined(self, tmp_path):
+        """exclude_keywords and intent_keywords work together (AND logic)."""
+        events = [
+            # Suppressive fire (wound weapon) — matches intent_keywords but excluded
+            self._make_dm_llm_event(1, "fire suppressive shots at the guards"),
+            # Lethal wound combat — no match on intent_keywords (no suppress keyword)
+            self._make_dm_llm_event(2, "shoot the guard in the chest"),
+            # Another suppressive case — matches intent_keywords AND exclude_keywords
+            self._make_dm_llm_event(3, "warning shots to pin down the enemy"),
+        ]
+        jsonl_path = self._make_session_file(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent.parent])
+
+        # Intent keywords select "suppress" cases; exclude_keywords removes them
+        # Combined: intent_keywords OR → then exclude_keywords removes matches
+        # This test verifies the scenario from the plan: selecting wound combat
+        # but excluding suppressive fire
+        cases = extractor.extract_cases(
+            action_type_filter="combat",
+            exclude_keywords=["suppress", "covering fire", "pin down", "warning shot"],
+        )
+        # Only case 2 should remain (no suppression keywords)
+        assert len(cases) == 1
+        assert "shoot the guard" in cases[0].player_action_text
+
+    def test_exclude_keywords_checks_player_intent(self, tmp_path):
+        """exclude_keywords also checks player_intent from player llm_call."""
+        events = [
+            self._make_player_llm_event(1, "I want to suppress the enemy with covering fire"),
+            self._make_dm_llm_event(1, "fire at the guards"),  # No keyword in action text
+            self._make_dm_llm_event(2, "shoot the guard"),
+        ]
+        jsonl_path = self._make_session_file(tmp_path, events)
+
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent.parent])
+        cases = extractor.extract_cases(
+            action_type_filter="combat",
+            exclude_keywords=["suppress", "covering fire"],
+        )
+        # Round 1 should be excluded because player_intent contains "suppress"
+        # Round 2 should remain
+        assert len(cases) == 1
+        assert cases[0].round_num == 2
+
+    def test_exclude_keywords_goal_file(self, tmp_path):
+        """Goal file exclude_keywords list is parsed and used by SelfJudge."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test exclude keywords",
+                "max_iterations": 1,
+                "eval_subset": {
+                    "action_type": "combat",
+                    "weapon_damage_type": "wound",
+                    "exclude_keywords": ["suppress", "covering fire", "pin down"],
+                    "max_cases": 20,
+                },
+                "targets": {"damage_comparison": {"max_avg_base_damage": 30}},
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+        # Verify the exclude_keywords were parsed from the goal
+        eval_subset = judge.goal.get("eval_subset", {})
+        assert eval_subset.get("exclude_keywords") == ["suppress", "covering fire", "pin down"]
+
+    def test_exclude_keywords_cli_flag(self):
+        """--exclude-keywords CLI flag is parsed correctly."""
+        args = parse_args([
+            "--swap-module", "m.yaml",
+            "--exclude-keywords", "suppress", "covering fire", "pin down",
+        ])
+        assert args.exclude_keywords == ["suppress", "covering fire", "pin down"]
+
+
+# ---------------------------------------------------------------------------
+# DamageRangeScorer tests (renamed from SuppressionTableScorer)
+# ---------------------------------------------------------------------------
+
+class TestDamageRangeScorer:
+    """Tests for DamageRangeScorer with configurable ranges."""
+
+    def test_damage_range_scorer_custom_ranges(self):
+        """Scorer uses custom ranges from goal file config."""
+        custom_ranges = [
+            {"margin": [0, 5], "expected": [0, 6]},
+            {"margin": [6, 10], "expected": [2, 12]},
+            {"margin": [11, 15], "expected": [4, 18]},
+            {"margin": [16, 20], "expected": [8, 24]},
+            {"margin": [21, 99], "expected": [10, 30]},
+        ]
+        scorer = DamageRangeScorer(ranges=custom_ranges)
+
+        # Margin 12, base_damage 10 → should be in [4, 18] range
+        replay = {"total_base_damage": 10, "margin": 12, "condition_count": 0, "conditions": []}
+        result = scorer.score({}, replay, _make_eval_case(margin=12))
+        assert result["in_range"] is True
+        assert result["expected_range"] == [4, 18]
+
+        # Margin 12, base_damage 20 → out of [4, 18] range
+        replay2 = {"total_base_damage": 20, "margin": 12, "condition_count": 0, "conditions": []}
+        result2 = scorer.score({}, replay2, _make_eval_case(margin=12))
+        assert result2["in_range"] is False
+
+    def test_damage_range_scorer_default_ranges(self):
+        """Scorer falls back to hardcoded suppress ranges when no custom ranges given."""
+        scorer = DamageRangeScorer()  # No custom ranges
+
+        # Margin 3, base_damage 0 → should be in [0, 0] range (suppression default)
+        replay = {"total_base_damage": 0, "margin": 3, "condition_count": 1, "conditions": [{"name": "Suppressed"}]}
+        result = scorer.score({}, replay, _make_eval_case(margin=3))
+        assert result["in_range"] is True
+
+        # Margin 3, base_damage 5 → out of [0, 0] range
+        replay2 = {"total_base_damage": 5, "margin": 3, "condition_count": 0, "conditions": []}
+        result2 = scorer.score({}, replay2, _make_eval_case(margin=3))
+        assert result2["in_range"] is False
+
+    def test_suppression_table_alias(self):
+        """'suppression_table' registry name still works and maps to DamageRangeScorer."""
+        assert "suppression_table" in SCORER_REGISTRY
+        scorer_cls = SCORER_REGISTRY["suppression_table"]
+        assert scorer_cls is DamageRangeScorer
+        # Also verify 'damage_range' is registered
+        assert "damage_range" in SCORER_REGISTRY
+        assert SCORER_REGISTRY["damage_range"] is DamageRangeScorer
+
+    def test_suppression_table_scorer_is_alias(self):
+        """SuppressionTableScorer name still works as an alias."""
+        assert SuppressionTableScorer is DamageRangeScorer
+
+    def test_custom_ranges_name_override(self):
+        """Scorer name can be overridden for score dict key matching."""
+        scorer = DamageRangeScorer(
+            ranges=[{"margin": [0, 99], "expected": [0, 30]}],
+            name="damage_range",
+        )
+        assert scorer.name == "damage_range"
+
+    def test_default_name_is_suppression_table(self):
+        """Default DamageRangeScorer() uses 'suppression_table' name for backward compat."""
+        scorer = DamageRangeScorer()
+        assert scorer.name == "suppression_table"
+
+
+# ---------------------------------------------------------------------------
+# Regression scoring tests
+# ---------------------------------------------------------------------------
+
+class TestRegressions:
+    """Tests for regression checks in SelfJudge."""
+
+    def test_regressions_parsed_from_goal(self, tmp_path):
+        """regressions section is loaded from goal file."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test regressions",
+                "max_iterations": 1,
+                "eval_subset": {
+                    "action_type": "combat",
+                    "intent_keywords": ["suppress"],
+                    "max_cases": 12,
+                },
+                "targets": {
+                    "suppression_table": {"in_range_pct": 80},
+                },
+                "regressions": {
+                    "lethal_combat": {
+                        "description": "Lethal wound damage should scale with roll margin",
+                        "eval_subset": {
+                            "action_type": "combat",
+                            "weapon_damage_type": "wound",
+                            "exclude_keywords": ["suppress", "covering fire"],
+                            "max_cases": 20,
+                        },
+                        "scorers": {
+                            "damage_range": {
+                                "ranges": [
+                                    {"margin": [0, 5], "expected": [0, 6]},
+                                    {"margin": [6, 10], "expected": [2, 12]},
+                                ],
+                            },
+                        },
+                        "targets": {
+                            "damage_range": {"in_range_pct": 70},
+                            "damage_comparison": {"max_avg_base_damage": 30},
+                        },
+                    },
+                    "stun_combat": {
+                        "description": "Stun combat regression",
+                        "eval_subset": {
+                            "action_type": "combat",
+                            "weapon_damage_type": "stun",
+                            "max_cases": 15,
+                        },
+                        "targets": {
+                            "damage_range": {"in_range_pct": 65},
+                        },
+                    },
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+        regressions = judge.goal.get("regressions", {})
+        assert "lethal_combat" in regressions
+        assert "stun_combat" in regressions
+        assert regressions["lethal_combat"]["eval_subset"]["exclude_keywords"] == ["suppress", "covering fire"]
+        assert regressions["lethal_combat"]["scorers"]["damage_range"]["ranges"][0] == {"margin": [0, 5], "expected": [0, 6]}
+
+    def test_regression_results_in_judge_prompt(self, tmp_path):
+        """Judge prompt includes regression pass/fail results."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test regression in prompt",
+                "targets": {
+                    "suppression_table": {"in_range_pct": 80},
+                },
+                "regressions": {
+                    "lethal_combat": {
+                        "description": "Lethal wound damage check",
+                        "eval_subset": {"action_type": "combat"},
+                        "targets": {
+                            "damage_range": {"in_range_pct": 70},
+                            "damage_comparison": {"max_avg_base_damage": 30},
+                        },
+                    },
+                    "stun_combat": {
+                        "description": "Stun combat check",
+                        "eval_subset": {"action_type": "combat"},
+                        "targets": {
+                            "damage_range": {"in_range_pct": 65},
+                        },
+                    },
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+
+        # Simulate regression results: lethal passes, stun fails
+        regression_results = {
+            "lethal_combat": {
+                "description": "Lethal wound damage check",
+                "all_met": True,
+                "details": {
+                    "damage_range.in_range_pct": {"target": 70, "actual": 82.0, "met": True},
+                    "damage_comparison.max_avg_base_damage": {"target": 30, "actual": 14.0, "met": True},
+                },
+            },
+            "stun_combat": {
+                "description": "Stun combat check",
+                "all_met": False,
+                "details": {
+                    "damage_range.in_range_pct": {"target": 65, "actual": 45.0, "met": False},
+                },
+            },
+        }
+
+        prompt = judge.build_judge_prompt(
+            current_module_content="# TEST MODULE",
+            score_dict={"suppression_table": {"gpt-5-mini": {"in_range_pct": 75}}},
+            target_details={
+                "suppression_table.in_range_pct": {"target": 80, "actual": 75.0, "met": False},
+            },
+            failed_examples=[],
+            regression_results=regression_results,
+        )
+
+        # Check regression section appears in prompt
+        assert "Regression Check Results" in prompt
+        assert "lethal_combat" in prompt
+        assert "PASS" in prompt
+        assert "stun_combat" in prompt
+        assert "45.0" in prompt  # Failed stun value
+        assert "65" in prompt    # Stun target
+
+    def test_regression_eval_runs_per_iteration(self, tmp_path):
+        """SelfJudge.run() executes regression evals after each primary iteration."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test regression runs",
+                "max_iterations": 1,
+                "eval_subset": {
+                    "action_type": "combat",
+                    "intent_keywords": ["suppress"],
+                    "max_cases": 5,
+                },
+                "targets": {
+                    "suppression_table": {"in_range_pct": 80},
+                },
+                "regressions": {
+                    "lethal_combat": {
+                        "description": "Lethal regression",
+                        "eval_subset": {
+                            "action_type": "combat",
+                            "exclude_keywords": ["suppress"],
+                            "max_cases": 5,
+                        },
+                        "targets": {
+                            "damage_comparison": {"max_avg_base_damage": 30},
+                        },
+                    },
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file), max_iterations=1)
+        judge.call_judge = lambda prompt: "rewritten content " * 20
+
+        mock_engine = MagicMock()
+        mock_engine.replay_batch.return_value = _make_scored_results(8, 8, n_total=5)
+
+        mock_swapper = MagicMock()
+        mock_swapper.load_replacement.return_value = ("test_mod", "initial content")
+        mock_swapper.swap_module.side_effect = lambda p, n, c: f"swapped:{c}"
+
+        # Mock extractor: return different cases for primary vs regression
+        primary_cases = [_make_eval_case(case_id=f"primary_{i}") for i in range(5)]
+        regression_cases = [_make_eval_case(case_id=f"regression_{i}") for i in range(5)]
+
+        call_count = [0]
+        def mock_extract_cases(**kwargs):
+            call_count[0] += 1
+            if kwargs.get("exclude_keywords"):
+                return regression_cases
+            return primary_cases
+
+        mock_extractor = MagicMock()
+        mock_extractor.extract_cases.side_effect = mock_extract_cases
+
+        judge.run(
+            initial_module_path="dummy.yaml",
+            module_swapper=mock_swapper,
+            session_extractor=mock_extractor,
+            replay_engine=mock_engine,
+            scorers=[SuppressionTableScorer()],
+            model_specs=[("openai", "gpt-5-mini")],
+            output_dir=str(tmp_path / "output"),
+        )
+
+        # extract_cases should be called at least twice:
+        # once for primary eval, once for regression
+        assert mock_extractor.extract_cases.call_count >= 2
+        # Check that one of the calls used exclude_keywords
+        all_call_kwargs = [call[1] for call in mock_extractor.extract_cases.call_args_list]
+        exclude_calls = [kw for kw in all_call_kwargs if kw.get("exclude_keywords")]
+        assert len(exclude_calls) >= 1
+        assert "suppress" in exclude_calls[0]["exclude_keywords"]

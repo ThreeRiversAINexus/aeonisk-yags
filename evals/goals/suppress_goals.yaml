@@ -1,0 +1,109 @@
+# Suppressive Fire Prompt Optimization Goals
+#
+# Target: DM resolution module correctly differentiates suppressive fire
+# from lethal fire — low/zero base_damage, conditions like Pinned/Suppressed.
+#
+# Usage:
+#   python scripts/prompt_eval_harness.py \
+#     --swap-module scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml \
+#     --sessions ~/Coding/aeonisk-v1/lethal_intent_mismatch/control \
+#                ~/Coding/aeonisk-v1/lethal_intent_mismatch/treatment_v2 \
+#     --self-judge --goal-file evals/goals/suppress_goals.yaml \
+#     --judge-model anthropic:claude-sonnet-4-5 \
+#     --models openai:gpt-5-mini \
+#     --scorers suppression_table damage_comparison \
+#     --output-dir evals/results --proxy http://localhost:8000 --direct
+
+description: |
+  Suppressive fire should produce low/zero base_damage and apply tactical
+  conditions (Pinned, Suppressed, Pinned Down) instead of wound damage.
+  The prompt must teach the DM to classify player intent (suppress vs lethal)
+  and apply the correct damage table. Lethal and stun combat should remain
+  unaffected.
+
+max_iterations: 5
+
+# ── Primary optimization target ──────────────────────────
+eval_subset:
+  action_type: combat
+  intent_keywords:
+    - suppress
+    - covering fire
+    - pin down
+    - pin them
+    - warning shot
+  weapon_damage_type: wound
+  max_cases: 12
+
+targets:
+  suppression_table:
+    in_range_pct: 80        # >=80% of cases have base_damage within expected margin range
+    has_condition_pct: 60    # >=60% of suppress cases apply a tactical condition
+  damage_comparison:
+    max_avg_base_damage: 5   # worst-model avg base_damage <= 5 for suppressive fire
+
+convergence:
+  min_improvement: 2         # stop if score changes < 2% between iterations
+
+validation:
+  use_all_cases: true        # Phase 2: validate best prompt against ALL matching cases
+
+# ── Regression checks (evaluated, NOT optimized) ────────
+# Ranges calibrated from P10-P90 of baseline session data (20 sessions × 4 models).
+# These reflect what DMs actually produce, not ideal game balance.
+# TODO: When stun damage tables are added to the prompt module, recalibrate
+# stun ranges to match the new lower expected values.
+regressions:
+  lethal_combat:
+    description: Lethal wound damage should scale with roll margin
+    eval_subset:
+      action_type: combat
+      weapon_damage_type: wound
+      exclude_keywords:
+        - suppress
+        - covering fire
+        - pin down
+        - pin them
+        - warning shot
+      max_cases: 20
+    scorers:
+      damage_range:
+        ranges:
+          - margin: [0, 5]
+            expected: [4, 18]
+          - margin: [6, 10]
+            expected: [12, 24]
+          - margin: [11, 15]
+            expected: [16, 25]
+          - margin: [16, 20]
+            expected: [18, 25]
+          - margin: [21, 99]
+            expected: [18, 30]
+    targets:
+      damage_range:
+        in_range_pct: 70
+      damage_comparison:
+        max_avg_base_damage: 30
+
+  stun_combat:
+    description: Stun/shock combat should produce appropriate stun damage
+    eval_subset:
+      action_type: combat
+      weapon_damage_type: stun
+      max_cases: 15
+    scorers:
+      damage_range:
+        ranges:
+          - margin: [0, 5]
+            expected: [3, 15]
+          - margin: [6, 10]
+            expected: [10, 20]
+          - margin: [11, 15]
+            expected: [11, 20]
+          - margin: [16, 20]
+            expected: [12, 28]
+          - margin: [21, 99]
+            expected: [14, 30]
+    targets:
+      damage_range:
+        in_range_pct: 60
