@@ -1,9 +1,9 @@
-# 06: IFF/ROE -- Discovery-Based Faction Identification and Selective Intel
+# 06: IFF/ROE -- Faction-Based Allegiance Reasoning and Selective Intel
 
 **Priority:** P1
-**Status:** Spec Draft
-**Dependencies:** 05_STEALTH (stealth interacts with visibility/discovery)
-**Estimated Scope:** Large (per-agent knowledge tracking, prompt refactoring, combatant list per-agent views)
+**Status:** Spec Draft (v2 -- simplified)
+**Dependencies:** None (stealth interaction deferred)
+**Estimated Scope:** Medium (combatant list refactor, SharedIntel refactor, prompt changes)
 
 ---
 
@@ -11,51 +11,64 @@
 
 The current free targeting system assigns randomized `tgt_xxxx` IDs to hide agent
 allegiance from LLMs, enabling IFF (Identification Friend or Foe) testing. However,
-faction information is displayed directly in the combatant list, defeating the purpose:
+explicit relationship labels are displayed directly in the combatant list, defeating
+the purpose:
 
 - **Players see** `(player)` next to PCs, `(enemy)` next to enemies, and
   `(npc, friendly)` next to NPCs.
-- **Enemies see** PC names, health, weapons, and position -- full intel from the start.
-- **NPCs see** everyone's faction via the system prompt.
+- **Enemies see** PC names with explicit relationship labels, health, weapons, and
+  position -- full intel from the start.
+- **NPCs see** everyone's relationship labels via the system prompt.
 
-There is no discovery mechanic. Agents know who is friend and foe from the first
-round. SharedIntel broadcasts to all enemies globally -- there is no selective
-sharing. This means:
+The relationship labels (`player`, `enemy`, `npc`, `ally`, `friendly`, `hostile`)
+tell LLMs exactly who is friend and foe. This bypasses any IFF reasoning. Agents
+know allegiance from the first round. SharedIntel broadcasts to all enemies globally
+-- there is no selective sharing. This means:
 
-1. **No IFF challenge.** LLMs never need to identify friend from foe because the
-   system tells them outright. The randomized `tgt_xxxx` IDs are cosmetic only.
+1. **No IFF challenge.** LLMs never need to reason about friend vs foe because the
+   system tells them via relationship labels. The randomized `tgt_xxxx` IDs are
+   cosmetic only.
 
-2. **No fog of war.** All agents have perfect battlefield awareness of faction
-   allegiance. An enemy sniper at Extreme range knows exactly which targets are PCs.
+2. **No fog of war.** All agents have perfect battlefield awareness of allegiance.
+   An enemy sniper at Extreme range knows exactly which targets are allies vs enemies.
 
 3. **No intel asymmetry.** Enemy squads who have never encountered the party know
-   all PC names, factions, health, and weapons. Reinforcements arriving mid-combat
-   have perfect knowledge.
+   all PC names, health, and weapons. Reinforcements arriving mid-combat have
+   perfect knowledge.
 
 4. **SharedIntel is global.** When one enemy shares intel, ALL enemies receive it
    immediately. There is no communication cost, range limitation, or selective
    targeting of intel recipients.
 
 5. **ML training data lacks IFF signals.** Training data shows agents always knowing
-   faction, so models learn no IFF reasoning. This is the primary motivation for the
-   feature -- producing training data where models must reason about identification.
+   allegiance, so models learn no IFF reasoning. This is the primary motivation for
+   the feature -- producing training data where models must reason about whether a
+   given faction is friend or foe.
 
 **Design Decisions (confirmed):**
-- Remove automatic ally/enemy labels from combatant lists.
-- PCs know each other's faction by default (they know who their party members are).
-- Enemies and NPCs default to "Unknown" for all targets they have not identified.
-- Identification requires Perception x Awareness check.
-- Intel sharing is selective, not global -- agents specify which allies receive intel.
+- Remove relationship labels (`player`/`enemy`/`npc`/`ally`/`hostile`/`friendly`) from
+  combatant lists. Faction NAMES (e.g., "ACG", "Freeborn", "Tempest") remain visible --
+  faction affiliation is observable (uniforms, insignia, known groups).
+- The IFF challenge: the LLM sees faction names and must reason about whether that
+  faction is friend, foe, or neutral. The system does NOT tell it.
+- All other info (name, health, weapons, position) remains visible. No progressive
+  identity discovery -- the complexity is in allegiance reasoning, not identity
+  discovery.
+- PCs know each other by default (they are a party).
+- Intel sharing is selective -- enemies specify recipients by `tgt_xxxx`. Recipients
+  can be ANY target, including PCs (enabling accidental intel leaks from IFF errors).
+- Player communication uses existing free dialogue (social action), not a structured
+  intel pool.
 
 ---
 
 ## Current Implementation
 
-### Combatant List Builder -- Full Faction Display
+### Combatant List Builder -- Full Relationship Display
 
 **File:** `scripts/aeonisk/multiagent/dm.py` lines 7536-7578
 
-The DM combatant list builder shows faction/type for all agents:
+The DM combatant list builder shows relationship type for all agents:
 
 ```python
 # Player entries (line 7553)
@@ -156,11 +169,11 @@ info = {
 
 Any agent querying combatant info gets the full type classification.
 
-### NPC System Prompt -- Faction Displayed
+### NPC System Prompt -- Relationship Displayed
 
 **File:** `scripts/aeonisk/multiagent/npc_agent.py` lines 571-643
 
-NPC system prompt includes full faction information and stance:
+NPC system prompt includes full relationship information and stance:
 
 ```python
 return f"""You are {self.npc.name}, a {self.npc.entity_type} NPC...
@@ -171,683 +184,282 @@ return f"""You are {self.npc.name}, a {self.npc.entity_type} NPC...
 """
 ```
 
-NPCs know their own faction and have a stance toward all other factions. They do NOT
-need to discover other agents' factions -- but they receive it from the system.
+NPCs know their own faction and have a stance toward all other factions. They also
+receive explicit relationship labels (`entity_type`, `disposition`) that tell them
+who is friend and foe.
 
 ---
 
 ## Design Decisions
 
-1. **Per-agent knowledge tracking.** Each agent maintains a `known_identities` dict
-   mapping target_id to known information (faction, name, threat level, etc.). Only
-   information that has been discovered or shared is available.
+1. **Faction visible, relationship hidden.** All agents can see faction names (e.g.,
+   "ACG", "Freeborn", "Tempest") for all targets. Faction affiliation is observable
+   (uniforms, insignia, known groups). What the system does NOT provide is relationship
+   labels: `player`, `enemy`, `npc`, `ally`, `hostile`, `friendly`. The LLM must
+   reason about whether "Freeborn" is a threat or an ally based on its own faction
+   knowledge and the scenario context.
 
-2. **PCs default to knowing each other.** Party members know each other's faction,
-   name, and general capabilities. This is realistic (they traveled together) and
-   prevents PCs from wasting actions identifying allies.
+2. **Full tactical info visible.** Name, health, weapons, and position are visible
+   to all agents. There is no progressive identity discovery. The IFF challenge is
+   purely about allegiance reasoning ("is this faction friend or foe?"), not about
+   discovering who someone is.
 
-3. **Enemies/NPCs default to "Unknown."** When enemies spawn, they do not know which
-   targets are PCs, NPCs, or enemies (from other factions). They see target IDs and
-   physical descriptions (size, weapons visible, position) but NOT faction labels.
+3. **PCs know each other.** Party members know they are a party. The system can
+   tell PCs which other targets are their party members (this is not an IFF challenge
+   -- they traveled together).
 
-4. **Identification via Perception x Awareness.** An agent can attempt to identify
-   an unknown target as a minor action or part of a Scan. The check uses YAGS
-   formula: Perception x Awareness + d20 vs DC based on distance and conditions.
+4. **Selective intel sharing with tgt_xxxx recipients.** Enemies specify intel
+   recipients by target_id, not by agent_id or relationship. Since the enemy LLM
+   doesn't know which target_ids are allies vs enemies, it must reason from faction
+   names. If it reasons wrong, intel leaks to the wrong side. This is a feature --
+   IFF errors in communication produce valuable ML training signal.
 
-5. **Selective intel sharing.** When an enemy shares intel via `shared_intel`, they
-   specify which allies receive it. Intel propagates only to specified recipients, not
-   the entire pool. This models communication limitations (radio range, line of sight,
-   coordination).
+5. **Asymmetric communication model.** Enemies use structured `shared_intel` field
+   with explicit `intel_recipients` (list of target_ids). Players communicate via
+   existing free dialogue (social action). Player dialogue appears in round narration
+   that all PCs see. No structured intel pool needed for PCs.
 
-6. **DM always has full knowledge.** The DM sees all agents' true factions, names,
-   and types. The DM builds agent-specific combatant lists that reflect each agent's
-   knowledge state.
+6. **Leaked intel appears as intercepted communication.** When an enemy accidentally
+   shares intel with a PC (wrong faction reasoning), the PC sees it in their prompt
+   as an intercepted/overheard communication. The PC's LLM then reasons about what
+   to do with it.
 
-7. **Progressive discovery model.** As combat progresses, agents build up knowledge:
-   - Round 1: "Unknown humanoid at Near-Enemy with rifle"
-   - Round 2 (after Scan): "Armed, appears to be ACG faction based on uniform"
-   - Round 3 (after engagement): "Confirmed ACG Enforcer, Perception 4, Guns 3"
+7. **DM always has full knowledge.** The DM sees all agents' true factions, names,
+   types, and relationships. The DM's combatant list retains full information
+   including relationship labels. Only agent-facing lists are stripped.
 
-8. **Faction identification difficulty.** Base DC for identification depends on
-   distance and visibility:
-   - Engaged/Melee: DC 10 (can see insignia, hear speech)
-   - Near: DC 15 (can see general appearance, weapons)
-   - Far: DC 20 (silhouette only, need optics)
-   - Extreme: DC 25 (barely visible, need high-powered optics)
+8. **Session config opt-in.** IFF is enabled per-session via `"iff_enabled": true`.
+   Default false for backward compatibility. When disabled, current behavior is
+   preserved (relationship labels shown, SharedIntel broadcasts globally).
 
 ---
 
 ## Proposed Solution
 
-### Phase 1: Per-Agent Knowledge Model
-
-#### 1.1 KnownIdentity Data Structure
-
-**File:** `scripts/aeonisk/multiagent/identity_tracking.py` (new file)
-
-```python
-"""
-Identity Tracking System for IFF/ROE Mechanics.
-
-Manages per-agent knowledge of other agents' identities, factions, and
-capabilities. Supports progressive discovery and selective intel sharing.
-"""
-
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Any
-from enum import Enum
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-class IdentificationLevel(Enum):
-    """How much an observer knows about a target."""
-    UNKNOWN = "unknown"        # Only target_id and position visible
-    SILHOUETTE = "silhouette"  # Size, weapon type (ranged/melee), stance
-    PARTIAL = "partial"        # Faction insignia visible, general appearance
-    IDENTIFIED = "identified"  # Full name, faction, threat assessment
-    DETAILED = "detailed"      # Name, faction, health estimate, capabilities
-
-
-@dataclass
-class KnownIdentity:
-    """What one agent knows about another agent."""
-    target_id: str                              # tgt_xxxx
-    identification_level: IdentificationLevel = IdentificationLevel.UNKNOWN
-    known_faction: Optional[str] = None         # "ACG", "Tempest", "Unknown"
-    known_name: Optional[str] = None            # "ACG Enforcer Alpha"
-    known_type: Optional[str] = None            # "humanoid", "drone", "vehicle"
-    estimated_threat: Optional[str] = None      # "armed", "unarmed", "heavy"
-    visible_weapons: List[str] = field(default_factory=list)  # ["rifle", "sidearm"]
-    last_known_position: Optional[str] = None   # "Near-Enemy"
-    identified_round: Optional[int] = None      # When identification occurred
-    source: Optional[str] = None                # "visual", "intel", "engagement"
-
-    def get_display_string(self) -> str:
-        """Get display string based on identification level."""
-        if self.identification_level == IdentificationLevel.UNKNOWN:
-            return f"[{self.target_id}] Unknown contact"
-        elif self.identification_level == IdentificationLevel.SILHOUETTE:
-            weapons = ", ".join(self.visible_weapons) if self.visible_weapons else "unknown armament"
-            return f"[{self.target_id}] Humanoid ({weapons})"
-        elif self.identification_level == IdentificationLevel.PARTIAL:
-            faction_str = self.known_faction or "Unknown faction"
-            return f"[{self.target_id}] {faction_str} operative"
-        elif self.identification_level == IdentificationLevel.IDENTIFIED:
-            name = self.known_name or "Unknown"
-            faction = self.known_faction or "Unknown"
-            return f"[{self.target_id}] {name} ({faction})"
-        else:  # DETAILED
-            name = self.known_name or "Unknown"
-            faction = self.known_faction or "Unknown"
-            threat = self.estimated_threat or "unknown threat"
-            return f"[{self.target_id}] {name} ({faction}, {threat})"
-
-
-@dataclass
-class AgentKnowledge:
-    """
-    Complete knowledge state for one agent.
-
-    Tracks what this agent knows about all other agents on the battlefield.
-    """
-    agent_id: str
-    agent_type: str  # "player", "enemy", "npc"
-    agent_faction: str  # This agent's own faction
-
-    # Known identities: target_id -> KnownIdentity
-    known_identities: Dict[str, KnownIdentity] = field(default_factory=dict)
-
-    # Allied agents (always fully identified)
-    allied_agent_ids: Set[str] = field(default_factory=set)
-
-    def get_identity(self, target_id: str) -> KnownIdentity:
-        """Get known identity for a target. Returns UNKNOWN if not known."""
-        if target_id in self.known_identities:
-            return self.known_identities[target_id]
-        return KnownIdentity(target_id=target_id)
-
-    def update_identity(
-        self,
-        target_id: str,
-        level: IdentificationLevel,
-        faction: Optional[str] = None,
-        name: Optional[str] = None,
-        weapons: Optional[List[str]] = None,
-        threat: Optional[str] = None,
-        source: str = "visual",
-        round_num: Optional[int] = None
-    ):
-        """Update knowledge about a target (only upgrades, never downgrades)."""
-        current = self.get_identity(target_id)
-
-        # Only upgrade identification level, never downgrade
-        level_order = [
-            IdentificationLevel.UNKNOWN,
-            IdentificationLevel.SILHOUETTE,
-            IdentificationLevel.PARTIAL,
-            IdentificationLevel.IDENTIFIED,
-            IdentificationLevel.DETAILED,
-        ]
-        current_idx = level_order.index(current.identification_level)
-        new_idx = level_order.index(level)
-
-        if new_idx <= current_idx:
-            return  # No upgrade
-
-        updated = KnownIdentity(
-            target_id=target_id,
-            identification_level=level,
-            known_faction=faction or current.known_faction,
-            known_name=name or current.known_name,
-            known_type=current.known_type,
-            estimated_threat=threat or current.estimated_threat,
-            visible_weapons=weapons if weapons else current.visible_weapons,
-            last_known_position=current.last_known_position,
-            identified_round=round_num,
-            source=source,
-        )
-        self.known_identities[target_id] = updated
-
-        logger.info(
-            f"Agent {self.agent_id} identified {target_id} at level "
-            f"{level.value}: {updated.get_display_string()}"
-        )
-
-    def identify_ally(self, target_id: str, name: str, faction: str,
-                      round_num: int = 0):
-        """Mark a target as a known ally (full identification)."""
-        self.allied_agent_ids.add(target_id)
-        self.update_identity(
-            target_id=target_id,
-            level=IdentificationLevel.DETAILED,
-            faction=faction,
-            name=name,
-            source="allied",
-            round_num=round_num
-        )
-
-    def receive_intel(
-        self,
-        target_id: str,
-        level: IdentificationLevel,
-        faction: Optional[str] = None,
-        name: Optional[str] = None,
-        source_agent: str = "unknown",
-        round_num: Optional[int] = None
-    ):
-        """Receive intel about a target from another agent."""
-        self.update_identity(
-            target_id=target_id,
-            level=level,
-            faction=faction,
-            name=name,
-            source=f"intel from {source_agent}",
-            round_num=round_num
-        )
-
-
-class IdentityTracker:
-    """
-    Central identity tracking system.
-
-    Manages AgentKnowledge for all agents on the battlefield.
-    Handles initialization, identification checks, and intel propagation.
-    """
-
-    def __init__(self):
-        self.agent_knowledge: Dict[str, AgentKnowledge] = {}
-        self.enabled: bool = False
-
-    def enable(self):
-        """Enable IFF tracking."""
-        self.enabled = True
-        logger.info("IFF/ROE identity tracking ENABLED")
-
-    def disable(self):
-        """Disable IFF tracking (everyone sees everything)."""
-        self.enabled = False
-        logger.info("IFF/ROE identity tracking DISABLED")
-
-    def initialize_agent(
-        self,
-        agent_id: str,
-        agent_type: str,
-        agent_faction: str,
-        allied_agent_ids: Optional[Set[str]] = None
-    ) -> AgentKnowledge:
-        """
-        Initialize knowledge tracking for an agent.
-
-        Args:
-            agent_id: The agent's ID
-            agent_type: "player", "enemy", "npc"
-            agent_faction: The agent's faction
-            allied_agent_ids: Set of agent IDs this agent knows as allies
-
-        Returns:
-            AgentKnowledge instance
-        """
-        knowledge = AgentKnowledge(
-            agent_id=agent_id,
-            agent_type=agent_type,
-            agent_faction=agent_faction,
-            allied_agent_ids=allied_agent_ids or set()
-        )
-        self.agent_knowledge[agent_id] = knowledge
-        return knowledge
-
-    def get_knowledge(self, agent_id: str) -> Optional[AgentKnowledge]:
-        """Get an agent's knowledge state."""
-        return self.agent_knowledge.get(agent_id)
-
-    def initialize_combat(
-        self,
-        player_agents: list,
-        enemy_agents: list,
-        npc_agents: list,
-        target_id_mapper
-    ):
-        """
-        Initialize identity knowledge for all agents at combat start.
-
-        PCs know each other (full identification).
-        Enemies know their faction allies (full identification).
-        All other targets start as UNKNOWN or SILHOUETTE (based on range).
-
-        Args:
-            player_agents: List of PC agents
-            enemy_agents: List of enemy agents
-            npc_agents: List of NPC agents
-            target_id_mapper: TargetIDMapper for tgt_xxxx resolution
-        """
-        if not self.enabled:
-            return
-
-        # Initialize PC knowledge
-        pc_agent_ids = set()
-        for pc in player_agents:
-            aid = getattr(pc, 'agent_id', None)
-            if aid:
-                pc_agent_ids.add(aid)
-
-        for pc in player_agents:
-            aid = getattr(pc, 'agent_id', None)
-            if not aid:
-                continue
-
-            faction = 'Unknown'
-            if hasattr(pc, 'character_state'):
-                faction = getattr(pc.character_state, 'faction', 'Unknown')
-
-            knowledge = self.initialize_agent(
-                agent_id=aid,
-                agent_type="player",
-                agent_faction=faction,
-                allied_agent_ids=pc_agent_ids - {aid}
-            )
-
-            # PCs know each other
-            for other_pc in player_agents:
-                other_aid = getattr(other_pc, 'agent_id', None)
-                if other_aid and other_aid != aid:
-                    other_name = 'Unknown'
-                    other_faction = 'Unknown'
-                    if hasattr(other_pc, 'character_state'):
-                        other_name = getattr(other_pc.character_state, 'name', 'Unknown')
-                        other_faction = getattr(other_pc.character_state, 'faction', 'Unknown')
-
-                    other_tid = target_id_mapper.get_target_id(other_aid) or other_aid
-                    knowledge.identify_ally(other_tid, other_name, other_faction)
-
-        # Initialize enemy knowledge
-        for enemy in enemy_agents:
-            aid = getattr(enemy, 'agent_id', None)
-            if not aid:
-                continue
-
-            faction = getattr(enemy, 'faction', 'Unknown')
-            same_faction_ids = set()
-            for other_enemy in enemy_agents:
-                other_aid = getattr(other_enemy, 'agent_id', None)
-                other_faction = getattr(other_enemy, 'faction', 'Unknown')
-                if other_aid and other_aid != aid and other_faction == faction:
-                    same_faction_ids.add(other_aid)
-
-            knowledge = self.initialize_agent(
-                agent_id=aid,
-                agent_type="enemy",
-                agent_faction=faction,
-                allied_agent_ids=same_faction_ids
-            )
-
-            # Enemies know their faction allies
-            for other_enemy in enemy_agents:
-                other_aid = getattr(other_enemy, 'agent_id', None)
-                if other_aid and other_aid in same_faction_ids:
-                    other_tid = target_id_mapper.get_target_id(other_aid) or other_aid
-                    knowledge.identify_ally(
-                        other_tid,
-                        getattr(other_enemy, 'name', 'Unknown'),
-                        getattr(other_enemy, 'faction', 'Unknown')
-                    )
-
-            # All other targets start as SILHOUETTE at best
-            for pc in player_agents:
-                pc_aid = getattr(pc, 'agent_id', None)
-                if pc_aid:
-                    pc_tid = target_id_mapper.get_target_id(pc_aid) or pc_aid
-                    knowledge.update_identity(
-                        target_id=pc_tid,
-                        level=IdentificationLevel.SILHOUETTE,
-                        source="visual_initial"
-                    )
-
-        # Initialize NPC knowledge
-        for npc in npc_agents:
-            aid = getattr(npc, 'agent_id', None)
-            if not aid:
-                continue
-
-            knowledge = self.initialize_agent(
-                agent_id=aid,
-                agent_type="npc",
-                agent_faction=getattr(npc, 'faction', 'Unknown')
-            )
-            # NPCs start with no identification of anyone
-            # They may know locals (other NPCs) but not PCs or enemies
-
-    def attempt_identification(
-        self,
-        observer_agent_id: str,
-        target_id: str,
-        target_agent,
-        distance: str = "Near",
-        modifiers: int = 0,
-        target_id_mapper=None
-    ) -> Dict[str, Any]:
-        """
-        Attempt to identify an unknown target.
-
-        Uses YAGS formula: Perception x Awareness + d20 + modifiers vs DC.
-
-        DC based on distance:
-        - Engaged/Melee: DC 10
-        - Near: DC 15
-        - Far: DC 20
-        - Extreme: DC 25
-
-        On success, identification level increases based on margin:
-        - Margin 0-4: PARTIAL (faction visible)
-        - Margin 5-9: IDENTIFIED (name + faction)
-        - Margin 10+: DETAILED (name, faction, capabilities)
-
-        Args:
-            observer_agent_id: Who is trying to identify
-            target_id: tgt_xxxx of the target
-            target_agent: The actual target agent object
-            distance: Range band ("Engaged", "Near", "Far", "Extreme")
-            modifiers: Situational modifiers
-            target_id_mapper: For resolving IDs
-
-        Returns:
-            Dict with success, level achieved, roll details
-        """
-        import random
-        from .mechanics import _get_attribute, _get_skill
-
-        knowledge = self.get_knowledge(observer_agent_id)
-        if not knowledge:
-            return {'success': False, 'reason': 'Observer not tracked'}
-
-        # Get observer stats
-        observer = None
-        if target_id_mapper:
-            # Try to find observer agent
-            observer_tid = target_id_mapper.get_target_id(observer_agent_id)
-            if observer_tid:
-                observer = target_id_mapper.resolve_target(observer_tid)
-
-        # Fallback: use default stats
-        perception = 3
-        awareness = 0
-        if observer:
-            perception = _get_attribute(observer, 'Perception', 3)
-            awareness = _get_skill(observer, 'Awareness', 0)
-
-        # DC based on distance
-        dc_map = {
-            "Engaged": 10, "Melee": 10,
-            "Near": 15,
-            "Far": 20,
-            "Extreme": 25,
-        }
-        dc = dc_map.get(distance, 15)
-
-        # Roll
-        unskilled_penalty = -5 if awareness == 0 else 0
-        d20 = random.randint(1, 20)
-        roll_total = (perception * awareness) + d20 + modifiers + unskilled_penalty
-        roll_total = max(1, roll_total)
-
-        success = roll_total >= dc
-        margin = roll_total - dc
-
-        result = {
-            'success': success,
-            'roll': roll_total,
-            'd20': d20,
-            'dc': dc,
-            'margin': margin,
-            'formula': f"Per {perception} x Awareness {awareness} + d20({d20}) = {roll_total} vs DC {dc}",
-        }
-
-        if success:
-            # Determine identification level based on margin
-            if margin >= 10:
-                level = IdentificationLevel.DETAILED
-            elif margin >= 5:
-                level = IdentificationLevel.IDENTIFIED
-            else:
-                level = IdentificationLevel.PARTIAL
-
-            # Extract target info
-            target_name = getattr(target_agent, 'name', None)
-            if not target_name and hasattr(target_agent, 'character_state'):
-                target_name = getattr(target_agent.character_state, 'name', None)
-
-            target_faction = getattr(target_agent, 'faction', None)
-            if not target_faction and hasattr(target_agent, 'character_state'):
-                target_faction = getattr(target_agent.character_state, 'faction', None)
-
-            # Update knowledge
-            knowledge.update_identity(
-                target_id=target_id,
-                level=level,
-                faction=target_faction,
-                name=target_name if level >= IdentificationLevel.IDENTIFIED else None,
-                source="perception_check"
-            )
-
-            result['level'] = level.value
-            result['identified_faction'] = target_faction
-            result['identified_name'] = target_name if level >= IdentificationLevel.IDENTIFIED else None
-        else:
-            result['level'] = 'failed'
-
-        return result
+### Change 1: Strip Relationship Labels from Combatant Lists
+
+**File:** `scripts/aeonisk/multiagent/dm.py` lines 7536-7578
+
+When IFF is enabled, the combatant list shown to agents replaces relationship labels
+with faction names. The DM's own list is unchanged.
+
+**Current format (relationship labels):**
+```
+VALID TARGET IDS:
+  - [tgt_7a3f] Ash Vex (she/her, 18/27 HP, 2w)          ← PC, no label but implied
+  - [tgt_9b2c] ACG Enforcer (they/them, enemy)            ← explicit "enemy"
+  - [tgt_4d1e] Captured Guard (he/him, npc, prisoner)     ← explicit "npc, prisoner"
+  - [tgt_2f8a] Tempest Liaison (she/her, npc, friendly)   ← explicit "npc, friendly"
 ```
 
-### Phase 2: Agent-Specific Combatant Lists
+**New format (faction names, no relationship labels):**
+```
+DETECTED CONTACTS:
+  - [tgt_7a3f] Ash Vex (she/her, Freeborn, 18/27 HP, 2w)
+  - [tgt_9b2c] ACG Enforcer (they/them, ACG, 15/20 HP)
+  - [tgt_4d1e] Captured Guard (he/him, ACG, prisoner)
+  - [tgt_2f8a] Tempest Liaison (she/her, Tempest, 12/12 HP)
+```
 
-#### 2.1 Per-Agent Combatant List Builder
+Key differences:
+- `enemy` → faction name (e.g., `ACG`)
+- `npc, friendly` → faction name only (e.g., `Tempest`)
+- `player` label removed entirely, replaced with faction name
+- Health info visible for all entities (not just PCs)
+- `prisoner` status retained (observable physical state, not a relationship label)
+- State tags from Spec 03 (`[ACTIVE]`, `[PRISONER]`, etc.) still apply
 
-**File:** `scripts/aeonisk/multiagent/dm.py`
-
-Replace the single combatant list with agent-specific views. The DM still sees
-everything, but when building prompts for agents, filter based on their knowledge:
+**Implementation:**
 
 ```python
-def _build_agent_combatant_list(
-    self,
-    observer_agent_id: str,
-    target_id_mapper,
-    identity_tracker: Optional[IdentityTracker] = None
-) -> str:
+def _build_iff_combatant_list(self, target_id_mapper, shared_state) -> str:
     """
-    Build combatant list filtered by observer's knowledge.
-
-    DM sees full information. Other agents see only what they have identified.
-
-    Args:
-        observer_agent_id: Who is viewing the list ("dm" for full view)
-        target_id_mapper: TargetIDMapper instance
-        identity_tracker: IdentityTracker instance (None = show everything)
-
-    Returns:
-        Formatted combatant list string
+    Build combatant list with faction names instead of relationship labels.
+    Used when IFF mode is enabled.
     """
-    if not target_id_mapper or not target_id_mapper.enabled:
-        return ""
-
     all_target_ids = target_id_mapper.get_all_target_ids()
     if not all_target_ids:
         return ""
 
     combatant_lines = []
-
     for tid in sorted(all_target_ids):
         info = target_id_mapper.get_combatant_info(tid)
         if not info:
             continue
 
-        if observer_agent_id == "dm" or not identity_tracker or \
-           not identity_tracker.enabled:
-            # DM or IFF disabled: show full info (current behavior)
-            combatant_lines.append(self._format_full_combatant(tid, info))
-        else:
-            # Agent-specific view based on knowledge
-            knowledge = identity_tracker.get_knowledge(observer_agent_id)
-            if knowledge:
-                known = knowledge.get_identity(tid)
-                combatant_lines.append(
-                    f"  - {known.get_display_string()}"
-                )
-            else:
-                # No knowledge tracking for this agent, show minimal
-                combatant_lines.append(f"  - [{tid}] Unknown contact")
+        name = info.get('name', 'Unknown')
+        pronouns = info.get('pronouns', 'they/them')
+        faction = info.get('faction', 'Unknown')
+        health = info.get('health')
+        max_health = info.get('max_health')
 
-    if not combatant_lines:
-        return ""
+        # Health string (if available)
+        health_str = f", {health}/{max_health} HP" if health is not None else ""
+
+        # Wounds (if any)
+        wounds = info.get('wounds', 0)
+        wounds_str = f", {wounds}w" if wounds > 0 else ""
+
+        # Observable state (prisoner, wounded, etc.) -- from Spec 03
+        state_tag = _get_combatant_state_tag(info, tid, shared_state)
+
+        line = f"  - [{tid}] {name} ({pronouns}, {faction}{health_str}{wounds_str}) {state_tag}"
+        combatant_lines.append(line)
 
     header = "\n\n**DETECTED CONTACTS:**\n"
     return header + "\n".join(combatant_lines)
 ```
 
-#### 2.2 Enemy Prompt -- Knowledge-Filtered Target Info
+**DM list is unchanged.** The DM still sees `(player)`, `(enemy)`, `(npc, friendly)`
+in its own resolution prompts. Only agent-facing prompts use the IFF format.
 
-**File:** `scripts/aeonisk/multiagent/enemy_prompts.py`
+### Change 2: Strip Relationship Labels from Enemy Prompts
 
-Modify `_format_pc_target_info()` to use the enemy's knowledge state:
+**File:** `scripts/aeonisk/multiagent/enemy_prompts.py` lines 440-483
 
+Modify `_format_pc_target_info()` to show faction instead of implying "this is a PC
+target":
+
+**Current:**
 ```python
-def _format_pc_target_info_iff(
-    enemy: EnemyAgent,
-    pc,
-    identity_tracker: Optional[IdentityTracker],
-    target_id_mapper
-) -> str:
-    """Format PC target info filtered by enemy's knowledge."""
-    pc_agent_id = getattr(pc, 'agent_id', None)
-    pc_tid = target_id_mapper.get_target_id(pc_agent_id) if pc_agent_id else None
-
-    if not pc_tid:
-        return ""
-
-    # Check enemy's knowledge of this target
-    if identity_tracker and identity_tracker.enabled:
-        knowledge = identity_tracker.get_knowledge(enemy.agent_id)
-        if knowledge:
-            known = knowledge.get_identity(pc_tid)
-
-            if known.identification_level == IdentificationLevel.UNKNOWN:
-                return f"""- [{pc_tid}] Unknown contact
-  Position: {_get_position(pc, enemy)}
-  Status: Unidentified (use Scan to identify)"""
-
-            elif known.identification_level == IdentificationLevel.SILHOUETTE:
-                weapons_visible = known.visible_weapons
-                weapon_str = ", ".join(weapons_visible) if weapons_visible else "unknown"
-                return f"""- [{pc_tid}] Humanoid ({weapon_str})
-  Position: {_get_position(pc, enemy)}
-  Faction: Unknown
-  Status: Silhouette only (use Scan to identify)"""
-
-            elif known.identification_level == IdentificationLevel.PARTIAL:
-                return f"""- [{pc_tid}] {known.known_faction or 'Unknown'} operative
-  Position: {_get_position(pc, enemy)}
-  Faction: {known.known_faction or 'Unknown'}
-  Status: Partially identified"""
-
-            # IDENTIFIED or DETAILED: show full info (current behavior)
-
-    # Fallback: show full info (IFF disabled or fully identified)
-    return _format_pc_target_info(enemy, pc)
+return f"""- {pc_name} [{pc_id}]
+  Position: {pc_position} ({range_name.upper()} RANGE, {range_penalty} penalty)
+  Health: {health_str}
+  Defence Token: {watching_str}
+  Weapons: {weapons_str}
+  Threat Level: {threat_level}"""
 ```
 
-### Phase 3: Selective Intel Sharing
+The function name itself (`_format_pc_target_info`) and the section header
+("PC TARGETS" or "THREAT ASSESSMENT") tell the enemy these are PCs. This must
+be neutralized.
 
-#### 3.1 Extend SharedIntel for Selective Distribution
+**New:** Merge all targets (PCs, enemies from other factions, NPCs) into a single
+"DETECTED CONTACTS" list. No separate "PC TARGETS" section.
 
-**File:** `scripts/aeonisk/multiagent/enemy_agent.py`
+```python
+def _format_contact_info_iff(
+    target_name: str,
+    target_id: str,
+    faction: str,
+    position: str,
+    range_name: str,
+    range_penalty: str,
+    health_str: str,
+    weapons_str: str,
+    watching_str: str,
+) -> str:
+    """Format a single contact's info for IFF mode. No relationship labels."""
+    return f"""- {target_name} [{target_id}]
+  Faction: {faction}
+  Position: {position} ({range_name.upper()} RANGE, {range_penalty} penalty)
+  Health: {health_str}
+  Defence Token: {watching_str}
+  Weapons: {weapons_str}"""
+```
+
+**Remove `_format_target_priorities()`.** The pre-sorted PRIMARY/SECONDARY/TERTIARY
+threat list tells enemies who to attack without reasoning. In IFF mode, the enemy
+LLM must assess threats itself based on observed faction, weapons, and behavior.
+
+### Change 3: Strip Relationship Labels from NPC Prompts
+
+**File:** `scripts/aeonisk/multiagent/npc_agent.py` lines 571-643
+
+When IFF is enabled, remove `entity_type` (neutral/ally/prisoner) from the NPC's
+self-description. Keep faction. The NPC knows its own faction but must reason about
+relationships to other factions.
+
+**Current:**
+```python
+- Entity Type: {self.npc.entity_type} (neutral/ally/prisoner)
+- Disposition: {self.npc.disposition} (friendly/neutral/wary/prisoner)
+```
+
+**New (IFF mode):**
+```python
+- Faction: {self.npc.faction}
+```
+
+`entity_type` and `disposition` are relationship labels relative to the party. In
+IFF mode, the NPC reasons from faction context instead.
+
+**Exception:** `prisoner` status is retained as observable physical state (bound,
+restrained), not a relationship label.
+
+### Change 4: Selective Intel Sharing with tgt_xxxx Recipients
+
+**File:** `scripts/aeonisk/multiagent/enemy_agent.py` lines 678-728
+
+Refactor SharedIntel from enemy-only global broadcast to a battlefield-wide pool
+with explicit recipients specified by target_id.
 
 ```python
 @dataclass
 class IntelItem:
     """Single piece of shared tactical intelligence."""
-    source_agent: str
+    source_target_id: str      # tgt_xxxx of the sender (NOT agent_id)
     intel: str
     round: int
-    recipients: Optional[Set[str]] = None  # NEW: None = broadcast to all allies
-                                            # Set = only these agent_ids receive
+    recipients: Set[str]       # Set of tgt_xxxx IDs. REQUIRED -- no broadcast.
+
 
 class SharedIntel:
+    """
+    Battlefield-wide intel sharing pool.
+
+    Any agent can post intel with explicit recipient target_ids.
+    Recipients can be ANY target -- the sender must reason about who
+    is an ally based on faction names. If they reason wrong, intel
+    leaks to the wrong side.
+    """
+
+    def __init__(self):
+        self.intel_pool: List[IntelItem] = []
+
     def add_intel(
         self,
-        source_agent: str,
+        source_target_id: str,
         intel: str,
         round_num: int,
-        recipients: Optional[Set[str]] = None
+        recipients: Set[str]
     ):
-        """Add intelligence with optional recipient filtering."""
-        if intel and intel.strip():
+        """Add intelligence with explicit recipients."""
+        if intel and intel.strip() and recipients:
             item = IntelItem(
-                source_agent=source_agent,
+                source_target_id=source_target_id,
                 intel=intel.strip(),
                 round=round_num,
                 recipients=recipients
             )
             self.intel_pool.append(item)
 
-    def get_recent_intel_for_agent(
+    def get_recent_intel_for_target(
         self,
-        agent_id: str,
+        target_id: str,
         current_round: int,
         lookback: int = 2
     ) -> List[str]:
-        """Get intel visible to a specific agent."""
+        """Get intel addressed to a specific target_id."""
         recent = []
         for item in self.intel_pool:
             if current_round - item.round > lookback:
                 continue
-            # Check if this agent is a recipient
-            if item.recipients is None or agent_id in item.recipients:
-                recent.append(f"[ALLY {item.source_agent}] {item.intel}")
+            if target_id in item.recipients:
+                recent.append(
+                    f"[FROM {item.source_target_id}] {item.intel}"
+                )
         return recent
 ```
 
-#### 3.2 Extend EnemyDecision for Selective Sharing
+Key changes:
+- `source_agent` → `source_target_id` (uses tgt_xxxx, not internal agent_id)
+- `recipients` is REQUIRED (no more `None` = broadcast to all)
+- `get_recent_intel` → `get_recent_intel_for_target` (queries by tgt_xxxx)
+- Removed `[ALLY ...]` prefix -- sender might not be an ally
+- The pool is battlefield-wide, not enemy-only
+
+### Change 5: Extend EnemyDecision for tgt_xxxx Recipients
 
 **File:** `scripts/aeonisk/multiagent/schemas/enemy_decision.py`
 
@@ -858,209 +470,117 @@ class EnemyDecision(BaseModel):
     shared_intel: Optional[str] = Field(
         default=None,
         max_length=300,
-        description="Intel to share with allies"
+        description="Tactical observation to share with allies"
     )
 
     intel_recipients: Optional[List[str]] = Field(
         default=None,
         description=(
-            "Specific ally agent_ids to receive intel. "
-            "None = broadcast to all allies. "
-            "Example: ['enemy_sniper_b2e1'] to share only with the sniper."
+            "Target IDs (tgt_xxxx) of contacts you want to share intel with. "
+            "Choose recipients from the DETECTED CONTACTS list based on faction "
+            "allegiance. Only share with targets you believe are allies."
         )
     )
 ```
 
-#### 3.3 Identification Sharing Action
+The enemy LLM must pick target_ids it believes are allies. If it picks a PC's
+target_id by mistake (wrong faction reasoning), the intel leaks.
 
-**File:** `scripts/aeonisk/multiagent/schemas/player_action.py`
+### Change 6: Inject Leaked Intel into PC Prompts
 
-Add a new field to `SocialAction` or create a new action for sharing intel:
+**File:** `scripts/aeonisk/multiagent/dm.py` (round context building)
 
-```python
-class SocialAction(PlayerActionBase):
-    # ... existing fields ...
-
-    share_identification: Optional[Dict[str, str]] = Field(
-        default=None,
-        description=(
-            "Share target identification with specific allies. "
-            "Maps target_id to ally_agent_id. "
-            "Example: {'tgt_7a3f': 'player_02'} shares identity of tgt_7a3f "
-            "with player_02."
-        )
-    )
-```
-
-### Phase 4: Auto-Identification Triggers
-
-#### 4.1 Engagement-Based Identification
-
-When an agent attacks or is attacked by a target, automatic identification occurs:
+When building a PC's prompt context, check if any intel items in the SharedIntel
+pool list this PC's target_id as a recipient. If so, inject it:
 
 ```python
-# In combat resolution processing
-def auto_identify_on_engagement(
-    attacker_id: str,
-    target_id: str,
-    target_agent,
-    identity_tracker: IdentityTracker,
-    round_num: int
-):
+def _get_intercepted_intel_for_pc(
+    self,
+    pc_target_id: str,
+    shared_intel: SharedIntel,
+    current_round: int
+) -> str:
     """
-    Auto-identify targets on combat engagement.
+    Get any intel that was addressed to this PC by enemy agents.
 
-    When you attack someone or are attacked, you get at least PARTIAL
-    identification (you can see them up close in combat).
+    This happens when an enemy incorrectly identifies the PC as an ally
+    (IFF error) and shares tactical intel with them.
     """
-    if not identity_tracker or not identity_tracker.enabled:
-        return
-
-    knowledge = identity_tracker.get_knowledge(attacker_id)
-    if not knowledge:
-        return
-
-    target_name = getattr(target_agent, 'name', None)
-    if not target_name and hasattr(target_agent, 'character_state'):
-        target_name = getattr(target_agent.character_state, 'name', None)
-
-    target_faction = getattr(target_agent, 'faction', None)
-    if not target_faction and hasattr(target_agent, 'character_state'):
-        target_faction = getattr(target_agent.character_state, 'faction', None)
-
-    # Combat engagement = at least IDENTIFIED level
-    knowledge.update_identity(
-        target_id=target_id,
-        level=IdentificationLevel.IDENTIFIED,
-        faction=target_faction,
-        name=target_name,
-        source="combat_engagement",
-        round_num=round_num
+    intel_items = shared_intel.get_recent_intel_for_target(
+        pc_target_id, current_round
     )
+    if not intel_items:
+        return ""
+
+    lines = ["\n**INTERCEPTED COMMUNICATIONS:**"]
+    lines.append("(You overheard the following from nearby contacts)")
+    for item in intel_items:
+        lines.append(f"  {item}")
+    return "\n".join(lines)
 ```
 
-#### 4.2 Passive Identification at Close Range
+### Change 7: Enemy Faction Context in Prompts
 
-At Engaged/Melee range, agents automatically get SILHOUETTE or PARTIAL identification
-without a check:
+**File:** `scripts/aeonisk/multiagent/enemy_prompts.py`
 
-```python
-def passive_identification_at_range(
-    observer_id: str,
-    target_id: str,
-    target_agent,
-    distance: str,
-    identity_tracker: IdentityTracker,
-    round_num: int
-):
-    """
-    Passive identification based on proximity.
-
-    Engaged/Melee: automatic PARTIAL (can see face, insignia)
-    Near: automatic SILHOUETTE (can see weapons, general build)
-    Far/Extreme: no automatic identification
-    """
-    if not identity_tracker or not identity_tracker.enabled:
-        return
-
-    if distance in ("Engaged", "Melee"):
-        level = IdentificationLevel.PARTIAL
-    elif distance == "Near":
-        level = IdentificationLevel.SILHOUETTE
-    else:
-        return  # No passive identification at Far/Extreme
-
-    knowledge = identity_tracker.get_knowledge(observer_id)
-    if not knowledge:
-        return
-
-    faction = getattr(target_agent, 'faction', None)
-    if not faction and hasattr(target_agent, 'character_state'):
-        faction = getattr(target_agent.character_state, 'faction', None)
-
-    knowledge.update_identity(
-        target_id=target_id,
-        level=level,
-        faction=faction if level >= IdentificationLevel.PARTIAL else None,
-        source="passive_proximity",
-        round_num=round_num
-    )
-```
-
-### Phase 5: Prompt Updates
-
-#### 5.1 Enemy Prompt -- IFF Guidance
-
-**File:** `scripts/aeonisk/multiagent/prompts/claude/en/enemy.yaml`
-
-Add IFF section:
+Add a faction context section to the enemy system prompt that tells the enemy its
+own faction and lets it reason about others:
 
 ```yaml
-iff_guidance: |-
-  ## Identification Friend or Foe (IFF)
+iff_context: |-
+  ## Your Faction
+  You are {faction_name}. You recognize fellow {faction_name} operatives as allies.
 
-  You may NOT know who all contacts are. Your target list shows only what you
-  have identified:
+  ## Allegiance
+  The DETECTED CONTACTS list shows all visible contacts with their faction.
+  You must determine who is hostile, neutral, or friendly based on faction.
+  The system will NOT tell you who is an ally or enemy -- you must reason
+  from your knowledge of faction relationships.
 
-  - **Unknown contact:** No information. Could be hostile, neutral, or friendly.
-    DO NOT attack unknown contacts unless rules of engagement permit.
-  - **Silhouette:** You can see their general shape and weapons. No faction ID.
-  - **Partial:** You can see faction insignia. You know their allegiance.
-  - **Identified:** Full name and faction known. Standard targeting applies.
-
-  **To identify unknown contacts:**
-  - Use 'Scan' as your minor_action
-  - Engage at close range (automatic identification)
-  - Receive intel from allies (via shared_intel)
-
-  **Rules of Engagement:**
-  - DO NOT fire on unidentified contacts unless fired upon first
-  - Allies must be identified before providing support
-  - Share identification intel with allies when you discover it
+  ## Communication
+  Use shared_intel + intel_recipients to communicate with contacts you
+  believe are allies. Specify their target IDs (tgt_xxxx) as recipients.
+  WARNING: If you share intel with the wrong contact, they will receive it.
 ```
 
-#### 5.2 Player Prompt -- IFF Awareness
+### Change 8: PC Party Context
+
+**File:** `scripts/aeonisk/multiagent/prompts/claude/en/player/` (relevant YAML)
+
+PCs need to know who their party members are. This is not IFF reasoning -- they
+know their party. Inject party member target_ids so PCs can distinguish party
+from unknown contacts:
 
 ```yaml
-iff_awareness: |-
-  ## Battlefield Awareness
+party_context: |-
+  ## Your Party
+  You are traveling with the following party members:
+  {party_member_list}
 
-  You know your party members (full identification from start).
-  Other contacts start as Unknown and must be identified.
-
-  **Identification methods:**
-  - PERCEPTION action with search focus
-  - Combat engagement (auto-identifies on attack/defense)
-  - Close proximity (Near range = silhouette, Melee = partial)
-  - Intel sharing from allies
-
-  **Share intel:** Use SOCIAL action with share_identification field to tell
-  allies about identified targets.
+  Other contacts on the DETECTED CONTACTS list are NOT party members.
+  Determine their allegiance from their faction and observed behavior.
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Change | Lines |
-|------|--------|-------|
-| `identity_tracking.py` | NEW FILE: IdentityTracker, AgentKnowledge, KnownIdentity | N/A |
-| `dm.py` | Agent-specific combatant list builder | Lines 7536-7578 |
-| `dm.py` | Initialize IdentityTracker at combat start | Combat init |
-| `dm.py` | Auto-identify on combat engagement | Resolution processing |
-| `dm.py` | Passive identification at range each round | Round start |
-| `enemy_agent.py` | Extend IntelItem with recipients, SharedIntel with agent filtering | Lines 671-728 |
-| `enemy_combat.py` | Use agent-specific intel retrieval | Lines 592, 764, 788 |
-| `enemy_prompts.py` | Knowledge-filtered target info | Lines 440-483 |
-| `enemy_prompts.py` | IFF guidance section | New section |
-| `schemas/enemy_decision.py` | Add `intel_recipients` field | After line 122 |
-| `schemas/player_action.py` | Add `share_identification` to SocialAction | After line 333 |
-| `target_ids.py` | Store IdentityTracker reference | Constructor |
-| `mechanics.py` | **USE** `_get_attribute`, `_get_skill` helpers (defined in Spec 05 — do NOT redefine) | Import only |
-| `awareness.py` | Extend for identity-based awareness | New functions |
-| `session.py` | Initialize IdentityTracker with session config | Session setup |
-| `prompts/.../enemy.yaml` | IFF guidance section | New section |
-| `prompts/.../player.yaml` | IFF awareness section | New section |
+| File | Change |
+|------|--------|
+| `dm.py` | `_build_iff_combatant_list()` -- faction-based list when IFF enabled |
+| `dm.py` | `_get_intercepted_intel_for_pc()` -- inject leaked intel into PC prompts |
+| `dm.py` | Session config check for `iff_enabled` flag |
+| `enemy_prompts.py` | Merge all targets into neutral "DETECTED CONTACTS" format |
+| `enemy_prompts.py` | Remove `_format_target_priorities()` in IFF mode |
+| `enemy_prompts.py` | Add faction context / IFF reasoning section |
+| `npc_agent.py` | Strip `entity_type`/`disposition` labels in IFF mode |
+| `enemy_agent.py` | Refactor SharedIntel: tgt_xxxx recipients, battlefield-wide pool |
+| `enemy_combat.py` | Use new SharedIntel API (target_id-based) |
+| `schemas/enemy_decision.py` | Add `intel_recipients` field (list of tgt_xxxx) |
+| `target_ids.py` | Add `faction` to `get_combatant_info()` return dict |
+| `session.py` | Read `iff_enabled` from session config, propagate to subsystems |
+| `prompts/.../enemy.yaml` | IFF faction context section |
+| `prompts/.../player.yaml` | Party context section |
 
 ---
 
@@ -1071,308 +591,247 @@ iff_awareness: |-
 **File:** `tests/unit/test_iff_roe.py`
 
 ```python
-class TestKnownIdentity:
-    """KnownIdentity display string formatting."""
+class TestIFFCombatantList:
+    """Combatant list format with IFF enabled."""
 
-    def test_unknown_display(self):
-        ki = KnownIdentity(target_id="tgt_7a3f")
-        assert "Unknown contact" in ki.get_display_string()
-
-    def test_silhouette_display(self):
-        ki = KnownIdentity(
-            target_id="tgt_7a3f",
-            identification_level=IdentificationLevel.SILHOUETTE,
-            visible_weapons=["rifle"]
+    def test_no_player_label_in_iff_list(self):
+        """IFF combatant list must not contain 'player' relationship label."""
+        line = build_iff_combatant_line(
+            tid="tgt_7a3f", name="Ash Vex", faction="Freeborn",
+            health=18, max_health=27, pronouns="she/her"
         )
-        assert "Humanoid" in ki.get_display_string()
-        assert "rifle" in ki.get_display_string()
+        assert "player" not in line.lower()
+        assert "Freeborn" in line
+        assert "Ash Vex" in line
 
-    def test_partial_display(self):
-        ki = KnownIdentity(
-            target_id="tgt_7a3f",
-            identification_level=IdentificationLevel.PARTIAL,
-            known_faction="ACG"
+    def test_no_enemy_label_in_iff_list(self):
+        """IFF combatant list must not contain 'enemy' relationship label."""
+        line = build_iff_combatant_line(
+            tid="tgt_9b2c", name="ACG Enforcer", faction="ACG",
+            health=15, max_health=20, pronouns="they/them"
         )
-        assert "ACG" in ki.get_display_string()
+        assert "enemy" not in line.lower()
+        assert "ACG" in line
 
-    def test_identified_display(self):
-        ki = KnownIdentity(
-            target_id="tgt_7a3f",
-            identification_level=IdentificationLevel.IDENTIFIED,
-            known_name="ACG Enforcer Alpha",
-            known_faction="ACG"
+    def test_no_npc_label_in_iff_list(self):
+        """IFF combatant list must not contain 'npc' or 'friendly' labels."""
+        line = build_iff_combatant_line(
+            tid="tgt_2f8a", name="Tempest Liaison", faction="Tempest",
+            health=12, max_health=12, pronouns="she/her"
         )
-        assert "ACG Enforcer Alpha" in ki.get_display_string()
-        assert "ACG" in ki.get_display_string()
+        assert "npc" not in line.lower()
+        assert "friendly" not in line.lower()
+        assert "Tempest" in line
 
-
-class TestAgentKnowledge:
-    """Per-agent knowledge tracking."""
-
-    def test_default_unknown(self):
-        """Untracked targets should return UNKNOWN."""
-        knowledge = AgentKnowledge(
-            agent_id="enemy_01", agent_type="enemy", agent_faction="ACG"
+    def test_prisoner_state_retained(self):
+        """Prisoner is an observable physical state, not a relationship label."""
+        line = build_iff_combatant_line(
+            tid="tgt_4d1e", name="Captured Guard", faction="ACG",
+            health=8, max_health=20, pronouns="he/him",
+            state_tag="[PRISONER]"
         )
-        identity = knowledge.get_identity("tgt_7a3f")
-        assert identity.identification_level == IdentificationLevel.UNKNOWN
+        assert "PRISONER" in line
+        assert "ACG" in line
 
-    def test_update_upgrades_only(self):
-        """Identification level should only increase, never decrease."""
-        knowledge = AgentKnowledge(
-            agent_id="enemy_01", agent_type="enemy", agent_faction="ACG"
-        )
-        knowledge.update_identity("tgt_7a3f", IdentificationLevel.IDENTIFIED,
-                                  name="Ash Vex", faction="Freeborn")
-        knowledge.update_identity("tgt_7a3f", IdentificationLevel.SILHOUETTE)
-        # Should still be IDENTIFIED (not downgraded)
-        identity = knowledge.get_identity("tgt_7a3f")
-        assert identity.identification_level == IdentificationLevel.IDENTIFIED
-
-    def test_ally_identification(self):
-        """Allies should be fully identified."""
-        knowledge = AgentKnowledge(
-            agent_id="enemy_01", agent_type="enemy", agent_faction="ACG"
-        )
-        knowledge.identify_ally("tgt_b2e1", "ACG Sniper", "ACG")
-        identity = knowledge.get_identity("tgt_b2e1")
-        assert identity.identification_level == IdentificationLevel.DETAILED
-        assert identity.known_name == "ACG Sniper"
-
-    def test_intel_reception(self):
-        """Receiving intel should update knowledge."""
-        knowledge = AgentKnowledge(
-            agent_id="enemy_01", agent_type="enemy", agent_faction="ACG"
-        )
-        knowledge.receive_intel(
-            "tgt_7a3f",
-            IdentificationLevel.PARTIAL,
-            faction="Freeborn",
-            source_agent="enemy_02"
-        )
-        identity = knowledge.get_identity("tgt_7a3f")
-        assert identity.identification_level == IdentificationLevel.PARTIAL
-        assert identity.known_faction == "Freeborn"
-
-
-class TestIdentityTracker:
-    """Central identity tracking system."""
-
-    def test_pc_knows_other_pcs(self):
-        """PCs should know all other PCs at start."""
-        tracker = IdentityTracker()
-        tracker.enable()
-
-        pc1 = MockPlayer(agent_id="p1", name="Ash", faction="Freeborn")
-        pc2 = MockPlayer(agent_id="p2", name="Echo", faction="Freeborn")
-        mapper = MockTargetIDMapper({"p1": "tgt_1", "p2": "tgt_2"})
-
-        tracker.initialize_combat([pc1, pc2], [], [], mapper)
-
-        k1 = tracker.get_knowledge("p1")
-        identity = k1.get_identity("tgt_2")
-        assert identity.identification_level == IdentificationLevel.DETAILED
-        assert identity.known_name == "Echo"
-
-    def test_enemy_does_not_know_pcs(self):
-        """Enemies should start with SILHOUETTE for PCs."""
-        tracker = IdentityTracker()
-        tracker.enable()
-
-        pc = MockPlayer(agent_id="p1", name="Ash", faction="Freeborn")
-        enemy = MockEnemy(agent_id="e1", name="Grunt", faction="ACG")
-        mapper = MockTargetIDMapper({"p1": "tgt_1", "e1": "tgt_2"})
-
-        tracker.initialize_combat([pc], [enemy], [], mapper)
-
-        k = tracker.get_knowledge("e1")
-        identity = k.get_identity("tgt_1")
-        assert identity.identification_level == IdentificationLevel.SILHOUETTE
-        assert identity.known_name is None
-
-    def test_enemy_knows_faction_allies(self):
-        """Enemies from same faction should know each other."""
-        tracker = IdentityTracker()
-        tracker.enable()
-
-        e1 = MockEnemy(agent_id="e1", name="Grunt A", faction="ACG")
-        e2 = MockEnemy(agent_id="e2", name="Grunt B", faction="ACG")
-        mapper = MockTargetIDMapper({"e1": "tgt_1", "e2": "tgt_2"})
-
-        tracker.initialize_combat([], [e1, e2], [], mapper)
-
-        k = tracker.get_knowledge("e1")
-        identity = k.get_identity("tgt_2")
-        assert identity.identification_level == IdentificationLevel.DETAILED
-
-    def test_identification_attempt(self):
-        """Identification check should upgrade knowledge on success."""
-        tracker = IdentityTracker()
-        tracker.enable()
-
-        enemy = MockEnemy(agent_id="e1", name="Grunt", faction="ACG",
-                          attributes={'Perception': 4}, skills={'Awareness': 3})
-        pc = MockPlayer(agent_id="p1", name="Ash", faction="Freeborn")
-        mapper = MockTargetIDMapper({"e1": "tgt_1", "p1": "tgt_2"})
-
-        tracker.initialize_combat([pc], [enemy], [], mapper)
-
-        # Attempt identification (result depends on d20)
-        result = tracker.attempt_identification(
-            observer_agent_id="e1",
-            target_id="tgt_2",
-            target_agent=pc,
-            distance="Near",
-            target_id_mapper=mapper
-        )
-        assert 'success' in result
-        assert 'roll' in result
+    def test_faction_visible_for_all_entities(self):
+        """All entity types should show faction name."""
+        for entity in [
+            {"name": "PC", "faction": "Freeborn"},
+            {"name": "Enemy", "faction": "ACG"},
+            {"name": "NPC", "faction": "Tempest"},
+        ]:
+            line = build_iff_combatant_line(
+                tid="tgt_0000", name=entity["name"],
+                faction=entity["faction"],
+                health=10, max_health=10, pronouns="they/them"
+            )
+            assert entity["faction"] in line
 
 
 class TestSelectiveIntel:
-    """Selective intel sharing tests."""
+    """Selective intel sharing with tgt_xxxx recipients."""
 
-    def test_broadcast_intel_visible_to_all(self):
-        """Intel without recipients should be visible to all allies."""
+    def test_intel_delivered_to_recipient(self):
+        """Intel should be visible to specified recipient target_id."""
         intel = SharedIntel()
-        intel.add_intel("e1", "Target spotted at Near-PC", round_num=1)
-        result = intel.get_recent_intel_for_agent("e2", current_round=1)
+        intel.add_intel("tgt_1111", "Flanking left", round_num=1,
+                        recipients={"tgt_2222"})
+        result = intel.get_recent_intel_for_target("tgt_2222", current_round=1)
         assert len(result) == 1
+        assert "Flanking left" in result[0]
 
-    def test_selective_intel_only_to_recipients(self):
-        """Intel with recipients should only be visible to those agents."""
+    def test_intel_not_visible_to_non_recipient(self):
+        """Intel should NOT be visible to targets not in recipients."""
         intel = SharedIntel()
-        intel.add_intel("e1", "Secret info", round_num=1,
-                        recipients={"e2"})
-        result_e2 = intel.get_recent_intel_for_agent("e2", current_round=1)
-        result_e3 = intel.get_recent_intel_for_agent("e3", current_round=1)
-        assert len(result_e2) == 1
-        assert len(result_e3) == 0
+        intel.add_intel("tgt_1111", "Secret plan", round_num=1,
+                        recipients={"tgt_2222"})
+        result = intel.get_recent_intel_for_target("tgt_3333", current_round=1)
+        assert len(result) == 0
+
+    def test_intel_leak_to_pc(self):
+        """Enemy intel addressed to a PC target_id should be visible to that PC."""
+        intel = SharedIntel()
+        # Enemy tgt_1111 thinks tgt_9999 is an ally, but it's a PC
+        intel.add_intel("tgt_1111", "Attack the Freeborn on the left",
+                        round_num=1, recipients={"tgt_9999"})
+        # PC queries their intel
+        result = intel.get_recent_intel_for_target("tgt_9999", current_round=1)
+        assert len(result) == 1
+        assert "Attack the Freeborn" in result[0]
+
+    def test_no_broadcast_without_recipients(self):
+        """Intel with empty recipients should not be delivered to anyone."""
+        intel = SharedIntel()
+        intel.add_intel("tgt_1111", "Hello", round_num=1,
+                        recipients=set())
+        result = intel.get_recent_intel_for_target("tgt_2222", current_round=1)
+        assert len(result) == 0
+
+    def test_intel_expires_after_lookback(self):
+        """Intel older than lookback rounds should not appear."""
+        intel = SharedIntel()
+        intel.add_intel("tgt_1111", "Old info", round_num=1,
+                        recipients={"tgt_2222"})
+        result = intel.get_recent_intel_for_target("tgt_2222",
+                                                    current_round=5,
+                                                    lookback=2)
+        assert len(result) == 0
+
+    def test_multiple_recipients(self):
+        """Intel can be addressed to multiple targets."""
+        intel = SharedIntel()
+        intel.add_intel("tgt_1111", "Group intel", round_num=1,
+                        recipients={"tgt_2222", "tgt_3333", "tgt_4444"})
+        assert len(intel.get_recent_intel_for_target("tgt_2222", 1)) == 1
+        assert len(intel.get_recent_intel_for_target("tgt_3333", 1)) == 1
+        assert len(intel.get_recent_intel_for_target("tgt_4444", 1)) == 1
+        assert len(intel.get_recent_intel_for_target("tgt_5555", 1)) == 0
 
 
-class TestAutoIdentification:
-    """Automatic identification triggers."""
+class TestInterceptedIntel:
+    """PC receiving accidentally leaked enemy intel."""
 
-    def test_combat_engagement_identifies(self):
-        """Attacking a target should auto-identify them."""
-        tracker = IdentityTracker()
-        tracker.enable()
+    def test_intercepted_intel_formatted(self):
+        """Leaked intel should appear as intercepted communication."""
+        intel = SharedIntel()
+        intel.add_intel("tgt_1111", "Focus fire on the rifleman",
+                        round_num=1, recipients={"tgt_9999"})
+        text = build_intercepted_intel_section("tgt_9999", intel, current_round=1)
+        assert "INTERCEPTED" in text
+        assert "Focus fire on the rifleman" in text
 
-        enemy = MockEnemy(agent_id="e1", name="Grunt", faction="ACG")
-        pc = MockPlayer(agent_id="p1", name="Ash", faction="Freeborn")
-        mapper = MockTargetIDMapper({"e1": "tgt_1", "p1": "tgt_2"})
+    def test_no_intercepted_section_when_empty(self):
+        """No intercepted section when PC has no leaked intel."""
+        intel = SharedIntel()
+        text = build_intercepted_intel_section("tgt_9999", intel, current_round=1)
+        assert text == ""
 
-        tracker.initialize_combat([pc], [enemy], [], mapper)
 
-        auto_identify_on_engagement(
-            attacker_id="e1",
-            target_id="tgt_2",
-            target_agent=pc,
-            identity_tracker=tracker,
-            round_num=1
+class TestEnemyDecisionIntelRecipients:
+    """EnemyDecision schema with intel_recipients field."""
+
+    def test_intel_recipients_accepts_target_ids(self):
+        """intel_recipients should accept a list of tgt_xxxx strings."""
+        decision = EnemyDecision(
+            action="attack",
+            target="tgt_7a3f",
+            shared_intel="Target is flanking",
+            intel_recipients=["tgt_2222", "tgt_3333"]
         )
+        assert decision.intel_recipients == ["tgt_2222", "tgt_3333"]
 
-        k = tracker.get_knowledge("e1")
-        identity = k.get_identity("tgt_2")
-        assert identity.identification_level >= IdentificationLevel.IDENTIFIED
-
-    def test_close_range_passive_identification(self):
-        """Being at Melee range should auto-grant PARTIAL identification."""
-        tracker = IdentityTracker()
-        tracker.enable()
-
-        enemy = MockEnemy(agent_id="e1", name="Grunt", faction="ACG")
-        pc = MockPlayer(agent_id="p1", name="Ash", faction="Freeborn")
-        mapper = MockTargetIDMapper({"e1": "tgt_1", "p1": "tgt_2"})
-
-        tracker.initialize_combat([pc], [enemy], [], mapper)
-
-        passive_identification_at_range(
-            observer_id="e1",
-            target_id="tgt_2",
-            target_agent=pc,
-            distance="Melee",
-            identity_tracker=tracker,
-            round_num=1
+    def test_intel_recipients_defaults_to_none(self):
+        """intel_recipients should default to None (backward compat)."""
+        decision = EnemyDecision(
+            action="attack",
+            target="tgt_7a3f"
         )
-
-        k = tracker.get_knowledge("e1")
-        identity = k.get_identity("tgt_2")
-        assert identity.identification_level >= IdentificationLevel.PARTIAL
+        assert decision.intel_recipients is None
 ```
 
 ### Integration Tests
 
 **File:** `tests/integration/test_iff_integration.py`
 
-1. **Full IFF combat round:** Initialize combat with IFF enabled, verify enemies see
-   "Unknown contact" for PCs in their first prompt.
-2. **Scan identifies target:** Enemy uses Scan, verify identification level increases
-   in next round's prompt.
-3. **Combat engagement auto-identifies:** After enemy attacks PC, verify full
-   identification in subsequent rounds.
-4. **Selective intel:** Enemy A shares intel with Enemy B only. Verify Enemy C does
-   not receive it.
-5. **PC identification sharing:** PC identifies enemy, shares via social action,
-   verify other PC's knowledge updates.
+1. **IFF combatant list format:** Build a combatant list with IFF enabled. Verify
+   no `player`, `enemy`, `npc`, `friendly`, `hostile`, or `ally` labels appear.
+   Verify all entries show faction names.
+
+2. **Enemy prompt neutralized:** Build enemy prompt with IFF enabled. Verify no
+   "PC TARGETS" section header. Verify all contacts in a single "DETECTED CONTACTS"
+   list. Verify no pre-sorted threat priorities.
+
+3. **Intel leak scenario:** Enemy posts intel with a PC's tgt_xxxx as recipient.
+   Verify the PC's prompt includes the leaked intel in "INTERCEPTED COMMUNICATIONS".
+
+4. **Intel isolation:** Enemy posts intel with only fellow enemy tgt_xxxx as
+   recipients. Verify PC prompt does NOT include the intel.
+
+5. **IFF disabled backward compat:** With `iff_enabled: false`, verify combatant
+   list uses original format with relationship labels. Verify SharedIntel uses
+   original global broadcast behavior.
 
 ---
 
 ## Migration Notes
 
-- `identity_tracking.py` is a new file -- no existing code to break.
-- SharedIntel `add_intel()` gains optional `recipients` parameter with default=None
-  (broadcast), maintaining full backward compatibility.
+- SharedIntel refactor changes the API signature. `add_intel()` now requires
+  `source_target_id` (was `source_agent`) and `recipients` (was optional).
+  `get_recent_intel()` → `get_recent_intel_for_target()`. All callers in
+  `enemy_combat.py` must be updated.
+
+- When IFF is disabled (`iff_enabled: false` or absent), SharedIntel falls back
+  to legacy behavior: `recipients=None` broadcasts to all enemies. This requires
+  a compatibility shim in the transition period.
+
 - EnemyDecision gains optional `intel_recipients` field with default=None.
-- SocialAction gains optional `share_identification` field with default=None.
-- IdentityTracker has an `enabled` flag (default False). When disabled, all existing
-  behavior is preserved -- combatant lists show full information, SharedIntel
-  broadcasts globally.
-- Session config should add `"iff_enabled": true` to enable the system.
+  Backward compatible.
+
+- `get_combatant_info()` in `target_ids.py` must include `faction` in the returned
+  dict. Currently it returns `type` but not `faction`. The faction must be extracted
+  from the underlying agent object.
+
+- Session config adds `"iff_enabled": true` field. Default false.
 
 ---
 
 ## Open Questions
 
-1. **Session config opt-in.** Should IFF be enabled globally or per-session?
-   **Recommendation:** Per-session via `"iff_enabled": true` in session config.
-   Default to false for backward compatibility. Enable for IFF training data
-   generation sessions.
+1. **Should the DM's combatant list also strip labels?**
+   **Current answer:** No. The DM needs full relationship info to correctly
+   adjudicate actions (e.g., knowing whether a target is an NPC prisoner vs an
+   active enemy for soulcredit adjudication). Only agent-facing lists are stripped.
 
-2. **Reinforcement knowledge.** When enemies spawn mid-combat, what do they know?
-   **Recommendation:** Reinforcements start with UNKNOWN for all targets. They must
-   identify or receive intel from existing allies. This rewards players who eliminate
-   communication channels.
+2. **Should enemy faction context include explicit ally/enemy faction lists?**
+   **Current answer:** No. The enemy prompt says "You are ACG" and lets the LLM
+   reason. Providing a list of "hostile factions: Freeborn, Tempest" would
+   bypass the IFF challenge. The LLM must reason from world knowledge or
+   scenario context.
 
-3. **NPC identification.** Do NPCs identify other agents?
-   **Recommendation:** NPCs know local NPCs (same area) but not PCs or enemies.
-   Friendly NPCs may provide identification intel to PCs ("Those are ACG enforcers,
-   be careful!") as a dialogue action.
+3. **What happens when enemies have no same-faction allies on the field?**
+   The enemy must decide whether contacts from other factions are potential
+   allies or threats. This is the most interesting IFF scenario. No special
+   handling needed -- the LLM reasons from context.
 
-4. **IFF and stealth interaction.** If a hidden agent is detected, does detection
-   also provide identification?
-   **Recommendation:** Detection (spec 05) reveals presence but not identity. A
-   separate identification check is needed. However, detection at close range (Melee)
-   auto-grants PARTIAL identification.
+4. **Should NPC `prisoner` disposition be visible in IFF mode?**
+   **Current answer:** Yes. "Prisoner" is an observable physical state (bound,
+   restrained, under guard), not a relationship label. An agent can see someone
+   is a prisoner without knowing their allegiance.
 
-5. **Friendly fire prevention.** In full IFF mode, agents might attack unidentified
-   allies. Should the system prevent this?
-   **Recommendation:** No. Friendly fire from misidentification is a valid ML training
-   signal. The ROE (Rules of Engagement) prompt should discourage it, but the system
-   should not mechanically prevent it.
+5. **Friendly fire from IFF errors -- should the system prevent it?**
+   **Current answer:** No. Friendly fire from misidentification is a valid ML
+   training signal. The system should not mechanically prevent it. If an enemy
+   attacks a same-faction ally because it couldn't reason correctly about
+   allegiance, that's training data about IFF failure modes.
 
-6. **Performance impact.** Per-agent combatant lists mean building N different lists
-   per round instead of 1. With 4 PCs + 4 enemies + NPCs, this could be 10+ lists.
-   **Recommendation:** Only build agent-specific lists when IFF is enabled. Cache the
-   DM's full list and filter it per-agent rather than rebuilding from scratch.
+6. **How does this interact with the `_format_target_priorities()` removal?**
+   Without pre-sorted threat priorities, enemy agents must assess targets
+   themselves. This is intentional -- threat assessment is part of the IFF
+   reasoning challenge. However, it may increase enemy decision latency and
+   reduce tactical coherence. Monitor in initial test sessions.
 
-7. **Enemy faction diversity.** If enemies from different factions are present, do
-   they know each other?
-   **Recommendation:** Enemies from DIFFERENT factions start as UNKNOWN to each other.
-   Only same-faction enemies are auto-identified as allies. This enables three-way
-   combat scenarios.
-
-8. **Identification persistence.** Does identification carry across combat encounters
-   in the same session?
-   **Recommendation:** Yes. Once identified, a target remains identified for the
-   entire session. This rewards early investment in identification.
+7. **SharedIntel backward compatibility during transition.**
+   The SharedIntel API change (required recipients, tgt_xxxx IDs) breaks the
+   current callers. During transition, maintain a compatibility mode where
+   `recipients=None` broadcasts to all same-faction enemies (legacy behavior).
+   Remove the compat mode after all callers are updated.
