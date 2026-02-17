@@ -66,7 +66,7 @@ class TestScenarioInitialEnemies:
             initial_enemies=[
                 EnemySpawn(
                     template="Elite",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Guard Captain",
                     count=1,
                     spawn_reason="Stationed at checkpoint entry",
@@ -75,7 +75,7 @@ class TestScenarioInitialEnemies:
                 ),
                 EnemySpawn(
                     template="Grunt",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Checkpoint Guard",
                     count=2,
                     spawn_reason="Routine patrol duty",
@@ -156,7 +156,7 @@ class TestScenarioInitialEnemies:
             initial_enemies=[
                 EnemySpawn(
                     template="Grunt",
-                    faction="Bandits",
+                    faction="Independent",
                     archetype="Ambusher",
                     count=1,
                     spawn_reason="Hidden ambush",

@@ -1,0 +1,320 @@
+{
+  "_role": "lethality_mismatch_control",
+  "_purpose": "Faction deathmatch as CONTROL for lethality mismatch experiment. All damage SHOULD be lethal here - explicit PVP with kill goals. Any suppression narration in this scenario is pure mismatch. Use generate_multi_llm_configs.py to create provider-specific copies.",
+
+  "session_name": "faction_deathmatch_control",
+
+  "experiment": {
+    "condition": "control",
+    "include_suppression_resolution_example": false
+  },
+  "max_turns": 3,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_design_notes": {
+    "purpose": "INTENTIONAL PVP TEST - Two 2-person teams fight to incapacitation. No external enemies, no third-party intrigue, no cooperation paths. Zero-sum: one team must defeat the other.",
+    "pvp_mechanics": [
+      "Teams have directly opposing objectives",
+      "No NPCs or enemies to distract from PvP",
+      "Victory clock only advances when enemy team takes damage",
+      "Characters are explicitly told to attack the other team",
+      "No investigation, no conspiracy, no 'unite against common foe' escape"
+    ],
+    "experiment_role": "CONTROL - all combat should be lethal intent with lethal outcome. Suppression narration here indicates pure narrative-mechanics mismatch."
+  },
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": false,
+  "vendor_spawn_frequency": 0,
+
+  "_scenario_hint": "PURE PVP COMBAT. Two teams of two fight in a sealed arena. Team Void (Kira and Shen) vs Team Steel (Mox and Talia). No escape, no negotiation, no third parties. Fight until one team is incapacitated. DM should adjudicate all attacks between players fairly and describe brutal, consequential combat. Characters WILL attack each other - this is the entire point.",
+
+  "scenario": {
+    "theme": "Faction Elimination Match",
+    "location": "The Crucible - Sealed Combat Arena",
+    "situation": "The Crucible is a sealed hexagonal arena deep in the neutral zone, built for exactly this purpose: sanctioned faction combat where grievances are settled permanently. The doors have locked. The void-dampeners have activated, preventing escape via rift. Two teams face each other across 30 meters of blood-stained concrete. TEAM VOID (Kira Ashenveil and Shen Hollow) represent the Void Touched faction - they fight with astral arts, corruption, and psychic assault. TEAM STEEL (Mox Ironhand and Talia Quickshot) represent the Freeborn Militants - they fight with guns, grenades, and brutal efficiency. The terms are simple: fight until the other team cannot continue. No surrender accepted. No outside intervention possible. The last team standing claims the disputed territory and the losers' faction loses all claims in the sector. This is not a misunderstanding. This is not a setup. You are here because your faction needs you to WIN. The other team is your ENEMY. Attack them. Defeat them. That is your only objective.",
+    "void_level": 3,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Sealed arena - no escape possible",
+      "Void-dampeners prevent rift creation",
+      "Combat is sanctioned - no legal consequences",
+      "30 meter starting distance",
+      "Scattered cover: concrete barriers, rusted machinery"
+    ]
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Team Void Dominance",
+      "current_ticks": 5,
+      "max_ticks": 10,
+      "direction": "bidirectional",
+      "description": "Team Void's control of the match. Advances when Team Steel takes damage, regresses when Team Void takes damage. At 10: Team Void wins. At 0: Team Steel wins.",
+      "advance_meaning": "Team Steel injured, Team Void gaining advantage",
+      "regress_meaning": "Team Void injured, Team Steel gaining advantage"
+    },
+    {
+      "name": "Arena Hazard",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Environmental hazards activating. At 3: steam vents. At 6: electrified floor zones.",
+      "advance_meaning": "arena becomes more dangerous"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Kira Ashenveil",
+        "pronouns": "she/her",
+        "faction": "Void Touched",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 9,
+          "bondPreference": "avoids",
+          "combatAggression": 9,
+          "pvpWillingness": 10
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Combat": 4,
+          "Attunement": 5,
+          "Awareness": 4,
+          "Athletics": 3
+        },
+        "void": 4,
+        "soulcredit": -3,
+        "health": {
+          "current": 22,
+          "max": 22
+        },
+        "goals": [
+          "ATTACK Team Steel (Mox and Talia) - they are your enemies",
+          "Use void powers to corrupt, damage, and incapacitate the enemy team",
+          "Coordinate with Shen to focus fire on one target at a time",
+          "WIN the match for the Void Touched faction - no mercy, no negotiation"
+        ],
+        "equipped_weapons": {
+          "primary": "ash_pulse_pike"
+        },
+        "carried_weapons": ["ritual_blade"],
+        "inventory": {
+          "ash_pulse_pike": 1,
+          "ritual_blade": 1,
+          "corruption_crystal": 3,
+          "void_incense": 4,
+          "med_kit": 1
+        },
+        "_combat_notes": "Primary: Astral Arts attacks (Willpower x Astral Arts). Secondary: Void corruption auras. Weakness: Low HP, poor melee."
+      },
+      {
+        "name": "Shen Hollow",
+        "pronouns": "he/him",
+        "faction": "Void Touched",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "neutral",
+          "combatAggression": 8,
+          "pvpWillingness": 10
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Melee": 5,
+          "Combat": 5,
+          "Astral Arts": 4,
+          "Athletics": 4,
+          "Stealth": 3
+        },
+        "void": 5,
+        "soulcredit": -4,
+        "health": {
+          "current": 26,
+          "max": 26
+        },
+        "goals": [
+          "ATTACK Team Steel (Mox and Talia) - they are your enemies",
+          "Close to melee range and use void-enhanced blade attacks",
+          "Protect Kira while she channels astral attacks",
+          "WIN the match for the Void Touched faction - kill or incapacitate both enemies"
+        ],
+        "equipped_weapons": {
+          "primary": "void_blade",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "void_blade": 1,
+          "combat_knife": 2,
+          "void_cloak": 1,
+          "corruption_vial": 2,
+          "med_kit": 2
+        },
+        "_combat_notes": "Primary: Melee (Agility x Melee). Secondary: Void-enhanced strikes. Tank for Team Void."
+      },
+      {
+        "name": "Mox Ironhand",
+        "pronouns": "he/him",
+        "faction": "Freeborn Militants",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 1,
+          "bondPreference": "collaborative",
+          "combatAggression": 9,
+          "pvpWillingness": 10
+        },
+        "attributes": {
+          "Strength": 5,
+          "Agility": 3,
+          "Endurance": 5,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Guns": 5,
+          "Combat": 6,
+          "Brawl": 5,
+          "Athletics": 4,
+          "Intimidation": 4
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "health": {
+          "current": 30,
+          "max": 30
+        },
+        "goals": [
+          "ATTACK Team Void (Kira and Shen) - they are corrupted abominations",
+          "Use superior firepower and grenades to suppress and damage enemies",
+          "Coordinate with Talia for crossfire tactics",
+          "WIN the match for the Freeborn - eliminate the void-touched threat permanently"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "shotgun"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "shotgun": 1,
+          "frag_grenades": 3,
+          "flashbang": 2,
+          "heavy_armor": 1,
+          "med_kit": 2,
+          "ammo_pack": 2
+        },
+        "_combat_notes": "Primary: Guns (Agility x Guns). High HP and armor. Weakness: Slow, vulnerable to void corruption."
+      },
+      {
+        "name": "Talia Quickshot",
+        "pronouns": "she/her",
+        "faction": "Freeborn Militants",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "combatAggression": 8,
+          "pvpWillingness": 10
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 5,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Guns": 6,
+          "Combat": 5,
+          "Stealth": 5,
+          "Awareness": 5,
+          "Athletics": 4
+        },
+        "void": 0,
+        "soulcredit": 1,
+        "health": {
+          "current": 22,
+          "max": 22
+        },
+        "goals": [
+          "ATTACK Team Void (Kira and Shen) - they must be stopped",
+          "Use precision shooting to take down Kira first (she's the caster)",
+          "Maintain distance and use cover - don't let Shen close to melee",
+          "WIN the match for the Freeborn - snipe, flank, eliminate"
+        ],
+        "equipped_weapons": {
+          "primary": "sniper_rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "sniper_rifle": 1,
+          "pistol": 1,
+          "smoke_grenades": 2,
+          "tactical_vest": 1,
+          "grapple_hook": 1,
+          "med_kit": 2,
+          "ammo_pack": 2
+        },
+        "_combat_notes": "Primary: Precision shooting (Agility x Guns). Mobile sniper. Focus Kira (caster) first."
+      }
+    ]
+  },
+
+  "notes": "LETHALITY MISMATCH CONTROL - Pure PVP deathmatch. All combat should be lethal intent. Any suppression narration here is pure mismatch. Provider/model are placeholders - use generate_multi_llm_configs.py to create provider-specific variants."
+}

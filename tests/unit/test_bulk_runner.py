@@ -156,7 +156,8 @@ class TestConfigManipulation:
         dm_llm = modified['agents']['dm']['llm']
         assert dm_llm['use_proxy'] is True
         assert dm_llm['proxy_url'] == "http://proxy:8000"
-        assert dm_llm['provider'] == "openai"  # Preserved
+        assert dm_llm['provider'] == "batch_proxy"  # Switched to batch_proxy
+        assert dm_llm['underlying_provider'] == "openai"  # Original preserved
 
     def test_inject_proxy_config_players(self):
         """Test proxy config injection into player agents."""
@@ -174,6 +175,11 @@ class TestConfigManipulation:
         for player in modified['agents']['players']:
             assert player['llm']['use_proxy'] is True
             assert player['llm']['proxy_url'] == "http://proxy:8000"
+            assert player['llm']['provider'] == "batch_proxy"
+
+        # Verify original providers are preserved
+        assert modified['agents']['players'][0]['llm']['underlying_provider'] == "anthropic"
+        assert modified['agents']['players'][1]['llm']['underlying_provider'] == "openai"
 
     def test_inject_proxy_config_no_agents(self):
         """Test proxy injection handles missing agents gracefully."""

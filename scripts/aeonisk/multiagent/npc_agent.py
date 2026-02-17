@@ -358,12 +358,13 @@ class NPCAction(BaseModel):
     - comply: Follow player orders
     - dialogue: Talk, answer questions
     - assist: Help players (if friendly)
-    - attack: Attack players/others (triggers self-escalation to enemy)
+    - heal: Use Medicine skill to stabilize wounded allies (requires target)
+    - attack: Attack players/others (simplified YAGS combat)
     - transfer: Give currency/items to another character
     - pass: Explicitly do nothing
     """
 
-    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "transfer", "pass"]
+    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "heal", "attack", "transfer", "pass"]
     reason: str = Field(
         ...,
         min_length=10,
@@ -429,6 +430,22 @@ class NPCAction(BaseModel):
                 f"Example: dialogue_content='Please don't shoot, I surrender!'"
             )
 
+        # Attack validation
+        if self.action_type == "attack" and not self.target:
+            raise ValueError(
+                "target is REQUIRED when action_type='attack'. "
+                "Specify the agent_id or tgt_ ID of the character to attack. "
+                "Example: target='tgt_1234'"
+            )
+
+        # Heal validation
+        if self.action_type == "heal" and not self.target:
+            raise ValueError(
+                "target is REQUIRED when action_type='heal'. "
+                "Specify the agent_id of the character to heal. "
+                "Example: target='player_01'"
+            )
+
         # Transfer validation
         if self.action_type == "transfer":
             if not self.transfer_target:
@@ -449,7 +466,7 @@ class NPCLLMClient:
 
     Much simpler than PlayerLLMClient:
     - Prompts ~500 tokens (vs ~2000 for players)
-    - Limited action set (flee/hide/plead/comply/dialogue/assist/transfer/attack/pass)
+    - Limited action set (flee/hide/plead/comply/dialogue/assist/heal/transfer/attack/pass)
     - No LOOKUP capability (pre-baked faction lore)
     - Opportunistic acting (skip turns when nothing interesting)
     """
@@ -573,7 +590,10 @@ class NPCLLMClient:
 - **Pantheon Security** = Law enforcement
 - **Tempest Industries** = Anti-Nexus rebels (void research)
 - **House of Vox** = Media/broadcast corporation
+- **Aether Dynamics** = Leyline power, slipstream pilots (corporate, Nexus-aligned)
 - **Freeborn** = Natural-born, outside the pod system
+
+{self._get_faction_context()}
 
 **Action Options:**
 - flee: Run away from danger
@@ -582,6 +602,7 @@ class NPCLLMClient:
 - comply: Follow instructions, cooperate
 - **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
 - assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
+- **heal: Use Medicine skill to stabilize wounded allies** - REQUIRES target ID (tgt_xxxx). Check wounds < 6 first!
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - **transfer: Give currency/items to another character - REQUIRES transfer_target + transfer_currency/transfer_items**
 - pass: Do nothing this turn (use when situation doesn't involve you)
@@ -621,6 +642,17 @@ class NPCLLMClient:
 
 Choose the most appropriate action and explain why in 10-100 words."""
 
+    def _get_faction_context(self) -> str:
+        """Get faction relationship context for NPC prompt."""
+        from .faction_utils import get_faction_description, get_faction_stance
+        faction = getattr(self.npc, 'faction', 'Unknown')
+        desc = get_faction_description(faction)
+        stance = get_faction_stance(faction)
+        return f"""**Your Faction Relationships:**
+Your faction ({faction}) stance: {stance}
+{desc}
+This affects who you trust, resist, or cooperate with."""
+
     def _build_prompt(self, context: str) -> str:
         """Build user prompt with NPC state and context."""
         # Get health status
@@ -643,13 +675,19 @@ Choose the most appropriate action and explain why in 10-100 words."""
 - Vary your dialogue and actions based on what has happened
 """
 
+        # Build skills section (so LLM knows what NPC can do, especially Medicine for healing)
+        skills_section = ""
+        if hasattr(self.npc, 'skills') and self.npc.skills:
+            skills_text = ", ".join(f"{k}: {v}" for k, v in self.npc.skills.items())
+            skills_section = f"\n- Skills: {skills_text}"
+
         prompt = f"""**Current Situation:**
 {context}
 {memory_section}
 **Your Status:**
 - Health: {self.npc.health}/{self.npc.max_health} ({health_status})
 - Disposition: {self.npc.disposition}
-- Stuns: {self.npc.stuns}, Wounds: {self.npc.wounds}
+- Stuns: {self.npc.stuns}, Wounds: {self.npc.wounds}{skills_section}
 
 What do you do? Choose action_type and explain your reason."""
 

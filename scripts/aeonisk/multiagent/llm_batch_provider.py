@@ -141,11 +141,13 @@ class BatchProxyProvider(LLMProvider):
         **kwargs
     ):
         """
-        Generate structured output via batch proxy.
+        Generate structured output via batch proxy with retry-then-truncate resilience.
 
-        This method requests JSON output and validates against a Pydantic schema.
-        The proxy server should ideally support structured output natively, but
-        we use prompt engineering as a fallback.
+        Retry flow:
+        1. Generate + parse + validate
+        2. On ValidationError/JSONDecodeError: retry with error feedback (up to max_retries)
+        3. After retries exhausted: truncate long string fields and return
+        4. Non-retryable errors (connection, auth): raise immediately
 
         Args:
             prompt: User prompt/message
@@ -162,6 +164,7 @@ class BatchProxyProvider(LLMProvider):
         """
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
+        max_retries = 2  # 3 total attempts: 1 initial + 2 retries
 
         # Get JSON schema from Pydantic model
         schema = result_type.model_json_schema()
@@ -172,14 +175,27 @@ class BatchProxyProvider(LLMProvider):
         enhanced_system_prompt += f"\n\nYou must respond with valid JSON matching this schema:\n{schema_json}\n"
         enhanced_system_prompt += "\nRespond ONLY with the JSON object, no additional text."
 
-        # Build messages
-        messages = []
-        if enhanced_system_prompt:
-            messages.append({"role": "system", "content": enhanced_system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        last_error = None
+        last_data = None
+        content = None
 
-        # Call via unified client
-        try:
+        for attempt in range(1 + max_retries):
+            # Build messages (may include error feedback on retry)
+            messages = []
+            if enhanced_system_prompt:
+                messages.append({"role": "system", "content": enhanced_system_prompt})
+
+            user_content = prompt
+            if attempt > 0 and last_error:
+                user_content = (
+                    f"{prompt}\n\n"
+                    f"YOUR PREVIOUS RESPONSE FAILED VALIDATION: {last_error}\n"
+                    f"Please regenerate with shorter text for the fields that exceeded limits."
+                )
+
+            messages.append({"role": "user", "content": user_content})
+
+            # Call via unified client — non-retryable errors propagate immediately
             content = self.client.chat_completion(
                 messages=messages,
                 model=self.config.model,
@@ -188,7 +204,12 @@ class BatchProxyProvider(LLMProvider):
             )
 
             # Parse JSON response
-            # Try to extract JSON if wrapped in markdown code blocks
+            if not content or not content.strip():
+                last_error = f"Batch proxy returned empty/null content for {result_type.__name__}"
+                logger.warning(f"Attempt {attempt + 1}: {last_error}")
+                continue
+
+            # Strip markdown code blocks
             if content.startswith("```json"):
                 content = content[7:]
             if content.startswith("```"):
@@ -200,18 +221,39 @@ class BatchProxyProvider(LLMProvider):
             # Attempt to repair common JSON issues before parsing
             content = self._repair_json(content)
 
-            # Parse and validate
-            data = json.loads(content)
+            # Try to parse JSON
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError as e:
+                last_error = str(e)
+                last_data = None
+                logger.warning(
+                    f"Attempt {attempt + 1}/{1 + max_retries}: JSON parse failed: {e}. "
+                    f"Content preview: {repr(content[:200])}"
+                )
+                continue
 
-            # Pre-filter invalid position_changes to prevent crash
-            # This handles cases where LLM generates invalid Position enum values
+            # Pre-filter invalid position_changes
             data = self._filter_invalid_position_changes(data)
 
-            validated = result_type(**data)
+            # Preemptive truncation when force_truncate is enabled
+            if self.config.force_truncate:
+                data = self._pre_validate_fields(data, schema)
 
-            # Log if logger provided
+            # Try to validate against Pydantic schema
+            try:
+                validated = result_type(**data)
+            except Exception as e:
+                last_error = str(e)
+                last_data = data
+                logger.warning(
+                    f"Attempt {attempt + 1}/{1 + max_retries}: Validation failed for "
+                    f"{result_type.__name__}: {e}"
+                )
+                continue
+
+            # Success — log and return
             if llm_logger:
-                # Estimate tokens (rough approximation: 1 token ≈ 4 chars)
                 input_chars = len(enhanced_system_prompt) + len(prompt)
                 output_chars = len(content)
                 estimated_tokens = {
@@ -219,7 +261,6 @@ class BatchProxyProvider(LLMProvider):
                     'output': output_chars // 4,
                     'total': (input_chars + output_chars) // 4
                 }
-
                 llm_logger._log_llm_call(
                     messages=messages,
                     response=content,
@@ -232,12 +273,49 @@ class BatchProxyProvider(LLMProvider):
 
             return validated
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}\nResponse: {content[:500]}")
-            raise
-        except Exception as e:
-            logger.error(f"Batch proxy structured generation failed: {e}")
-            raise
+        # All retries exhausted — try truncation as last resort
+        if last_data is not None:
+            logger.warning(
+                f"All {1 + max_retries} attempts failed for {result_type.__name__}. "
+                f"Truncating long fields as last resort."
+            )
+            truncated_data = self._pre_validate_fields(last_data, schema)
+            validated = result_type(**truncated_data)
+
+            if llm_logger and content:
+                input_chars = len(enhanced_system_prompt) + len(prompt)
+                output_chars = len(content)
+                estimated_tokens = {
+                    'input': input_chars // 4,
+                    'output': output_chars // 4,
+                    'total': (input_chars + output_chars) // 4
+                }
+                llm_logger._log_llm_call(
+                    messages=messages,
+                    response=content,
+                    model=self.config.model,
+                    temperature=temperature,
+                    tokens=estimated_tokens,
+                    current_round=current_round,
+                    call_sequence=llm_logger.call_count
+                )
+
+            return validated
+
+        # No parseable data at all — raise the last error
+        raise ValueError(
+            f"Failed to generate valid {result_type.__name__} after {1 + max_retries} attempts: {last_error}"
+        )
+
+    def _pre_validate_fields(self, data: Dict, schema: Dict) -> Dict:
+        """Truncate string fields exceeding maxLength. Delegates to standalone utility."""
+        from .llm_provider import truncate_to_schema_limits
+        return truncate_to_schema_limits(data, schema)
+
+    def _resolve_schema_ref(self, field_schema: Dict, defs: Dict) -> Dict:
+        """Resolve a $ref or anyOf reference in JSON schema. Delegates to standalone utility."""
+        from .llm_provider import _resolve_schema_ref
+        return _resolve_schema_ref(field_schema, defs)
 
     def _repair_json(self, content: str) -> str:
         """

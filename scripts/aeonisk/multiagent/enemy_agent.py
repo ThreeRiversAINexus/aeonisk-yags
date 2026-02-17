@@ -320,7 +320,8 @@ class EnemyAgent:
     tactics: str = "aggressive_melee"  # Combat doctrine
     threat_priority: str = "closest_threat"  # Target selection strategy
     retreat_threshold: float = 0.3  # Morale % (0.0-1.0)
-    personality: str = "flee_when_broken"  # Morale behavior: flee_when_broken | surrender_if_cornered | fight_to_death
+    morale_behavior: str = "flee_when_broken"  # flee_when_broken | surrender_if_cornered | fight_to_death
+    character_brief: str = ""  # Narrative personality description for LLM prompts
 
     # =========================================================================
     # AEONISK-SPECIFIC
@@ -380,21 +381,19 @@ class EnemyAgent:
 
     def _calculate_base_soak(self) -> int:
         """
-        Calculate base soak (YAGS formula + Aeonisk combat balance).
+        Calculate base soak (pure YAGS formula).
 
         YAGS: Soak = Size + Agility + Endurance - 5
-        Aeonisk: +4 combat balance (symmetric with player Soak)
+        Armor bonus is added separately in __post_init__.
 
-        For size 5 humans with typical stats (Agi=3, End=3): 10
+        For size 5 humans with typical stats (Agi=3, End=3): 6
         """
-        SOAK_COMBAT_BALANCE = 4
-
         size = self.size
         agility = self.attributes.get('Agility', 3)
         endurance = self.attributes.get('Endurance', 3)  # NOT 'Health'!
 
         base_soak = size + agility + endurance - 5
-        return base_soak + SOAK_COMBAT_BALANCE
+        return base_soak
 
     def get_health_percentage(self) -> int:
         """Get current health as percentage."""
@@ -435,10 +434,10 @@ class EnemyAgent:
         action = "continue"
         if not success:
             # Morale broken - what do they do?
-            personality = getattr(self, 'personality', 'flee_when_broken')
-            if personality == 'fight_to_death':
+            morale_behavior = getattr(self, 'morale_behavior', 'flee_when_broken')
+            if morale_behavior == 'fight_to_death':
                 action = "continue"  # Never give up (but morale still failed)
-            elif personality == 'surrender_if_cornered':
+            elif morale_behavior == 'surrender_if_cornered':
                 action = "surrender"
             else:  # flee_when_broken (default)
                 action = "flee"

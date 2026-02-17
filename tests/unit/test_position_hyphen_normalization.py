@@ -46,7 +46,7 @@ class TestPositionHyphenNormalization:
         """EnemySpawn should accept position with non-breaking hyphen."""
         spawn = EnemySpawn(
             template="grunt",
-            faction="Test",
+            faction="Independent",
             archetype="Guard",
             spawn_reason="Testing hyphen normalization",
             initial_position="Near‑PC"  # ← Non-breaking hyphen

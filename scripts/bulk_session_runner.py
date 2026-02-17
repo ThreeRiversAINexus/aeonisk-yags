@@ -36,6 +36,14 @@ Usage:
         --workers 20 \\
         --proxy http://localhost:8000
 
+    # With proxy in direct mode (no batching, immediate API calls)
+    python scripts/bulk_session_runner.py \\
+        --config session_config.json \\
+        --runs 10 \\
+        --workers 4 \\
+        --proxy http://localhost:8000 \\
+        --direct
+
     # Resume failed runs (replay enabled by default - saves API cost)
     python scripts/bulk_session_runner.py \\
         --resume \\
@@ -74,6 +82,7 @@ Options:
     --workers N             Parallel workers (default: 4)
     --output-dir DIR        Output directory (default: bulk_output/)
     --proxy URL             Batch proxy URL (e.g., http://localhost:8000)
+    --direct                Force direct mode through proxy (no batching)
     --resume                Resume from --run-dir, skip completed sessions.
                             Config loaded from metadata.json in run directory.
                             By default uses replay (cached LLM calls) to save cost.
@@ -447,11 +456,37 @@ def load_session_config(config_path: str) -> Dict:
         return json.load(f)
 
 
+def extract_model_from_config(config_path: str, _cache: Dict[str, str] = {}) -> str:
+    """Extract DM model name from session config for logging.
+
+    Caches results per config path since multiple runs share the same config.
+
+    Args:
+        config_path: Path to session config JSON
+
+    Returns:
+        Model name string (e.g. 'gpt-5.2-2025-12-11') or 'unknown' on failure
+    """
+    if config_path in _cache:
+        return _cache[config_path]
+
+    try:
+        config = load_session_config(config_path)
+        model = config.get('agents', {}).get('dm', {}).get('llm', {}).get('model', 'unknown')
+        _cache[config_path] = model
+        return model
+    except Exception:
+        _cache[config_path] = 'unknown'
+        return 'unknown'
+
+
 def modify_config_for_bulk_run(
     config: Dict,
     run_id: int,
     output_path: str,
-    proxy_url: Optional[str] = None
+    proxy_url: Optional[str] = None,
+    proxy_strategy: str = 'auto',
+    force_truncate: bool = False
 ) -> Dict:
     """
     Modify session config for bulk run.
@@ -461,6 +496,8 @@ def modify_config_for_bulk_run(
         run_id: Unique run identifier
         output_path: Output JSONL path for this run
         proxy_url: Optional proxy URL to inject
+        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
+        force_truncate: If True, inject force_truncate into all agent LLM configs
 
     Returns:
         Modified config dict
@@ -483,7 +520,11 @@ def modify_config_for_bulk_run(
 
     # If proxy_url provided, inject into all agent LLM configs
     if proxy_url:
-        modified = inject_proxy_config(modified, proxy_url)
+        modified = inject_proxy_config(modified, proxy_url, proxy_strategy)
+
+    # If force_truncate, inject into all agent LLM configs
+    if force_truncate:
+        modified = inject_force_truncate(modified)
 
     # Disable human interface for bulk runs (prevents Observer> prompt spam)
     modified['enable_human_interface'] = False
@@ -491,31 +532,78 @@ def modify_config_for_bulk_run(
     return modified
 
 
-def inject_proxy_config(config: Dict, proxy_url: str) -> Dict:
+def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> None:
+    """Switch a single LLM config dict to use batch_proxy provider."""
+    llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
+    llm_config['provider'] = 'batch_proxy'
+    llm_config['use_proxy'] = True
+    llm_config['proxy_url'] = proxy_url
+    llm_config['proxy_priority'] = 'normal'
+    llm_config['proxy_strategy'] = proxy_strategy
+
+
+def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> Dict:
     """
     Inject proxy configuration into all agents' LLM configs.
+
+    Switches provider to batch_proxy and saves the original provider
+    as underlying_provider so BatchProxyProvider knows which API to use.
 
     Args:
         config: Session config dict
         proxy_url: Proxy server URL
+        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
 
     Returns:
         Modified config dict
     """
+    agents = config.get('agents', {})
+
     # Inject into DM
-    if 'agents' in config and 'dm' in config['agents']:
-        dm_llm = config['agents']['dm'].get('llm', {})
-        dm_llm['use_proxy'] = True
-        dm_llm['proxy_url'] = proxy_url
-        config['agents']['dm']['llm'] = dm_llm
+    if 'dm' in agents:
+        dm_llm = agents['dm'].get('llm', {})
+        _switch_llm_to_proxy(dm_llm, proxy_url, proxy_strategy)
+        agents['dm']['llm'] = dm_llm
 
     # Inject into players
-    if 'agents' in config and 'players' in config['agents']:
-        for player in config['agents']['players']:
-            player_llm = player.get('llm', {})
-            player_llm['use_proxy'] = True
-            player_llm['proxy_url'] = proxy_url
-            player['llm'] = player_llm
+    for player in agents.get('players', []):
+        player_llm = player.get('llm', {})
+        _switch_llm_to_proxy(player_llm, proxy_url, proxy_strategy)
+        player['llm'] = player_llm
+
+    # Inject into enemy agents
+    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
+        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url, proxy_strategy)
+
+    return config
+
+
+def inject_force_truncate(config: Dict) -> Dict:
+    """
+    Inject force_truncate=True into all agent LLM configs.
+
+    When enabled, providers truncate string fields to their maxLength limits
+    on first attempt instead of retrying the entire LLM call.
+
+    Args:
+        config: Session config dict
+
+    Returns:
+        Modified config dict
+    """
+    agents = config.get('agents', {})
+
+    # Inject into DM
+    if 'dm' in agents:
+        agents['dm'].setdefault('llm', {})['force_truncate'] = True
+
+    # Inject into players
+    for player in agents.get('players', []):
+        player.setdefault('llm', {})['force_truncate'] = True
+
+    # Inject into enemy agents
+    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
+        agents['enemy_agents']['llm']['force_truncate'] = True
 
     return config
 
@@ -528,7 +616,9 @@ def run_single_session(
     log_level: str = "INFO",
     use_stored_config: bool = False,
     session_timeout: int = 90000,
-    attempt_replay: bool = False
+    attempt_replay: bool = False,
+    proxy_strategy: str = 'auto',
+    force_truncate: bool = False
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -612,7 +702,8 @@ def run_single_session(
 
             # Modify config for this run
             modified_config = modify_config_for_bulk_run(
-                config, run_id, str(output_path), proxy_url
+                config, run_id, str(output_path), proxy_url, proxy_strategy,
+                force_truncate
             )
 
             # Write modified config to run directory
@@ -1377,7 +1468,8 @@ def main():
         '--configs',
         type=str,
         nargs='+',
-        help='Multiple config paths (alternative to --config)'
+        action='extend',
+        help='Multiple config paths (alternative to --config). Can repeat: --configs a.json --configs b.json'
     )
     parser.add_argument(
         '--runs',
@@ -1435,6 +1527,13 @@ def main():
         help='Log level for sessions (default: INFO)'
     )
     parser.add_argument(
+        '--direct',
+        action='store_true',
+        help='Force direct API mode through proxy (no batching). '
+             'Requests still route through the proxy but are sent to the '
+             'upstream API immediately instead of being queued for batch processing.'
+    )
+    parser.add_argument(
         '--skip-health-check',
         action='store_true',
         help='Skip proxy health check'
@@ -1475,6 +1574,12 @@ def main():
         action='store_true',
         help='Auto-extract fixtures after generation (use with --regenerate-fixtures). '
              'Reads _fixture_target from configs and extracts to tests/fixtures/sessions/.'
+    )
+    parser.add_argument(
+        '--truncate',
+        action='store_true',
+        help='Force-truncate long string fields instead of retrying LLM calls. '
+             'Saves tokens in bulk runs. Truncation events logged to stdout.log.'
     )
 
     args = parser.parse_args()
@@ -1672,8 +1777,11 @@ def main():
             logger.info(f"Resuming: skipping {skipped_count} completed runs (discovered)")
     else:
         # Normal task generation from config_paths
-        for config_path in config_paths:
-            for run_offset in range(runs_per_config):
+        # Interleave configs (round-robin) so workers run diverse models concurrently.
+        # With configs [A, B, C] × 3 runs each, task order is: A1, B1, C1, A2, B2, C2, ...
+        # This ensures workers pick up different models before doubling up on one.
+        for run_offset in range(runs_per_config):
+            for config_path in config_paths:
                 run_id = len(tasks) + 1
                 tasks.append((str(config_path), run_id, False))  # use_stored_config=False
 
@@ -1690,7 +1798,10 @@ def main():
     logger.info(f"Starting bulk run: {total_runs} sessions across {args.workers} workers")
     logger.info(f"Output directory: {output_dir}")
     if args.proxy:
-        logger.info(f"Proxy URL: {args.proxy}")
+        proxy_strategy = 'direct' if args.direct else 'auto'
+        logger.info(f"Proxy URL: {args.proxy} (strategy: {proxy_strategy})")
+    else:
+        proxy_strategy = 'auto'
     if args.resume and not args.no_replay:
         logger.info(f"🔄 Replay enabled: will try cached LLM replay before fresh restart")
     elif args.resume and args.no_replay:
@@ -1719,8 +1830,15 @@ def main():
             # Note: attempt_replay is only meaningful when resuming incomplete sessions
             # Replay is enabled by default when resuming, unless --no-replay is specified
             attempt_replay = args.resume and not args.no_replay
-            futures = {
-                executor.submit(
+            force_truncate = getattr(args, 'truncate', False)
+            # Build model lookup for logging and submit tasks
+            task_models: Dict[Tuple[str, int], str] = {}
+            futures = {}
+            for config_path, run_id, use_stored_config in tasks:
+                model = extract_model_from_config(config_path)
+                task_models[(config_path, run_id)] = model
+                logger.info(f"Launching run {run_id} ({model})")
+                future = executor.submit(
                     run_single_session,
                     config_path,
                     run_id,
@@ -1729,10 +1847,11 @@ def main():
                     args.log_level,
                     use_stored_config,
                     args.session_timeout,
-                    attempt_replay
-                ): (config_path, run_id)
-                for config_path, run_id, use_stored_config in tasks
-            }
+                    attempt_replay,
+                    proxy_strategy,
+                    force_truncate
+                )
+                futures[future] = (config_path, run_id)
 
             # Process completed runs
             for i, future in enumerate(as_completed(futures), 1):
@@ -1749,16 +1868,18 @@ def main():
                         else:
                             progress_monitor.mark_failed(result.run_id, result.duration_seconds)
 
+                    model = task_models.get((config_path, run_id), 'unknown')
                     if result.success:
                         logger.info(
                             f"[{i}/{total_runs}] ✓ Run {result.run_id} completed "
-                            f"({result.duration_seconds:.1f}s, "
+                            f"({model}, {result.duration_seconds:.1f}s, "
                             f"{result.total_tokens or 0} tokens, "
                             f"{result.total_rounds or 0} rounds)"
                         )
                     else:
                         logger.error(
-                            f"[{i}/{total_runs}] ✗ Run {result.run_id} failed: "
+                            f"[{i}/{total_runs}] ✗ Run {result.run_id} failed "
+                            f"({model}): "
                             f"{result.error[:100] if result.error else 'Unknown error'}"
                         )
 

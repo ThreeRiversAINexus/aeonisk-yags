@@ -1,0 +1,103 @@
+# Suppressive Fire Prompt Optimization Goals
+#
+# Target: DM resolution module correctly differentiates suppressive fire
+# from lethal fire — low/zero base_damage, conditions like Pinned/Suppressed.
+#
+# Usage:
+#   python scripts/prompt_eval_harness.py \
+#     --swap-module scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml \
+#     --sessions ~/Coding/aeonisk-v1/lethal_intent_mismatch/control \
+#                ~/Coding/aeonisk-v1/lethal_intent_mismatch/treatment_v2 \
+#     --self-judge --goal-file evals/goals/suppress_goals.yaml \
+#     --judge-model anthropic:claude-sonnet-4-5 \
+#     --models openai:gpt-5-mini \
+#     --scorers suppression_table damage_comparison \
+#     --output-dir evals/results --proxy http://localhost:8000 --direct
+
+description: |
+  Suppressive fire should produce low/zero base_damage and apply tactical
+  conditions (Pinned, Suppressed, Pinned Down) instead of wound damage.
+  The prompt must teach the DM to classify player intent (suppress vs lethal)
+  and apply the correct damage table. Lethal and stun combat should remain
+  unaffected.
+
+max_iterations: 5
+
+# ── Intent classifier (classifier-first pipeline) ────────
+# Primary filter: extracts ALL PC combat cases, classifies each by intent,
+# then partitions by label. Keywords are not needed — classifier handles it.
+# Labels cached by event_id and shared across primary eval + regressions.
+classifier:
+  model: openai:gpt-5-mini
+  keep: [suppress]
+  drop: [lethal, stun]
+  cache_file: evals/labels/combat_intent_labels.json
+  prompt: |
+    Classify the TACTICAL METHOD described in the player's action.
+
+    Categories:
+    - suppress: Covering fire, suppressive fire, pinning fire, warning shots, firing to deny movement or force into cover. The goal is area denial, NOT hitting a specific target.
+    - lethal: Aimed shots, firing at a target, shooting to wound/kill/neutralize/eliminate. Direct engagement with intent to hit.
+    - stun: Non-lethal takedown — shock baton, taser, knock out, subdue, incapacitate without killing.
+    - unclear: Cannot determine method from the action description.
+
+    IMPORTANT: Classify based on the ACTION DESCRIPTION (what they're physically doing), not the strategic intent. A player can use suppressive fire with the goal of "neutralizing threats" — that's still suppress. A player can aim to kill with the goal of "protecting allies" — that's still lethal.
+
+    Player action: {action_text}
+    Player intent (strategic goal, secondary): {intent_text}
+
+    Respond with exactly one word: suppress, lethal, stun, or unclear
+
+# ── Primary optimization target ──────────────────────────
+eval_subset:
+  action_type: combat
+  # No keywords — classifier handles intent classification
+  max_cases: 20          # Applied AFTER classification
+
+targets:
+  suppression_table:
+    in_range_pct: 80        # >=80% of cases have base_damage within expected margin range
+    has_condition_pct: 60    # >=60% of suppress cases apply a tactical condition
+  damage_comparison:
+    max_avg_base_damage: 5   # worst-model avg base_damage <= 5 for suppressive fire
+
+convergence:
+  min_improvement: 2         # stop if score changes < 2% between iterations
+
+validation:
+  use_all_cases: true        # Phase 2: validate best prompt against ALL matching cases
+
+# ── Regression checks (evaluated, NOT optimized) ────────
+# Drift-based: compares replay avg base_damage against original session data.
+# No hardcoded ranges — each model is measured against its own baseline.
+# If a rewrite causes avg damage to shift more than the drift tolerance,
+# the regression fails and the judge is warned.
+#
+# Each regression overrides classifier keep/drop but inherits model/prompt/cache
+# from the parent classifier section. Same cache → 0 extra LLM calls.
+regressions:
+  lethal_combat:
+    description: Lethal wound damage should not drift from baseline
+    classifier:
+      keep: [lethal]
+      drop: [suppress, stun]
+    eval_subset:
+      action_type: combat
+      weapon_damage_type: wound
+      max_cases: 20
+    targets:
+      damage_comparison:
+        max_drift_pct: 20     # avg base_damage within 20% of original
+
+  stun_combat:
+    description: Stun damage should not drift from baseline
+    classifier:
+      keep: [stun]
+      drop: [suppress, lethal]
+    eval_subset:
+      action_type: combat
+      weapon_damage_type: stun
+      max_cases: 15
+    targets:
+      damage_comparison:
+        max_drift_pct: 25     # slightly more tolerance — small sample (n~15)

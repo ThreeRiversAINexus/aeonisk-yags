@@ -95,6 +95,54 @@ def _parse_surrender_from_resolution(
                             return
 
 
+def _mark_defeated_from_resolution(
+    enemy_combat,
+    resolution_state: ResolutionState
+) -> None:
+    """
+    Sync resolution_state with enemies defeated or incapacitated by PC actions.
+
+    After a PC action resolves and _process_structured_damage_effects sets
+    is_active=False on killed enemies, this marks them as defeated in
+    resolution_state so ActionValidator properly invalidates their later
+    actions (with JSONL events and narration).
+
+    Also catches safety-net cases:
+    - health <= 0 but is_active wasn't set to False
+    - stuns >= 6 (stun KO / unconscious) but is_active wasn't set to False
+
+    Args:
+        enemy_combat: EnemyCombatManager (or None if not in tactical combat)
+        resolution_state: Resolution state to update
+    """
+    if not enemy_combat or not hasattr(enemy_combat, 'enemy_agents'):
+        return
+    for enemy in enemy_combat.enemy_agents:
+        agent_id = enemy.agent_id
+        already_tracked = resolution_state.is_defeated(agent_id) or resolution_state.is_incapacitated(agent_id)
+        if already_tracked:
+            continue
+
+        # Primary check: is_active flag (set by _process_structured_damage_effects)
+        if not enemy.is_active:
+            resolution_state.mark_defeated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as defeated in resolution_state")
+            continue
+
+        # Safety net: health <= 0 but is_active not set
+        health = getattr(enemy, 'health', None)
+        if isinstance(health, (int, float)) and health <= 0:
+            resolution_state.mark_defeated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as defeated (health={health}, safety net)")
+            continue
+
+        # Stun KO: stuns >= 6 means unconscious (YAGS Beaten threshold)
+        stuns = getattr(enemy, 'stuns', 0)
+        if isinstance(stuns, int) and stuns >= 6:
+            resolution_state.mark_incapacitated(agent_id)
+            logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
+
+
 def _get_energy_purse(agent):
     """
     Get energy purse from player or NPC agent.
@@ -1406,12 +1454,7 @@ Generate narratives (numbered list only):"""
                         # Use llm_provider instead of direct Anthropic client
                         from .llm_provider import LLMConfig, create_provider
 
-                        provider_config = LLMConfig(
-                            provider=llm_config.get('provider', 'anthropic'),
-                            model=llm_config.get('model', 'claude-sonnet-4-5'),
-                            temperature=llm_config.get('temperature', 1.0),
-                            max_tokens=500  # Default for enemy agents
-                        )
+                        provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
                         self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
@@ -1747,21 +1790,90 @@ Generate narratives (numbered list only):"""
                         # Append narrative context to main context
                         context += narrative_context
 
-                        # Add combatant list with target IDs for assist/dialogue targeting
+                        # Add combatant list with health and status for informed NPC decisions
                         if self.shared_state and hasattr(self.shared_state, 'target_id_mapper'):
                             mapper = self.shared_state.target_id_mapper
                             if mapper and mapper.enabled:
-                                combatant_list = []
+                                active_combatants = []
+                                down_combatants = []
+
                                 for target_id in mapper.get_all_target_ids():
                                     info = mapper.get_combatant_info(target_id)
-                                    if info:
-                                        combatant_list.append(f"{info['name']} ({target_id})")
+                                    if not info:
+                                        continue
 
-                                if combatant_list:
-                                    context += "\n\n## Available Targets (for assist/dialogue):\n"
-                                    context += "**⚠️ Use target IDs (tgt_xxxx) when specifying targets**\n"
-                                    for c in combatant_list:
-                                        context += f"- {c}\n"
+                                    # Skip self
+                                    if info.get('agent_id') == agent.agent_id:
+                                        continue
+
+                                    death_state = info.get('death_state', 'alive')
+                                    health = info.get('health', 0)
+                                    max_health = info.get('max_health', 0)
+                                    wounds = info.get('wounds', 0)
+
+                                    # Status tag
+                                    if death_state == 'dead':
+                                        status = " [DEAD — cannot be saved]"
+                                    elif death_state == 'unconscious':
+                                        status = f" [UNCONSCIOUS — wounds: {wounds}, healable]" if wounds < 6 else " [DEAD]"
+                                    elif max_health > 0 and health <= max_health * 0.25:
+                                        status = " [CRITICAL]"
+                                    else:
+                                        status = ""
+
+                                    entity_type = info.get('type', 'unknown')
+                                    type_label = {'player': 'ally', 'npc': 'npc', 'enemy': 'hostile'}.get(entity_type, entity_type)
+
+                                    entry = f"{info['name']} ({target_id}, {type_label}) — {health}/{max_health} HP, wounds: {wounds}{status}"
+
+                                    if death_state in ('dead', 'unconscious'):
+                                        down_combatants.append(entry)
+                                    else:
+                                        active_combatants.append(entry)
+
+                                # Also show defeated enemies not in mapper (for awareness)
+                                if self.enemy_combat and self.enemy_combat.enabled:
+                                    mapper_agent_ids = set()
+                                    for tid in mapper.get_all_target_ids():
+                                        tid_info = mapper.get_combatant_info(tid)
+                                        if tid_info:
+                                            mapper_agent_ids.add(tid_info.get('agent_id'))
+
+                                    for enemy in self.enemy_combat.enemy_agents:
+                                        if not enemy.is_active and enemy.agent_id not in mapper_agent_ids:
+                                            ewounds = getattr(enemy, 'wounds', 0)
+                                            ehealth = getattr(enemy, 'health', 0)
+                                            emax = getattr(enemy, 'max_health', 0)
+                                            down_combatants.append(
+                                                f"{enemy.name} — {ehealth}/{emax} HP, wounds: {ewounds} [DEFEATED]"
+                                            )
+
+                                if active_combatants or down_combatants:
+                                    context += "\n\n## People in Scene:\n"
+                                    context += "**Use target IDs (tgt_xxxx) when specifying targets**\n"
+
+                                    if active_combatants:
+                                        context += "\n**Active:**\n"
+                                        for c in active_combatants:
+                                            context += f"- {c}\n"
+
+                                    if down_combatants:
+                                        context += "\n**Down (cannot act or be targeted for dialogue):**\n"
+                                        for c in down_combatants:
+                                            context += f"- {c}\n"
+
+                                    # Tactical summary
+                                    n_active = len(active_combatants)
+                                    n_unconscious = sum(1 for c in down_combatants if 'UNCONSCIOUS' in c)
+                                    n_dead = sum(1 for c in down_combatants if 'DEAD' in c or 'DEFEATED' in c)
+                                    parts = []
+                                    if n_active:
+                                        parts.append(f"{n_active} active")
+                                    if n_unconscious:
+                                        parts.append(f"{n_unconscious} unconscious (healable)")
+                                    if n_dead:
+                                        parts.append(f"{n_dead} dead/defeated")
+                                    context += f"\n**Battlefield:** {', '.join(parts)}\n"
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
@@ -1792,7 +1904,7 @@ Generate narratives (numbered list only):"""
                                 print(f"         └─ {reason_short}")
 
                             # Check for self-escalation (NPC declares attack)
-                            if npc_action.action_type == "attack":
+                            if _should_escalate_npc(agent.entity_type, npc_action.action_type):
                                 logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
                                 logger.info(f"   Reason: {npc_action.reason}")
 
@@ -1876,6 +1988,7 @@ Generate narratives (numbered list only):"""
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score,
+                                'target': npc_action.target,  # Target for assist/heal/dialogue/attack actions
                                 'dialogue_content': npc_action.dialogue_content,  # Include actual dialogue for dialogue actions
                                 # Transfer-specific fields (if transfer action)
                                 'transfer_target': getattr(npc_action, 'transfer_target', None),
@@ -2045,6 +2158,7 @@ Generate narratives (numbered list only):"""
                             # so their actions get invalidated (like defeated enemies)
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
+                            _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
 
                             # Process purchase/crafting effects from structured output
                             effects = resolution_data.get('effects') or {}
@@ -2129,9 +2243,9 @@ Generate narratives (numbered list only):"""
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
-                        # TODO: Update resolution_state based on PC action results
-                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.
-                        #  Currently handles: surrendered enemies via _parse_surrender_from_resolution)
+                        # resolution_state updated after each PC action:
+                        # - Surrendered enemies: _parse_surrender_from_resolution
+                        # - Defeated enemies: _mark_defeated_from_resolution
 
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
@@ -2215,11 +2329,12 @@ Generate narratives (numbered list only):"""
                         'character_name': agent.name,
                         'initiative': initiative_score,
                         'action': {
+                            'agent_id': agent.agent_id,  # NPC agent_id for entity lookup in DM resolution
                             'character_name': agent.name,  # Include in nested action for resolution broadcast
                             'intent': npc_intent,
                             'description': npc_description,
                             'action_type': npc_action_type,
-                            'target': npc_action.get('target'),  # Include target for assist/dialogue/attack actions
+                            'target': npc_action.get('target'),  # Include target for assist/heal/dialogue/attack actions
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
                     }
@@ -2829,7 +2944,7 @@ Generate narratives (numbered list only):"""
                                 logger.info(f"⚔️  Enemy departed (entity lifecycle): {enemy_identifier}")
                                 print(f"\n⚔️  Enemy departed: {enemy_name}")
                             else:
-                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+                                logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping departure")
 
                 except Exception as e:
                     logger.warning(f"Conversion check failed: {type(e).__name__}: {e}")
@@ -3256,12 +3371,7 @@ Generate narratives (numbered list only):"""
                 # Use player's configured LLM provider instead of hardcoded Anthropic
                 from .llm_provider import LLMConfig, create_provider
 
-                provider_config = LLMConfig(
-                    provider=player.llm_config.get('provider', 'anthropic'),
-                    model=player.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=player.llm_config.get('temperature', 1.0),
-                    max_tokens=250
-                )
+                provider_config = LLMConfig.from_dict(player.llm_config, max_tokens=250)
                 provider = create_provider(provider_config)
 
                 # Get scenario situation from player's current_scenario
@@ -3951,6 +4061,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         exp_type = event.get('expiration_type', 'unknown')
                         print(f"  Round {round_num}: ⏰ EXPIRED - {clock_name} ({final_val}) - {exp_type}")
                         print(f"             {description}")
+                    elif event_type == 'removed':
+                        current_val = event.get('current', 0)
+                        max_val = event.get('max', '?')
+                        reason = event.get('removal_reason', 'unknown')
+                        print(f"  Round {round_num}: 🗑️  REMOVED - {clock_name} ({current_val}/{max_val}) - {reason}")
                 print()
 
             print("=" * 40)
@@ -3975,6 +4090,15 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             },
                             round_num=mechanics.current_round
                         )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'session_end'
+                        })
 
                 mechanics.jsonl_logger.log_session_end(state_summary)
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
@@ -4263,9 +4387,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     print(f"\n{notification}")
 
             # Get initial_npcs (works for both object and dict)
+            # Note: dm.py stores NPC spawns as 'npc_spawns' in scenario_setup_dict,
+            # so fall back to that key if 'initial_npcs' not found
             npc_spawns = getattr(scenario_setup, 'initial_npcs', None)
             if npc_spawns is None and isinstance(scenario_setup, dict):
-                npc_spawns = scenario_setup.get('initial_npcs', [])
+                npc_spawns = scenario_setup.get('initial_npcs', scenario_setup.get('npc_spawns', []))
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts
@@ -5053,8 +5179,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Clear clocks (always happens on story advancement)
             if mechanics and mechanics.scene_clocks:
                 # Log each clock removal before clearing
-                if mechanics.jsonl_logger:
-                    for clock_name, clock in mechanics.scene_clocks.items():
+                for clock_name, clock in mechanics.scene_clocks.items():
+                    if mechanics.jsonl_logger:
                         mechanics.jsonl_logger.log_event(
                             event_type="clock_removal",
                             data={
@@ -5069,6 +5195,15 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             },
                             round_num=mechanics.current_round
                         )
+                    mechanics.clock_history.append({
+                        'event_type': 'removed',
+                        'clock_name': clock_name,
+                        'round': mechanics.current_round,
+                        'current': clock.current,
+                        'max': clock.maximum,
+                        'description': clock.description,
+                        'removal_reason': 'story_advancement'
+                    })
 
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
@@ -5251,7 +5386,7 @@ NO conversions/morale checks needed (scene just started).
                                 logger.info(f"⚔️  Enemy departed (post-advancement): {enemy_identifier}")
                                 print(f"\n✓ Enemy doesn't follow to new scene: {enemy_name}")
                             else:
-                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+                                logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping post-advancement departure")
 
                     # Process enemy spawns for new scene
                     if post_advancement_decisions.enemy_spawns and self.enemy_combat:
@@ -5347,6 +5482,15 @@ NO conversions/morale checks needed (scene just started).
                                 },
                                 round_num=mechanics.current_round
                             )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'scene_pivot'
+                        })
 
                         del mechanics.scene_clocks[clock_name]
                         logger.info(f"Cleared clock: {clock_name}")
@@ -5378,7 +5522,7 @@ NO conversions/morale checks needed (scene just started).
                         logger.info(f"⚔️  Enemy departed (scene pivot): {enemy_identifier}")
                         print(f"   Enemy departed: {enemy_name}")
                     else:
-                        logger.warning(f"Failed to remove enemy '{enemy_identifier}' during scene pivot - not found or already inactive")
+                        logger.debug(f"Enemy '{enemy_identifier}' already inactive (auto-despawned) - skipping scene pivot departure")
 
             print(f"\n🔄 SCENE PIVOT")
             print(f"   New Area: {pivot.new_room}")
@@ -5465,6 +5609,31 @@ NO conversions/morale checks needed (scene just started).
             # Signal completion AFTER all processing (including Entity Lifecycle #2) completes
             self._synthesis_complete.set()
             logger.debug("Round synthesis processing complete, signaling completion")
+
+
+def _should_escalate_npc(entity_type: str, action_type: str) -> bool:
+    """
+    Determine if an NPC action should trigger escalation to enemy.
+
+    Allied NPCs attacking enemies are fighting FOR players — don't escalate.
+    Only non-attack actions never escalate.
+
+    Args:
+        entity_type: NPC entity type ("ally", "neutral", "prisoner")
+        action_type: NPC action type ("attack", "dialogue", "flee", etc.)
+
+    Returns:
+        True if NPC should be escalated to enemy
+    """
+    if action_type != "attack":
+        return False
+
+    # Allied NPCs attacking enemies = helping players, don't escalate
+    if entity_type == "ally":
+        return False
+
+    # Neutral/prisoner/other attacking = hostile intent, escalate
+    return True
 
 
 # Configuration example

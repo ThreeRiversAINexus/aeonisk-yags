@@ -10,13 +10,23 @@ Author: Three Rivers AI Nexus
 from typing import Tuple
 
 
+# Canonical faction names for spawns (EnemySpawn, NPCSpawn schemas)
+CANONICAL_SPAWN_FACTIONS = [
+    "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+    "House of Vox", "Aether Dynamics", "Tempest Industries", "Freeborn",
+    "Void", "Independent", "Unknown"
+]
+
+# Void faction set (hostile to everyone except other Void)
+VOID_FACTIONS = {"Void"}
+
 # Faction Alignments (from FACTION_REFERENCE.md)
 PRO_NEXUS_FACTIONS = {
     "Nexus", "Sovereign Nexus", "Pantheon", "Pantheon Security"
 }
 
 NEXUS_ALIGNED_CORPORATE = {
-    "ACG", "ArcGen", "House of Vox", "Vox"
+    "ACG", "ArcGen", "House of Vox", "Vox", "Aether Dynamics"
 }
 
 ANTI_NEXUS_FACTIONS = {
@@ -51,7 +61,8 @@ def extract_faction(enemy_name: str) -> str:
         PRO_NEXUS_FACTIONS |
         NEXUS_ALIGNED_CORPORATE |
         ANTI_NEXUS_FACTIONS |
-        NEUTRAL_FACTIONS
+        NEUTRAL_FACTIONS |
+        VOID_FACTIONS
     )
 
     for faction in all_factions:
@@ -82,6 +93,10 @@ def are_factions_allied(faction_a: str, faction_b: str) -> bool:
     # Same faction = allied
     if faction_a == faction_b:
         return True
+
+    # Void factions are hostile to everyone except other Void
+    if faction_a in VOID_FACTIONS or faction_b in VOID_FACTIONS:
+        return faction_a in VOID_FACTIONS and faction_b in VOID_FACTIONS
 
     # Unknown factions are hostile to everyone
     if faction_a == "Unknown" or faction_b == "Unknown":
@@ -122,6 +137,42 @@ def are_factions_allied(faction_a: str, faction_b: str) -> bool:
     return False
 
 
+FACTION_DESCRIPTIONS = {
+    "Sovereign Nexus": "The government. Codex authority, pod gestation system, spiritual bureaucracy. Allied with Pantheon Security and corporate factions. Opposed to Tempest Industries.",
+    "Pantheon Security": "Law enforcement, civic order. Upholds Codex law, maintains stability. Allied with Sovereign Nexus and corporate factions. Opposed to Tempest Industries.",
+    "ACG": "Astral Commerce Group. Debt collection, soulcredit ledgers, contract enforcement. Corporate, loosely Nexus-aligned. Allied with other corporate factions and Sovereign Nexus. Opposed to Tempest Industries.",
+    "ArcGen": "Arcane Genetics. Biocreche pods, gene-temples, bio-ascension protocols. Corporate, loosely Nexus-aligned. Allied with other corporate factions and Sovereign Nexus. NOT the same as ACG.",
+    "House of Vox": "Media and broadcast temples. Information control and propaganda. Corporate, loosely Nexus-aligned. Allied with other corporate factions and Sovereign Nexus.",
+    "Aether Dynamics": "Leyline power generation and attunement specialists. Spaceship slipstream pilots. Corporate, loosely Nexus-aligned.",
+    "Tempest Industries": "Void research, dissolution advocacy. Anti-Nexus rebels resisting commodification of consciousness. Opposed to Sovereign Nexus, Pantheon Security, and all corporate factions.",
+    "Freeborn": "Natural-born, outside the pod system. Neutral — not anti-Nexus, just independent. Subfactions include Resonance Communes, Fractal Praxis, and unaffiliated loners.",
+    "Void": "Void-corrupted entities. Hostile to all non-Void factions. Driven by dissolution resonance.",
+}
+
+
+def get_faction_description(faction: str) -> str:
+    """
+    Get narrative description of a faction for LLM prompts.
+
+    Args:
+        faction: Faction name
+
+    Returns:
+        Description string. Returns generic text for unknown factions.
+    """
+    # Try exact match first
+    if faction in FACTION_DESCRIPTIONS:
+        return FACTION_DESCRIPTIONS[faction]
+
+    # Try case-insensitive partial match
+    faction_lower = faction.lower()
+    for name, desc in FACTION_DESCRIPTIONS.items():
+        if name.lower() in faction_lower or faction_lower in name.lower():
+            return desc
+
+    return f"Unaffiliated faction. Allegiances and motivations unclear."
+
+
 def get_faction_stance(faction: str) -> str:
     """
     Get the political stance of a faction.
@@ -129,7 +180,9 @@ def get_faction_stance(faction: str) -> str:
     Returns:
         "Pro-Nexus", "Anti-Nexus", "Neutral", or "Unknown"
     """
-    if faction in PRO_NEXUS_FACTIONS or faction in NEXUS_ALIGNED_CORPORATE:
+    if faction in VOID_FACTIONS:
+        return "Void"
+    elif faction in PRO_NEXUS_FACTIONS or faction in NEXUS_ALIGNED_CORPORATE:
         return "Pro-Nexus"
     elif faction in ANTI_NEXUS_FACTIONS:
         return "Anti-Nexus"

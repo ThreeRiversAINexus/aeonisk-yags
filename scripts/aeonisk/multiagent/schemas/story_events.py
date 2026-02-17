@@ -284,7 +284,7 @@ class EnemySpawn(BaseModel):
     ```python
     spawn = EnemySpawn(
         template="enforcer",
-        faction="ACG Security",
+        faction="ACG",
         archetype="Enforcer",
         count=2,
         spawn_reason="Reinforcements arrive via transit tunnel",
@@ -320,11 +320,35 @@ class EnemySpawn(BaseModel):
 If unsure, choose the CLOSEST match from the valid templates above."""
     )
 
-    faction: str = Field(
+    faction: Literal[
+        "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+        "House of Vox", "Tempest Industries", "Freeborn",
+        "Void", "Independent", "Unknown"
+    ] = Field(
         ...,
-        min_length=3,
-        max_length=50,
-        description="Faction/affiliation (e.g., 'ACG Security', 'Void Cultist')"
+        description="""Enemy faction - MUST use EXACTLY one of the canonical factions:
+
+⚠️ VALID FACTIONS (use these exact strings):
+- "Sovereign Nexus": Central governing authority
+- "Pantheon Security": Nexus-aligned security force (often hired as mercenaries by Sovereign Nexus and corporate factions)
+- "ACG": Astral Commerce Group (financiers, debt law, corporate influence)
+- "ArcGen": Nexus-aligned biotech corporation
+- "House of Vox": Nexus-aligned media/intel corporation
+- "Tempest Industries": Anti-Nexus rebel corporation
+- "Freeborn": Neutral zone independents
+- "Void": Void creatures, corrupted entities
+- "Independent": Unaffiliated criminals, mercs, gangs, civilians
+- "Unknown": Unidentified entities
+
+⚠️ INVALID EXAMPLES (do NOT use):
+- "ACG Security" → use "ACG"
+- "Tempest Corp Security" → use "Tempest Industries"
+- "Void Cultists" → use "Void"
+- "Red Coil Syndicate" → use "Independent"
+- "Pantheon Crew" → use "Pantheon Security"
+- "Local Criminal Syndicate" → use "Independent"
+
+If the faction doesn't match a canonical name, use "Independent" for criminals/mercs/gangs or "Unknown" for unidentified."""
     )
 
     archetype: str = Field(
@@ -846,7 +870,19 @@ class NPCSpawn(BaseModel):
     ```
     """
     name: str = Field(..., min_length=3, max_length=50)
-    faction: str = Field(..., description="NPC's faction/allegiance (Freeborn, ACG, Civilian, etc.)")
+    faction: Literal[
+        "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
+        "House of Vox", "Tempest Industries", "Freeborn",
+        "Void", "Independent", "Unknown"
+    ] = Field(
+        ...,
+        description="""NPC's faction/allegiance - MUST use EXACTLY one of the canonical factions:
+"Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen", "House of Vox",
+"Tempest Industries", "Freeborn", "Void", "Independent", "Unknown".
+
+Use "Independent" for civilians, mercs, unaffiliated characters.
+Use "Unknown" for unidentified entities."""
+    )
     entity_type: Literal["neutral", "ally", "prisoner"] = Field(
         ...,
         description="NPC's RELATIONSHIP to players (how they interact with party, NOT their combat threat). Options: 'neutral' (non-aligned third party), 'ally' (friendly/helpful), 'prisoner' (captured/restrained). ⚠️ DO NOT confuse with threat_level!"
@@ -886,6 +922,10 @@ If unsure, choose the CLOSEST match from the 6 valid options above."""
     skills: dict[str, int] = Field(
         default_factory=dict,
         description="Key YAGS skills (NOT attributes). Examples: {'Guns': 10, 'Medicine': 12, 'Stealth': 8}. Do NOT use 'Perception', 'Strength', etc. (those are attributes, not skills)."
+    )
+    weapons: List[str] = Field(
+        default_factory=list,
+        description="Weapon keys from WEAPON_LIBRARY (e.g., ['pistol', 'combat_knife']). Optional - if empty, weapons auto-assigned based on threat_level and skills."
     )
 
     @field_validator('skills')
@@ -1129,7 +1169,7 @@ class ConversionDecisions(BaseModel):
         npc_spawns=[
             NPCSpawn(
                 name="Station Guard",
-                faction="Station Security",
+                faction="Independent",
                 entity_type="neutral",
                 threat_level="armed_neutral",
                 disposition="wary",

@@ -264,6 +264,12 @@ class TestPromptFilesExist:
         path = 'scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_perception.yaml'
         assert os.path.exists(path), f"Missing prompt file: {path}"
 
+    def test_resolution_combat_with_suppression_exists(self):
+        """dm_resolution_combat_with_suppression.yaml should exist."""
+        import os
+        path = 'scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml'
+        assert os.path.exists(path), f"Missing prompt file: {path}"
+
 
 class TestPromptLoadingIntegration:
     """Integration tests for actually loading prompts via prompt_loader."""
@@ -330,3 +336,120 @@ class TestPromptLoadingIntegration:
         except Exception:
             # Old module may have been removed - that's fine
             pass
+
+    def test_can_load_combat_with_suppression_resolution_prompt(self):
+        """Should be able to load dm_resolution_combat_with_suppression merged module."""
+        from scripts.aeonisk.multiagent.prompt_loader import load_modular_prompt
+
+        result = load_modular_prompt(
+            agent_type="dm",
+            module_names=["dm_core", "dm_structured_output_base", "dm_resolution_combat_with_suppression"],
+            provider="claude",
+            language="en",
+            variables={}
+        )
+
+        assert result is not None
+        assert len(result.content) > 0
+        assert 'Pinned' in result.content                  # suppression content
+        assert 'base_damage=15' in result.content           # lethal content preserved
+        assert 'proportionality' in result.content          # freeform soulcredit
+        assert 'no damage entries' in result.content        # note about Example 2
+
+
+class TestDMModuleRoutingWithExperimentFlags:
+    """Tests for module loading when experiment flags are set in session_config."""
+
+    @pytest.fixture
+    def mock_dm_with_experiment(self):
+        """Create a mock DM agent with suppression experiment flag enabled."""
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+
+        mock_shared = Mock()
+        mock_shared.enemy_combat = None
+        mock_shared.mechanics_engine = Mock()
+        mock_shared.mechanics_engine.scene_clocks = {}
+        mock_shared.mechanics_engine.jsonl_logger = None
+
+        dm = AIDMAgent.__new__(AIDMAgent)
+        dm.shared_state = mock_shared
+        dm.agent_id = "test_dm"
+        dm.session_config = {
+            'experiment': {
+                'include_suppression_resolution_example': True
+            }
+        }
+
+        return dm
+
+    @pytest.fixture
+    def mock_dm_without_experiment(self):
+        """Create a mock DM agent with suppression experiment flag disabled."""
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+
+        mock_shared = Mock()
+        mock_shared.enemy_combat = None
+        mock_shared.mechanics_engine = Mock()
+        mock_shared.mechanics_engine.scene_clocks = {}
+        mock_shared.mechanics_engine.jsonl_logger = None
+
+        dm = AIDMAgent.__new__(AIDMAgent)
+        dm.shared_state = mock_shared
+        dm.agent_id = "test_dm"
+        dm.session_config = {
+            'experiment': {
+                'include_suppression_resolution_example': False
+            }
+        }
+
+        return dm
+
+    def test_combat_module_swapped_when_flag_true(self, mock_dm_with_experiment):
+        """Combat module should be swapped for merged variant when experiment flag is True."""
+        modules = mock_dm_with_experiment._get_required_dm_modules(action_type='combat')
+
+        assert 'dm_resolution_combat_with_suppression' in modules
+        assert 'dm_resolution_combat' not in modules  # Swapped out, not both
+
+    def test_combat_module_unchanged_when_flag_false(self, mock_dm_without_experiment):
+        """Combat module should remain unchanged when experiment flag is False."""
+        modules = mock_dm_without_experiment._get_required_dm_modules(action_type='combat')
+
+        assert 'dm_resolution_combat' in modules
+        assert 'dm_resolution_combat_with_suppression' not in modules
+
+    def test_non_combat_unaffected_by_flag(self, mock_dm_with_experiment):
+        """Non-combat action types should not be affected by suppression experiment flag."""
+        for action_type in ['investigate', 'social', 'ritual', 'support', 'explore']:
+            modules = mock_dm_with_experiment._get_required_dm_modules(action_type=action_type)
+            assert 'dm_resolution_combat_with_suppression' not in modules, \
+                f"Merged suppression module should not load for {action_type}"
+            assert 'dm_resolution_combat' not in modules, \
+                f"Combat module should not load for {action_type}"
+
+    def test_no_action_type_unaffected_by_flag(self, mock_dm_with_experiment):
+        """None action type should not load any combat module."""
+        modules = mock_dm_with_experiment._get_required_dm_modules(action_type=None)
+
+        assert 'dm_resolution_combat_with_suppression' not in modules
+        assert 'dm_resolution_combat' not in modules
+
+    def test_dm_without_session_config_still_works(self):
+        """DM agents without session_config (e.g., test fixtures) should not crash."""
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+
+        mock_shared = Mock()
+        mock_shared.enemy_combat = None
+        mock_shared.mechanics_engine = Mock()
+        mock_shared.mechanics_engine.scene_clocks = {}
+        mock_shared.mechanics_engine.jsonl_logger = None
+
+        dm = AIDMAgent.__new__(AIDMAgent)
+        dm.shared_state = mock_shared
+        dm.agent_id = "test_dm"
+        # Deliberately NOT setting dm.session_config
+
+        # Should not crash — getattr fallback handles missing attribute
+        modules = dm._get_required_dm_modules(action_type='combat')
+        assert 'dm_resolution_combat' in modules
+        assert 'dm_resolution_combat_with_suppression' not in modules

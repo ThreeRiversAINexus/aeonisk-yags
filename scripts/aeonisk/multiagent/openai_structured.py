@@ -201,6 +201,9 @@ async def generate_structured_openai_native(
         print(resolution.narration)
         ```
     """
+    # Extract force_truncate before passing kwargs to OpenAI API
+    force_truncate = kwargs.pop('force_truncate', False)
+
     # OpenAI structured output REQUIRES temperature=1.0
     if temperature != 1.0:
         logger.debug(f"OpenAI structured output requires temperature=1.0, normalizing from {temperature}")
@@ -329,6 +332,12 @@ async def generate_structured_openai_native(
     # Parse the JSON and validate with Pydantic
     import json
     output_dict = json.loads(content)
+
+    # Preemptive truncation when force_truncate is enabled
+    if force_truncate:
+        from .llm_provider import truncate_to_schema_limits
+        schema = result_type.model_json_schema()
+        output_dict = truncate_to_schema_limits(output_dict, schema)
 
     # Validate with the original type (not the compatible wrapper)
     output = result_type.model_validate(output_dict)

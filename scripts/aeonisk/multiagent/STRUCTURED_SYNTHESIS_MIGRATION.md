@@ -155,7 +155,7 @@ synthesis = RoundSynthesis(
     enemy_spawns=[
         EnemySpawn(
             template="Elite",
-            faction="ACG Security",
+            faction="ACG",
             archetype="Tactical Response",
             count=2,
             spawn_reason="Vault breach triggered deployment",

@@ -70,6 +70,21 @@ def generate_tactical_prompt(
     # Status
     sections.append(_format_status(enemy))
 
+    # Situation History (last 3 round syntheses)
+    situation_history = getattr(enemy, '_situation_history', None)
+    if situation_history:
+        hist_section = _format_situation_history(situation_history)
+        if hist_section:
+            sections.append(hist_section)
+
+    # Character Brief (personality injection)
+    char_section = _format_character(enemy)
+    if char_section:
+        sections.append(char_section)
+
+    # Faction Context
+    sections.append(_format_faction_context(enemy))
+
     # Recent Action Outcomes (NEW - show what happened recently for context)
     if recent_narrations:
         sections.append(_format_recent_outcomes(recent_narrations))
@@ -137,6 +152,21 @@ def generate_tactical_prompt_structured(
     # Status
     sections.append(_format_status(enemy))
 
+    # Situation History (last 3 round syntheses)
+    situation_history = getattr(enemy, '_situation_history', None)
+    if situation_history:
+        hist_section = _format_situation_history(situation_history)
+        if hist_section:
+            sections.append(hist_section)
+
+    # Character Brief (personality injection)
+    char_section = _format_character(enemy)
+    if char_section:
+        sections.append(char_section)
+
+    # Faction Context
+    sections.append(_format_faction_context(enemy))
+
     # Recent Action Outcomes
     if recent_narrations:
         sections.append(_format_recent_outcomes(recent_narrations))
@@ -163,7 +193,7 @@ def generate_tactical_prompt_structured(
     sections.append(_format_retreat_assessment(enemy))
 
     # NO declaration format requirements - schema defines the structure
-    sections.append("## YOUR DECISION\n\nProvide your tactical decision as structured output conforming to the EnemyDecision schema. Include your tactical reasoning.")
+    sections.append(_format_structured_decision_guidance())
 
     # Footer
     sections.append(_format_footer())
@@ -754,12 +784,64 @@ Intelligence from allied enemy agents:
     return section
 
 
+def _format_faction_context(enemy: EnemyAgent) -> str:
+    """Format faction identity section for tactical prompt."""
+    from .faction_utils import get_faction_description, get_faction_stance
+    faction = getattr(enemy, 'faction', 'Unknown')
+    stance = get_faction_stance(faction)
+    description = get_faction_description(faction)
+
+    return f"""## FACTION IDENTITY
+{"=" * 60}
+Your Faction: {faction}
+Stance: {stance}
+About: {description}"""
+
+
+def _format_character(enemy: EnemyAgent) -> str:
+    """Format character brief section for personality injection."""
+    character_brief = getattr(enemy, 'character_brief', '')
+    if not character_brief:
+        return ""
+
+    return f"""## CHARACTER
+{"=" * 60}
+Your personality: {character_brief}
+
+Let this guide your decision-making — how you fight, whether you talk, when you wait."""
+
+
+def _format_situation_history(history: list) -> str:
+    """
+    Format recent round synthesis history for situational awareness.
+
+    Args:
+        history: List of (round_num, synthesis_text) tuples
+    """
+    if not history:
+        return ""
+
+    section = f"""## SITUATION HISTORY
+{"=" * 60}
+What has been happening (most recent first):
+"""
+    # Show most recent first, max 3 rounds
+    for round_num, text in reversed(history[-3:]):
+        # Truncate each synthesis to ~300 chars
+        truncated = text[:300] + "..." if len(text) > 300 else text
+        section += f"\nRound {round_num}: {truncated}"
+
+    return section
+
+
 def _format_retreat_assessment(enemy: EnemyAgent) -> str:
-    """Format retreat assessment section."""
+    """Format retreat assessment section — morale-behavior-aware."""
     health_pct = enemy.get_health_percentage()
     threshold_pct = int(enemy.retreat_threshold * 100)
 
     below_threshold = enemy.is_below_retreat_threshold()
+    morale_behavior = getattr(enemy, 'morale_behavior', 'flee_when_broken')
+    void_score = getattr(enemy, 'void_score', 0)
 
     section = f"""## RETREAT ASSESSMENT
 {"=" * 60}
@@ -768,8 +850,16 @@ Retreat Threshold: {threshold_pct}%
 
 Status: """
 
-    if below_threshold:
-        section += "**CRITICAL - RETREAT RECOMMENDED**\n\nYou may choose to retreat this round by declaring:\nMAJOR_ACTION: Retreat\n\nProvide brief tactical narration explaining your withdrawal.\nAllied enemies will be informed via shared intel."
+    # Void possession overrides everything
+    if void_score >= 10:
+        section += "**VOID POSSESSED** — You are beyond rational decision-making. Fight until destroyed."
+    elif below_threshold:
+        if morale_behavior == 'surrender_if_cornered':
+            section += "**CRITICAL — SURRENDER RECOMMENDED**\n\nYou are outmatched. Declare Surrender to lay down weapons.\nThis is the tactically sound choice given your situation."
+        elif morale_behavior == 'fight_to_death':
+            section += "**CRITICAL — HP LOW** but your doctrine demands you fight to the end.\nDo not retreat. Do not surrender. Fight until destroyed."
+        else:  # flee_when_broken (default)
+            section += "**CRITICAL — RETREAT RECOMMENDED**\n\nYou may choose to retreat this round by declaring:\nMAJOR_ACTION: Retreat\n\nProvide brief tactical narration explaining your withdrawal.\nAllied enemies will be informed via shared intel."
     else:
         section += "HOLDING (health above threshold)\n\nContinue fighting. Retreat is not recommended at this time."
 
@@ -831,6 +921,19 @@ MINOR_ACTION: None
 TACTICAL_REASONING: Health critical ({health}%), below retreat threshold ({threshold}%). Falling back through maintenance corridor to regroup.
 SHARE_INTEL: Withdrawing, recommend focus fire on primary threat
 ```"""
+
+
+def _format_structured_decision_guidance() -> str:
+    """Format decision guidance for structured output mode with non-combat options."""
+    return """## YOUR DECISION
+
+Provide your tactical decision as structured output conforming to the EnemyDecision schema. Include your tactical reasoning.
+
+### Non-combat options:
+- **Wait**: Observe, maintain position, hold. Use when combat isn't clearly warranted yet.
+- **Dialogue**: Speak aloud — challenge, warn, demand, negotiate. Requires `dialogue_content` with actual words.
+  Examples: "Halt! Identify yourselves!", "Drop your weapons or we open fire!", "We can talk about this."
+- **Surrender**: Lay down weapons. Use when outmatched and your morale/doctrine permits it."""
 
 
 def _format_footer() -> str:

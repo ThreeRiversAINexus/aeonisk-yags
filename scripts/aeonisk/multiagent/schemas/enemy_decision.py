@@ -6,7 +6,7 @@ Structured output for enemy agent tactical declarations.
 Replaces text parsing of enemy declarations with validated structured output.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal
 from .shared_types import Position
 
@@ -63,9 +63,16 @@ class EnemyDecision(BaseModel):
     )
 
     # Major action (primary activity)
-    major_action: Literal["Attack", "Move", "Defend", "Ability", "Retreat", "FLEE"] = Field(
+    major_action: Literal["Attack", "Move", "Defend", "Ability", "Retreat", "FLEE", "Wait", "Dialogue", "Surrender"] = Field(
         ...,
         description="Primary action this round"
+    )
+
+    dialogue_content: Optional[str] = Field(
+        default=None,
+        min_length=5,
+        max_length=500,
+        description="What you say aloud (for Dialogue action). Use actual words, not descriptions."
     )
 
     target: Optional[str] = Field(
@@ -114,6 +121,13 @@ class EnemyDecision(BaseModel):
         """
     )
 
+    @model_validator(mode='after')
+    def validate_dialogue_content(self):
+        """Dialogue action requires dialogue_content."""
+        if self.major_action == "Dialogue" and not self.dialogue_content:
+            raise ValueError("dialogue_content is required when major_action is 'Dialogue'")
+        return self
+
     # Panic/morale state
     is_panicked: bool = Field(
         default=False,
@@ -132,7 +146,7 @@ class EnemyDecision(BaseModel):
 
         Returns dict matching the old parsed format.
         """
-        return {
+        result = {
             'agent_id': self.agent_id,
             'character_name': self.character_name,
             'initiative': self.initiative,
@@ -145,6 +159,9 @@ class EnemyDecision(BaseModel):
             'reasoning': self.tactical_reasoning,
             'shared_intel': self.shared_intel,
         }
+        if self.dialogue_content:
+            result['dialogue_content'] = self.dialogue_content
+        return result
 
 
 class EnemyMoraleCheck(BaseModel):

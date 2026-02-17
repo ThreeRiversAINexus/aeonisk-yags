@@ -11,7 +11,7 @@ import random
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 # Import custom log levels
 from . import custom_log_levels  # noqa: F401
@@ -82,6 +82,7 @@ _rate_limiter = APIRateLimiter()
 SUPPORTED_MODELS = {
     'anthropic': {
         'models': [
+            'claude-opus-4-6',
             'claude-sonnet-4-5',
             'claude-sonnet-4-5-20250929',
             'claude-3-5-sonnet-20241022',
@@ -94,6 +95,7 @@ SUPPORTED_MODELS = {
     'openai': {
         'models': [
             # GPT-5 family (2025+)
+            'gpt-5.2-2025-12-11',
             'gpt-5.1',
             'gpt-5',
             'gpt-5-mini',
@@ -114,6 +116,27 @@ SUPPORTED_MODELS = {
         'recommended': 'gpt-5-mini',
         'pricing_url': 'https://openai.com/pricing'
     },
+    'grok': {
+        'models': ['grok-4-latest', 'grok-3', 'grok-3-mini'],
+        'recommended': 'grok-4-latest',
+        'pricing_url': 'https://x.ai/api/pricing'
+    },
+    'gemini': {
+        'models': ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'],
+        'recommended': 'gemini-2.5-pro',
+        'pricing_url': 'https://ai.google.dev/pricing'
+    },
+    'deepinfra': {
+        'models': [
+            'deepseek-ai/DeepSeek-V3.2',
+            'zai-org/GLM-5',
+            'moonshotai/Kimi-K2.5',
+            'NousResearch/Hermes-3-Llama-3.1-405B',
+            'Qwen/Qwen3-32B',
+        ],
+        'recommended': 'deepseek-ai/DeepSeek-V3.2',
+        'pricing_url': 'https://deepinfra.com/pricing'
+    },
     'local': {
         'models': [
             'llama3.1',
@@ -127,10 +150,17 @@ SUPPORTED_MODELS = {
     'batch_proxy': {
         'models': [
             # OpenAI models via proxy
-            'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano',
+            'gpt-5.2-2025-12-11', 'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano',
             'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini',
             # Anthropic models via proxy
-            'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+            'claude-opus-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+            # Grok models via proxy
+            'grok-4-latest', 'grok-3', 'grok-3-mini',
+            # Gemini models via proxy
+            'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash',
+            # DeepInfra models via proxy
+            'deepseek-ai/DeepSeek-V3.2', 'zai-org/GLM-5', 'moonshotai/Kimi-K2.5',
+            'NousResearch/Hermes-3-Llama-3.1-405B', 'Qwen/Qwen3-32B',
         ],
         'recommended': 'gpt-5-mini (50% cheaper via proxy)',
         'pricing_url': 'https://docs.anthropic.com/en/docs/build-with-claude/message-batches'
@@ -149,6 +179,21 @@ RATE_LIMIT_PRESETS = {
         'max_concurrent_requests': 15,     # OpenAI handles higher concurrency
         'min_request_interval': 0.08,      # ~750 req/min max throughput (GPT-4+ tier allows 500-10k)
         'reasoning': 'OpenAI has higher rate limits (500 req/min for GPT-4, 10k for GPT-3.5/4o-mini)'
+    },
+    'grok': {
+        'max_concurrent_requests': 15,     # xAI handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'xAI Grok API has similar rate limits to OpenAI'
+    },
+    'gemini': {
+        'max_concurrent_requests': 15,     # Google handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'Google Gemini API has generous rate limits'
+    },
+    'deepinfra': {
+        'max_concurrent_requests': 15,     # DeepInfra handles decent concurrency
+        'min_request_interval': 0.08,      # Similar to OpenAI
+        'reasoning': 'DeepInfra serverless inference has generous rate limits'
     },
     'local': {
         'max_concurrent_requests': 1,      # Local models typically single-threaded
@@ -185,6 +230,10 @@ class LLMConfig:
     use_rate_limiter: bool = True  # Enable global rate limiting
     max_concurrent_requests: int = 3  # Max concurrent API calls across all agents
     min_request_interval: float = 0.8  # Minimum seconds between request starts
+
+    # Force-truncate long string fields instead of retrying LLM calls
+    # When True, providers truncate strings to maxLength on first attempt
+    force_truncate: bool = False
 
     # Provider-specific kwargs
     extra_params: Dict[str, Any] = None
@@ -234,6 +283,106 @@ class LLMConfig:
                     f"Applied {self.provider} rate limit preset: "
                     f"min_interval={preset['min_request_interval']}s"
                 )
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any], **overrides) -> 'LLMConfig':
+        """Create LLMConfig from a config dict, forwarding unknown keys to extra_params.
+
+        Extracts known dataclass fields from config_dict and puts everything
+        else into extra_params (e.g. proxy_url, underlying_provider).
+        Keyword overrides take precedence over dict values.
+
+        Args:
+            config_dict: Dict from session config (e.g. agent['llm'])
+            **overrides: Keyword args that override dict values (e.g. max_tokens=500)
+
+        Returns:
+            LLMConfig with extra_params populated from unknown keys
+        """
+        known_fields = {f.name for f in fields(cls)} - {'extra_params'}
+
+        merged = dict(config_dict)
+        merged.update(overrides)
+
+        known = {}
+        extra = {}
+        for key, value in merged.items():
+            if key in known_fields:
+                known[key] = value
+            else:
+                extra[key] = value
+
+        return cls(**known, extra_params=extra)
+
+
+# =============================================================================
+# Truncation utilities (used by multiple providers)
+# =============================================================================
+
+def _resolve_schema_ref(field_schema: Dict, defs: Dict) -> Dict:
+    """Resolve a $ref or anyOf reference in JSON schema."""
+    if "$ref" in field_schema:
+        ref_name = field_schema["$ref"].split("/")[-1]
+        return defs.get(ref_name, field_schema)
+
+    # Handle anyOf (e.g. Optional[SomeModel] generates anyOf with null)
+    if "anyOf" in field_schema:
+        for option in field_schema["anyOf"]:
+            if "$ref" in option:
+                ref_name = option["$ref"].split("/")[-1]
+                return defs.get(ref_name, option)
+            if option.get("type") != "null":
+                return option
+
+    return field_schema
+
+
+def truncate_to_schema_limits(data: Dict, schema: Dict) -> Dict:
+    """
+    Recursively walk parsed JSON data and truncate string fields exceeding maxLength.
+
+    Args:
+        data: Parsed JSON data dict
+        schema: JSON schema from result_type.model_json_schema()
+
+    Returns:
+        Data dict with long strings truncated to their maxLength limits
+    """
+    if not isinstance(data, dict):
+        return data
+
+    defs = schema.get("$defs", {})
+    properties = schema.get("properties", {})
+
+    for field_name, field_schema in properties.items():
+        if field_name not in data or data[field_name] is None:
+            continue
+
+        resolved = _resolve_schema_ref(field_schema, defs)
+        value = data[field_name]
+
+        if isinstance(value, str):
+            max_length = resolved.get("maxLength")
+            if max_length and len(value) > max_length:
+                logger.warning(
+                    f"⚠️ Force-truncating field '{field_name}': "
+                    f"{len(value)} → {max_length} chars"
+                )
+                data[field_name] = value[:max_length]
+
+        elif isinstance(value, dict):
+            if "properties" in resolved:
+                nested_schema = {**resolved, "$defs": defs}
+                data[field_name] = truncate_to_schema_limits(value, nested_schema)
+            elif "additionalProperties" in resolved:
+                val_schema = _resolve_schema_ref(resolved["additionalProperties"], defs)
+                if "properties" in val_schema:
+                    for key in value:
+                        if isinstance(value[key], dict):
+                            nested = {**val_schema, "$defs": defs}
+                            value[key] = truncate_to_schema_limits(value[key], nested)
+
+    return data
 
 
 @dataclass
@@ -742,6 +891,22 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         + (f"  Raw response available: YES ({len(error_details.get('raw_model_response', ''))} chars)\n" if 'raw_model_response' in error_details else "")
                     )
 
+                    # Force-truncate recovery: parse raw response, truncate, validate
+                    if self.config.force_truncate and hasattr(e, 'body') and e.body:
+                        try:
+                            import json as _json
+                            raw_data = _json.loads(e.body)
+                            schema = result_type.model_json_schema()
+                            truncated = truncate_to_schema_limits(raw_data, schema)
+                            validated = result_type.model_validate(truncated)
+                            logger.warning(
+                                f"⚠️ Force-truncate recovered {result_type.__name__} "
+                                f"from raw response (attempt {attempt + 1})"
+                            )
+                            return validated
+                        except Exception:
+                            pass  # Fall through to normal retry/error handling
+
                     # Check if error is retryable
                     if not self._is_retryable_error(e):
                         # Non-retryable error, fail immediately
@@ -1109,6 +1274,7 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         agent_id=agent_id,
                         current_round=current_round,
                         call_sequence=call_sequence,
+                        force_truncate=self.config.force_truncate,
                         **kwargs
                     )
 

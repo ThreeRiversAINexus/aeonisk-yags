@@ -5,7 +5,7 @@ AI Dungeon Master agent for multi-agent self-playing system.
 import asyncio
 import logging
 import random
-from typing import Dict, Any, List, Optional, Callable, Iterable
+from typing import Dict, Any, List, Optional, Callable, Iterable, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -37,6 +37,61 @@ def _resolution_success(resolution) -> bool:
 
     # Fallback: assume success if we can't determine
     return True
+
+
+def _resolve_weapon_and_damage_type(
+    action: Optional[Dict[str, Any]],
+    shared_state: 'SharedState'
+) -> Tuple[str, str, Any]:
+    """
+    Resolve weapon name, YAGS damage type, and Weapon object from player action.
+
+    Looks up the player's equipped weapons and matches by skill to determine
+    which weapon is being used and its damage type.
+
+    Returns:
+        (weapon_name, damage_type, weapon_obj_or_None)
+        - damage_type is one of: "stun", "wound", "mixed"
+    """
+    if not action or not shared_state:
+        return ("Unknown Weapon", "wound", None)
+
+    player_agent_id = action.get('agent_id')
+    if not player_agent_id:
+        return ("Unknown Weapon", "wound", None)
+
+    # Find the player agent
+    player_agent = None
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
+            player_agent = player
+            break
+
+    if not player_agent or not hasattr(player_agent, 'equipped_weapons'):
+        return ("Unknown Weapon", "wound", None)
+
+    skill = action.get('skill', '').lower()
+    primary = player_agent.equipped_weapons.get('primary')
+    sidearm = player_agent.equipped_weapons.get('sidearm')
+
+    if skill in ['guns', 'throw'] and primary:
+        return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
+    elif skill == 'brawl':
+        if sidearm and getattr(sidearm, 'skill', '') == 'Brawl':
+            return (sidearm.name, getattr(sidearm, 'damage_type', 'stun'), sidearm)
+        else:
+            # Unarmed — use fists from WEAPON_LIBRARY
+            from .weapons import WEAPON_LIBRARY
+            fists = WEAPON_LIBRARY.get("fists")
+            return ("Unarmed", "stun", fists)
+    elif skill == 'melee' and sidearm:
+        return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
+    elif primary:
+        return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
+    elif sidearm:
+        return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
+
+    return ("Unknown Weapon", "wound", None)
 
 
 def _get_active_protections(entity) -> List['Condition']:
@@ -130,7 +185,9 @@ def _process_structured_damage_effects(
     logger_instance: logging.Logger = None,
     attacker_id: str = "unknown",
     attacker_name: str = "Unknown Attacker",
-    weapon: str = "Unknown Weapon"
+    weapon: str = "Unknown Weapon",
+    attack_roll: Optional[Dict[str, Any]] = None,
+    resolved_damage_type: Optional[str] = None
 ) -> List[str]:
     """
     Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
@@ -147,6 +204,7 @@ def _process_structured_damage_effects(
         attacker_id: Agent ID of the attacker (from player action context)
         attacker_name: Name of the attacker (from player action context)
         weapon: Weapon used in attack (from player action context)
+        attack_roll: d20 roll data for ML logging (attr, skill, d20, total, dc, hit, margin)
 
     Returns:
         List of narrative messages describing damage outcomes (for appending to DM narration)
@@ -228,39 +286,72 @@ def _process_structured_damage_effects(
         if barrier_messages:
             messages.extend([f"🛡️ {msg}" for msg in barrier_messages])
 
-        # === APPLY DAMAGE TO ENTITY ===
+        # === APPLY DAMAGE TO ENTITY (damage type routing) ===
         if damage_after_barriers > 0:
-            old_health = target_entity.health
-            wounds_dealt = damage_after_barriers // 5  # YAGS: every 5 damage = 1 wound
-            target_entity.wounds += wounds_dealt
-            target_entity.health -= damage_after_barriers
+            from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
 
-            damage_type_label = f" ({damage_effect.damage_type})" if damage_effect.damage_type else ""
+            old_health = target_entity.health
+            old_stuns = getattr(target_entity, 'stuns', 0)
+            old_wounds = getattr(target_entity, 'wounds', 0)
+
+            # Priority: backend-resolved weapon type > LLM's DamageEffect.damage_type > "wound" default
+            mechanical_type = resolved_damage_type or damage_effect.damage_type or "wound"
+            if mechanical_type not in ("stun", "wound", "mixed"):
+                mechanical_type = "wound"  # Normalize freeform types (kinetic, bludgeoning, etc.)
+
             friendly_fire_label = " [FRIENDLY FIRE]" if is_friendly_fire else ""
 
-            messages.append(
-                f"⚔️ **{target_name} takes {damage_after_barriers} damage{damage_type_label}!** "
-                f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
-            )
+            if mechanical_type == "stun":
+                result = apply_stun_damage(target_entity, damage_after_barriers)
+                wounds_dealt = 0
+                stuns_dealt = result['stuns_dealt']
+                messages.append(
+                    f"⚡ **{target_name} takes {damage_after_barriers} stun damage!** "
+                    f"(stuns: {old_stuns} → {target_entity.stuns}){friendly_fire_label}"
+                )
+            elif mechanical_type == "mixed":
+                result = apply_mixed_damage(target_entity, damage_after_barriers)
+                wounds_dealt = result['wounds_dealt']
+                stuns_dealt = result['stuns_dealt']
+                messages.append(
+                    f"⚔️ **{target_name} takes {damage_after_barriers} mixed damage!** "
+                    f"(stuns: {old_stuns} → {target_entity.stuns}, "
+                    f"{old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+                )
+            else:  # "wound"
+                result = apply_wound_damage(target_entity, damage_after_barriers)
+                wounds_dealt = result['wounds_dealt']
+                stuns_dealt = 0
+                messages.append(
+                    f"⚔️ **{target_name} takes {damage_after_barriers} damage!** "
+                    f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+                )
 
             if is_friendly_fire:
                 logger_instance.warning(
-                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} to {target_name} "
-                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} {mechanical_type} to {target_name}"
                 )
             else:
                 logger_instance.info(
-                    f"Damage dealt: {damage_after_barriers} to {target_name} "
-                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                    f"Damage dealt: {damage_after_barriers} {mechanical_type} to {target_name}"
                 )
 
             # === CHECK FOR DEFEAT ===
-            if target_entity.health <= 0:
-                defeat_logged = False
-                defeat_reason = None
+            defeat_logged = False
+            defeat_reason = None
+            is_stun_only = (mechanical_type == "stun")
 
+            if is_stun_only and result.get('unconscious_check_needed'):
+                # Stun KO — non-lethal incapacitation
+                logger_instance.info(f"{target_name} knocked unconscious by stun damage!")
+                messages.append(f"😵 **{target_name} is knocked unconscious!**")
+                if hasattr(target_entity, 'is_active'):
+                    target_entity.is_active = False
+                defeat_reason = "unconscious"
+                defeat_logged = True
+            elif not is_stun_only and target_entity.health <= 0:
+                # Wound/mixed defeat — existing logic
                 if hasattr(target_entity, 'check_death_save'):
-                    # Enemy/NPC with death saves
                     alive, status = target_entity.check_death_save()
                     if not alive:
                         logger_instance.info(f"{target_name} KILLED by attack!")
@@ -280,7 +371,6 @@ def _process_structured_damage_effects(
                         logger_instance.info(f"{target_name} critically wounded but conscious!")
                         messages.append(f"⚠️ **{target_name} is critically wounded!**")
                 else:
-                    # PC or entity without death saves
                     logger_instance.info(f"{target_name} defeated!")
                     messages.append(f"💀 **{target_name} is defeated!**")
                     if hasattr(target_entity, 'is_active'):
@@ -288,43 +378,41 @@ def _process_structured_damage_effects(
                     defeat_reason = "killed"
                     defeat_logged = True
 
-                # Log enemy defeat event for ML training (only for actual enemies, not PCs)
-                if defeat_logged and mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    if hasattr(target_entity, 'agent_id') and hasattr(target_entity, 'spawned_round'):
-                        # Calculate rounds survived
-                        rounds_survived = current_round - target_entity.spawned_round if target_entity.spawned_round else 0
-                        mechanics.jsonl_logger.log_enemy_defeat(
-                            round_num=current_round,
-                            enemy_id=target_entity.agent_id,
-                            enemy_name=target_name,
-                            defeat_reason=defeat_reason,
-                            rounds_survived=rounds_survived,
-                            killer_id=attacker_id,
-                            killer_name=attacker_name,
-                            final_damage=damage_after_barriers
-                        )
+            # Log enemy defeat event for ML training (only for actual enemies, not PCs)
+            if defeat_logged and mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                if hasattr(target_entity, 'agent_id') and hasattr(target_entity, 'spawned_round'):
+                    spawned = getattr(target_entity, 'spawned_round', None)
+                    rounds_survived = current_round - spawned if isinstance(spawned, int) else 0
+                    mechanics.jsonl_logger.log_enemy_defeat(
+                        round_num=current_round,
+                        enemy_id=target_entity.agent_id,
+                        enemy_name=target_name,
+                        defeat_reason=defeat_reason,
+                        rounds_survived=rounds_survived,
+                        killer_id=attacker_id,
+                        killer_name=attacker_name,
+                        final_damage=damage_after_barriers
+                    )
 
             # === LOG COMBAT ACTION (ML TRAINING) ===
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                # Build minimal combat action log
-                # (Full implementation would extract attack roll data from resolution context)
                 defender_state = {
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
-                    "alive": target_entity.health > 0,
-                    "status": "active" if target_entity.health > 0 else "defeated"
+                    "stuns": getattr(target_entity, 'stuns', 0),
+                    "alive": target_entity.health > 0 or is_stun_only,
+                    "status": "active" if (target_entity.health > 0 or is_stun_only) and not defeat_logged else "defeated"
                 }
 
                 damage_roll_data = {
                     "base_damage": damage_effect.base_damage,
                     "soak": damage_effect.soak if damage_effect.soak is not None else 0,
-                    "dealt": damage_after_barriers  # Post-barrier damage
+                    "mechanical_soak": getattr(target_entity, 'soak', None),
+                    "dealt": damage_after_barriers,
+                    "damage_type": mechanical_type
                 }
 
-                # Note: attack_roll data would need to be passed from resolution context
-                # Attacker info is now passed from player action context
-                # Get entity ID (vendors use vendor_id instead of agent_id)
                 entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                 mechanics.jsonl_logger.log_combat_action(
                     round_num=current_round,
@@ -333,7 +421,7 @@ def _process_structured_damage_effects(
                     defender_id=entity_id,
                     defender_name=target_name,
                     weapon=weapon,
-                    attack_roll={},  # Would need from resolution context
+                    attack_roll=attack_roll or {},
                     damage_roll=damage_roll_data,
                     wounds_dealt=wounds_dealt,
                     defender_state_after=defender_state
@@ -446,6 +534,29 @@ def _process_structured_healing_effects(
             messages.append(f"⚠️ **Target '{target_identifier}' not found for healing**")
             continue
 
+        # === DEFEAT/DEATH GUARD ===
+        target_wounds = getattr(target_entity, 'wounds', 0)
+        target_health = getattr(target_entity, 'health', 1)
+
+        # Permanently dead (failed death save): reject all healing
+        if getattr(target_entity, '_permanently_dead', False):
+            logger_instance.warning(
+                f"⚠️ Healing rejected: {target_name} is permanently dead (failed death save) — beyond saving"
+            )
+            messages.append(f"⚠️ **{target_name} is dead (failed death save) — beyond saving**")
+            continue
+
+        # Dead (wounds >= 6): reject all healing
+        if target_wounds >= 6:
+            logger_instance.warning(
+                f"⚠️ Healing rejected: {target_name} is dead (wounds: {target_wounds}) — beyond saving"
+            )
+            messages.append(f"⚠️ **{target_name} is dead (wounds: {target_wounds}) — beyond saving**")
+            continue
+
+        # Defeated/unconscious (health <= 0): cap HP healing at stabilization
+        is_unconscious = target_health <= 0
+
         # === APPLY HEALING TO ENTITY ===
         healing_summary = []
         old_health = target_entity.health
@@ -453,10 +564,16 @@ def _process_structured_healing_effects(
 
         # Apply healing based on type
         if heal_type == "hp":
-            # Restore HP (capped at max_health)
-            target_entity.health = min(target_entity.health + amount, target_entity.max_health)
-            actual_heal = target_entity.health - old_health
-            healing_summary.append(f"+{actual_heal} HP")
+            if is_unconscious:
+                # Stabilize only: cap at 1 HP (not full heal)
+                target_entity.health = 1
+                actual_heal = target_entity.health - old_health
+                healing_summary.append(f"stabilized to 1 HP")
+            else:
+                # Restore HP (capped at max_health)
+                target_entity.health = min(target_entity.health + amount, target_entity.max_health)
+                actual_heal = target_entity.health - old_health
+                healing_summary.append(f"+{actual_heal} HP")
         elif heal_type == "stun":
             # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
             # For now, just track what was requested
@@ -471,10 +588,16 @@ def _process_structured_healing_effects(
 
         if healing_summary:
             summary_text = ", ".join(healing_summary)
-            messages.append(
-                f"💚 **{target_name} healed: {summary_text}** "
-                f"({old_health} HP → {target_entity.health} HP)"
-            )
+            if is_unconscious and heal_type == "hp":
+                messages.append(
+                    f"🩹 **{target_name} stabilized: {summary_text}** "
+                    f"({old_health} HP → {target_entity.health} HP)"
+                )
+            else:
+                messages.append(
+                    f"💚 **{target_name} healed: {summary_text}** "
+                    f"({old_health} HP → {target_entity.health} HP)"
+                )
 
             logger_instance.info(
                 f"Healing applied: {summary_text} to {target_name} "
@@ -483,14 +606,20 @@ def _process_structured_healing_effects(
 
             # === LOG HEALING ACTION (ML TRAINING) ===
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                # Build healing log entry
-                # (Full implementation would extract healer details from resolution context)
+                # Determine status: stabilized (was unconscious) vs active (was conscious)
+                if is_unconscious:
+                    heal_status = "stabilized"
+                elif target_entity.health > 0:
+                    heal_status = "active"
+                else:
+                    heal_status = "defeated"
+
                 target_state_after = {
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
                     "alive": target_entity.health > 0,
-                    "status": "active" if target_entity.health > 0 else "defeated"
+                    "status": heal_status
                 }
 
                 # Note: Would ideally log as 'healing_action' event type
@@ -596,12 +725,7 @@ class AIDMAgent(Agent):
         if not llm_client:
             from .llm_provider import LLMConfig, create_provider
             try:
-                provider_config = LLMConfig(
-                    provider=self.llm_config.get('provider', 'anthropic'),
-                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000
-                    temperature=self.llm_config.get('temperature', 1.0)
-                )
+                provider_config = LLMConfig.from_dict(self.llm_config, max_tokens=4000)
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
@@ -670,8 +794,16 @@ class AIDMAgent(Agent):
                 'consume': 'dm_consumption',        # Already specialized
             }
             if action_type_lower in resolution_map:
-                modules.append(resolution_map[action_type_lower])
-                logger.debug(f"DM: Loading action-specific module for {action_type}: {resolution_map[action_type_lower]}")
+                module_name = resolution_map[action_type_lower]
+                # Experiment: swap combat resolution for suppression-inclusive variant
+                if module_name == 'dm_resolution_combat':
+                    session_cfg = getattr(self, 'session_config', {})
+                    experiment = session_cfg.get('experiment', {}) if session_cfg else {}
+                    if experiment.get('include_suppression_resolution_example', False):
+                        module_name = 'dm_resolution_combat_with_suppression'
+                        logger.debug("DM: Swapping combat module for suppression-inclusive variant (experiment flag)")
+                modules.append(module_name)
+                logger.debug(f"DM: Loading action-specific module for {action_type}: {module_name}")
             else:
                 # Unknown action type - load generic discovery for fallback
                 logger.debug(f"DM: Unknown action type '{action_type}', no action-specific module")
@@ -1324,7 +1456,8 @@ Apply this narrative style to:
                     description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
                     health=npc_config.get('health', 20),
                     soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {})
+                    skills=npc_config.get('skills', {}),
+                    weapons=npc_config.get('weapons', [])
                 )
                 npc_spawns.append(npc_spawn)
 
@@ -1565,7 +1698,8 @@ Apply this narrative style to:
                     description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
                     health=npc_config.get('health', 20),
                     soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {})
+                    skills=npc_config.get('skills', {}),
+                    weapons=npc_config.get('weapons', [])
                 )
                 npc_spawns.append(npc_spawn)
 
@@ -2913,7 +3047,8 @@ Apply this narrative style to:
                 'character_name': character_name,
                 'initiative': initiative,
                 'action': action,
-                'resolution': resolution
+                'resolution': resolution,
+                'state_changes': state_changes
             })
 
             # Track action outcome for failure loop detection
@@ -2947,6 +3082,13 @@ Apply this narrative style to:
                 'effects': res['resolution'].get('effects')  # CRITICAL: Include purchase/crafting effects for session.py processing
             }
 
+            # Build lightweight effects summary for story beat generation
+            sc = res.get('state_changes', {})
+            effects_summary = {
+                'total_damage_dealt': sum(d.get('dealt', 0) for d in sc.get('damage_effects', [])),
+                'conditions': [c.get('type', '') for c in sc.get('conditions', [])],
+            }
+
             self.send_message_sync(
                 MessageType.ACTION_RESOLVED,
                 None,  # Broadcast
@@ -2957,7 +3099,8 @@ Apply this narrative style to:
                     'outcome': res['resolution']['outcome'],
                     'narration': res['resolution']['narration'],
                     'aware_agents': res['resolution'].get('aware_agents', []),  # Visibility control for stealth/secrets
-                    'resolution_data': serializable_res  # Include serializable resolution for later synthesis
+                    'resolution_data': serializable_res,  # Include serializable resolution for later synthesis
+                    'effects_summary': effects_summary  # Damage/conditions for story beat generation
                 }
             )
 
@@ -3156,9 +3299,13 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                         is_candidate = health_pct < 30
                         marker = "🎯 CANDIDATE" if is_candidate else ""
 
-                        available_enemies.append(
-                            f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP) {marker}".strip()
-                        )
+                        morale = getattr(enemy, 'morale_behavior', 'flee_when_broken')
+                        faction = getattr(enemy, 'faction', 'Unknown')
+                        brief = getattr(enemy, 'character_brief', '')
+                        enemy_line = f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP, morale: {morale}, faction: {faction}) {marker}".strip()
+                        if brief:
+                            enemy_line += f"\n  Character: {brief[:100]}"
+                        available_enemies.append(enemy_line)
 
         # 2. Build available NPCs list
         available_npcs = []
@@ -3711,7 +3858,7 @@ Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn ne
 enemy_spawns=[
     EnemySpawn(
         template="Grunt",
-        faction="ACG Security",
+        faction="ACG",
         archetype="Enforcer",
         count=2,
         spawn_reason="Alarm triggered, security team responds",
@@ -3812,6 +3959,16 @@ enemy_spawns=[
                 player_status_context += "\n\n⚠️  IMPORTANT: If players took significant damage this round, MENTION their injuries in your narration!"
                 player_status_context += "\n⚠️  Players near death (≤20% HP) or critically wounded (≥4 wounds) should be described struggling/desperate."
 
+                # Add defeated character rules if anyone is at 0 HP
+                defeated_chars = [line for line in player_lines if "0/" in line or "CRITICAL" in line]
+                if defeated_chars or casualties_this_round:
+                    player_status_context += "\n\n**DEFEATED CHARACTER RULES:**"
+                    player_status_context += "\n- Characters at 0 HP are UNCONSCIOUS or DEAD. They cannot speak, act, or contribute."
+                    player_status_context += "\n- Do NOT give dying words to characters who died rounds ago."
+                    player_status_context += "\n- Do NOT narrate unconscious characters as participating in conversations."
+                    player_status_context += "\n- If someone stabilized a character, narrate them as \"stabilized but unconscious\" NOT \"back on their feet.\""
+                    player_status_context += "\n- Check Party Health Status above — anyone at 0 HP is DOWN."
+
         # Build fled NPCs context (for narrative consistency)
         fled_npcs_context = ""
         if resolution_state and hasattr(resolution_state, 'fled_npcs') and resolution_state.fled_npcs:
@@ -3908,10 +4065,21 @@ story_advancement=StoryAdvancement(
 **What happens:** Clocks clear, location updates, enemies despawn (unless `clear_all_enemies=False`), new clocks spawn.
 """
 
+        # Build scenario context for synthesis (same as action resolution)
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"""
+**Current Scenario:**
+Theme: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10
+"""
+
         # Use LLM to generate synthesis if available
         if self.llm_config:
             prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
-
+{scenario_context}
 **What they tried to do:**
 {outcomes_text}
 {player_status_context}
@@ -4011,6 +4179,17 @@ story_advancement=StoryAdvancement(
 - Your job is to WEAVE these resolutions together, not re-narrate them from scratch
 - If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
 
+**⚠️ CRITICAL - ENTITY-NARRATIVE ALIGNMENT (STRICT):**
+- You MUST NOT describe specific hostile combatants (snipers, guards, attackers, shooters) that are not in the "Active Enemies" list above
+- To introduce new threats, spawn them via Entity Lifecycle Phase (enemy_spawns) FIRST — only then may you narrate their presence
+- Narrating phantom enemies causes players to target non-existent hostiles, resulting in friendly fire casualties
+- Environmental tension without specific hostiles is acceptable:
+  ✅ "Shadows shift along the rooftop parapets, the air thick with ozone"
+  ✅ "Something moves in the dark — too fast to identify"
+  ❌ "A sniper takes position on the rooftop" (implies targetable enemy — MUST spawn first)
+  ❌ "Guards approach from three directions" (implies targetable enemies — MUST spawn first)
+- If the Active Enemies list is EMPTY, narrate a post-combat or transitional scene — do not introduce new hostiles without spawning them
+
 **Storytelling Elements - Make it NARRATIVE, not just reportage:**
 
 **SHOW, Don't Tell:**
@@ -4073,22 +4252,27 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     logger.error("DM: No LLM provider available for legacy fallback")
                     return None
 
-                synthesis_text = await self.llm_provider.generate_text(
+                llm_response = await self.llm_provider.generate(
                     prompt=prompt,
                     max_tokens=4000,  # Increased for synthesis
                     temperature=self.llm_config.get('temperature', 1.0)
                 )
+                synthesis_text = llm_response.text
 
                 # Legacy SPAWN_ENEMY marker validation removed - using structured output now
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    estimated_tokens = {
+                        'input': len(prompt) // 4,
+                        'output': len(synthesis_text) // 4,
+                    }
                     self.llm_logger._log_llm_call(
                         messages=[{"role": "user", "content": prompt}],
                         response=synthesis_text,
                         model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                         temperature=self.llm_config.get('temperature', 1.0),
-                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        tokens=estimated_tokens,
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
                     )
@@ -4097,6 +4281,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
                     try:
+                        estimated_tokens = {
+                            'input': len(prompt) // 4,
+                            'output': len(synthesis_text) // 4,
+                        }
                         self.agent_prompt_logger.log_llm_call(
                             agent_id=self.agent_id,
                             round_num=round_num,
@@ -4105,7 +4293,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             response=synthesis_text,
                             model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                             temperature=self.llm_config.get('temperature', 1.0),
-                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            tokens=estimated_tokens,
                             metadata={'purpose': 'round_synthesis_legacy'}
                         )
                     except Exception as e:
@@ -4610,6 +4798,7 @@ For **other actions** (flee, hide, assist, attack):
 
 **Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
 
+                # Step 1: Generate narration (LLM or fallback)
                 try:
                     # Call LLM for simple text narration (not structured output - faster and smaller)
                     from pydantic import BaseModel, Field
@@ -4629,47 +4818,7 @@ For **other actions** (flee, hide, assist, attack):
                         current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
                     )
                     narration = npc_narration_response.text
-
-                    # Handle assist actions: apply +1 bonus to target
-                    effects = MechanicalEffects()
-                    if npc_action_type == 'assist' and target:
-                        effects.conditions = [
-                            Condition(
-                                name="Assisted",
-                                penalty=1,  # +1 bonus (positive penalty = buff)
-                                duration=1,
-                                description=f"Aided by {character_name}",
-                                target=target
-                            )
-                        ]
-
-                    npc_resolution = ActionResolution(
-                        narration=narration,
-                        success_tier=SuccessTier.MODERATE,
-                        margin=5,
-                        effects=effects
-                    )
-
-                    # Log successful NPC action resolution
-                    if self.shared_state and self.shared_state.mechanics_engine:
-                        mechanics = self.shared_state.mechanics_engine
-                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                            current_round = mechanics.current_round
-                            mechanics.jsonl_logger.log_action_resolution(
-                                round_num=current_round,
-                                phase="adjudicate_npc",
-                                agent_name=character_name,
-                                action=intent,
-                                resolution=npc_resolution.model_dump(),
-                                economy_changes={},
-                                clock_states={},
-                                effects={},
-                                context={
-                                    "action_type": npc_action_type,
-                                    "is_npc": True,
-                                    "dialogue_content": action.get('dialogue_content')
-                                }
-                            )
+                    is_fallback = False
 
                 except Exception as e:
                     logger.warning(f"NPC LLM narration failed: {e}, using fallback")
@@ -4681,34 +4830,293 @@ For **other actions** (flee, hide, assist, attack):
                     if len(base_narration) < 400:
                         base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
                     narration = base_narration
-                    npc_resolution = ActionResolution(
-                        narration=narration,
-                        success_tier=SuccessTier.MODERATE,
-                        margin=5,
-                        effects=MechanicalEffects()
+                    is_fallback = True
+
+                # Step 2: Apply mechanical effects (runs regardless of narration source)
+                effects = MechanicalEffects()
+                success_tier = SuccessTier.MODERATE
+                margin = 5
+
+                # Handle assist actions: apply +1 bonus to target
+                if npc_action_type == 'assist' and target:
+                    effects.conditions = [
+                        Condition(
+                            name="Assisted",
+                            penalty=1,  # +1 bonus (positive penalty = buff)
+                            duration=1,
+                            description=f"Aided by {character_name}",
+                            target=target
+                        )
+                    ]
+
+                # Handle heal actions: Medicine skill check + healing effect
+                elif npc_action_type == 'heal' and target:
+                    # Look up NPC entity to get Medicine skill
+                    npc_entity = None
+                    npc_agent_id = action.get('agent_id')
+                    if npc_agent_id and self.shared_state:
+                        # Check NPC agents
+                        for npc in getattr(self.shared_state, 'npc_agents', []):
+                            if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
+                                npc_entity = npc
+                                break
+
+                    # Check if target is dead (wounds >= 6) or defeated (health <= 0)
+                    target_entity = None
+                    target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                    if target and target.startswith('tgt_') and target_id_mapper:
+                        target_entity = target_id_mapper.resolve_target(target)
+                    elif target and self.shared_state:
+                        # Try direct agent_id lookup
+                        for player in getattr(self.shared_state, 'player_agents', []):
+                            if hasattr(player, 'agent_id') and player.agent_id == target:
+                                target_entity = player
+                                break
+                        if not target_entity:
+                            for npc in getattr(self.shared_state, 'npc_agents', []):
+                                if hasattr(npc, 'agent_id') and npc.agent_id == target:
+                                    target_entity = npc
+                                    break
+
+                    # Track roll data for JSONL logging
+                    npc_heal_roll_data = None
+                    npc_heal_amount = 0
+
+                    target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
+                    target_health = getattr(target_entity, 'health', 1) if target_entity else 1
+                    if target_wounds >= 6:
+                        # Target is dead - cannot heal
+                        narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                    else:
+                        # Medicine skill check: Intelligence(3) x Medicine + d20 vs DC 18
+                        medicine_skill = 0
+                        if npc_entity and hasattr(npc_entity, 'skills'):
+                            medicine_skill = npc_entity.skills.get("Medicine", 0)
+
+                        intelligence = 3  # Default NPC intelligence
+                        unskilled_penalty = -5 if medicine_skill == 0 else 0
+                        skill_value = max(medicine_skill, 1)
+                        base_roll = intelligence * skill_value + unskilled_penalty
+                        d20 = random.randint(1, 20)
+                        total = base_roll + d20
+                        dc = 18
+
+                        # Capture roll data for JSONL logging
+                        npc_heal_roll_data = {
+                            "skill": "Medicine",
+                            "attribute": "Intelligence",
+                            "attribute_value": intelligence,
+                            "skill_value": medicine_skill,
+                            "d20": d20,
+                            "total": total,
+                            "dc": dc,
+                            "margin": total - dc,
+                            "success": total >= dc,
+                        }
+
+                        if total >= dc:
+                            # Success: create healing effect
+                            from .schemas.action_effects import HealingEffect
+                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 HP + margin
+                            effects.healing = [
+                                HealingEffect(
+                                    target=target,
+                                    heal_type="hp",
+                                    amount=npc_heal_amount,
+                                    source=f"Medicine ({character_name})"
+                                )
+                            ]
+                            success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.GOOD
+                            margin = total - dc
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} HP.]"
+                            logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+                        else:
+                            # Failure: no healing applied
+                            success_tier = SuccessTier.FAILURE
+                            margin = total - dc
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
+                            logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
+
+                # Handle attack actions: simplified YAGS combat
+                elif npc_action_type == 'attack' and target:
+                    # Look up NPC entity to get skills and weapons
+                    npc_entity = None
+                    npc_agent_id = action.get('agent_id')
+                    if npc_agent_id and self.shared_state:
+                        for npc in getattr(self.shared_state, 'npc_agents', []):
+                            if hasattr(npc, 'agent_id') and npc.agent_id == npc_agent_id:
+                                npc_entity = npc
+                                break
+
+                    # Find weapon
+                    weapon = None
+                    if npc_entity and hasattr(npc_entity, 'weapons') and npc_entity.weapons:
+                        weapon = npc_entity.weapons[0]
+
+                    if not weapon:
+                        # No weapon - attack fails
+                        narration += f"\n\n[{character_name} attempts to attack but has no weapon.]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                        logger.info(f"NPC {character_name} attack failed: no weapon")
+                    else:
+                        # Resolve target entity
+                        target_entity = None
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target and target.startswith('tgt_') and target_id_mapper:
+                            target_entity = target_id_mapper.resolve_target(target)
+                        elif target and self.shared_state:
+                            # Try direct agent_id lookup: PCs, NPCs, then enemies
+                            for player in getattr(self.shared_state, 'player_agents', []):
+                                if hasattr(player, 'agent_id') and player.agent_id == target:
+                                    target_entity = player
+                                    break
+                            if not target_entity:
+                                for npc in getattr(self.shared_state, 'npc_agents', []):
+                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
+                                        target_entity = npc
+                                        break
+                            if not target_entity:
+                                for enemy_agent in getattr(self.shared_state, 'enemy_agents', []):
+                                    if hasattr(enemy_agent, 'agent_id') and enemy_agent.agent_id == target:
+                                        target_entity = enemy_agent
+                                        break
+
+                        if not target_entity:
+                            narration += f"\n\n[{character_name} attacks but target has moved or is not found.]"
+                            success_tier = SuccessTier.FAILURE
+                            margin = -5
+                        else:
+                            target_name = getattr(target_entity, 'name', str(target))
+
+                            # Determine attribute based on weapon skill
+                            if weapon.skill == "Guns":
+                                attr_value = 3  # Default NPC Perception
+                            elif weapon.skill == "Melee":
+                                attr_value = 3  # Default NPC Dexterity
+                            else:  # Brawl
+                                attr_value = 3  # Default NPC Agility
+
+                            # Get combat skill
+                            combat_skill = 0
+                            if npc_entity and hasattr(npc_entity, 'skills'):
+                                combat_skill = npc_entity.skills.get(weapon.skill, 0)
+
+                            # Attack roll: attr × skill + weapon.attack + d20 (with unskilled penalty)
+                            unskilled_penalty = -5 if combat_skill == 0 else 0
+                            skill_value = max(combat_skill, 1)
+                            base_attack = attr_value * skill_value + weapon.attack + unskilled_penalty
+                            d20 = random.randint(1, 20)
+                            attack_total = base_attack + d20
+                            dc = 15  # Passive defense
+
+                            if attack_total >= dc:
+                                # Hit! Roll damage
+                                strength = 3  # Default NPC Strength
+                                damage_d20 = random.randint(1, 20)
+                                base_damage = strength + weapon.damage + damage_d20
+                                total_damage = int(base_damage * 0.85)  # CBM reduction
+
+                                target_soak = getattr(target_entity, 'soak', 0)
+                                damage_dealt = max(0, total_damage - target_soak)
+
+                                success_tier = SuccessTier.MODERATE if (attack_total - dc) < 5 else SuccessTier.GOOD
+                                margin = attack_total - dc
+
+                                # Apply damage
+                                if damage_dealt > 0 and hasattr(target_entity, 'health'):
+                                    from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
+                                    damage_type = weapon.damage_type
+
+                                    if damage_type == "stun":
+                                        damage_result = apply_stun_damage(target_entity, damage_dealt)
+                                    elif damage_type == "wound":
+                                        damage_result = apply_wound_damage(target_entity, damage_dealt)
+                                    elif damage_type == "mixed":
+                                        damage_result = apply_mixed_damage(target_entity, damage_dealt)
+
+                                # Add DamageEffect for JSONL logging
+                                from .schemas.shared_types import DamageEffect
+                                effects.damage = [
+                                    DamageEffect(
+                                        target=target_name,
+                                        base_damage=total_damage,
+                                        soak=target_soak,
+                                        dealt=damage_dealt,
+                                        damage_type=weapon.damage_type
+                                    )
+                                ]
+
+                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — HIT! Damage: {total_damage} - {target_soak} soak = {damage_dealt} dealt to {target_name}.]"
+                                logger.info(f"NPC {character_name} hit {target_name}: attack {attack_total} vs DC {dc}, {damage_dealt} damage ({weapon.skill} {combat_skill}, {weapon.name})")
+                            else:
+                                # Miss
+                                success_tier = SuccessTier.FAILURE
+                                margin = attack_total - dc
+                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — MISS.]"
+                                logger.info(f"NPC {character_name} missed {target_name}: attack {attack_total} vs DC {dc} ({weapon.skill} {combat_skill}, {weapon.name})")
+
+                # Step 3: Build resolution and process effects
+                npc_resolution = ActionResolution(
+                    narration=narration,
+                    success_tier=success_tier,
+                    margin=margin,
+                    effects=effects
+                )
+
+                # Process healing effects if any (applies HP changes to target)
+                if effects.healing:
+                    healing_messages = _process_structured_healing_effects(
+                        healing_effects=effects.healing,
+                        shared_state=self.shared_state,
+                        current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else 0,
+                        mechanics=self.shared_state.mechanics_engine if self.shared_state else None,
+                        logger_instance=logger
                     )
 
-                    # Log fallback NPC action resolution
-                    if self.shared_state and self.shared_state.mechanics_engine:
-                        mechanics = self.shared_state.mechanics_engine
-                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                            current_round = mechanics.current_round
-                            mechanics.jsonl_logger.log_action_resolution(
-                                round_num=current_round,
-                                phase="adjudicate_npc",
-                                agent_name=character_name,
-                                action=intent,
-                                resolution=npc_resolution.model_dump(),
-                                economy_changes={},
-                                clock_states={},
-                                effects={},
-                                context={
-                                    "action_type": npc_action_type,
-                                    "is_npc": True,
-                                    "dialogue_content": action.get('dialogue_content'),
-                                    "fallback": True
-                                }
-                            )
+                # Step 4: Log resolution
+                if self.shared_state and self.shared_state.mechanics_engine:
+                    mechanics = self.shared_state.mechanics_engine
+                    if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        current_round = mechanics.current_round
+
+                        # Build context with roll data for JSONL
+                        log_context = {
+                            "action_type": npc_action_type,
+                            "is_npc": True,
+                            "dialogue_content": action.get('dialogue_content'),
+                            "fallback": is_fallback,
+                        }
+
+                        # Add heal-specific roll data if available
+                        if npc_action_type == 'heal':
+                            log_context["heal_target"] = target
+                            log_context["heal_amount"] = npc_heal_amount
+                            if npc_heal_roll_data:
+                                log_context["npc_roll"] = npc_heal_roll_data
+                            elif target_wounds >= 6:
+                                log_context["heal_rejected"] = "target_dead"
+
+                        # Build effects dict with healing data
+                        log_effects = {}
+                        if effects.healing:
+                            log_effects["healing"] = [
+                                h.model_dump() for h in effects.healing
+                            ]
+
+                        mechanics.jsonl_logger.log_action_resolution(
+                            round_num=current_round,
+                            phase="adjudicate_npc",
+                            agent_name=character_name,
+                            action=intent,
+                            resolution=npc_resolution,  # Pass object, not .model_dump()
+                            economy_changes={},
+                            clock_states={},
+                            effects=log_effects,
+                            context=log_context,
+                        )
 
             # Return lightweight resolution matching player format (with outcome dict)
             return {
@@ -4959,6 +5367,7 @@ The following actions ALREADY resolved (faster initiative):
 
             # Parse mechanical effects if action has target
             effect = None
+            has_structured_output = hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None
             if action.get('target'):
                 # Try to parse explicit mechanical effect block
                 effect = parse_mechanical_effect(llm_narration if self.llm_config else resolution.narrative)
@@ -4972,25 +5381,17 @@ The following actions ALREADY resolved (faster initiative):
                         'source': 'combat_triplet'
                     }
 
-                # Fallback COMPLETELY DISABLED for structured output.
-                # Philosophy: Trust the DM's structured output completely.
-                # If DM didn't populate effects, that's intentional (e.g., scouting, failed action, narrative-only).
-                #
-                # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
-                # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
-
-                # Extract damage from structured output if available
-                if not effect and state_changes.get('damage_effects'):
-                    # Use first damage effect (single-target for now)
-                    # Multi-target damage would require schema change or multiple resolutions
-                    damage_data = state_changes['damage_effects'][0]
-                    effect = {
-                        'type': 'damage',
-                        'target': damage_data['target'],
-                        'final': damage_data['dealt'],
-                        'source': 'structured_output'
-                    }
-                    logger.debug(f"Extracted damage from structured output: {damage_data['dealt']} to {damage_data['target']}")
+                # When structured output is active, damage is handled exclusively by
+                # _process_structured_damage_effects() in _generate_action_resolution_structured().
+                # Block legacy damage effects to prevent double-damage application.
+                # Non-damage effects (debuff, status, movement, reveal) still flow through
+                # the legacy path since they aren't handled by the new pipeline yet.
+                if has_structured_output and effect and effect.get('type') == 'damage':
+                    logger.debug(
+                        f"Skipping legacy damage effect (source={effect.get('source', '?')}): "
+                        f"structured output pipeline handles damage exclusively"
+                    )
+                    effect = None
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -5093,6 +5494,7 @@ The following actions ALREADY resolved (faster initiative):
                                 damage_roll_data = {
                                     "base_damage": combat_data.get('damage', damage_dealt) if combat_data else damage_dealt,
                                     "soak": combat_data.get('soak', 0) if combat_data else 0,
+                                    "mechanical_soak": getattr(target_entity, 'soak', None),
                                     "dealt": damage_dealt
                                 }
 
@@ -5106,30 +5508,8 @@ The following actions ALREADY resolved (faster initiative):
                                     "status": "active" if target_entity.health > 0 else "defeated"
                                 }
 
-                                # Get weapon from player's equipped_weapons (preferred) or fallback to intent
-                                weapon_name = "Unknown Weapon"
-
-                                # Try to get weapon from player agent's equipped_weapons
-                                player_agent_id = action.get('agent_id')
-                                if player_agent_id and self.shared_state:
-                                    # Look up player agent
-                                    for player in getattr(self.shared_state, 'player_agents', []):
-                                        if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
-                                            # Check equipped weapons
-                                            if hasattr(player, 'equipped_weapons'):
-                                                primary = player.equipped_weapons.get('primary')
-                                                sidearm = player.equipped_weapons.get('sidearm')
-                                                # Use skill to determine which weapon
-                                                skill = action.get('skill', '').lower()
-                                                if skill in ['guns', 'throw'] and primary:
-                                                    weapon_name = primary.name
-                                                elif skill in ['melee', 'brawl'] and sidearm:
-                                                    weapon_name = sidearm.name
-                                                elif primary:
-                                                    weapon_name = primary.name
-                                                elif sidearm:
-                                                    weapon_name = sidearm.name
-                                            break
+                                # Resolve weapon from equipped_weapons via shared helper
+                                weapon_name, _, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
 
                                 # Fallback to intent-based guessing if no equipped weapon found
                                 if weapon_name == "Unknown Weapon" and action.get('intent'):
@@ -5143,7 +5523,6 @@ The following actions ALREADY resolved (faster initiative):
                                     elif 'punch' in intent_lower or 'kick' in intent_lower or 'brawl' in intent_lower:
                                         weapon_name = "Unarmed"
                                     elif action.get('skill'):
-                                        # Use skill name directly (e.g., "Astral Arts", "Guns", "Melee")
                                         weapon_name = action['skill']
 
                                 # Get defender ID (vendors use vendor_id instead of agent_id)
@@ -6439,6 +6818,23 @@ The following actions ALREADY resolved (faster initiative):
             prompt_parts.append(f"\nPlayer Action: {description}")
             prompt_parts.append(f"Action Type: {action_type}")
 
+            # Add declared target explicitly so DM knows who the player is targeting
+            if target_id:
+                target_name_resolved = None
+                if self.shared_state:
+                    target_id_mapper = self.shared_state.get_target_id_mapper()
+                    if target_id_mapper and target_id_mapper.enabled:
+                        target_entity = target_id_mapper.resolve_target(target_id)
+                        if target_entity:
+                            if hasattr(target_entity, 'character_state'):
+                                target_name_resolved = target_entity.character_state.name
+                            elif hasattr(target_entity, 'name'):
+                                target_name_resolved = target_entity.name
+                if target_name_resolved:
+                    prompt_parts.append(f"⚠️ DECLARED TARGET: [{target_id}] {target_name_resolved} — use this target ID in DamageEffect/Condition target fields.")
+                else:
+                    prompt_parts.append(f"⚠️ DECLARED TARGET: {target_id} — use this target ID in DamageEffect/Condition target fields.")
+
             if void_impact:
                 prompt_parts.append(void_impact)
             if tactical_combat_context:
@@ -6869,6 +7265,17 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
+                # === GATE: Clear hallucinated damage on mechanical miss ===
+                # If the d20 roll was a miss, the DM should not have populated damage.
+                # Clear it and log a warning about the DM contradicting the mechanical roll.
+                if resolution and not resolution.success and resolution_obj.effects and resolution_obj.effects.damage:
+                    logger.warning(
+                        f"DM populated damage effects despite mechanical MISS "
+                        f"(d20={resolution.roll}, total={resolution.total}, DC={resolution.difficulty}, "
+                        f"tier={resolution.outcome_tier.value}). Clearing hallucinated damage."
+                    )
+                    resolution_obj.effects.damage = []
+
                 # === PROCESS STRUCTURED DAMAGE EFFECTS (NEW PIPELINE) ===
                 # Apply damage from List[DamageEffect], including barrier interception
                 if resolution_obj.effects and resolution_obj.effects.damage:
@@ -6877,10 +7284,27 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     # Extract attacker context from player action
                     attacker_id = action.get('agent_id', 'unknown') if action else 'unknown'
                     attacker_name = action.get('character_name', 'Unknown Attacker') if action else 'Unknown Attacker'
-                    # Weapon extraction: prefer explicit weapon, fall back to skill name (e.g., "Astral Arts", "Guns")
-                    weapon_name = action.get('weapon') if action else None
-                    if not weapon_name and action:
-                        weapon_name = action.get('skill', 'Unknown Weapon')
+
+                    # Build attack roll data from mechanical resolution for ML logging
+                    attack_roll_data = None
+                    if resolution:
+                        attack_roll_data = {
+                            "attr": resolution.attribute,
+                            "attr_val": resolution.attribute_value,
+                            "skill": resolution.skill,
+                            "skill_val": resolution.skill_value,
+                            "d20": resolution.roll,
+                            "total": resolution.total,
+                            "dc": resolution.difficulty,
+                            "hit": resolution.success,
+                            "margin": resolution.margin
+                        }
+
+                    # Resolve weapon and damage type from equipped_weapons
+                    weapon_name, resolved_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
+                    # Fallback: check action dict, then skill name
+                    if weapon_name == "Unknown Weapon" and action:
+                        weapon_name = action.get('weapon') or action.get('skill', 'Unknown Weapon')
                     weapon_name = weapon_name or 'Unknown Weapon'
 
                     damage_messages = _process_structured_damage_effects(
@@ -6891,7 +7315,9 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         logger_instance=logger,
                         attacker_id=attacker_id,
                         attacker_name=attacker_name,
-                        weapon=weapon_name
+                        weapon=weapon_name,
+                        attack_roll=attack_roll_data,
+                        resolved_damage_type=resolved_damage_type
                     )
 
                     # Append damage outcome messages to narration
@@ -7036,8 +7462,19 @@ Note: NPCs and other characters are aware of this affiliation.
         resolution_context = ""
         if resolution:
             outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
+            attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
+            attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+            skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'unskilled'
+            skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+            d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+            total = resolution.total if hasattr(resolution, 'total') else 0
+            dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+            failure_warning = ""
+            if resolution.margin < 0:
+                failure_warning = "\n⚠️ FAILURE — the intended action FAILED. Narrate the failure honestly. Do NOT soften into a partial success."
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {total} vs DC {dc}{failure_warning}
 """
 
         # Extract target_id from action if present
@@ -7107,17 +7544,27 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                         info = target_id_mapper.get_combatant_info(tid)
                         if info:
                             # Show health info for players (for injury-aware narration)
+                            pronouns = info.get('pronouns', 'they/them')
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({health_text}{wounds_text})")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {health_text}{wounds_text})")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} (player)")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, player)")
+                            elif info['type'] == 'npc':
+                                # Show NPC with disposition so DM knows not to attack them
+                                disposition = 'neutral'
+                                if self.shared_state and self.shared_state.npc_agents:
+                                    for npc in self.shared_state.npc_agents:
+                                        if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
+                                            disposition = getattr(npc, 'disposition', 'neutral')
+                                            break
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, npc, {disposition})")
                             else:
-                                # Format for enemies/NPCs: [tgt_xxxx] Name (type)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
+                                # Format for enemies: [tgt_xxxx] Name (enemy)
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {info['type']})")
 
                     if combatant_lines:
                         combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
@@ -7130,13 +7577,25 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                         combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
                         combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
 
+        # Build weapon context for combat actions
+        weapon_context = ""
+        if action and action.get('action_type') in ('attack', 'combat', 'brawl'):
+            weapon_name, weapon_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
+            if weapon_name != "Unknown Weapon":
+                weapon_context = (
+                    f"\n\n**WEAPON CONTEXT:**\n"
+                    f"Weapon: {weapon_name}\n"
+                    f"Damage Type: {weapon_damage_type.upper()}\n"
+                    f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
+                )
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
             scenario_context=scenario_context,
             character_context=character_context,
             resolution_context=resolution_context,
-            tactical_combat_context="",  # Will be filled by full implementation
+            tactical_combat_context=weapon_context,
             clock_context=clock_context,
             bond_matrix=bond_matrix,
             void_level=self.current_scenario.void_level if self.current_scenario else 3,
@@ -7149,8 +7608,8 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             character_name=action.get('character', 'The character') if action else "The character",
             target_character="",
             target_id=target_id,
-            previous_context=previous_context,  # Include earlier resolutions for consistency
-            combatant_list=combatant_list  # NEW: Include all valid target IDs
+            previous_context=previous_context,
+            combatant_list=combatant_list
         )
 
         return prompt
@@ -7223,8 +7682,19 @@ Note: NPCs and other characters are aware of this affiliation. Consider how fact
         resolution_context = ""
         if resolution:
             outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
+            attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
+            attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+            skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'unskilled'
+            skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+            d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+            total = resolution.total if hasattr(resolution, 'total') else 0
+            dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+            failure_warning = ""
+            if resolution.margin < 0:
+                failure_warning = "\n⚠️ FAILURE — the intended action FAILED. Narrate the failure honestly. Do NOT soften into a partial success."
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {total} vs DC {dc}{failure_warning}
 """
 
         # Build success-specific guidance
@@ -7889,24 +8359,35 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)
         npc_id = f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
 
-        # Synthesize weapons based on skills and threat level
+        # Synthesize weapons based on explicit list, skills, and threat level
         from .weapons import WEAPON_LIBRARY
         weapons = []
 
-        # Give weapons based on threat level and skills
+        # Check for explicit weapon list from NPCSpawn schema
+        spawn_weapons = getattr(npc_spawn, 'weapons', [])
+        if spawn_weapons:
+            for weapon_key in spawn_weapons:
+                if weapon_key in WEAPON_LIBRARY:
+                    weapons.append(WEAPON_LIBRARY[weapon_key])
+                else:
+                    logger.warning(f"Unknown weapon key '{weapon_key}' in NPCSpawn for {npc_spawn.name}, skipping")
+
+        # Get skills for weapon auto-assignment and NPC creation
         skills = npc_spawn.skills if npc_spawn.skills else {}
 
-        if npc_spawn.threat_level == "armed_neutral":
-            # Armed NPCs get appropriate weapons based on skills
-            if skills.get('Guns', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['pistol'])
-            if skills.get('Melee', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['combat_knife'])
+        # Fall through to auto-assignment if no explicit weapons
+        if not weapons:
+            if npc_spawn.threat_level == "armed_neutral":
+                # Armed NPCs get appropriate weapons based on skills
+                if skills.get('Guns', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['pistol'])
+                if skills.get('Melee', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['combat_knife'])
 
-        elif npc_spawn.threat_level == "potential_threat":
-            # Potentially dangerous NPCs might have basic weapons
-            if skills.get('Melee', 0) >= 2:
-                weapons.append(WEAPON_LIBRARY['combat_knife'])
+            elif npc_spawn.threat_level == "potential_threat":
+                # Potentially dangerous NPCs might have basic weapons
+                if skills.get('Melee', 0) >= 2:
+                    weapons.append(WEAPON_LIBRARY['combat_knife'])
 
         # Everyone can use their fists (unarmed fallback)
         if not weapons:

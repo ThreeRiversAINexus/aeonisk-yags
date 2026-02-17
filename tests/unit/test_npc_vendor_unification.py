@@ -122,7 +122,7 @@ class TestNPCAgentVendorFields:
         npc = NPCAgent(
             agent_id="npc_vendor_001",
             name="Empty Vendor",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -144,7 +144,7 @@ class TestNPCAgentVendorFields:
         npc = NPCAgent(
             agent_id="npc_civilian_001",
             name="Regular NPC",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -223,7 +223,7 @@ class TestNPCSpawnVendorFields:
 
         spawn = NPCSpawn(
             name="S4CU Vending Node",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -252,7 +252,7 @@ class TestSharedStateNPCVendorLookup:
         vendor_npc = NPCAgent(
             agent_id="npc_trader_a1b2",
             name="Trader",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -280,7 +280,7 @@ class TestSharedStateNPCVendorLookup:
         regular_npc = NPCAgent(
             agent_id="npc_civilian_001",
             name="Civilian",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -345,7 +345,7 @@ class TestSharedStateNPCVendorLookup:
         regular_npc = NPCAgent(
             agent_id="npc_guide_001",
             name="Guide",
-            faction="Neutral",
+            faction="Independent",
             entity_type="ally",
             disposition="friendly",
             threat_level="non_combatant",
@@ -384,7 +384,7 @@ class TestVendorNPCIntegration:
         vendor_npc = NPCAgent(
             agent_id="npc_vending_001",
             name="S4CU Vending Node",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",
@@ -445,7 +445,7 @@ class TestVendorNPCIntegration:
         vending = NPCAgent(
             agent_id="npc_vending_001",
             name="S4CU Node",
-            faction="Neutral",
+            faction="Independent",
             entity_type="neutral",
             disposition="neutral",
             threat_level="non_combatant",

@@ -41,11 +41,10 @@ content: |
 
   **When ally is unconscious (health ≤ 0, wounds < 6):**
   ```python
-  HealAction(
-      intent="Stabilize wounded ally with field medicine",
-      description="I kneel beside [Ally Name], checking vitals and applying pressure bandages to stop the bleeding. Basic first aid to bring them back from unconsciousness.",
-      target="player_agent_id",  # Use ally's agent_id
-      action_type=ActionType.HEAL
+  NPCAction(
+      action_type="heal",
+      reason="I kneel beside [Ally Name], checking vitals and applying pressure bandages to stop the bleeding. Basic first aid to bring them back from unconsciousness.",
+      target="player_agent_id"  # Use ally's agent_id or target ID (tgt_xxxx)
   )
   ```
 
@@ -91,57 +90,52 @@ content: |
 
   **Example 1: Assisting Ally**
   ```python
-  AssistAction(
-      intent="Help player's hacking attempt by distracting guards",
-      description="I create a diversion at the opposite end of the corridor, drawing attention away from where the player is accessing the terminal.",
-      target="player_hacker_agent_id",
-      action_type=ActionType.ASSIST
+  NPCAction(
+      action_type="assist",
+      reason="I create a diversion at the opposite end of the corridor, drawing attention away from where the player is accessing the terminal.",
+      target="player_hacker_agent_id"
   )
   ```
 
   **Example 2: Healing Unconscious Ally**
   ```python
-  HealAction(
-      intent="Stabilize unconscious teammate with emergency medicine",
-      description="I rush to their side with my medkit, applying trauma foam and stims to bring them back from the edge. They're hurt bad but still breathing - I can save them.",
-      target="player_agent_id",
-      action_type=ActionType.HEAL
+  NPCAction(
+      action_type="heal",
+      reason="I rush to their side with my medkit, applying trauma foam and stims to bring them back from the edge. They're hurt bad but still breathing - I can save them.",
+      target="player_agent_id"
   )
   ```
 
   **Example 3: Fleeing Combat**
   ```python
-  FleeAction(
-      intent="Escape combat zone through service corridor",
-      description="I'm not a fighter - I bolt for the marked emergency exit, hands up and non-threatening. Just trying to survive.",
-      action_type=ActionType.FLEE
+  NPCAction(
+      action_type="flee",
+      reason="I'm not a fighter - I bolt for the marked emergency exit, hands up and non-threatening. Just trying to survive."
   )
   ```
 
   **Example 4: Hiding From Danger**
   ```python
-  HideAction(
-      intent="Take cover behind cargo crates",
-      description="I duck behind the nearest cover - stacked cargo containers - and make myself small. Bullets flying, not my fight.",
-      action_type=ActionType.HIDE
+  NPCAction(
+      action_type="hide",
+      reason="I duck behind the nearest cover - stacked cargo containers - and make myself small. Bullets flying, not my fight."
   )
   ```
 
   **Example 5: Dialogue/Negotiation**
   ```python
-  DialogueAction(
-      intent="Warn players about ambush ahead",
-      description="I call out urgently: 'Wait! There's a security checkpoint around that corner - three guards, heavily armed. I saw them on my way in.'",
-      action_type=ActionType.DIALOGUE
+  NPCAction(
+      action_type="dialogue",
+      reason="Warning players about the ambush ahead.",
+      dialogue_content="Wait! There's a security checkpoint around that corner - three guards, heavily armed. I saw them on my way in."
   )
   ```
 
   **Example 6: Passing Turn**
   ```python
-  PassAction(
-      intent="Observe situation, await orders",
-      description="I stay quiet and watch how things develop. Not my call to make - following the team's lead.",
-      action_type=ActionType.PASS
+  NPCAction(
+      action_type="pass",
+      reason="I stay quiet and watch how things develop. Not my call to make - following the team's lead."
   )
   ```
 
@@ -155,16 +149,16 @@ content: |
 
   ## Action Schema Format
 
-  Use the appropriate Pydantic action class:
-  - `AssistAction(intent, description, target, action_type=ActionType.ASSIST)`
-  - `HealAction(intent, description, target, action_type=ActionType.HEAL)`
-  - `FleeAction(intent, description, action_type=ActionType.FLEE)`
-  - `HideAction(intent, description, action_type=ActionType.HIDE)`
-  - `DialogueAction(intent, description, action_type=ActionType.DIALOGUE)`
-  - `PassAction(intent, description, action_type=ActionType.PASS)`
+  All actions use `NPCAction` with `action_type` string:
+  - `NPCAction(action_type="assist", reason="...", target="agent_id")`
+  - `NPCAction(action_type="heal", reason="...", target="agent_id")`
+  - `NPCAction(action_type="flee", reason="...")`
+  - `NPCAction(action_type="hide", reason="...")`
+  - `NPCAction(action_type="dialogue", reason="...", dialogue_content="actual words spoken")`
+  - `NPCAction(action_type="pass", reason="...")`
 
   All actions require:
-  - `intent`: Brief summary of what you're trying to do
-  - `description`: Flavor text describing HOW you do it
-  - `target`: Agent ID (for ASSIST/HEAL only)
-  - `action_type`: ActionType enum value
+  - `action_type`: Action type string ("assist", "heal", "flee", "hide", "dialogue", "pass", etc.)
+  - `reason`: Explanation of what you're doing and why (10-1500 chars)
+  - `target`: Agent ID or target ID (REQUIRED for assist/heal)
+  - `dialogue_content`: Actual words spoken (REQUIRED for dialogue/plead)

@@ -18,7 +18,7 @@ class TestNPCSpawnDisposition:
         """Fearful NPCs are a legitimate state (civilians in danger, intimidated witnesses, etc.)."""
         npc = NPCSpawn(
             name="Frightened Civilian",
-            faction="Civilian",
+            faction="Independent",
             entity_type="neutral",
             disposition="fearful",  # This should be valid!
             description="Wide-eyed civilian cowering behind debris",
@@ -33,7 +33,7 @@ class TestNPCSpawnDisposition:
         for disp in ["friendly", "neutral", "wary", "prisoner"]:
             npc = NPCSpawn(
                 name="Test NPC",
-                faction="Test",
+                faction="Independent",
                 entity_type="neutral",
                 disposition=disp,
                 description="A test NPC with various dispositions",
@@ -53,7 +53,7 @@ class TestNPCSpawnEntityTypeVsThreatLevel:
         with pytest.raises(ValidationError) as exc_info:
             NPCSpawn(
                 name="Confused NPC",
-                faction="Civilian",
+                faction="Independent",
                 entity_type="potential_threat",  # WRONG FIELD!
                 disposition="wary",
                 description="NPC with confused field usage",
@@ -69,7 +69,7 @@ class TestNPCSpawnEntityTypeVsThreatLevel:
         """'potential_threat' IS valid when used in the correct field."""
         npc = NPCSpawn(
             name="Armed Civilian",
-            faction="Civilian",
+            faction="Independent",
             entity_type="neutral",  # Correct field
             threat_level="potential_threat",  # Correct field for this value
             disposition="wary",
@@ -88,7 +88,7 @@ class TestNPCSpawnEntityTypeVsThreatLevel:
         for entity_type in valid_types:
             npc = NPCSpawn(
                 name="Test NPC",
-                faction="Test",
+                faction="Independent",
                 entity_type=entity_type,
                 disposition="neutral",
                 description="Test NPC for entity_type validation",
@@ -123,7 +123,7 @@ class TestScenarioSetupWithFearfulNPCs:
             initial_npcs=[
                 NPCSpawn(
                     name="Head Ritualist",
-                    faction="Void Cultist",
+                    faction="Void",
                     entity_type="neutral",
                     disposition="fearful",  # This triggered the error
                     description="Ritualist responsible for the failed ceremony, terrified of consequences",

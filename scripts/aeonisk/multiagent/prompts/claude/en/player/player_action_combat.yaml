@@ -58,7 +58,7 @@ content: |-
   **Melee Weapons:**
   - `Agility × Melee` - Blades, swords, precision strikes
   - `Strength × Melee` - Heavy weapons, power attacks
-  - `Strength × Brawl` - Unarmed, improvised weapons
+  - `Strength × Brawl` - Unarmed (always available), tackles, grapples, restraining, improvised weapons
 
   **Magic/Astral Arts:**
   - `Willpower × Astral Arts` - Telekinetic strikes, energy blasts
@@ -78,6 +78,7 @@ content: |-
   - Combat skills: {combat_skills}
   - Current health: {health}/{max_health} ({health_status})
   - Position: {position}
+  {weapon_inventory}
 
   {declared_actions_this_round}
 
@@ -138,11 +139,11 @@ content: |-
   )
   ```
 
-  **Example 4: Unarmed Brawl**
+  **Example 4: Unarmed Brawl (STUN damage - always available)**
   ```python
   CombatAction(
       intent="Tackle and subdue fleeing informant",
-      description="I sprint after the fleeing informant and tackle them to the ground, pinning their arms to prevent escape. Not trying to hurt them, just immobilize.",
+      description="I sprint after the fleeing informant and tackle them to the ground, pinning their arms to prevent escape. Fighting unarmed — STUN damage only, non-lethal takedown.",
       attribute="Strength",
       skill="Brawl",
       difficulty_estimate=15,

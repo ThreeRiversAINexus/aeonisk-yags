@@ -826,20 +826,29 @@ class SessionAnalyzer:
             print(f"  Enemies spawned: {self.stats['enemies_spawned']}")
             print(f"  Enemies defeated: {self.stats['enemies_defeated']}")
 
-        # Actions
+        # Actions (split PC vs NPC)
         if self.stats['actions']:
+            # Separate PC and NPC actions
+            pc_actions = [a for a in self.stats['actions']
+                          if not a.get('context', {}).get('is_npc', False)]
+            npc_actions = [a for a in self.stats['actions']
+                           if a.get('context', {}).get('is_npc', False)]
+
             total_actions = len(self.stats['actions'])
-            successes = sum(1 for a in self.stats['actions'] if a['roll'].get('success', False))
-            failures = total_actions - successes
-            success_rate = (successes / total_actions * 100) if total_actions > 0 else 0
 
-            # Calculate average margin
-            margins = [a['roll'].get('margin', 0) for a in self.stats['actions'] if 'margin' in a['roll']]
-            avg_margin = sum(margins) / len(margins) if margins else 0
+            # PC action stats
+            pc_total = len(pc_actions)
+            pc_successes = sum(1 for a in pc_actions if a['roll'].get('success', False))
+            pc_failures = pc_total - pc_successes
+            pc_rate = (pc_successes / pc_total * 100) if pc_total > 0 else 0
 
-            # Top skills
+            # Calculate average margin (PC only)
+            pc_margins = [a['roll'].get('margin', 0) for a in pc_actions if 'margin' in a['roll']]
+            avg_margin = sum(pc_margins) / len(pc_margins) if pc_margins else 0
+
+            # Top skills (PC only)
             skills_used = []
-            for action in self.stats['actions']:
+            for action in pc_actions:
                 roll = action['roll']
                 skill = roll.get('skill', 'Unknown')
                 if skill != 'Unknown':
@@ -847,13 +856,17 @@ class SessionAnalyzer:
             skill_counts = Counter(skills_used)
             top_skills = skill_counts.most_common(3)
 
-            print(f"\nACTIONS ({total_actions} total):")
-            print(f"  Success: {successes} ({success_rate:.0f}%)")
-            print(f"  Failure: {failures} ({100-success_rate:.0f}%)")
-            print(f"  Avg margin: {avg_margin:+.1f}")
+            print(f"\nACTIONS ({total_actions} total, {pc_total} PC, {len(npc_actions)} NPC):")
+            print(f"  PC Success: {pc_successes}/{pc_total} ({pc_rate:.0f}%)")
+            print(f"  PC Failure: {pc_failures} ({100-pc_rate:.0f}%)")
+            print(f"  PC Avg margin: {avg_margin:+.1f}")
             if top_skills:
                 skills_str = ', '.join(f"{skill} ({count})" for skill, count in top_skills)
                 print(f"  Top skills: {skills_str}")
+            if npc_actions:
+                npc_types = Counter(a.get('context', {}).get('action_type', 'unknown') for a in npc_actions)
+                npc_str = ', '.join(f"{t} ({c})" for t, c in npc_types.most_common())
+                print(f"  NPC actions: {len(npc_actions)} ({npc_str})")
 
         # Clocks
         if self.stats['clocks']:

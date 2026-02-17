@@ -73,7 +73,7 @@ class TestAutonomousEnemySpawning:
             initial_enemies=[
                 EnemySpawn(
                     template="Elite",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Security Captain",
                     count=1,
                     spawn_reason="Leading defense of research facility",
@@ -83,7 +83,7 @@ class TestAutonomousEnemySpawning:
                 ),
                 EnemySpawn(
                     template="Grunt",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Lab Guard",
                     count=2,
                     spawn_reason="Stationed at Sub-Level 3 entry",
@@ -175,7 +175,7 @@ class TestAutonomousEnemySpawning:
             initial_enemies=[
                 EnemySpawn(
                     template="Grunt",
-                    faction="Iron Fist",
+                    faction="Independent",
                     archetype="Void-Touched Thug",
                     count=2,
                     spawn_reason="Patrolling warehouse perimeter",
@@ -475,7 +475,7 @@ class TestAutonomousNPCSpawning:
             initial_enemies=[
                 EnemySpawn(
                     template="Grunt",
-                    faction="Iron Fist",
+                    faction="Independent",
                     archetype="Enforcer",
                     count=2,
                     spawn_reason="Guarding prisoner",
@@ -585,7 +585,7 @@ class TestAutonomousNPCSpawning:
             initial_npcs=[
                 NPCSpawn(
                     name="Maya Chen",
-                    faction="Pantheon Research",
+                    faction="Pantheon Security",
                     entity_type="neutral",
                     threat_level="non_combatant",
                     disposition="friendly",
@@ -800,7 +800,7 @@ class TestCombinedEnemyAndNPCSpawning:
             initial_enemies=[
                 EnemySpawn(
                     template="Grunt",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Guard",
                     count=2,
                     spawn_reason="Patrolling detention block",

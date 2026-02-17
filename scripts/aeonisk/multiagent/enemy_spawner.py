@@ -109,8 +109,9 @@ def spawn_enemy(
         if weapon.is_ranged and weapon.capacity > 0:
             ammo[weapon.name] = weapon.capacity
 
-    # Determine personality (use override if provided, else default)
-    personality = personality_override if personality_override else "flee_when_broken"
+    # Determine morale_behavior (use override if provided, else template, else default)
+    morale_behavior = personality_override if personality_override else template.get("morale_behavior", "flee_when_broken")
+    character_brief = template.get("character_brief", "")
 
     # Create agent
     agent = EnemyAgent(
@@ -129,7 +130,8 @@ def spawn_enemy(
         tactics=tactics,
         threat_priority=template["threat_priority"],
         retreat_threshold=template["retreat_threshold"],
-        personality=personality,
+        morale_behavior=morale_behavior,
+        character_brief=character_brief,
         void_score=template.get("void_score", 0),
         weapons=weapons,
         armor=armor,

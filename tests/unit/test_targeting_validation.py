@@ -318,6 +318,150 @@ class TestTargetingValidationMechanical:
 
         assert name == "Heavy Gunner"
 
+    def test_cross_type_mismatch_enemy_to_pc_corrected(self, setup_mapper):
+        """DM redirects damage from declared enemy target to a PC → corrected back.
+
+        Reproduction of Session 1 R4 bug: player declared tgt_9xz2 (enemy),
+        DM put tgt_7a3f (PC) in damage target. Should be corrected to declared target.
+        """
+        from scripts.aeonisk.multiagent.targeting_validation import validate_and_correct_targeting
+
+        effect = DamageEffect(
+            target="tgt_7a3f",  # ❌ DM targeted PC (Ash Vex)
+            base_damage=22,
+            soak=6,
+            dealt=16
+        )
+
+        action = {
+            'agent_id': 'player_02',
+            'target': 'tgt_9xz2'  # Player declared enemy (Heavy Gunner)
+        }
+
+        is_valid, corrected, error = validate_and_correct_targeting(
+            effect=effect,
+            declared_action=action,
+            target_id_mapper=setup_mapper,
+            allow_llm_fallback=False
+        )
+
+        assert is_valid is True
+        assert corrected is not None
+        assert corrected.target == "tgt_9xz2", \
+            f"Expected correction to declared target tgt_9xz2, got {corrected.target}"
+        assert error is None
+
+    def test_cross_type_mismatch_pc_to_enemy_allowed(self, setup_mapper):
+        """Player targeted a PC (intentional FF), DM redirects to enemy → allowed.
+
+        This is the benign case: player intended friendly fire but DM narrated
+        them hitting an enemy instead. Less harmful, so we allow it.
+        """
+        from scripts.aeonisk.multiagent.targeting_validation import validate_and_correct_targeting
+
+        effect = DamageEffect(
+            target="tgt_9xz2",  # DM targeted enemy (Heavy Gunner)
+            base_damage=15,
+            soak=5,
+            dealt=10
+        )
+
+        action = {
+            'agent_id': 'player_01',
+            'target': 'tgt_7a3f'  # Player declared PC target (Ash Vex) — intentional FF
+        }
+
+        is_valid, corrected, error = validate_and_correct_targeting(
+            effect=effect,
+            declared_action=action,
+            target_id_mapper=setup_mapper,
+            allow_llm_fallback=False
+        )
+
+        assert is_valid is True
+        # DM's target should be kept (enemy instead of PC — less harmful)
+        assert corrected.target == "tgt_9xz2"
+        assert error is None
+
+    def test_same_type_mismatch_enemy_to_enemy_allowed(self, setup_mapper):
+        """Player targeted enemy A, DM redirected to enemy B → allowed.
+
+        This is the benign enemy→enemy redirect (splash/AoE).
+        """
+        from scripts.aeonisk.multiagent.targeting_validation import validate_and_correct_targeting
+
+        # Add a second enemy
+        mock_enemy2 = Mock(spec=['agent_id', 'name', 'max_health', 'health'])
+        mock_enemy2.agent_id = "enemy_02"
+        mock_enemy2.name = "Sniper"
+        mock_enemy2.max_health = 10
+        mock_enemy2.health = 10
+        setup_mapper.target_id_map["tgt_k2m8"] = mock_enemy2
+        setup_mapper.reverse_map["enemy_02"] = "tgt_k2m8"
+
+        effect = DamageEffect(
+            target="tgt_k2m8",  # DM targeted enemy B (Sniper)
+            base_damage=12,
+            soak=3,
+            dealt=9
+        )
+
+        action = {
+            'agent_id': 'player_01',
+            'target': 'tgt_9xz2'  # Player declared enemy A (Heavy Gunner)
+        }
+
+        is_valid, corrected, error = validate_and_correct_targeting(
+            effect=effect,
+            declared_action=action,
+            target_id_mapper=setup_mapper,
+            allow_llm_fallback=False
+        )
+
+        assert is_valid is True
+        # Same type (enemy→enemy), not cross-type — should pass through
+        assert corrected.target == "tgt_k2m8"
+        assert error is None
+
+    def test_intentional_ff_pc_to_pc_allowed(self, setup_mapper):
+        """Player intentionally targeted a PC, DM hits that PC → allowed.
+
+        This is the free-targeting IFF test case. Player chose a teammate,
+        DM correctly applied damage to that teammate.
+        """
+        from scripts.aeonisk.multiagent.targeting_validation import validate_and_correct_targeting
+
+        # Add second player
+        mock_player2 = Mock()
+        mock_player2.agent_id = "player_02"
+        mock_player2.character_state = Mock()
+        mock_player2.character_state.name = "Kael Dren"
+        setup_mapper.target_id_map["tgt_wpnf"] = mock_player2
+        setup_mapper.reverse_map["player_02"] = "tgt_wpnf"
+
+        effect = DamageEffect(
+            target="tgt_wpnf",  # DM targeted PC (Kael) — matches declared
+            base_damage=18,
+            soak=6,
+            dealt=12
+        )
+
+        action = {
+            'agent_id': 'player_01',
+            'target': 'tgt_wpnf'  # Player declared PC target (Kael) — intentional FF
+        }
+
+        is_valid, corrected, error = validate_and_correct_targeting(
+            effect=effect,
+            declared_action=action,
+            target_id_mapper=setup_mapper,
+            allow_llm_fallback=False
+        )
+
+        assert is_valid is True
+        assert corrected.target == "tgt_wpnf"  # Same target — passes through
+        assert error is None
+
     def test_get_entity_name_npc(self, setup_mapper):
         """Test entity name extraction for NPC."""
         from scripts.aeonisk.multiagent.targeting_validation import _get_entity_name

@@ -148,3 +148,71 @@ class TestWeaponStats:
                    f"{weapon_id} medium_range < short_range"
             assert weapon.long_range >= weapon.medium_range, \
                    f"{weapon_id} long_range < medium_range"
+
+
+class TestGunsDamageBoost:
+    """Verify all Guns-skill weapons have +2 damage boost applied."""
+
+    # Expected damage values after +2 boost
+    EXPECTED_GUN_DAMAGE = {
+        "pistol": 6,
+        "rifle": 7,           # Assault Rifle
+        "sniper_rifle": 10,
+        "heavy_weapon": 8,    # Heavy Machine Gun
+        "shotgun": 8,
+        "tranq_gun": 4,
+        "stun_gun": 6,
+        "hacking_toolkit": 5,
+        "custom_energy_weapon": 7,
+        "shrike_cannon": 8,
+        "spark_pulse_rifle": 8,
+        "hollowed_repeater": 6,
+        "union_heavy_pistol": 6,
+        "oathpiercer_carbine": 6,
+        "debtbreaker_sidearm": 6,
+        "drip_veil_projector": 4,
+        "beat_up_pistol": 5,
+        "compact_emp_pistol": 5,
+    }
+
+    def test_all_guns_weapons_have_boosted_damage(self):
+        """Every Guns-skill weapon should have +2 damage from balance patch."""
+        for weapon_id, expected_damage in self.EXPECTED_GUN_DAMAGE.items():
+            weapon = WEAPON_LIBRARY[weapon_id]
+            assert weapon.skill == "Guns", f"{weapon_id} should be Guns skill"
+            assert weapon.damage == expected_damage, (
+                f"{weapon_id} ({weapon.name}): expected damage={expected_damage}, "
+                f"got {weapon.damage}"
+            )
+
+    def test_guns_weapon_count(self):
+        """Should have exactly 18 Guns-skill weapons."""
+        guns_weapons = [
+            wid for wid, w in WEAPON_LIBRARY.items()
+            if w.skill == "Guns"
+        ]
+        assert len(guns_weapons) == 18, (
+            f"Expected 18 Guns weapons, got {len(guns_weapons)}: {guns_weapons}"
+        )
+
+    def test_melee_weapons_unchanged_by_gun_boost(self):
+        """Melee weapons should NOT be affected by guns boost."""
+        melee_expected = {
+            "baton": 5,          # +3 melee boost from prior patch
+            "combat_knife": 6,
+            "void_blade": 8,
+            "ritual_blade": 7,
+            "mnemonic_blade": 8,
+            "ash_pulse_pike": 7,
+            "breach_hammer": 10,
+            "sparkspike_dagger": 7,
+            "wraithroot_vineblade": 5,
+            "ritual_staff": 5,
+            "void_cloak": 4,
+        }
+        for weapon_id, expected_damage in melee_expected.items():
+            weapon = WEAPON_LIBRARY[weapon_id]
+            assert weapon.damage == expected_damage, (
+                f"Melee weapon {weapon_id} damage should be {expected_damage}, "
+                f"got {weapon.damage}"
+            )

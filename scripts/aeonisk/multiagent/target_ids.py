@@ -300,6 +300,8 @@ class TargetIDMapper:
             entity_type = 'player'
         elif hasattr(agent, 'vendor_id') and not hasattr(agent, 'agent_id'):
             entity_type = 'vendor'
+        elif hasattr(agent, 'agent_id') and agent.agent_id in self.npc_registry:
+            entity_type = 'npc'
         else:
             entity_type = 'enemy'
 
@@ -314,6 +316,7 @@ class TargetIDMapper:
             # Player agent
             cs = agent.character_state
             info['name'] = cs.name
+            info['pronouns'] = getattr(cs, 'pronouns', 'they/them')
             # Health is stored on agent, not character_state
             info['health'] = getattr(agent, 'health', 0)
             info['max_health'] = getattr(agent, 'max_health', 0)
@@ -322,9 +325,22 @@ class TargetIDMapper:
         elif hasattr(agent, 'name'):
             # Enemy, NPC, or Vendor
             info['name'] = agent.name
+            info['pronouns'] = getattr(agent, 'pronouns', 'they/them')
             info['health'] = getattr(agent, 'health', 0)
             info['max_health'] = getattr(agent, 'max_health', 0)
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
+
+        # Wounds, stuns, and death state (available for all combatant types)
+        info['wounds'] = getattr(agent, 'wounds', 0)
+        info['stuns'] = getattr(agent, 'stuns', 0)
+
+        permanently_dead = getattr(agent, '_permanently_dead', False)
+        if permanently_dead or info['wounds'] >= 6:
+            info['death_state'] = 'dead'
+        elif info.get('health', 0) <= 0 and info.get('max_health', 0) > 0:
+            info['death_state'] = 'unconscious'
+        else:
+            info['death_state'] = 'alive'
 
         return info
 
@@ -476,8 +492,9 @@ class TargetIDMapper:
 
         Rules:
         - Players can target anyone/anything
-        - Enemies can target players + NPCs (based on personality, checked elsewhere)
-        - NPCs cannot target (non-combatants)
+        - Enemies can target players, NPCs, and hostile-faction enemies
+          (faction check done in enemy_combat.py, not here)
+        - NPCs can target (simplified combat)
 
         Args:
             source_id: Source agent ID
@@ -494,65 +511,15 @@ class TargetIDMapper:
         if source_type == "player":
             return True
 
-        # Enemies can target (checked with personality elsewhere)
+        # Enemies can target (faction check done in enemy_combat.py)
         if source_type == "enemy":
-            return True  # Personality check done in can_target_with_personality
-
-        # NPCs cannot target (non-combatants)
-        if source_type == "npc":
-            return False
-
-        # Unknown source type, deny
-        return False
-
-    def can_target_with_personality(
-        self,
-        source_id: str,
-        target_id: str,
-        personality: str,
-        target_threat_level: str
-    ) -> bool:
-        """
-        Check if enemy can target NPC based on personality and threat level.
-
-        Personality-based targeting:
-        - ruthless: Target anyone (PCs, all NPCs)
-        - professional: Target threats only (PCs, armed/potential threat NPCs)
-        - defensive: Only PCs (ignore all NPCs)
-
-        Threat levels:
-        - non_combatant: Civilians, unarmed bystanders
-        - potential_threat: NPCs that might be dangerous
-        - armed_neutral: NPCs with weapons/training
-
-        Args:
-            source_id: Enemy agent ID
-            target_id: Target agent ID
-            personality: Enemy personality ("ruthless", "professional", "defensive")
-            target_threat_level: Target's threat level
-
-        Returns:
-            True if enemy can target based on personality
-        """
-        target_type = self.get_agent_type(target_id)
-
-        # Always can target players
-        if target_type == "player":
             return True
 
-        # NPC targeting depends on personality
-        if target_type == "npc":
-            if personality == "ruthless":
-                # Ruthless enemies target anyone
-                return True
-            elif personality == "professional":
-                # Professional enemies only target threats
-                return target_threat_level in ["potential_threat", "armed_neutral"]
-            elif personality == "defensive":
-                # Defensive enemies ignore all NPCs
-                return False
+        # NPCs can target (simplified combat in DM adjudication)
+        if source_type == "npc":
+            return True
 
-        # Default: can't target
+        # Unknown source type, deny
         return False
 
     def __repr__(self) -> str:

@@ -23,6 +23,54 @@ logger = logging.getLogger(__name__)
 # Constants for prompt text
 DECLARED_ACTIONS_HEADER = "Declared Actions This Round"
 
+# Action types that include damage in story beats
+_DAMAGE_ACTION_TYPES = frozenset(('combat', 'ritual'))
+
+
+def format_story_beat(
+    action_type: str,
+    intent: str,
+    success: bool,
+    outcome_tier: str,
+    target: str = '',
+    damage_dealt: int = None,
+    conditions: list = None,
+) -> Optional[str]:
+    """Format a rich story beat string from structured resolution data.
+
+    Returns None if intent is empty. Used by _extract_story_beat() and testable
+    as a pure function.
+    """
+    if not intent:
+        return None
+
+    # Titlecase action type
+    label = action_type.strip().title() if action_type else 'Action'
+
+    # Bracket-wrap tier, falling back to success/failure
+    tier = outcome_tier.strip().lower() if outcome_tier and outcome_tier.strip() else ('success' if success else 'failure')
+
+    # Truncate intent at 80 chars
+    if len(intent) > 80:
+        intent_display = intent[:80] + '...'
+    else:
+        intent_display = intent
+
+    # Build beat: "{Label} [{tier}] vs {target}: {intent}"
+    parts = [f"{label} [{tier}]"]
+    if target:
+        parts.append(f"vs {target}")
+    parts_str = ' '.join(parts)
+    beat = f"{parts_str}: {intent_display}"
+
+    # Append damage for combat/ritual only (when provided)
+    if damage_dealt is not None and action_type.lower() in _DAMAGE_ACTION_TYPES:
+        beat += f", {damage_dealt} dmg"
+        if conditions:
+            beat += f" [{', '.join(conditions)}]"
+
+    return beat
+
 
 @dataclass
 class CharacterState:
@@ -167,12 +215,7 @@ class AIPlayerAgent(Agent):
         if not llm_client:
             from .llm_provider import LLMConfig, create_provider
             try:
-                provider_config = LLMConfig(
-                    provider=self.llm_config.get('provider', 'anthropic'),
-                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    max_tokens=self.llm_config.get('max_tokens', 1000),
-                    temperature=self.llm_config.get('temperature', 1.0)
-                )
+                provider_config = LLMConfig.from_dict(self.llm_config, max_tokens=1000)
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"Player {self.agent_id}: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
@@ -211,6 +254,7 @@ class AIPlayerAgent(Agent):
         # Stabilization state (YAGS First Aid system)
         self.is_stabilized = False  # True = bleeding stopped, no more death checks needed
         self.is_extracted = False  # True = medevac arrived, character removed from combat
+        self._permanently_dead = False  # True = failed death save, cannot be healed/resurrected
 
         # Weapon inventory (initialized in on_start)
         from .weapons import Weapon
@@ -314,19 +358,23 @@ class AIPlayerAgent(Agent):
         self.health = self.max_health
         self.wounds = 0  # Wound count (tactical module)
 
-        # Soak calculation (YAGS formula + Aeonisk combat balance)
+        # Soak calculation (pure YAGS formula + equipped armor)
         # YAGS: Soak = Size + Agility + Endurance - 5
-        # Aeonisk: +4 combat balance (keeps avg=10 for backwards compatibility)
-        SOAK_COMBAT_BALANCE = 4
-
         agility = self.character_state.attributes.get('Agility', 3)
 
         base_soak = size + agility + endurance - 5
-        self.soak = base_soak + SOAK_COMBAT_BALANCE
+        self.soak = base_soak
+
+        # Apply equipped armor bonus from inventory
+        armor = self._load_armor()
+        armor_bonus = 0
+        if armor:
+            armor_bonus = armor.soak_bonus
+            self.soak += armor_bonus
 
         logger.debug(
             f"{self.character_state.name} Soak calculation: "
-            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + balance({SOAK_COMBAT_BALANCE}) = {self.soak}"
+            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + armor({armor_bonus}) = {self.soak}"
         )
 
         # Initialize weapons from config or use defaults
@@ -399,6 +447,50 @@ class AIPlayerAgent(Agent):
         if not self.human_controlled:
             print("Type 'take_control' to switch to human control")
         
+    def _load_armor(self):
+        """Load best armor from character config inventory.
+
+        Checks inventory keys against ARMOR_LIBRARY and returns the armor
+        with the highest soak_bonus. Returns None if no armor found.
+        """
+        from .weapons import ARMOR_LIBRARY
+
+        inventory = self.character_config.get('inventory', {})
+        best_armor = None
+        for item_key, count in inventory.items():
+            if count > 0 and item_key in ARMOR_LIBRARY:
+                armor = ARMOR_LIBRARY[item_key]
+                if armor.soak_bonus > 0 and (best_armor is None or armor.soak_bonus > best_armor.soak_bonus):
+                    best_armor = armor
+        return best_armor
+
+    def _format_weapon_inventory(self) -> str:
+        """Format equipped/carried weapons for LLM prompts."""
+        if not hasattr(self, 'equipped_weapons') or not hasattr(self, 'weapon_inventory'):
+            return ""
+
+        equipped_list = []
+        if self.equipped_weapons.get('primary'):
+            wpn = self.equipped_weapons['primary']
+            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
+        if self.equipped_weapons.get('sidearm'):
+            wpn = self.equipped_weapons['sidearm']
+            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
+
+        carried_list = []
+        for wpn in self.weapon_inventory:
+            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
+
+        text = "\n\n**Your Weapons:**\n"
+        if equipped_list:
+            text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
+        if carried_list:
+            text += "**Carried:** " + ", ".join(carried_list) + "\n"
+        text += "**Always available:** Unarmed (STUN damage, Strength x Brawl)\n"
+        text += "\n**Damage Types:** STUN = Non-lethal | MIXED = Partially lethal | WOUND = Fully lethal\n"
+        text += "**IMPORTANT:** Specify which weapon you're using in your action!\n"
+        return text
+
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.debug(f"Player {self.agent_id} shutting down")
@@ -407,7 +499,9 @@ class AIPlayerAgent(Agent):
 
     @property
     def is_alive(self) -> bool:
-        """Check if player is alive (health > 0)."""
+        """Check if player is alive (health > 0 and not permanently dead from failed death save)."""
+        if self._permanently_dead:
+            return False
         return self.health is not None and self.health > 0
 
     @property
@@ -479,6 +573,7 @@ class AIPlayerAgent(Agent):
         # Fumble (nat 1) = automatic death
         if roll == 1:
             logger.warning(f"{self.character_state.name} FUMBLED death save - KILLED!")
+            self._permanently_dead = True
             return False, "dead"
 
         # Good success (beat DC by 10+) = can keep fighting
@@ -494,6 +589,7 @@ class AIPlayerAgent(Agent):
         # Failure = dead
         else:
             logger.warning(f"{self.character_state.name} FAILED death save - KILLED!")
+            self._permanently_dead = True
             return False, "dead"
 
     def add_buff(self, effect: str, bonus: int, duration: int, source: str = "unknown"):
@@ -932,7 +1028,8 @@ class AIPlayerAgent(Agent):
         print(f"\n[{self.character_state.name}] Received resolution")
 
         # Extract story beat from own significant actions
-        self._extract_story_beat(original_action, outcome, narration)
+        effects_summary = message.payload.get('effects_summary', {})
+        self._extract_story_beat(original_action, outcome, narration, effects_summary)
 
         # NOTE: Offering consumption now happens BEFORE DM narration in dm.py (mechanics-first architecture)
         # No need to consume here anymore - mechanics layer handles it pre-narration
@@ -1060,61 +1157,63 @@ class AIPlayerAgent(Agent):
             # Remove from pending
             self.shared_state.pending_transfers.remove(transfer)
 
-    def _extract_story_beat(self, original_action: Dict[str, Any], outcome: Dict[str, Any], narration: str):
-        """
-        Extract a story beat from a significant action for narrative memory.
+    def _resolve_target_name(self, target_id: str) -> str:
+        """Resolve a target ID (tgt_xxxx) to a character name via target_id_mapper.
 
-        Only captures notable events (combat victories, discoveries, social successes).
+        Non-tgt_ strings pass through unchanged. Falls back to raw ID if
+        mapper is unavailable or resolution fails.
+        """
+        if not target_id or not target_id.startswith('tgt_'):
+            return target_id or ''
+        if self.shared_state and hasattr(self.shared_state, 'target_id_mapper'):
+            mapper = self.shared_state.target_id_mapper
+            agent = mapper.resolve_target(target_id)
+            if agent:
+                name = getattr(agent, 'name', None)
+                if not name and hasattr(agent, 'character_state'):
+                    name = getattr(agent.character_state, 'name', None)
+                return name or target_id
+        return target_id
+
+    def _extract_story_beat(self, original_action: Dict[str, Any], outcome: Dict[str, Any], narration: str, effects_summary: Optional[Dict[str, Any]] = None):
+        """
+        Extract a story beat from an action resolution for narrative memory.
+
+        Generates rich beats from structured resolution data for ALL action types.
         Keeps story_beats list to max 10 entries (FIFO).
         """
         # Skip if no narration or trivial action
         if not narration or len(narration) < 20:
             return
 
-        action_type = original_action.get('action_type', '').upper()
+        action_type = original_action.get('action_type', '')
         success = outcome.get('success', False)
         intent = original_action.get('intent', '')
+        outcome_tier = outcome.get('tier', outcome.get('outcome_tier', ''))
 
-        # Determine if this action is significant enough to be a story beat
-        beat = None
+        # Resolve target ID to character name
+        raw_target = original_action.get('target_name', original_action.get('target', ''))
+        target = self._resolve_target_name(raw_target) if raw_target else ''
 
-        # Combat victories are always notable
-        if action_type == 'COMBAT' and success:
-            # Try to extract target from action
-            target = original_action.get('target_name', original_action.get('target', ''))
-            if target:
-                beat = f"Defeated {target} in combat"
-            else:
-                beat = f"Won combat engagement"
+        # Extract damage/conditions from effects_summary (combat/ritual only)
+        damage_dealt = None
+        conditions = None
+        if effects_summary and action_type.lower() in ('combat', 'ritual'):
+            damage_dealt = effects_summary.get('total_damage_dealt', 0)
+            raw_conditions = effects_summary.get('conditions', [])
+            conditions = [c for c in raw_conditions if c] if raw_conditions else None
 
-        # Social successes (negotiation, intimidation, persuasion)
-        elif action_type == 'SOCIAL' and success:
-            # Shorten the intent to a beat
-            if 'negotiate' in intent.lower() or 'persuade' in intent.lower():
-                beat = f"Negotiated successfully: {intent[:50]}..."
-            elif 'intimidate' in intent.lower():
-                beat = f"Intimidated target: {intent[:50]}..."
-            else:
-                beat = f"Social success: {intent[:50]}..."
+        beat = format_story_beat(
+            action_type=action_type,
+            intent=intent,
+            success=success,
+            outcome_tier=outcome_tier,
+            target=target,
+            damage_dealt=damage_dealt,
+            conditions=conditions,
+        )
 
-        # Investigation discoveries
-        elif action_type == 'INVESTIGATE' and success:
-            beat = f"Discovered: {intent[:60]}..."
-
-        # Ritual/magic successes
-        elif action_type == 'RITUAL' and success:
-            beat = f"Completed ritual: {intent[:50]}..."
-
-        # Technical/hacking successes
-        elif action_type == 'TECHNICAL' and success:
-            beat = f"Tech success: {intent[:50]}..."
-
-        # Critical failures (dramatic moments)
-        tier = outcome.get('tier', outcome.get('outcome_tier', ''))
-        if tier in ['CRITICAL_FAILURE', 'CATASTROPHIC'] and not beat:
-            beat = f"Critical failure: {intent[:50]}..."
-
-        # Add the beat if significant
+        # Add the beat if generated
         if beat:
             # Get current round from shared_state
             current_round = 0
@@ -1803,6 +1902,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Inventory for attunement/purchase decisions
                 "currency_display": currency_display,
                 "seeds_display": seeds_display,
+                # Weapon loadout (so LLM knows what weapons are available)
+                "weapon_inventory": self._format_weapon_inventory(),
                 # Environment features (altars, vendors, situational factors)
                 "altar_availability": self._format_altar_availability(),
                 "vendor_status": self._format_vendor_status(),
@@ -2039,6 +2140,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "declared_actions_this_round": declared_actions_text,
                 # NEW: Recent action outcomes (detailed narrations)
                 "recent_action_outcomes": recent_outcomes_text,
+                # Weapon loadout (so LLM knows what weapons are available)
+                "weapon_inventory": self._format_weapon_inventory(),
                 # Customizable personality/direction guidance (with labels when present)
                 "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
                 "direction": f"**Direction:** {self.direction}" if self.direction else "",
@@ -2154,6 +2257,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         entities.append(
                             f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
                         )
+
+                if not active_enemies:
+                    entities.append("⚠️ NO TARGETABLE ENEMIES IN SCENE — All hostiles have been neutralized or withdrawn.")
 
         # Add NPCs (with target IDs for combat)
         if self.shared_state and self.shared_state.npc_agents:
@@ -2562,32 +2668,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
         # In free targeting mode: ALWAYS show UI (IFF/ROE testing - PCs can heal/harm each other)
         # In standard mode: only show UI when enemies present (backward compatible)
         if free_targeting or active_enemies:
-            # Build weapon inventory summary (for lethal/non-lethal choices)
-            weapon_inventory_text = ""
-            if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):
-                equipped_list = []
-                if self.equipped_weapons.get('primary'):
-                    wpn = self.equipped_weapons['primary']
-                    equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
-                if self.equipped_weapons.get('sidearm'):
-                    wpn = self.equipped_weapons['sidearm']
-                    equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
-
-                carried_list = []
-                for wpn in self.weapon_inventory:
-                    carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
-
-                if equipped_list or carried_list:
-                    weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
-                    if equipped_list:
-                        weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
-                    if carried_list:
-                        weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
-                    weapon_inventory_text += "\n**Damage Types:**\n"
-                    weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
-                    weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
-                    weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
-                    weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons if needed.\n"
+            weapon_inventory_text = self._format_weapon_inventory()
 
             if free_targeting:
                 # FREE TARGETING MODE: Unified combatant list with generic IDs

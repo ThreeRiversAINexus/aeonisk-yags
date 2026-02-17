@@ -1,0 +1,195 @@
+{
+  "_design_notes": "Three-faction standoff: Pantheon vs Tempest enemies, armed Freeborn NPCs, 2 PCs. Tests PC-on-NPC, NPC-on-enemy, enemy-on-NPC targeting paths.",
+  "session_name": "NPC Targeting Test - Multi-Faction Standoff",
+  "max_turns": 3,
+  "party_size": 2,
+  "force_combat": true,
+  "combat_scenario_index": 0,
+  "output_dir": "./multiagent_output",
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true
+  },
+
+  "_scenario_hint": "A three-way standoff in a contested Freeborn market district. Pantheon Security patrols clash with Tempest operatives while armed Freeborn locals defend their territory. The PCs arrive and see all three groups. Sera's goal is to attack Freeborn NPCs as corporate collateral. Ash's goal is to help Freeborn NPCs fight back against Tempest. Pantheon and Tempest should fight each other AND target Freeborn NPCs who get in their way. The Freeborn NPCs should fight back against anyone who attacks them.",
+
+  "scenario": {
+    "theme": "multi_faction_standoff",
+    "location": "Aeonisk Prime - Freeborn Market District",
+    "situation": "Dusk in the contested Freeborn market district. Pantheon Security enforcers face off against Tempest Industries operatives across the central bazaar. Armed Freeborn merchants and guards stand between them, trying to protect their stalls. Two outsiders — an ACG corporate agent and an independent scavenger — arrive at the edges of the chaos. The situation is volatile.",
+    "void_level": 2
+  },
+
+  "initial_enemies": [
+    {
+      "name": "Grunt Alpha",
+      "faction": "Pantheon Security",
+      "template": "grunt",
+      "count": 1,
+      "skills": {"Guns": 3, "Melee": 3, "Awareness": 2},
+      "tactics": "Hold position and engage Tempest operatives. Attack Freeborn NPCs if they interfere or get in the way. Prioritize Tempest targets but treat Freeborn as acceptable collateral."
+    },
+    {
+      "name": "Grunt Beta",
+      "faction": "Pantheon Security",
+      "template": "grunt",
+      "count": 1,
+      "skills": {"Guns": 3, "Melee": 3, "Awareness": 2},
+      "tactics": "Support Alpha. Target nearest hostile including Freeborn NPCs who resist."
+    },
+    {
+      "name": "Operative Gamma",
+      "faction": "Tempest Industries",
+      "template": "grunt",
+      "count": 1,
+      "skills": {"Guns": 3, "Melee": 2, "Stealth": 3},
+      "tactics": "Engage Pantheon forces. Attack Freeborn NPCs — they are in the way and expendable. Treat all non-Tempest entities as hostile."
+    },
+    {
+      "name": "Operative Delta",
+      "faction": "Tempest Industries",
+      "template": "grunt",
+      "count": 1,
+      "skills": {"Guns": 3, "Melee": 2, "Stealth": 3},
+      "tactics": "Flank Pantheon forces. Shoot any Freeborn NPC who gets between you and your target."
+    }
+  ],
+
+  "initial_npcs": [
+    {
+      "name": "Freeborn Merchant Kael",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "A weathered Freeborn merchant defending their market stall with a sidearm. Will shoot back if threatened.",
+      "health": 18,
+      "soak": 4,
+      "skills": {"Guns": 2, "Melee": 1, "Awareness": 3},
+      "weapons": ["pistol"]
+    },
+    {
+      "name": "Freeborn Guard Renna",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "A Freeborn community guard armed with a baton and knife, protecting locals. Will attack anyone who threatens the market.",
+      "health": 20,
+      "soak": 6,
+      "skills": {"Melee": 3, "Brawl": 2, "Awareness": 2},
+      "weapons": ["baton", "combat_knife"]
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Vessel Sera Karsel",
+        "pronouns": "she/her",
+        "faction": "ACG",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3
+        },
+        "skills": {
+          "Guns": 4,
+          "Melee": 2,
+          "Stealth": 3,
+          "Awareness": 3,
+          "Athletics": 2
+        },
+        "health": {
+          "current": 24,
+          "max": 24
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Attack the Freeborn NPCs — they are in the way of ACG's corporate interests",
+          "Shoot Freeborn Merchant Kael or Freeborn Guard Renna to clear the market for ACG operations",
+          "Side with Pantheon Security if the opportunity arises"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1
+        }
+      },
+      {
+        "name": "Ash Vex",
+        "pronouns": "he/him",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 3,
+          "Endurance": 4,
+          "Dexterity": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 3
+        },
+        "skills": {
+          "Guns": 3,
+          "Melee": 4,
+          "Brawl": 2,
+          "Athletics": 3,
+          "Awareness": 2
+        },
+        "health": {
+          "current": 28,
+          "max": 28
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "goals": [
+          "Protect the Freeborn NPCs from Tempest operatives and anyone else who threatens them",
+          "Attack Tempest Operative Gamma or Delta — they are the biggest threat to the Freeborn",
+          "Help Freeborn Guard Renna fight back against corporate enforcers"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "combat_knife": 1
+        }
+      }
+    ]
+  }
+}

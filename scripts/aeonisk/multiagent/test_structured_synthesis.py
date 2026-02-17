@@ -103,7 +103,7 @@ class TestEnemySpawning(unittest.TestCase):
         """Test basic enemy spawn."""
         spawn = EnemySpawn(
             template="Grunt",
-            faction="ACG Security",
+            faction="ACG",
             archetype="Enforcer",
             count=2,
             spawn_reason="Alarm triggered",
@@ -118,7 +118,7 @@ class TestEnemySpawning(unittest.TestCase):
         """Test enemy spawn with custom traits."""
         spawn = EnemySpawn(
             template="Elite",
-            faction="Void Cultists",
+            faction="Void",
             archetype="Ritualist",
             count=1,
             spawn_reason="Ritual completed",
@@ -202,7 +202,7 @@ class TestRoundSynthesis(unittest.TestCase):
             enemy_spawns=[
                 EnemySpawn(
                     template="Elite",
-                    faction="ACG Security",
+                    faction="ACG",
                     archetype="Tactical Response",
                     count=2,
                     spawn_reason="Vault breach triggered tactical team deployment",

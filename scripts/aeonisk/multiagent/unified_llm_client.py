@@ -46,6 +46,7 @@ class UnifiedAIClient:
         proxy_url: Optional[str] = None,
         proxy_priority: str = "normal",
         proxy_strategy: Optional[str] = None,
+        no_fallback: bool = False,
     ):
         """
         Initialize AI client with specified provider.
@@ -58,6 +59,7 @@ class UnifiedAIClient:
             proxy_url: Proxy server URL (defaults to LLM_PROXY_URL env var or localhost:8000)
             proxy_priority: Request priority ('high', 'normal', 'low')
             proxy_strategy: Routing strategy ('auto', 'direct', 'batch') or None for env default
+            no_fallback: If True, never fall back to direct API when proxy fails (raise instead)
         """
         self.provider = provider or os.getenv('AI_PROVIDER', 'openai')
 
@@ -66,18 +68,49 @@ class UnifiedAIClient:
         self.proxy_url = proxy_url or os.getenv('LLM_PROXY_URL', 'http://localhost:8000')
         self.proxy_priority = proxy_priority
         self.proxy_strategy = proxy_strategy  # Can be None (use env default)
+        self.no_fallback = no_fallback
+
+        # OpenAI-compatible provider configs (base_url + env key for API key)
+        # Any provider using an OpenAI-compatible API goes here.
+        self._OPENAI_COMPATIBLE_PROVIDERS = {
+            'grok': {
+                'base_url': 'https://api.x.ai/v1',
+                'env_key': 'XAI_API_KEY',
+                'default_model': 'grok-4-latest',
+                'model_env': 'GROK_MODEL',
+            },
+            'gemini': {
+                'base_url': 'https://generativelanguage.googleapis.com/v1beta/openai',
+                'env_key': 'GEMINI_API_KEY',
+                'default_model': 'gemini-2.5-pro',
+                'model_env': 'GEMINI_MODEL',
+            },
+            'deepinfra': {
+                'base_url': 'https://api.deepinfra.com/v1/openai',
+                'env_key': 'DEEPINFRA_API_KEY',
+                'default_model': 'deepseek-ai/DeepSeek-V3.2',
+                'model_env': 'DEEPINFRA_MODEL',
+            },
+        }
 
         # Initialize provider clients lazily to avoid import errors if not needed
         self._openai_client = None
         self._anthropic_client = None
+        self._openai_compatible_client = None
 
         # Set default models
         if self.provider == 'openai':
             self.default_model = os.getenv('OPENAI_MODEL', 'gpt-5-mini')
         elif self.provider == 'anthropic':
             self.default_model = os.getenv('ANTHROPIC_MODEL', 'claude-sonnet-4-5')
+        elif self.provider in self._OPENAI_COMPATIBLE_PROVIDERS:
+            cfg = self._OPENAI_COMPATIBLE_PROVIDERS[self.provider]
+            self.default_model = os.getenv(cfg['model_env'], cfg['default_model'])
         else:
-            raise ValueError(f"Unsupported AI provider: {self.provider}. Use 'openai' or 'anthropic'")
+            raise ValueError(
+                f"Unsupported AI provider: {self.provider}. "
+                f"Use 'openai', 'anthropic', {', '.join(repr(k) for k in self._OPENAI_COMPATIBLE_PROVIDERS)}"
+            )
 
         # Store API keys for lazy initialization
         self._openai_api_key = openai_api_key
@@ -109,6 +142,24 @@ class UnifiedAIClient:
                 raise ValueError("ANTHROPIC_API_KEY required for Anthropic provider")
             self._anthropic_client = anthropic.Anthropic(api_key=api_key)
         return self._anthropic_client
+
+    @property
+    def _openai_compatible_config(self):
+        """Get config dict for an OpenAI-compatible provider (grok, gemini, etc.)."""
+        if self.provider not in self._OPENAI_COMPATIBLE_PROVIDERS:
+            raise ValueError(f"Provider '{self.provider}' is not an OpenAI-compatible provider")
+        return self._OPENAI_COMPATIBLE_PROVIDERS[self.provider]
+
+    def _get_openai_compatible_client(self):
+        """Lazy initialization of OpenAI-compatible client with custom base_url."""
+        if self._openai_compatible_client is None:
+            from openai import OpenAI
+            cfg = self._openai_compatible_config
+            api_key = os.getenv(cfg['env_key'])
+            if not api_key:
+                raise ValueError(f"{cfg['env_key']} required for {self.provider} provider")
+            self._openai_compatible_client = OpenAI(api_key=api_key, base_url=cfg['base_url'])
+        return self._openai_compatible_client
 
     def chat_completion(
         self,
@@ -149,12 +200,41 @@ class UnifiedAIClient:
                 raise
 
         # Direct API call
+        return self._direct_completion(messages, model, temperature, max_tokens)
+
+    def _direct_completion(
+        self,
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int
+    ) -> str:
+        """Route to the correct direct API based on provider."""
         if self.provider == 'openai':
             return self._openai_completion(messages, model, temperature, max_tokens)
         elif self.provider == 'anthropic':
             return self._anthropic_completion(messages, model, temperature, max_tokens)
+        elif self.provider in self._OPENAI_COMPATIBLE_PROVIDERS:
+            return self._openai_compatible_completion(messages, model, temperature, max_tokens)
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
+
+    def _openai_compatible_completion(
+        self,
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int
+    ) -> str:
+        """OpenAI-compatible chat completion (grok, gemini, etc.) via custom base_url."""
+        client = self._get_openai_compatible_client()
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content.strip()
 
     def _proxy_completion(
         self,
@@ -205,7 +285,15 @@ class UnifiedAIClient:
                 result = response.json()
 
                 if result.get("status") == "completed":
-                    content = result.get("content", "")
+                    content = result.get("content")
+                    if not content or not content.strip():
+                        if self.no_fallback:
+                            raise Exception("Proxy returned empty content (no_fallback=True, not falling back to direct API)")
+                        logger.error(
+                            "PROXY BUG: Batch completed but content is null/empty. "
+                            "Falling back to direct API."
+                        )
+                        return self._direct_completion(messages, model, temperature, max_tokens)
                     logger.debug(f"Proxy request completed successfully")
                     return content
                 else:
@@ -217,16 +305,15 @@ class UnifiedAIClient:
                     # Error looks like: "Batch ended with status: completed" with status="failed"
                     # This is a proxy-side bug - don't retry endlessly, fall back to direct API
                     if "Batch ended with status: completed" in error or "Batch ended with status: ended" in error:
+                        if self.no_fallback:
+                            raise Exception(f"Proxy batch failed: {error} (no_fallback=True)")
                         logger.error(
                             "PROXY BUG: Batch completed but output file missing. "
                             "This is a bug in the proxy server. Falling back to direct API. "
                             "Check proxy logs for why output_file_path is None."
                         )
                         # Fall back to direct API immediately, don't retry
-                        if self.provider == 'openai':
-                            return self._openai_completion(messages, model, temperature, max_tokens)
-                        else:
-                            return self._anthropic_completion(messages, model, temperature, max_tokens)
+                        return self._direct_completion(messages, model, temperature, max_tokens)
 
                     raise Exception(f"Proxy request failed: {error}")
 
@@ -239,15 +326,17 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
+                    if self.no_fallback:
+                        raise Exception(
+                            f"Proxy unavailable at {self.proxy_url} after {max_retries} attempts "
+                            f"(no_fallback=True, not falling back to direct API)"
+                        ) from e
                     logger.info(
                         f"Proxy unavailable at {self.proxy_url} after {max_retries} attempts, "
                         f"falling back to direct {self.provider} API"
                     )
                     # Fallback to direct
-                    if self.provider == 'openai':
-                        return self._openai_completion(messages, model, temperature, max_tokens)
-                    else:
-                        return self._anthropic_completion(messages, model, temperature, max_tokens)
+                    return self._direct_completion(messages, model, temperature, max_tokens)
 
             except requests.exceptions.Timeout:
                 # This shouldn't happen with timeout=None, but handle it just in case
@@ -256,19 +345,17 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
+                    if self.no_fallback:
+                        raise Exception(f"Proxy timeout after {max_retries} attempts (no_fallback=True)")
                     logger.info(f"Proxy timeout after {max_retries} attempts, falling back to direct {self.provider} API")
-                    if self.provider == 'openai':
-                        return self._openai_completion(messages, model, temperature, max_tokens)
-                    else:
-                        return self._anthropic_completion(messages, model, temperature, max_tokens)
+                    return self._direct_completion(messages, model, temperature, max_tokens)
 
             except requests.exceptions.HTTPError as e:
                 # HTTP errors (4xx, 5xx) - don't retry, fall back immediately
+                if self.no_fallback:
+                    raise Exception(f"Proxy HTTP error: {e} (no_fallback=True)") from e
                 logger.info(f"Proxy HTTP error ({e}), falling back to direct {self.provider} API")
-                if self.provider == 'openai':
-                    return self._openai_completion(messages, model, temperature, max_tokens)
-                else:
-                    return self._anthropic_completion(messages, model, temperature, max_tokens)
+                return self._direct_completion(messages, model, temperature, max_tokens)
 
             except Exception as e:
                 # Other errors - try once more then fall back
@@ -280,11 +367,10 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
+                    if self.no_fallback:
+                        raise Exception(f"Proxy error after {max_retries} attempts: {e} (no_fallback=True)") from e
                     logger.info(f"Proxy error after {max_retries} attempts ({e}), falling back to direct {self.provider} API")
-                    if self.provider == 'openai':
-                        return self._openai_completion(messages, model, temperature, max_tokens)
-                    else:
-                        return self._anthropic_completion(messages, model, temperature, max_tokens)
+                    return self._direct_completion(messages, model, temperature, max_tokens)
 
         # Should never reach here, but just in case
         raise Exception("Unexpected error: exceeded max retries without returning or raising")

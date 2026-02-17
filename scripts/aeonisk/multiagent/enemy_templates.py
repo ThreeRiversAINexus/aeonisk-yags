@@ -28,6 +28,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "grunt": {
         "description": "Basic enemy combatant with minimal training",
+        "morale_behavior": "flee_when_broken",
+        "character_brief": "Nervous and poorly trained. Takes cues from allies and prefers safety in numbers. Quick to panic when isolated.",
 
         # YAGS Attributes (1-5 for humans)
         "attributes": {
@@ -46,7 +48,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Guns": 3,
             "Awareness": 2,
             "Athletics": 2,
-            "Melee": 1
+            "Melee": 3
         },
 
         # Combat Stats
@@ -74,6 +76,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "elite": {
         "description": "Veteran combatant with advanced training and equipment",
+        "morale_behavior": "surrender_if_cornered",
+        "character_brief": "Cool-headed professional. Assesses threats methodically and fights with discipline. Willing to negotiate when outmatched.",
 
         "attributes": {
             "Agility": 4,
@@ -115,6 +119,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "sniper": {
         "description": "Long-range specialist with enhanced perception",
+        "morale_behavior": "flee_when_broken",
+        "character_brief": "Patient and calculating. Avoids direct confrontation, preferring to reposition. Abandons position when compromised.",
 
         "attributes": {
             "Agility": 3,
@@ -155,6 +161,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "boss": {
         "description": "Major threat with superior stats and equipment",
+        "morale_behavior": "fight_to_death",
+        "character_brief": "Commanding and confident. Controls the battlefield through force of will. Does not show weakness or retreat.",
 
         "attributes": {
             "Agility": 5,
@@ -196,6 +204,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "void_cultist": {
         "description": "Void-corrupted ritual specialist",
+        "morale_behavior": "fight_to_death",
+        "character_brief": "Fervent and unstable. Views combat as sacred ritual. Welcomes dissolution and fights with reckless abandon.",
 
         "attributes": {
             "Agility": 3,
@@ -237,6 +247,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "enforcer": {
         "description": "Close-combat specialist with heavy armor",
+        "morale_behavior": "surrender_if_cornered",
+        "character_brief": "Obedient and methodical. Follows orders without question. Respects honorable surrender — both giving and receiving.",
 
         "attributes": {
             "Agility": 3,
@@ -277,6 +289,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "support": {
         "description": "Tactical support unit with suppression weapons",
+        "morale_behavior": "flee_when_broken",
+        "character_brief": "Cautious and support-oriented. Avoids frontline engagement. Retreats when allies fall to preserve value.",
 
         "attributes": {
             "Agility": 3,
@@ -317,6 +331,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "ambusher": {
         "description": "Infiltration specialist for ambush tactics",
+        "morale_behavior": "flee_when_broken",
+        "character_brief": "Opportunistic and evasive. Strikes from advantage, vanishes when exposed. Self-preservation above all.",
 
         "attributes": {
             "Agility": 4,
@@ -471,6 +487,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # =========================================================================
     "security_drone": {
         "description": "Flying surveillance and attack drone - fragile but evasive",
+        "morale_behavior": "fight_to_death",
+        "character_brief": "Automated threat response unit. No emotion, no negotiation. Engages until disabled or target neutralized.",
 
         "attributes": {
             "Agility": 5,  # Flying, evasive
@@ -507,6 +525,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
 
     "seedwalker_heavy": {
         "description": "Heavy utility robot repurposed for combat - slow but durable",
+        "morale_behavior": "fight_to_death",
+        "character_brief": "Void-animated construct. Relentless and unthinking. Driven by resonance toward living targets.",
 
         "attributes": {
             "Agility": 2,  # Slow, heavy
@@ -543,6 +563,8 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
 
     "voidcradle_antibot": {
         "description": "Illegal anti-ritual bot - disrupts tech and void-corrupted",
+        "morale_behavior": "fight_to_death",
+        "character_brief": "Counter-intrusion automaton. Systematic threat elimination protocol. Cannot be reasoned with.",
 
         "attributes": {
             "Agility": 4,

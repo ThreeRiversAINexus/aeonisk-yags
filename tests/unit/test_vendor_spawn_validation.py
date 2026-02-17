@@ -24,7 +24,7 @@ class TestVendorInventoryTypeValidation:
         """Valid vendor with VendorItem instances should pass."""
         vendor_spawn = NPCSpawn(
             name="Test Vendor",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -58,7 +58,7 @@ class TestVendorInventoryTypeValidation:
         with pytest.raises(ValidationError) as exc_info:
             NPCSpawn(
                 name="Broken Vendor",
-                faction="neutral",
+                faction="Independent",
                 entity_type="neutral",
                 threat_level="non_combatant",
                 disposition="friendly",
@@ -78,7 +78,7 @@ class TestVendorInventoryTypeValidation:
         with pytest.raises(ValidationError) as exc_info:
             NPCSpawn(
                 name="Broken Vendor",
-                faction="neutral",
+                faction="Independent",
                 entity_type="neutral",
                 threat_level="non_combatant",
                 disposition="friendly",
@@ -106,7 +106,7 @@ class TestVendorInventoryTypeValidation:
         with pytest.raises(ValidationError):
             NPCSpawn(
                 name="Mixed Vendor",
-                faction="neutral",
+                faction="Independent",
                 entity_type="neutral",
                 threat_level="non_combatant",
                 disposition="friendly",
@@ -125,7 +125,7 @@ class TestVendorInventoryTypeValidation:
         """Vendors with empty inventory should be valid (can spawn without items)."""
         vendor_spawn = NPCSpawn(
             name="Empty Vendor",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -237,7 +237,7 @@ class TestNPCSpawnVendorFields:
         """NPCs should not be vendors by default."""
         npc = NPCSpawn(
             name="Regular NPC",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -254,7 +254,7 @@ class TestNPCSpawnVendorFields:
         """Vendors can have custom greetings."""
         vendor = NPCSpawn(
             name="Chatty Vendor",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -274,7 +274,7 @@ class TestNPCSpawnVendorFields:
         """accepts_purchases should default to False."""
         vendor = NPCSpawn(
             name="Window Shopping Vendor",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -303,7 +303,7 @@ class TestVendorSpawnEdgeCases:
         """NPCs can have vendor_inventory even if is_vendor=False (for future use)."""
         npc = NPCSpawn(
             name="NPC with Items",
-            faction="neutral",
+            faction="Independent",
             entity_type="neutral",
             threat_level="non_combatant",
             disposition="friendly",
@@ -331,7 +331,7 @@ class TestVendorSpawnEdgeCases:
         # This test will pass once price_hollow is added
         vendor = NPCSpawn(
             name="Black Market Dealer",
-            faction="tempest",
+            faction="Tempest Industries",
             entity_type="neutral",
             threat_level="potential_threat",
             disposition="wary",

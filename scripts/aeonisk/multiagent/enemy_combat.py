@@ -56,6 +56,19 @@ class EnemyDeclaration:
     shared_intel: Optional[str]
 
 
+def _get_panicked_action(enemy: EnemyAgent) -> str:
+    """
+    Determine what action a panicked enemy takes based on morale_behavior.
+
+    Returns:
+        "Surrender" for surrender_if_cornered, "FLEE" for all others
+    """
+    morale_behavior = getattr(enemy, 'morale_behavior', 'flee_when_broken')
+    if morale_behavior == 'surrender_if_cornered':
+        return "Surrender"
+    return "FLEE"
+
+
 def parse_enemy_declaration(declaration_text: str, enemy: EnemyAgent) -> Optional[EnemyDeclaration]:
     """
     Parse structured enemy declaration output.
@@ -80,12 +93,16 @@ def parse_enemy_declaration(declaration_text: str, enemy: EnemyAgent) -> Optiona
     parsed = {}
 
     for line in lines:
-        # Skip code blocks, examples, headers
-        if line.strip().startswith('```') or line.strip().startswith('#') or line.strip().startswith('**'):
+        stripped = line.strip()
+        # Skip code block fences and markdown headers
+        if stripped.startswith('```') or stripped.startswith('#'):
             continue
 
-        if ':' in line:
-            key, value = line.split(':', 1)
+        # Strip markdown bold markers (e.g. "**MAJOR_ACTION:** Attack" → "MAJOR_ACTION: Attack")
+        stripped = stripped.replace('**', '')
+
+        if ':' in stripped:
+            key, value = stripped.split(':', 1)
             key = key.strip().upper()
             value = value.strip()
 
@@ -221,17 +238,9 @@ class EnemyCombatManager:
                 if llm_config:
                     from .llm_provider import LLMConfig
 
-                    provider = llm_config.get('provider', 'anthropic')
-                    model = llm_config.get('model', 'claude-sonnet-4-5')
-
-                    config = LLMConfig(
-                        provider=provider,
-                        model=model,
-                        max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                        temperature=llm_config.get('temperature', 1.0)  # Enemy agents use fixed temp for consistency
-                    )
+                    config = LLMConfig.from_dict(llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
-                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
+                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
                     logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
@@ -343,7 +352,8 @@ class EnemyCombatManager:
                                 stats=stats,
                                 position=str(enemy.position),
                                 tactics=enemy.tactics,
-                                count=spawn.count  # Number of enemies spawned in this batch
+                                count=spawn.count,  # Number of enemies spawned in this batch
+                                faction=spawn.faction,
                             )
 
         return notifications
@@ -501,22 +511,30 @@ class EnemyCombatManager:
         if not self.enabled or not enemy.is_active:
             return None
 
-        # Override: Panicked enemies always declare FLEE
+        # Override: Panicked enemies auto-declare based on morale behavior
         if enemy.is_panicked:
-            logger.info(f"{enemy.name} is panicked - auto-declaring FLEE action")
+            panicked_action = _get_panicked_action(enemy)
+            logger.info(f"{enemy.name} is panicked - auto-declaring {panicked_action} action")
+
+            if panicked_action == "Surrender":
+                reasoning = f"Panicked due to {enemy.panic_trigger} - surrendering (morale behavior: surrender_if_cornered)"
+                intel = "Surrendering - morale broken"
+            else:
+                reasoning = f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
+                intel = "Attempting to escape - morale broken"
 
             parsed = EnemyDeclaration(
                 agent_id=enemy.agent_id,
                 character_name=enemy.name,
                 initiative=enemy.initiative,
-                major_action="FLEE",
+                major_action=panicked_action,
                 target="None",
                 weapon="None",
                 defence_token=None,
                 minor_action=None,
                 token_target=None,
-                shared_intel="Attempting to escape - morale broken",
-                reasoning=f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
+                shared_intel=intel,
+                reasoning=reasoning
             )
 
             self.enemy_declarations[enemy.agent_id] = parsed
@@ -543,6 +561,12 @@ class EnemyCombatManager:
 
         # Get target ID mapper if in free targeting mode
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state and free_targeting else None
+
+        # Inject situation history for prompt generation
+        if self.shared_state and hasattr(self.shared_state, 'round_synthesis_history'):
+            enemy._situation_history = self.shared_state.round_synthesis_history[-3:]
+        else:
+            enemy._situation_history = None
 
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt
@@ -912,18 +936,29 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC (enemies can't attack other enemies with this action)
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to attack enemy {target_id} - not supported")
-                    return {
-                        'enemy_id': enemy.agent_id,
-                        'character_name': enemy.name,
-                        'action': 'attack',
-                        'result': 'invalid target',
-                        'narration': f"{enemy.name} cannot attack another enemy"
-                    }
+                    # Faction-aware: hostile factions can attack each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to attack allied enemy {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'attack',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot attack allied {target_faction} forces"
+                        }
+                    else:
+                        # Hostile faction - allow attack
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) attacking hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)
@@ -1046,8 +1081,9 @@ class EnemyCombatManager:
                 # Start building clearer narration: Attacker HIT Target with Weapon for X damage
                 result['narration'] = f"{enemy.name} HIT {target_name} with {weapon.name} for {total_damage} damage ({damage_dealt} after soak)"
 
-                # Track damage for round summary
-                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                # Track damage for round summary (only for PC targets)
+                is_pc_target = hasattr(target, 'character_state')
+                if is_pc_target and self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_player_damage_taken(damage_dealt)
 
                 # Apply damage based on weapon type (YAGS damage types)
@@ -1084,8 +1120,17 @@ class EnemyCombatManager:
                         result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({stun_status}/{wound_status})"
 
                 # Mark target as defeated if killed or unconscious
-                if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
-                    # Check for death/unconsciousness (YAGS death saves)
+                # Check stun KO FIRST (stuns >= 6 = Beaten/unconscious, independent of wounds)
+                is_stun_ko = (damage_result and damage_result.get('unconscious_check_needed')
+                              and damage_type == "stun")
+                if is_stun_ko:
+                    # Stun KO — non-lethal incapacitation (bypass wound-based death save)
+                    result['narration'] += f" - {target_name} KNOCKED UNCONSCIOUS (stun)"
+                    logger.info(f"{target_name} knocked unconscious by stun damage from {enemy.name}")
+                    resolution_state.mark_incapacitated(target_id)
+                    result['target_defeated'] = True
+                elif target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
+                    # Wound/mixed KO — check death saves
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
 
@@ -1112,6 +1157,9 @@ class EnemyCombatManager:
                         result['narration'] += " - TARGET DEFEATED!"
                         resolution_state.mark_defeated(target_id)
                         result['target_defeated'] = True
+                        # Deactivate enemy/NPC targets
+                        if hasattr(target, 'is_active'):
+                            target.is_active = False
                         logger.info(f"{enemy.name} defeated {target.name if hasattr(target, 'name') else target_id}")
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
@@ -1208,18 +1256,28 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to suppress enemy {target_id} - not supported")
-                    return {
-                        'enemy_id': enemy.agent_id,
-                        'character_name': enemy.name,
-                        'action': 'suppress',
-                        'result': 'invalid target',
-                        'narration': f"{enemy.name} cannot suppress another enemy"
-                    }
+                    # Faction-aware: hostile factions can suppress each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to suppress allied enemy {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'suppress',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot suppress allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) suppressing hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)
@@ -1617,11 +1675,21 @@ class EnemyCombatManager:
             if target_id_mapper and target_id_mapper.enabled:
                 target_entity = target_id_mapper.resolve_target(target_id)
 
-                # Verify target is a PC
+                # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
                     target = target_entity
                 elif target_entity and target_id_mapper.is_enemy(target_id):
-                    logger.warning(f"{enemy.name} attempted to charge enemy {target_id} - not supported")
+                    # Faction-aware: hostile factions can charge each other
+                    from .faction_utils import are_factions_allied
+                    target_faction = getattr(target_entity, 'faction', 'Unknown')
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} attempted to charge allied enemy {target_id} ({target_faction})")
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) charging hostile enemy {target_entity.name} ({target_faction})")
+                elif target_entity:
+                    # NPC or other entity type - allow targeting
+                    target = target_entity
         else:
             # Legacy mode - direct agent_id match
             target = next((p for p in player_agents if p.agent_id == target_id), None)
