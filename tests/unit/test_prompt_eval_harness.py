@@ -47,6 +47,8 @@ from prompt_eval_harness import (
     _extract_weapon_context,
     _extract_original_outcome,
     _find_player_intent,
+    _extract_character_name,
+    _extract_and_classify,
 )
 
 
@@ -1905,7 +1907,8 @@ class TestEventCorrelation:
 
     def _make_dm_llm_call(self, round_num=1, weapon="Assault Rifle", damage_type="WOUND",
                           target_id="tgt_ic6o", target_name="Independent Thug #1",
-                          player_action="fire suppressive shots at the guards"):
+                          player_action="fire suppressive shots at the guards",
+                          character_name="Enforcer Kael Dren", faction="Aeonguard"):
         """Create a realistic DM llm_call event."""
         return {
             "event_type": "llm_call",
@@ -1915,6 +1918,7 @@ class TestEventCorrelation:
             "prompt": [
                 {"role": "system", "content": "# CORE DM RULES\n\nYou are the Dungeon Master."},
                 {"role": "user", "content": (
+                    f"Character: {character_name} ({faction})\n"
                     f"Resolve the following action:\n"
                     f"Player Action: {player_action}\n"
                     f"Action Type: combat\n\n"
@@ -1992,6 +1996,76 @@ class TestEventCorrelation:
             "attack": {"hit": True, "margin": 11},
             "damage": {"base_damage": base_damage, "damage_type": damage_type, "dealt": 11},
         }
+
+    def _make_action_declaration(self, round_num=1, character_name="Enforcer Kael Dren",
+                                 player_id="player_01", intent="Lay down suppressing fire",
+                                 description="fire suppressive shots at the guards"):
+        """Create a realistic action_declaration event."""
+        return {
+            "event_type": "action_declaration",
+            "round": round_num,
+            "character_name": character_name,
+            "player_id": player_id,
+            "initiative": 15,
+            "action": {
+                "intent": intent,
+                "description": description,
+                "action_type": "combat",
+            },
+        }
+
+    def test_extract_character_name_from_dm_prompt(self):
+        """_extract_character_name parses the structured Character: line."""
+        prompt = "Character: Enforcer Kael Dren (Aeonguard)\nPlayer Action: fire shots"
+        assert _extract_character_name(prompt) == "Enforcer Kael Dren"
+
+    def test_extract_character_name_none_when_missing(self):
+        """Returns None if no Character: line in prompt."""
+        assert _extract_character_name("Player Action: fire shots\n") is None
+
+    def test_intent_via_character_name_join(self, tmp_path, mock_dm_prompts):
+        """Player intent found via character_name join to action_declaration."""
+        events = [
+            self._make_action_declaration(
+                round_num=1,
+                character_name="Enforcer Kael Dren",
+                intent="Pin down the guards with covering fire",
+            ),
+            self._make_dm_llm_call(round_num=1, character_name="Enforcer Kael Dren"),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        assert cases[0].player_intent == "Pin down the guards with covering fire"
+
+    def test_intent_multi_pc_character_name_join(self, tmp_path, mock_dm_prompts):
+        """In multi-PC rounds, character name join picks the correct intent."""
+        events = [
+            self._make_action_declaration(
+                round_num=1,
+                character_name="Enforcer Kael Dren",
+                intent="Pin down the guards",
+            ),
+            self._make_action_declaration(
+                round_num=1,
+                character_name="Vessel Sera Karsel",
+                player_id="player_02",
+                intent="Rush in with shock baton",
+                description="charge with shock baton",
+            ),
+            self._make_dm_llm_call(
+                round_num=1,
+                character_name="Vessel Sera Karsel",
+                player_action="charge with shock baton",
+            ),
+        ]
+        jsonl_path = self._make_session_jsonl(tmp_path, events)
+        extractor = SessionExtractor(session_dirs=[jsonl_path.parent.parent])
+        cases = extractor.extract_cases()
+        assert len(cases) == 1
+        # Should match Sera's intent, NOT Kael's
+        assert cases[0].player_intent == "Rush in with shock baton"
 
     def test_extract_player_intent_from_correlated_event(self, tmp_path, mock_dm_prompts):
         """Player intent extracted from player llm_call in same round."""
@@ -3085,7 +3159,7 @@ class TestIntentClassifier:
     @patch("prompt_eval_harness.IntentClassifier._classify_one")
     def test_classifier_calls_llm_for_uncached(self, mock_classify):
         """Classifier calls LLM for cases not in cache."""
-        mock_classify.return_value = "suppress"
+        mock_classify.return_value = ("suppress", None)
         config = {
             "model": "openai:gpt-5-mini",
             "keep": ["suppress"],
@@ -3108,7 +3182,7 @@ class TestIntentClassifier:
     @patch("prompt_eval_harness.IntentClassifier._classify_one")
     def test_classifier_skips_cached(self, mock_classify):
         """Classifier skips LLM calls for cached event_ids."""
-        mock_classify.return_value = "lethal"
+        mock_classify.return_value = ("lethal", None)
         config = {
             "model": "openai:gpt-5-mini",
             "keep": ["suppress"],
@@ -3126,3 +3200,265 @@ class TestIntentClassifier:
         assert labels["e1"] == "suppress"  # from cache, not LLM
         assert labels["e2"] == "lethal"  # from LLM
         assert mock_classify.call_count == 1  # only called for e2
+
+
+# ---------------------------------------------------------------------------
+# _extract_and_classify tests
+# ---------------------------------------------------------------------------
+
+class TestExtractAndClassify:
+    """Tests for the _extract_and_classify() helper function."""
+
+    def _make_mock_extractor(self, cases):
+        """Create a mock SessionExtractor that returns given cases."""
+        extractor = MagicMock(spec=SessionExtractor)
+        extractor.extract_cases.return_value = cases
+        return extractor
+
+    def test_extract_and_classify_skips_keywords(self):
+        """When classifier_config present, extract_cases called without intent_keywords/exclude_keywords."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(5)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {
+            "action_type": "combat",
+            "intent_keywords": ["suppressing fire", "covering fire"],
+            "exclude_keywords": ["center mass", "neutralize"],
+            "weapon_damage_type": "wound",
+            "max_cases": 3,
+        }
+        classifier_config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+
+        # Pre-populate classifier cache so no LLM calls are needed
+        with patch.object(IntentClassifier, "_classify_one", return_value=("suppress", None)):
+            result_cases, labels = _extract_and_classify(
+                extractor, eval_subset, module_swapper,
+                classifier_config=classifier_config,
+            )
+
+        # extract_cases should have been called WITHOUT intent_keywords/exclude_keywords
+        call_kwargs = extractor.extract_cases.call_args
+        assert call_kwargs[1].get("intent_keywords") is None
+        assert call_kwargs[1].get("exclude_keywords") is None
+        # action_type and weapon_damage_type should still be passed
+        assert call_kwargs[1].get("action_type_filter") == "combat"
+        assert call_kwargs[1].get("weapon_damage_type") == "wound"
+        # max_cases should NOT be passed during extraction (applied after classification)
+        assert call_kwargs[1].get("max_cases") is None
+
+    def test_extract_and_classify_max_cases_after_filter(self):
+        """50 cases extracted, 30 classified as suppress, max_cases=10 → returns 10."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(50)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {
+            "action_type": "combat",
+            "max_cases": 10,
+        }
+        classifier_config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+
+        # First 30 cases classify as suppress, rest as lethal
+        def mock_classify_one(case, client):
+            idx = int(case.case_id[1:])
+            return ("suppress", None) if idx < 30 else ("lethal", None)
+
+        with patch.object(IntentClassifier, "_classify_one", side_effect=mock_classify_one):
+            result_cases, labels = _extract_and_classify(
+                extractor, eval_subset, module_swapper,
+                classifier_config=classifier_config,
+            )
+
+        # Should have exactly max_cases=10 (truncated from 30 suppress cases)
+        assert len(result_cases) == 10
+        # All returned cases should be suppress-labeled
+        for c in result_cases:
+            eid = c.event_id or c.case_id
+            assert labels[eid] == "suppress"
+
+    def test_extract_and_classify_no_classifier_backward_compat(self):
+        """Without classifier, uses keywords and max_cases during extraction."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(5)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {
+            "action_type": "combat",
+            "intent_keywords": ["suppressing fire"],
+            "exclude_keywords": ["center mass"],
+            "weapon_damage_type": "wound",
+            "max_cases": 3,
+        }
+
+        # No classifier config — backward compat path
+        result_cases, labels = _extract_and_classify(
+            extractor, eval_subset, module_swapper,
+        )
+
+        # extract_cases should have been called WITH keywords and max_cases
+        call_kwargs = extractor.extract_cases.call_args
+        assert call_kwargs[1].get("intent_keywords") == ["suppressing fire"]
+        assert call_kwargs[1].get("exclude_keywords") == ["center mass"]
+        assert call_kwargs[1].get("max_cases") == 3
+        assert call_kwargs[1].get("weapon_damage_type") == "wound"
+        # No labels returned when no classifier
+        assert labels == {}
+        assert result_cases == cases
+
+    def test_regression_classifier_inherits_parent(self):
+        """Regression with {keep: [lethal]} inherits parent model/prompt/cache."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(10)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {"action_type": "combat", "weapon_damage_type": "wound", "max_cases": 20}
+        parent_classifier = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal", "stun"],
+            "cache_file": "/tmp/test_labels.json",
+            "prompt": "Custom classify: {action_text} {intent_text}",
+        }
+        regression_classifier = {
+            "keep": ["lethal"],
+            "drop": ["suppress", "stun"],
+        }
+
+        # All cases classify as lethal
+        with patch.object(IntentClassifier, "_classify_one", return_value=("lethal", None)):
+            result_cases, labels = _extract_and_classify(
+                extractor, eval_subset, module_swapper,
+                classifier_config=regression_classifier,
+                parent_classifier_config=parent_classifier,
+            )
+
+        # Regression overrides keep/drop but inherits model/prompt/cache from parent
+        # All 10 cases should be returned (all lethal, keep=[lethal])
+        assert len(result_cases) == 10
+
+    def test_regression_classifier_uses_shared_cache(self):
+        """After primary classification, regression with same cache → 0 LLM calls."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(5)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {"action_type": "combat"}
+        parent_classifier = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+            "cache_file": None,  # in-memory only
+        }
+
+        # First call: primary extraction (classify all)
+        with patch.object(IntentClassifier, "_classify_one", return_value=("suppress", None)) as mock_cls:
+            primary_cases, primary_labels = _extract_and_classify(
+                extractor, eval_subset, module_swapper,
+                classifier_config=parent_classifier,
+            )
+            primary_llm_calls = mock_cls.call_count
+
+        assert primary_llm_calls == 5  # All 5 cases classified
+
+        # Now for regression: pre-populate cache from primary labels
+        # (simulating what happens when same cache_file is used)
+        regression_classifier = {
+            "keep": ["lethal"],
+            "drop": ["suppress"],
+        }
+
+        # Build a pre-populated cache to simulate shared cache
+        cache_data = {}
+        for c in cases:
+            eid = c.event_id or c.case_id
+            cache_data[eid] = {
+                "label": primary_labels.get(eid, "unclear"),
+                "action_text": "",
+                "intent": "",
+                "case_id": c.case_id,
+                "margin": c.margin,
+                "classified_by": "openai:gpt-5-mini",
+                "timestamp": "2026-02-17",
+            }
+
+        with patch.object(IntentClassifier, "_classify_one", return_value=("lethal", None)) as mock_cls2:
+            with patch.object(IntentClassifier, "_load_cache") as mock_load:
+                # Manually inject the cache
+                def inject_cache(self_ref):
+                    self_ref._cache = cache_data
+                mock_load.side_effect = lambda: None
+
+                reg_cases, reg_labels = _extract_and_classify(
+                    extractor, eval_subset, module_swapper,
+                    classifier_config=regression_classifier,
+                    parent_classifier_config=parent_classifier,
+                    _preloaded_cache=cache_data,
+                )
+            regression_llm_calls = mock_cls2.call_count
+
+        # Zero LLM calls because all labels are already cached
+        assert regression_llm_calls == 0
+
+    def test_stun_regression_uses_classifier_with_weapon_filter(self):
+        """Stun regression uses classifier keep=[stun] AND weapon_damage_type=stun."""
+        cases = [
+            _make_eval_case(case_id=f"c{i}", event_id=f"e{i}")
+            for i in range(10)
+        ]
+        extractor = self._make_mock_extractor(cases)
+        module_swapper = MagicMock(spec=ModuleSwapper)
+
+        eval_subset = {
+            "action_type": "combat",
+            "weapon_damage_type": "stun",
+            "max_cases": 15,
+        }
+        classifier_config = {
+            "keep": ["stun"],
+            "drop": ["suppress", "lethal"],
+        }
+        parent_classifier = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal", "stun"],
+        }
+
+        with patch.object(IntentClassifier, "_classify_one", return_value=("stun", None)):
+            result_cases, labels = _extract_and_classify(
+                extractor, eval_subset, module_swapper,
+                classifier_config=classifier_config,
+                parent_classifier_config=parent_classifier,
+            )
+
+        # Verify weapon_damage_type is still passed to extract_cases
+        call_kwargs = extractor.extract_cases.call_args
+        assert call_kwargs[1].get("weapon_damage_type") == "stun"
+        # But keywords should NOT be passed
+        assert call_kwargs[1].get("intent_keywords") is None
+        assert call_kwargs[1].get("exclude_keywords") is None
+        # All cases should be kept (all stun)
+        assert len(result_cases) == 10

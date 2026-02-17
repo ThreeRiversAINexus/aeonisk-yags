@@ -23,42 +23,36 @@ description: |
 
 max_iterations: 5
 
-# ── Intent classifier (--classify-intent) ────────────────
-# Runs after keyword filtering to catch false positives.
-# Labels cached by event_id for reuse across runs.
+# ── Intent classifier (classifier-first pipeline) ────────
+# Primary filter: extracts ALL PC combat cases, classifies each by intent,
+# then partitions by label. Keywords are not needed — classifier handles it.
+# Labels cached by event_id and shared across primary eval + regressions.
 classifier:
   model: openai:gpt-5-mini
   keep: [suppress]
-  drop: [lethal]
-  cache_file: evals/labels/suppress_labels.json
+  drop: [lethal, stun]
+  cache_file: evals/labels/combat_intent_labels.json
   prompt: |
-    Classify this player combat action. Is the player trying to:
-    - suppress: Pin down enemies, deny movement, force into cover. NOT aiming to hit/kill.
-    - lethal: Wound, kill, neutralize, or eliminate a specific target.
-    - unclear: Ambiguous or contradictory intent.
+    Classify the TACTICAL METHOD described in the player's action.
+
+    Categories:
+    - suppress: Covering fire, suppressive fire, pinning fire, warning shots, firing to deny movement or force into cover. The goal is area denial, NOT hitting a specific target.
+    - lethal: Aimed shots, firing at a target, shooting to wound/kill/neutralize/eliminate. Direct engagement with intent to hit.
+    - stun: Non-lethal takedown — shock baton, taser, knock out, subdue, incapacitate without killing.
+    - unclear: Cannot determine method from the action description.
+
+    IMPORTANT: Classify based on the ACTION DESCRIPTION (what they're physically doing), not the strategic intent. A player can use suppressive fire with the goal of "neutralizing threats" — that's still suppress. A player can aim to kill with the goal of "protecting allies" — that's still lethal.
 
     Player action: {action_text}
-    Player intent: {intent_text}
+    Player intent (strategic goal, secondary): {intent_text}
 
-    Respond with exactly one word: suppress, lethal, or unclear
+    Respond with exactly one word: suppress, lethal, stun, or unclear
 
 # ── Primary optimization target ──────────────────────────
 eval_subset:
   action_type: combat
-  intent_keywords:
-    - suppressing fire
-    - suppressive fire
-    - covering fire
-    - pin down
-    - pin them
-    - warning shot
-  exclude_keywords:
-    - center mass
-    - neutralize
-    - eliminate
-    - no warning shots
-  weapon_damage_type: wound
-  max_cases: 12
+  # No keywords — classifier handles intent classification
+  max_cases: 20          # Applied AFTER classification
 
 targets:
   suppression_table:
@@ -78,19 +72,18 @@ validation:
 # No hardcoded ranges — each model is measured against its own baseline.
 # If a rewrite causes avg damage to shift more than the drift tolerance,
 # the regression fails and the judge is warned.
+#
+# Each regression overrides classifier keep/drop but inherits model/prompt/cache
+# from the parent classifier section. Same cache → 0 extra LLM calls.
 regressions:
   lethal_combat:
     description: Lethal wound damage should not drift from baseline
+    classifier:
+      keep: [lethal]
+      drop: [suppress, stun]
     eval_subset:
       action_type: combat
       weapon_damage_type: wound
-      exclude_keywords:
-        - suppressing fire
-        - suppressive fire
-        - covering fire
-        - pin down
-        - pin them
-        - warning shot
       max_cases: 20
     targets:
       damage_comparison:
@@ -98,6 +91,9 @@ regressions:
 
   stun_combat:
     description: Stun damage should not drift from baseline
+    classifier:
+      keep: [stun]
+      drop: [suppress, lethal]
     eval_subset:
       action_type: combat
       weapon_damage_type: stun

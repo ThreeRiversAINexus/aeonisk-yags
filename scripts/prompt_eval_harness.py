@@ -366,15 +366,73 @@ def _extract_original_outcome(response_text: str) -> Dict[str, Any]:
     }
 
 
-def _find_player_intent(round_events: List[dict]) -> Optional[str]:
-    """
-    Find player intent from player llm_call events in the same round.
+def _extract_character_name(user_prompt: str) -> Optional[str]:
+    """Extract character name from DM user prompt's structured 'Character:' line.
 
-    Parses the response JSON of player llm_call events looking for the 'intent' field.
-
-    Returns:
-        The intent string, or None if not found.
+    The DM prompt always includes ``Character: {name} ({faction})`` as a
+    structured section header.  This is a template field, not freeform text.
     """
+    match = re.search(r'^Character:\s+(.+?)\s*\(', user_prompt, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _find_player_intent(
+    round_events: List[dict],
+    character_name: Optional[str] = None,
+    player_action_text: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Find player intent from action_declaration events in the same round.
+
+    Primary: join by ``character_name`` (deterministic, from DM prompt's
+    structured ``Character:`` line → ``action_declaration.character_name``).
+
+    Fallback 1: text-match ``player_action_text`` against
+    ``action_declaration.action.description``.
+
+    Fallback 2: first declaration in round (single-PC rounds).
+
+    Fallback 3 (legacy): parse player ``llm_call`` responses for intent.
+    """
+    # Build {character_name: intent} and [(description, intent)] from declarations
+    name_to_intent: Dict[str, str] = {}
+    declarations: List[Tuple[Optional[str], str]] = []
+    for event in round_events:
+        if event.get("event_type") != "action_declaration":
+            continue
+        action = event.get("action")
+        if not isinstance(action, dict):
+            continue
+        intent = action.get("intent")
+        if not intent:
+            continue
+        char = event.get("character_name")
+        if char:
+            name_to_intent[char] = intent
+        desc = action.get("description")
+        declarations.append((desc, intent))
+
+    # Primary: deterministic join by character name
+    if character_name and character_name in name_to_intent:
+        return name_to_intent[character_name]
+
+    # Fallback 1: text-match action description
+    if declarations and player_action_text:
+        action_lower = player_action_text.lower()[:120]
+        for desc, intent in declarations:
+            if not desc:
+                continue
+            desc_lower = desc.lower()
+            if action_lower in desc_lower or desc_lower[:120] in action_lower:
+                return intent
+
+    # Fallback 2: single declaration in round
+    if declarations:
+        return declarations[0][1]
+
+    # Legacy fallback: player llm_call responses (older sessions without action_declaration)
     for event in round_events:
         if event.get("event_type") != "llm_call":
             continue
@@ -390,7 +448,115 @@ def _find_player_intent(round_events: List[dict]) -> Optional[str]:
                 return intent
         except (json.JSONDecodeError, TypeError):
             continue
+
     return None
+
+
+# ---------------------------------------------------------------------------
+# Extract + Classify helper
+# ---------------------------------------------------------------------------
+
+def _extract_and_classify(
+    session_extractor,
+    eval_subset: Dict[str, Any],
+    module_swapper,
+    classifier_config: Optional[Dict[str, Any]] = None,
+    parent_classifier_config: Optional[Dict[str, Any]] = None,
+    proxy_url: Optional[str] = None,
+    proxy_strategy: Optional[str] = None,
+    _preloaded_cache: Optional[Dict[str, Any]] = None,
+) -> Tuple[List, Dict[str, str]]:
+    """
+    Extract eval cases and optionally classify + filter by intent label.
+
+    When a classifier config is present (classifier_config or parent_classifier_config):
+    - Extracts broadly (action_type + weapon_damage_type only, no keywords, no max_cases)
+    - Classifies all extracted cases via IntentClassifier
+    - Filters by keep/drop labels
+    - Applies max_cases AFTER filtering
+
+    When no classifier config is present (backward compat):
+    - Extracts with all eval_subset filters including keywords and max_cases
+
+    Args:
+        session_extractor: SessionExtractor instance
+        eval_subset: eval_subset dict from goal file or regression config
+        module_swapper: ModuleSwapper instance
+        classifier_config: Classifier config (may be partial — regression overrides)
+        parent_classifier_config: Parent classifier config (model/prompt/cache inherited)
+        proxy_url: Optional proxy URL for classifier LLM calls
+        proxy_strategy: Optional proxy strategy
+        _preloaded_cache: Optional pre-populated cache dict (for shared cache across calls)
+
+    Returns:
+        (filtered_cases, all_intent_labels) — labels dict maps event_id → label
+    """
+    has_classifier = classifier_config is not None or parent_classifier_config is not None
+
+    if has_classifier:
+        # Merge configs: regression overrides parent's keep/drop; inherits model/prompt/cache
+        effective_config = {}
+        if parent_classifier_config:
+            effective_config.update(parent_classifier_config)
+        if classifier_config:
+            effective_config.update(classifier_config)
+
+        # Extract broadly — no keywords, no max_cases
+        cases = session_extractor.extract_cases(
+            action_type_filter=eval_subset.get("action_type"),
+            weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            module_swapper=module_swapper,
+            # Deliberately omit: intent_keywords, exclude_keywords, max_cases
+        )
+
+        if not cases:
+            return [], {}
+
+        # Classify all cases
+        classifier = IntentClassifier(
+            config=effective_config,
+            proxy_url=proxy_url,
+            proxy_strategy=proxy_strategy,
+        )
+
+        # Inject preloaded cache if provided (shared cache optimization)
+        if _preloaded_cache is not None:
+            classifier._cache.update(_preloaded_cache)
+
+        labels = classifier.classify(cases)
+
+        # Filter by keep/drop labels
+        kept, review = classifier.filter_cases(cases, labels)
+
+        if not kept and review:
+            # All cases ended up as unclear/review — likely all LLM calls failed
+            from collections import Counter
+            label_counts = Counter(labels.values())
+            unclear_count = label_counts.get("unclear", 0)
+            if unclear_count == len(labels):
+                print(
+                    f"\n  All {len(labels)} classifications returned 'unclear' — "
+                    f"likely all LLM calls failed. Check proxy/API.",
+                    file=sys.stderr,
+                )
+
+        # Apply max_cases AFTER filtering
+        max_cases = eval_subset.get("max_cases")
+        if max_cases and len(kept) > max_cases:
+            kept = kept[:max_cases]
+
+        return kept, labels
+    else:
+        # Backward compat: use all eval_subset filters including keywords and max_cases
+        cases = session_extractor.extract_cases(
+            action_type_filter=eval_subset.get("action_type"),
+            intent_keywords=eval_subset.get("intent_keywords"),
+            exclude_keywords=eval_subset.get("exclude_keywords"),
+            weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            max_cases=eval_subset.get("max_cases"),
+            module_swapper=module_swapper,
+        )
+        return cases, {}
 
 
 # ---------------------------------------------------------------------------
@@ -569,8 +735,13 @@ class SessionExtractor:
             # Extract original outcome from DM response
             outcome = _extract_original_outcome(response_text)
 
-            # Correlate with player intent from player llm_call in same round
-            player_intent = _find_player_intent(round_events)
+            # Correlate with player intent via character name join
+            character_name = _extract_character_name(user_prompt)
+            player_intent = _find_player_intent(
+                round_events,
+                character_name=character_name,
+                player_action_text=player_action_text,
+            )
 
             # --- Apply filters ---
             if action_type_filter and action_type != action_type_filter:
@@ -1476,15 +1647,23 @@ class IntentClassifier:
     @staticmethod
     def _default_prompt() -> str:
         return (
-            "Classify this player combat action. Is the player trying to:\n"
-            "- suppress: Pin down enemies, deny movement, force into cover. NOT aiming to hit/kill.\n"
-            "- lethal: Wound, kill, neutralize, or eliminate a specific target.\n"
-            "- unclear: Ambiguous or contradictory intent.\n"
+            "Classify the TACTICAL METHOD described in the player's action.\n"
+            "\n"
+            "Categories:\n"
+            "- suppress: Covering fire, suppressive fire, pinning fire, warning shots, "
+            "firing to deny movement or force into cover. Area denial, NOT aimed at a specific target.\n"
+            "- lethal: Aimed shots, firing at a target, shooting to wound/kill/neutralize/eliminate.\n"
+            "- stun: Non-lethal takedown — shock baton, taser, knock out, subdue.\n"
+            "- unclear: Cannot determine method from the action description.\n"
+            "\n"
+            "IMPORTANT: Classify based on the ACTION DESCRIPTION (what they're physically doing), "
+            "not the strategic intent. Suppressive fire with goal 'neutralize threats' = suppress. "
+            "Aimed shots with goal 'protect allies' = lethal.\n"
             "\n"
             "Player action: {action_text}\n"
-            "Player intent: {intent_text}\n"
+            "Player intent (strategic goal, secondary): {intent_text}\n"
             "\n"
-            "Respond with exactly one word: suppress, lethal, or unclear"
+            "Respond with exactly one word: suppress, lethal, stun, or unclear"
         )
 
     def _load_cache(self):
@@ -1518,8 +1697,17 @@ class IntentClassifier:
                 kwargs["proxy_strategy"] = self.proxy_strategy
         return UnifiedAIClient(**kwargs)
 
-    def _classify_one(self, case: EvalCase, client) -> str:
-        """Classify a single case via LLM. Returns the label string."""
+    # Sentinel for "LLM call failed" vs "LLM returned unclear"
+    _ERROR_LABEL = "__error__"
+
+    def _classify_one(self, case: EvalCase, client) -> Tuple[str, Optional[str]]:
+        """
+        Classify a single case via LLM.
+
+        Returns:
+            (label, error_msg) — error_msg is None on success, str on failure.
+            On failure, label is _ERROR_LABEL (distinct from "unclear" which is a valid LLM response).
+        """
         prompt = self.prompt_template.format(
             action_text=case.player_action_text or "(no action text)",
             intent_text=case.player_intent or "(no intent)",
@@ -1528,16 +1716,15 @@ class IntentClassifier:
             response = client.chat_completion(
                 messages=[{"role": "user", "content": prompt}],
                 model=self.model,
-                temperature=0.0,
-                max_tokens=10,
+                temperature=1.0,  # GPT-5 models only accept 1.0
+                max_tokens=1000,  # GPT-5 uses reasoning tokens from this budget
             )
             label = response.strip().lower().rstrip(".")
             # Normalize: take just the first word
             label = label.split()[0] if label.split() else "unclear"
-            return label
+            return label, None
         except Exception as e:
-            logger.warning(f"Classification failed for {case.case_id}: {e}")
-            return "unclear"
+            return self._ERROR_LABEL, str(e)
 
     def classify(
         self,
@@ -1568,39 +1755,101 @@ class IntentClassifier:
             return results
 
         cache_hits = len(results)
+        total = len(to_classify)
         logger.info(
-            f"Classifying {len(to_classify)} cases "
+            f"Classifying {total} cases "
             f"({cache_hits} cache hits, model={self.provider}:{self.model})"
         )
         print(
-            f"  Classifying {len(to_classify)} cases "
+            f"  Classifying {total} cases "
             f"({cache_hits} cached) with {self.provider}:{self.model}...",
             file=sys.stderr,
         )
 
         client = self._get_client()
 
-        def _do_one(case: EvalCase) -> Tuple[str, str, EvalCase]:
-            label = self._classify_one(case, client)
+        error_count = 0
+        error_reasons: Dict[str, int] = {}  # error message → count
+        completed = 0
+        lock = threading.Lock()
+
+        def _do_one(case: EvalCase) -> Tuple[str, str, EvalCase, Optional[str]]:
+            label, error = self._classify_one(case, client)
             eid = case.event_id or case.case_id
-            return eid, label, case
+            return eid, label, case, error
 
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = [pool.submit(_do_one, c) for c in to_classify]
-            for future in as_completed(futures):
-                eid, label, case = future.result()
-                results[eid] = label
-                self._cache[eid] = {
-                    "label": label,
-                    "action_text": (case.player_action_text or "")[:200],
-                    "intent": (case.player_intent or "")[:200],
-                    "case_id": case.case_id,
-                    "margin": case.margin,
-                    "classified_by": f"{self.provider}:{self.model}",
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                }
+                futures = [pool.submit(_do_one, c) for c in to_classify]
+                for future in as_completed(futures):
+                    eid, label, case, error = future.result()
 
-        self._save_cache()
+                    if error:
+                        with lock:
+                            error_count += 1
+                            # Bucket errors by first 80 chars (deduplicate similar messages)
+                            short_err = error[:80]
+                            error_reasons[short_err] = error_reasons.get(short_err, 0) + 1
+
+                        # On error, store "unclear" as the label (not __error__)
+                        label = "unclear"
+
+                    results[eid] = label
+                    self._cache[eid] = {
+                        "label": label,
+                        "action_text": (case.player_action_text or "")[:200],
+                        "intent": (case.player_intent or "")[:200],
+                        "case_id": case.case_id,
+                        "margin": case.margin,
+                        "classified_by": f"{self.provider}:{self.model}" if not error else "error",
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    }
+
+                    # Progress indicator
+                    with lock:
+                        completed += 1
+                        if completed % 50 == 0 or completed == total:
+                            print(
+                                f"  ... {completed}/{total} classified"
+                                f" ({error_count} errors)",
+                                file=sys.stderr,
+                            )
+        # --- Classification summary ---
+        from collections import Counter
+        label_counts = Counter(
+            results[case.event_id or case.case_id]
+            for case in to_classify
+        )
+
+        print(f"\n  Classification complete: {total} cases", file=sys.stderr)
+        for label, count in sorted(label_counts.items(), key=lambda x: -x[1]):
+            pct = count / total * 100
+            action = ""
+            if label in self.keep_labels:
+                action = " (KEEP)"
+            elif label in self.drop_labels:
+                action = " (DROP)"
+            print(f"    {label}: {count} ({pct:.0f}%){action}", file=sys.stderr)
+
+        if error_count > 0:
+            error_pct = error_count / total * 100
+            print(
+                f"\n  ERRORS: {error_count}/{total} ({error_pct:.0f}%) classifications failed",
+                file=sys.stderr,
+            )
+            for reason, count in sorted(error_reasons.items(), key=lambda x: -x[1]):
+                print(f"    [{count}x] {reason}", file=sys.stderr)
+
+            if error_pct > 80:
+                print(
+                    f"\n  WARNING: >80% failure rate — check proxy health "
+                    f"(curl {self.proxy_url}/health) and API key",
+                    file=sys.stderr,
+                )
+
+        # Only save to cache if there were some successes
+        if error_count < total:
+            self._save_cache()
+
         return results
 
     def filter_cases(
@@ -1738,13 +1987,12 @@ class SelfJudge:
         reg_scorers_config = reg_config.get("scorers", {})
         description = reg_config.get("description", "")
 
-        reg_cases = session_extractor.extract_cases(
-            action_type_filter=reg_subset.get("action_type"),
-            intent_keywords=reg_subset.get("intent_keywords"),
-            exclude_keywords=reg_subset.get("exclude_keywords"),
-            weapon_damage_type=reg_subset.get("weapon_damage_type"),
-            max_cases=reg_subset.get("max_cases"),
-            module_swapper=module_swapper,
+        reg_cases, _ = _extract_and_classify(
+            session_extractor, reg_subset, module_swapper,
+            classifier_config=reg_config.get("classifier"),
+            parent_classifier_config=self.goal.get("classifier"),
+            proxy_url=self.proxy_url,
+            proxy_strategy=self.proxy_strategy,
         )
 
         if not reg_cases:
@@ -2163,16 +2411,14 @@ class SelfJudge:
         # Load initial module
         module_name, current_content = module_swapper.load_replacement(initial_module_path)
 
-        # Extract cases using goal filters
+        # Extract cases using goal filters (classifier-first when configured)
         eval_subset = self.goal.get("eval_subset", {})
-        cases = session_extractor.extract_cases(
-            action_type_filter=eval_subset.get("action_type"),
-            intent_filter=eval_subset.get("intent_filter"),
-            intent_keywords=eval_subset.get("intent_keywords"),
-            exclude_keywords=eval_subset.get("exclude_keywords"),
-            weapon_damage_type=eval_subset.get("weapon_damage_type"),
-            max_cases=eval_subset.get("max_cases"),
-            module_swapper=module_swapper,
+        classifier_config = self.goal.get("classifier")
+        cases, intent_labels = _extract_and_classify(
+            session_extractor, eval_subset, module_swapper,
+            classifier_config=classifier_config,
+            proxy_url=self.proxy_url,
+            proxy_strategy=self.proxy_strategy,
         )
 
         if not cases:
@@ -2341,15 +2587,14 @@ class SelfJudge:
             print(f"Phase 2: Validation (full dataset)", file=sys.stderr)
             print(f"{'='*60}", file=sys.stderr)
 
-            eval_subset = self.goal.get("eval_subset", {})
-            validation_cases = session_extractor.extract_cases(
-                action_type_filter=eval_subset.get("action_type"),
-                intent_filter=eval_subset.get("intent_filter"),
-                intent_keywords=eval_subset.get("intent_keywords"),
-                exclude_keywords=eval_subset.get("exclude_keywords"),
-                weapon_damage_type=eval_subset.get("weapon_damage_type"),
-                max_cases=None,  # No limit — use ALL matching cases
-                module_swapper=module_swapper,
+            # Use same eval_subset but with no max_cases for full validation
+            val_subset = dict(self.goal.get("eval_subset", {}))
+            val_subset["max_cases"] = None  # No limit — use ALL matching cases
+            validation_cases, _ = _extract_and_classify(
+                session_extractor, val_subset, module_swapper,
+                classifier_config=classifier_config,
+                proxy_url=self.proxy_url,
+                proxy_strategy=self.proxy_strategy,
             )
 
             if validation_cases:
@@ -2611,46 +2856,71 @@ def main(argv=None):
         if len(parts) == 2:
             margin_range = (int(parts[0]), int(parts[1]))
 
-    # Extract cases
-    cases = extractor.extract_cases(
-        action_type_filter=args.action_type,
-        intent_filter=args.intent_filter,
-        intent_keywords=args.intent_keywords,
-        exclude_keywords=args.exclude_keywords,
-        weapon_damage_type=args.weapon_damage_type,
-        original_model_filter=args.original_model,
-        module_filter=args.module_filter,
-        margin_range=margin_range,
-        max_cases=args.max_cases,
-        module_swapper=module_swapper,
-    )
-
-    if not cases:
-        print("No eval cases found. Check filters and session directories.", file=sys.stderr)
-        return 1
-
-    # --- Intent classification ---
+    # --- Load classifier config from goal file if available ---
     classifier = None
     intent_labels: Dict[str, str] = {}
     classifier_config = None
 
-    # Load classifier config from goal file if available
     if args.goal_file:
         with open(args.goal_file, "r") as f:
             goal_data = yaml.safe_load(f)
         classifier_config = goal_data.get("classifier")
 
-    if args.classify_intent or classifier_config:
-        proxy_strategy = None
-        if args.proxy:
-            proxy_strategy = "batch" if args.batch else "direct"
-        config = classifier_config or {}
-        classifier = IntentClassifier(
-            config=config,
+    # Determine proxy strategy for classifier
+    proxy_strategy_for_cls = None
+    if args.proxy:
+        proxy_strategy_for_cls = "batch" if args.batch else "direct"
+
+    # --- Extract cases (classifier-first when active) ---
+    use_classifier = (args.classify_intent or classifier_config) and not args.self_judge
+
+    if use_classifier and classifier_config:
+        # Classifier-first path: extract broadly, classify, filter
+        eval_subset = {
+            "action_type": args.action_type,
+            "weapon_damage_type": args.weapon_damage_type,
+            "max_cases": args.max_cases,
+        }
+        cases, intent_labels = _extract_and_classify(
+            extractor, eval_subset, module_swapper,
+            classifier_config=classifier_config,
             proxy_url=args.proxy,
-            proxy_strategy=proxy_strategy,
+            proxy_strategy=proxy_strategy_for_cls,
         )
-        intent_labels = classifier.classify(cases)
+        # Create classifier instance for scan-only label display
+        classifier = IntentClassifier(
+            config=classifier_config,
+            proxy_url=args.proxy,
+            proxy_strategy=proxy_strategy_for_cls,
+        )
+    else:
+        # No classifier: extract with all CLI filters
+        cases = extractor.extract_cases(
+            action_type_filter=args.action_type,
+            intent_filter=args.intent_filter,
+            intent_keywords=args.intent_keywords,
+            exclude_keywords=args.exclude_keywords,
+            weapon_damage_type=args.weapon_damage_type,
+            original_model_filter=args.original_model,
+            module_filter=args.module_filter,
+            margin_range=margin_range,
+            max_cases=args.max_cases,
+            module_swapper=module_swapper,
+        )
+
+        # Classify without filtering if --classify-intent but no goal file config
+        if args.classify_intent and not args.self_judge:
+            config = classifier_config or {}
+            classifier = IntentClassifier(
+                config=config,
+                proxy_url=args.proxy,
+                proxy_strategy=proxy_strategy_for_cls,
+            )
+            intent_labels = classifier.classify(cases)
+
+    if not cases:
+        print("No eval cases found. Check filters and session directories.", file=sys.stderr)
+        return 1
 
     # --- Scan only ---
     if args.scan_only:
@@ -2787,8 +3057,8 @@ def main(argv=None):
             print()
         return 0
 
-    # --- Apply intent classifier filtering ---
-    if classifier and intent_labels:
+    # --- Apply intent classifier filtering (only for non-classifier-first path) ---
+    if classifier and intent_labels and not use_classifier:
         kept, review = classifier.filter_cases(cases, intent_labels)
         if review:
             print(f"\n  Cases needing review ({len(review)}):", file=sys.stderr)
