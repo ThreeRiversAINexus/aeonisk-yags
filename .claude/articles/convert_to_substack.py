@@ -6,7 +6,9 @@ Transformations:
 2. Convert LaTeX tables from $$...$$ to <pre> blocks, splitting large tables
 3. Convert .finding/.warning/.critical divs to <blockquote>
 4. Remove .table-container wrappers (keep contents)
-5. Unescape \_ to _ and \% to % in LaTeX, remove \; thin spaces
+5. Unescape \_ to _, remove \; thin spaces, strip \text{...} to bare content
+6. Unescape \% to % in header lines only (Substack needs bare % in \textbf{})
+   Content rows keep \% escaped (bare % is a LaTeX comment character)
 """
 
 import re
@@ -91,10 +93,13 @@ def convert_latex_table(match: re.Match) -> str:
     """Convert a single LaTeX table match to <pre> block(s)."""
     content = match.group(1)
 
-    # Unescape LaTeX
+    # Unescape LaTeX (but NOT bare \% — in LaTeX, bare % is a comment character)
     content = content.replace('\\_', '_')
-    content = content.replace('\\%', '%')
     content = content.replace('\\;', ' ')
+    content = content.replace('\\text{-}', '-')
+    # Unescape \% inside \text{} — \text{} already treats content as literal,
+    # so \% inside it renders wrong in Substack. Bare \% outside \text{} must stay.
+    content = re.sub(r'\\text\{([^}]*)\}', lambda m: '\\text{' + m.group(1).replace('\\%', '%') + '}', content)
 
     # Parse the table structure
     lines = content.strip().split('\n')
@@ -136,6 +141,10 @@ def convert_latex_table(match: re.Match) -> str:
     if not begin_line or not header_line:
         # Fallback: just wrap as-is
         return f'<pre>\n{content}\n</pre>'
+
+    # Unescape \% ONLY in header line — Substack's LaTeX parser needs bare %
+    # in \textbf{} headers, but content rows need \% (bare % is a comment char)
+    header_line = header_line.replace('\\%', '%')
 
     # Count actual data rows (excluding \hline separators)
     actual_data_rows = [r for r in data_rows if r.strip() != '\\hline']
@@ -224,14 +233,20 @@ def remove_table_container_wrappers(html: str) -> str:
 
 
 def unescape_latex_globally(html: str) -> str:
-    """Unescape \_ and \% and remove \; in any remaining LaTeX content."""
+    """Unescape \_ and remove \; in any remaining LaTeX content.
+
+    NOTE: \% must NOT be unescaped — in LaTeX, bare % is a comment character
+    and will swallow everything after it on the line, breaking table rows.
+    """
     # These should already be handled in tables, but catch any stragglers
     # Only apply within <pre> blocks to be safe
     def unescape_pre(match):
         content = match.group(1)
         content = content.replace('\\_', '_')
-        content = content.replace('\\%', '%')
         content = content.replace('\\;', ' ')
+        content = content.replace('\\text{-}', '-')
+        # Unescape \% inside \text{} only (bare \% must stay)
+        content = re.sub(r'\\text\{([^}]*)\}', lambda m: '\\text{' + m.group(1).replace('\\%', '%') + '}', content)
         return f'<pre>{content}</pre>'
 
     return re.sub(r'<pre>(.*?)</pre>', unescape_pre, html, flags=re.DOTALL)

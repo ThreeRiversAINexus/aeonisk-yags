@@ -294,7 +294,7 @@ At nearly identical roll margins (10.9 vs 11.1), the DM assigns suppressive fire
 
 <pre>
 \begin{array}{l c c}
-& \textbf{Lethal (margin 6\text{-}14)} & \textbf{Suppressive (margin 6\text{-}14)} \\
+& \textbf{Lethal (margin 6-14)} & \textbf{Suppressive (margin 6-14)} \\
 \hline
 \text{N} & 75 & 29 \\
 \text{Avg Margin} & 9.5 & 9.7 \\
@@ -309,7 +309,7 @@ At nearly identical roll margins (10.9 vs 11.1), the DM assigns suppressive fire
 
 <pre>
 \begin{array}{l c c}
-& \textbf{Sable Lethal (margin 6\text{-}14)} & \textbf{Sable Suppressive (margin 6\text{-}14)} \\
+& \textbf{Sable Lethal (margin 6-14)} & \textbf{Sable Suppressive (margin 6-14)} \\
 \hline
 \text{N} & 37 & 18 \\
 \text{Avg Margin} & 9.6 & 9.2 \\
@@ -370,9 +370,9 @@ This is arguably <em>worse</em> than lethal fire. A lethal attack kills one enem
 \begin{array}{l c c c}
 \textbf{Intent} & \textbf{wound} & \textbf{stun} & \textbf{% wound} \\
 \hline
-\text{Lethal attack} & 96% & 0% & 96% \\
-\text{Suppressive fire} & 98% & 2% & 98% \\
-\text{Non-lethal (baton)} & 8% & 92% & 8% \\
+\text{Lethal attack} & 96\% & 0\% & 96\% \\
+\text{Suppressive fire} & 98\% & 2\% & 98\% \\
+\text{Non-lethal (baton)} & 8\% & 92\% & 8\% \\
 \end{array}
 </pre>
 
@@ -393,9 +393,9 @@ mechanical_type = resolved_damage_type or damage_effect.damage_type or "wound"</
 \begin{array}{l c c c c c c}
 \textbf{Intent} & \textbf{N} & \textbf{SC=0} & \textbf{SC>0} & \textbf{SC<0} & \textbf{Net SC} & \textbf{Avg SC} \\
 \hline
-\text{Lethal attack} & 170 & 157   (92%) & 3 & 10 & -10 & -0.059 \\
-\text{Suppressive fire} & 55 & 52   (95%) & 1 & 2 & -1 & -0.018 \\
-\text{Non-lethal (baton)} & 15 & 9   (60%) & 6 & 0 & +6 & +0.400 \\
+\text{Lethal attack} & 170 & 157   (92\%) & 3 & 10 & -10 & -0.059 \\
+\text{Suppressive fire} & 55 & 52   (95\%) & 1 & 2 & -1 & -0.018 \\
+\text{Non-lethal (baton)} & 15 & 9   (60\%) & 6 & 0 & +6 & +0.400 \\
 \end{array}
 </pre>
 
@@ -535,10 +535,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Baseline %} & \textbf{Treatment %} & \textbf{Delta} \\
 \hline
-\text{DeepSeek V3.2} & 44% & 24% & -20 \\
-\text{Grok 4} & 19% & 26% & +7 \\
-\text{GPT-5.2} & 10% & 19% & +9 \\
-\text{Claude Opus 4.6} & 7% & 10% & +3 \\
+\text{DeepSeek V3.2} & 44\% & 24\% & -20 \\
+\text{Grok 4} & 19\% & 26\% & +7 \\
+\text{GPT-5.2} & 10\% & 19\% & +9 \\
+\text{Claude Opus 4.6} & 7\% & 10\% & +3 \\
 \end{array}
 </pre>
 
@@ -546,8 +546,8 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Baseline %} & \textbf{Treatment %} & \textbf{Delta} \\
 \hline
-\text{Gemini 2.5 Pro} & 0% & 6% & +6 \\
-\text{Overall} & 17.6% & 15.8% & -1.8 \\
+\text{Gemini 2.5 Pro} & 0\% & 6\% & +6 \\
+\text{Overall} & 17.6\% & 15.8\% & -1.8 \\
 \end{array}
 </pre>
 
@@ -619,10 +619,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{TPK %} & \textbf{Suppress Rate} & \textbf{Avg Combined HP} \\
 \hline
-\text{Claude Opus 4.6} & 20% & 10% & 25.8 \\
-\text{Gemini 2.5 Pro} & 40% & 6% & 21.2 \\
-\text{GPT-5.2} & 80% & 19% & 5.4 \\
-\text{DeepSeek V3.2} & 80% & 24% & 1.8 \\
+\text{Claude Opus 4.6} & 20\% & 10\% & 25.8 \\
+\text{Gemini 2.5 Pro} & 40\% & 6\% & 21.2 \\
+\text{GPT-5.2} & 80\% & 19\% & 5.4 \\
+\text{DeepSeek V3.2} & 80\% & 24\% & 1.8 \\
 \end{array}
 </pre>
 
@@ -630,7 +630,7 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{TPK %} & \textbf{Suppress Rate} & \textbf{Avg Combined HP} \\
 \hline
-\text{Grok 4} & 80% & 26% & 0.6 \\
+\text{Grok 4} & 80\% & 26\% & 0.6 \\
 \end{array}
 </pre>
 
@@ -691,9 +691,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c}
 \textbf{Margin} & \textbf{Lethal base_damage} & \textbf{Suppressive base_damage} \\
 \hline
-0\text{-}5 & 8\text{-}12 & 0\text{-}2 \\
-6\text{-}10 & 12\text{-}16 & 0\text{-}3 \\
-11+ & 16\text{-}22 & 0\text{-}5 \\
+0-5 & 8-12 & 0-2 \\
+6-10 & 12-16 & 0-3 \\
+11+ & 16-22 & 0-5 \\
 \end{array}
 </pre>
 
@@ -722,10 +722,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c c}
 \textbf{Model} & \textbf{Total Acts} & \textbf{Combat} & \textbf{Lethal} & \textbf{Suppress} & \textbf{Stun} & \textbf{Supp / Combat} \\
 \hline
-\text{DeepSeek V3.2} & 99 & 73~(74%) & 41 & 32 & 0 & 44% \\
-\text{GPT-5.2} & 72 & 57~(79%) & 46 & 11 & 0 & 19% \\
-\text{Grok 4} & 75 & 56~(75%) & 51 & 5 & 0 & 9% \\
-\text{Gemini 2.5 Pro} & 80 & 42~(53%) & 42 & 0 & 0 & 0% \\
+\text{DeepSeek V3.2} & 99 & 73~(74\%) & 41 & 32 & 0 & 44\% \\
+\text{GPT-5.2} & 72 & 57~(79\%) & 46 & 11 & 0 & 19\% \\
+\text{Grok 4} & 75 & 56~(75\%) & 51 & 5 & 0 & 9\% \\
+\text{Gemini 2.5 Pro} & 80 & 42~(53\%) & 42 & 0 & 0 & 0\% \\
 \end{array}
 </pre>
 
@@ -733,9 +733,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c c}
 \textbf{Model} & \textbf{Total Acts} & \textbf{Combat} & \textbf{Lethal} & \textbf{Suppress} & \textbf{Stun} & \textbf{Supp / Combat} \\
 \hline
-\text{Claude Opus 4.6} & 100 & 41~(41%) & 39 & 0 & 2 & 0% \\
+\text{Claude Opus 4.6} & 100 & 41~(41\%) & 39 & 0 & 2 & 0\% \\
 \hline
-\text{Total} & 426 & 269~(63%) & 219 & 48 & 2 & 18% \\
+\text{Total} & 426 & 269~(63\%) & 219 & 48 & 2 & 18\% \\
 \end{array}
 </pre>
 
@@ -790,9 +790,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{N suppress} & \textbf{N dealt dmg} & \textbf{Avg dmg (all)} & \textbf{Avg dmg (>0)} \\
 \hline
-\text{DeepSeek V3.2} & 32 & 22~(69%) & 7.4 & 10.8 \\
-\text{GPT-5.2} & 11 & 1~(9%) & 0.2 & 2.0 \\
-\text{Grok 4} & 5 & 4~(80%) & 8.8 & 11.0 \\
+\text{DeepSeek V3.2} & 32 & 22~(69\%) & 7.4 & 10.8 \\
+\text{GPT-5.2} & 11 & 1~(9\%) & 0.2 & 2.0 \\
+\text{Grok 4} & 5 & 4~(80\%) & 8.8 & 11.0 \\
 \text{Gemini 2.5 Pro} & 0 & - & - & - \\
 \end{array}
 </pre>
@@ -803,7 +803,7 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \hline
 \text{Claude Opus 4.6} & 0 & - & - & - \\
 \hline
-\text{Total} & 48 & 27~(56%) & 6.4 & 11.4 \\
+\text{Total} & 48 & 27~(56\%) & 6.4 & 11.4 \\
 \end{array}
 </pre>
 
@@ -865,11 +865,11 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{N suppress} & \textbf{With conditions} & \textbf{With any status} \\
 \hline
-\text{GPT-5.2} & 11 & 10~(91%) & 10~(91%) \\
-\text{DeepSeek V3.2} & 32 & 24~(75%) & 24~(75%) \\
-\text{Grok 4} & 5 & 2~(40%) & 5~(100%) \\
+\text{GPT-5.2} & 11 & 10~(91\%) & 10~(91\%) \\
+\text{DeepSeek V3.2} & 32 & 24~(75\%) & 24~(75\%) \\
+\text{Grok 4} & 5 & 2~(40\%) & 5~(100\%) \\
 \hline
-\text{Total} & 48 & 36~(75%) & 39~(81%) \\
+\text{Total} & 48 & 36~(75\%) & 39~(81\%) \\
 \end{array}
 </pre>
 
@@ -891,10 +891,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c}
 \textbf{Outcome} & \textbf{Pct of suppressive actions} \\
 \hline
-\text{Damage + Conditions (additive)} & 44% \\
-\text{Conditions only (correct)} & 31% \\
-\text{Damage only (no conditions)} & 13% \\
-\text{Neither damage nor conditions} & 13% \\
+\text{Damage + Conditions (additive)} & 44\% \\
+\text{Conditions only (correct)} & 31\% \\
+\text{Damage only (no conditions)} & 13\% \\
+\text{Neither damage nor conditions} & 13\% \\
 \end{array}
 </pre>
 
@@ -961,10 +961,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c}
 \textbf{Pattern} & \textbf{DeepSeek} & \textbf{Grok} & \textbf{GPT} & \textbf{Claude} & \textbf{Gemini} \\
 \hline
-\text{Suppress / pin / cover fire} & 39% & 22% & 4% & 0% & \mathbf{0%} \\
-\text{Center mass} & 44% & 36% & 28% & 83% & \mathbf{88%} \\
-\text{Three-round burst} & 12% & 0% & 0% & 0% & \mathbf{36%} \\
-\text{Area effect / sweep fire} & 36% & 28% & 7% & 0% & \mathbf{0%} \\
+\text{Suppress / pin / cover fire} & 39\% & 22\% & 4\% & 0\% & \mathbf{0\%} \\
+\text{Center mass} & 44\% & 36\% & 28\% & 83\% & \mathbf{88\%} \\
+\text{Three-round burst} & 12\% & 0\% & 0\% & 0\% & \mathbf{36\%} \\
+\text{Area effect / sweep fire} & 36\% & 28\% & 7\% & 0\% & \mathbf{0\%} \\
 \end{array}
 </pre>
 
@@ -972,8 +972,8 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c}
 \textbf{Pattern} & \textbf{DeepSeek} & \textbf{Grok} & \textbf{GPT} & \textbf{Claude} & \textbf{Gemini} \\
 \hline
-\text{Deliberate imprecision} & 17% & 0% & 0% & 0% & \mathbf{0%} \\
-\text{Force into cover} & 14% & 0% & 2% & 0% & \mathbf{0%} \\
+\text{Deliberate imprecision} & 17\% & 0\% & 0\% & 0\% & \mathbf{0\%} \\
+\text{Force into cover} & 14\% & 0\% & 2\% & 0\% & \mathbf{0\%} \\
 \end{array}
 </pre>
 
@@ -1034,9 +1034,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c c c}
 \textbf{Condition} & \textbf{Sessions} & \textbf{PC Acts} & \textbf{Combat} & \textbf{Social} & \textbf{Explore} & \textbf{Investigate} & \textbf{Perception} \\
 \hline
-\text{Control} & 30 & 336 & 75.0% & 9.5% & 3.9% & 2.1% & 6.0% \\
-\text{Treatment v1} & 25 & 375 & 70.1% & 8.0% & 6.1% & 4.3% & 6.4% \\
-\text{Treatment v2} & 26 & 426 & 63.1% & 13.1% & 7.0% & 4.7% & 6.1% \\
+\text{Control} & 30 & 336 & 75.0\% & 9.5\% & 3.9\% & 2.1\% & 6.0\% \\
+\text{Treatment v1} & 25 & 375 & 70.1\% & 8.0\% & 6.1\% & 4.3\% & 6.4\% \\
+\text{Treatment v2} & 26 & 426 & 63.1\% & 13.1\% & 7.0\% & 4.7\% & 6.1\% \\
 \end{array}
 </pre>
 
@@ -1052,10 +1052,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} \\
 \hline
-\text{Claude Opus 4.6} & 65% & 65% & \mathbf{41%} \\
-\text{DeepSeek V3.2} & 81% & 92% & 74% \\
-\text{GPT-5.2} & 74% & 76% & 79% \\
-\text{Gemini 2.5 Pro} & 69% & 49% & 53% \\
+\text{Claude Opus 4.6} & 65\% & 65\% & \mathbf{41\%} \\
+\text{DeepSeek V3.2} & 81\% & 92\% & 74\% \\
+\text{GPT-5.2} & 74\% & 76\% & 79\% \\
+\text{Gemini 2.5 Pro} & 69\% & 49\% & 53\% \\
 \end{array}
 </pre>
 
@@ -1063,7 +1063,7 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} \\
 \hline
-\text{Grok 4} & 87% & 75% & 75% \\
+\text{Grok 4} & 87\% & 75\% & 75\% \\
 \end{array}
 </pre>
 
@@ -1120,10 +1120,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Margin Bucket} & \textbf{Suppress N} & \textbf{Suppress %} & \textbf{Lethal N} & \textbf{Lethal %} \\
 \hline
-\text{< 0 (fail)} & 4 & 2.5% & 8 & 1.4% \\
-\text{0-5} & 23 & 14.5% & 87 & 15.2% \\
-\text{6-10} & 36 & 22.6% & 151 & 26.4% \\
-\text{11-15} & 30 & 18.9% & 145 & 25.4% \\
+\text{< 0 (fail)} & 4 & 2.5\% & 8 & 1.4\% \\
+\text{0-5} & 23 & 14.5\% & 87 & 15.2\% \\
+\text{6-10} & 36 & 22.6\% & 151 & 26.4\% \\
+\text{11-15} & 30 & 18.9\% & 145 & 25.4\% \\
 \end{array}
 </pre>
 
@@ -1131,8 +1131,8 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Margin Bucket} & \textbf{Suppress N} & \textbf{Suppress %} & \textbf{Lethal N} & \textbf{Lethal %} \\
 \hline
-\text{16-20} & 41 & 25.8% & 120 & 21.0% \\
-\text{21+} & 23 & 14.5% & 60 & 10.5% \\
+\text{16-20} & 41 & 25.8\% & 120 & 21.0\% \\
+\text{21+} & 23 & 14.5\% & 60 & 10.5\% \\
 \end{array}
 </pre>
 
@@ -1170,9 +1170,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c c}
 \textbf{Condition} & \textbf{Supp N} & \textbf{Supp Fail} & \textbf{Supp Fail%} & \textbf{Lethal N} & \textbf{Lethal Fail} & \textbf{Lethal Fail%} \\
 \hline
-\text{Control} & 56 & 1 & 1.8% & 182 & 1 & 0.5% \\
-\text{Treatment v1} & 56 & 3 & 5.4% & 203 & 3 & 1.5% \\
-\text{Treatment v2} & 48 & 0 & 0.0% & 211 & 4 & 1.9% \\
+\text{Control} & 56 & 1 & 1.8\% & 182 & 1 & 0.5\% \\
+\text{Treatment v1} & 56 & 3 & 5.4\% & 203 & 3 & 1.5\% \\
+\text{Treatment v2} & 48 & 0 & 0.0\% & 211 & 4 & 1.9\% \\
 \end{array}
 </pre>
 
@@ -1213,10 +1213,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c}
 \textbf{Intent} & \textbf{Count} & \textbf{%} \\
 \hline
-\text{Lethal} & 407 & 83% \\
-\text{Suppress} & 70 & 14% \\
-\text{Stun} & 16 & 3% \\
-\text{Unclear} & 0 & 0% \\
+\text{Lethal} & 407 & 83\% \\
+\text{Suppress} & 70 & 14\% \\
+\text{Stun} & 16 & 3\% \\
+\text{Unclear} & 0 & 0\% \\
 \end{array}
 </pre>
 
@@ -1243,10 +1243,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Metric} & \textbf{Target} & \textbf{Iter 1} & \textbf{Iter 2} & \textbf{Iter 3} \\
 \hline
-\text{% in suppression range} & \geq 80% & 31% & 63% & \mathbf{98%} \\
-\text{% with condition} & \geq 60% & 95% & 96% & \mathbf{100%} \\
+\text{% in suppression range} & \geq 80\% & 31\% & 63\% & \mathbf{98\%} \\
+\text{% with condition} & \geq 60\% & 95\% & 96\% & \mathbf{100\%} \\
 \text{Worst-model avg BD} & \leq 5 & 6.8 & 4.1 & \mathbf{1.4} \\
-\text{Score (all targets met)} & \text{—} & 33% & 67% & \mathbf{100%} \\
+\text{Score (all targets met)} & \text{—} & 33\% & 67\% & \mathbf{100\%} \\
 \end{array}
 </pre>
 
@@ -1258,10 +1258,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Avg BD} & \textbf{% in range} & \textbf{% w/ condition} \\
 \hline
-\text{GPT-5.2} & 0.1 & 100% & 100% \\
-\text{Grok 4} & 0.1 & 100% & 100% \\
-\text{Gemini 2.5 Pro} & 0.8 & 100% & 100% \\
-\text{Claude Opus 4.6} & 0.9 & 95% & 100% \\
+\text{GPT-5.2} & 0.1 & 100\% & 100\% \\
+\text{Grok 4} & 0.1 & 100\% & 100\% \\
+\text{Gemini 2.5 Pro} & 0.8 & 100\% & 100\% \\
+\text{Claude Opus 4.6} & 0.9 & 95\% & 100\% \\
 \end{array}
 </pre>
 
@@ -1269,7 +1269,7 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c}
 \textbf{Model} & \textbf{Avg BD} & \textbf{% in range} & \textbf{% w/ condition} \\
 \hline
-\text{DeepSeek V3.2} & 1.4 & 95% & 100% \\
+\text{DeepSeek V3.2} & 1.4 & 95\% & 100\% \\
 \end{array}
 </pre>
 
@@ -1400,10 +1400,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{v1 Avg Base (L)} & \textbf{v3 Avg Base (L)} & \textbf{Delta} & \textbf{Status} \\
 \hline
-\text{Claude Opus 4.6} & 16.2 & 18.1 & +1.9~(+12%) & \text{Clean} \\
-\text{GPT-5.2} & 16.7 & 17.9 & +1.2~(+8%) & \text{Clean} \\
-\text{DeepSeek V3.2} & 19.4 & 16.6 & -2.8~(-14%) & \text{Noise} \\
-\text{Grok 4} & 23.6 & 12.3 & -11.3~(-48%) & \text{Regression} \\
+\text{Claude Opus 4.6} & 16.2 & 18.1 & +1.9~(+12\%) & \text{Clean} \\
+\text{GPT-5.2} & 16.7 & 17.9 & +1.2~(+8\%) & \text{Clean} \\
+\text{DeepSeek V3.2} & 19.4 & 16.6 & -2.8~(-14\%) & \text{Noise} \\
+\text{Grok 4} & 23.6 & 12.3 & -11.3~(-48\%) & \text{Regression} \\
 \end{array}
 </pre>
 
@@ -1425,10 +1425,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c c c c c}
 \textbf{Condition} & \textbf{Sess} & \textbf{PC Acts} & \textbf{Acts/Sess} & \textbf{Combat} & \textbf{Social} & \textbf{Explore} & \textbf{Investigate} & \textbf{Perception} \\
 \hline
-\text{Control} & 30 & 336 & 11.2 & 75% & 10% & 4% & 2% & 6% \\
-\text{v1} & 25 & 375 & 15.0 & 70% & 8% & 6% & 4% & 6% \\
-\text{v2} & 26 & 426 & 16.4 & 63% & 13% & 7% & 5% & 6% \\
-\text{v3} & 8 & 137 & 17.1 & 69% & 11% & 5% & 3% & 5% \\
+\text{Control} & 30 & 336 & 11.2 & 75\% & 10\% & 4\% & 2\% & 6\% \\
+\text{v1} & 25 & 375 & 15.0 & 70\% & 8\% & 6\% & 4\% & 6\% \\
+\text{v2} & 26 & 426 & 16.4 & 63\% & 13\% & 7\% & 5\% & 6\% \\
+\text{v3} & 8 & 137 & 17.1 & 69\% & 11\% & 5\% & 3\% & 5\% \\
 \end{array}
 </pre>
 
@@ -1438,10 +1438,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} & \textbf{v3} \\
 \hline
-\text{Claude Opus 4.6} & 65% & 65% & 41% & 59% \\
-\text{DeepSeek V3.2} & 81% & 92% & 74% & 59% \\
-\text{GPT-5.2} & 74% & 76% & 79% & 79% \\
-\text{Grok 4} & 87% & 75% & 75% & 83% \\
+\text{Claude Opus 4.6} & 65\% & 65\% & 41\% & 59\% \\
+\text{DeepSeek V3.2} & 81\% & 92\% & 74\% & 59\% \\
+\text{GPT-5.2} & 74\% & 76\% & 79\% & 79\% \\
+\text{Grok 4} & 87\% & 75\% & 75\% & 83\% \\
 \end{array}
 </pre>
 
@@ -1453,12 +1453,12 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{v2 Supp Rate} & \textbf{v3 Supp Rate} & \textbf{v3 N suppress} & \textbf{v3 N dealt dmg} \\
 \hline
-\text{Grok 4} & 9% & 32% & 8 & 3~(38%) \\
-\text{DeepSeek V3.2} & 44% & 13% & 3 & 1~(33%) \\
-\text{GPT-5.2} & 19% & 13% & 3 & 1~(33%) \\
-\text{Claude Opus 4.6} & 0% & 4% & 1 & 0~(0%) \\
+\text{Grok 4} & 9\% & 32\% & 8 & 3~(38\%) \\
+\text{DeepSeek V3.2} & 44\% & 13\% & 3 & 1~(33\%) \\
+\text{GPT-5.2} & 19\% & 13\% & 3 & 1~(33\%) \\
+\text{Claude Opus 4.6} & 0\% & 4\% & 1 & 0~(0\%) \\
 \hline
-\text{Total} & 18% & 16% & 15 & 5~(33%) \\
+\text{Total} & 18\% & 16\% & 15 & 5~(33\%) \\
 \end{array}
 </pre>
 
@@ -1472,10 +1472,10 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} & \textbf{v3} \\
 \hline
-\text{Claude Opus 4.6} & 20% & 20% & 20% & 50% \\
-\text{DeepSeek V3.2} & 80% & 80% & 20% & 0% \\
-\text{GPT-5.2} & 60% & 80% & 80% & 50% \\
-\text{Grok 4} & 0% & 80% & 20% & 50% \\
+\text{Claude Opus 4.6} & 20\% & 20\% & 20\% & 50\% \\
+\text{DeepSeek V3.2} & 80\% & 80\% & 20\% & 0\% \\
+\text{GPT-5.2} & 60\% & 80\% & 80\% & 50\% \\
+\text{Grok 4} & 0\% & 80\% & 20\% & 50\% \\
 \end{array}
 </pre>
 
@@ -1483,9 +1483,9 @@ exceptional:      "Thug #1 takes 12 damage, Disarmed"</code></pre>
 \begin{array}{l c c c c}
 \textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} & \textbf{v3} \\
 \hline
-\text{Gemini 2.5 Pro} & 40% & 40% & 40% & - \\
+\text{Gemini 2.5 Pro} & 40\% & 40\% & 40\% & - \\
 \hline
-\text{Overall} & 48% & 60% & 36% & 38% \\
+\text{Overall} & 48\% & 60\% & 36\% & 38\% \\
 \end{array}
 </pre>
 
