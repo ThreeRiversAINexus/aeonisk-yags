@@ -147,6 +147,7 @@ window.MathJax = {
   <li><a href="#rolls-and-dc">Roll Outcomes and Difficulty Checks</a></li>
   <li><a href="#path-forward">The Path Forward: Why We Need a Harness</a></li>
   <li><a href="#eval-harness">The Eval Harness: Automated Prompt Optimization</a></li>
+  <li><a href="#treatment-v3">Treatment v3: Live Validation</a></li>
 </ul>
 </div>
 
@@ -1302,6 +1303,163 @@ $$
 
 <p><strong>Automated iteration changes the game.</strong> The eval harness makes prompt optimization empirical rather than intuitive. Score, identify failures, rewrite, measure again. Each cycle takes 15 minutes and tests against every suppressive case from every session. The human cost shifts from "design the right prompt" to "design the right scoring function"&mdash;a much more tractable problem.</p>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="treatment-v3">Treatment v3: Live Validation</h2>
+
+<p>The <a href="#eval-harness">eval harness</a> section ended with a caveat: the harness optimizes against isolated DM resolution calls, not live multi-turn sessions. The prompt converged to avg BD 0.7 in controlled replay. Whether that holds when players make dynamic decisions, narration chains accumulate, and multi-turn context drifts&mdash;that's a different question. We ran the experiment.</p>
+
+<p>8 sessions across 4 models (2 each), same combat ambush scenario. Claude Opus 4.6, DeepSeek V3.2, Grok 4, and GPT-5.2. No Gemini in this batch. The self-judge's iteration 3 prompt was loaded as the DM combat resolution module. All 8 sessions completed successfully (avg 9.5 rounds, 17.1 PC actions per session).</p>
+
+<h3>The Headline Number</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c}
+\textbf{Model} & \textbf{N lethal} & \textbf{Avg base (L)} & \textbf{N suppress} & \textbf{Avg base (S)} & \textbf{Ratio} \\
+\hline
+\text{GPT-5.2} & 20 & 17.9 & 3 & 0.3 & 0.02 \\
+\text{DeepSeek V3.2} & 18 & 16.6 & 3 & 0.3 & 0.02 \\
+\text{Grok 4} & 13 & 12.3 & 8 & 0.3 & 0.02 \\
+\text{Claude Opus 4.6} & 19 & 18.1 & 1 & 0.0 & 0.00 \\
+\hline
+\text{Overall} & 70 & 16.6 & 15 & 0.3 & 0.02 \\
+\end{array}
+$$
+</div>
+
+<div class="finding">
+<strong>Overall damage ratio: 0.02.</strong> Down from 1.08 (baseline), 0.63 (v1), 0.58 (v2). Suppressive fire in live sessions now deals 2% of lethal damage, matching the eval harness results. The harness-optimized prompt transferred from isolated replay to live multi-turn play.
+</div>
+
+<p>The progression across all four conditions:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c}
+\textbf{Condition} & \textbf{Suppress/Lethal Ratio} & \textbf{Avg Suppress BD} \\
+\hline
+\text{Baseline (control)} & 1.08 & 20.9 \\
+\text{Treatment v1} & 0.63 & 11.9 \\
+\text{Treatment v2} & 0.58 & 6.4 \\
+\text{Treatment v3} & \mathbf{0.02} & \mathbf{0.3} \\
+\end{array}
+$$
+</div>
+
+<p>Of 15 suppressive fire actions, 9 resolved with zero damage entries entirely&mdash;conditions only, exactly as the suppression table prescribes. The remaining 6 had <code>base_damage=1</code>, with most absorbed by soak (dealt 0). Only a single action across all 8 sessions dealt any actual suppressive damage: 1 HP.</p>
+
+<p>Condition application was 100%. Every suppressive action received Pinned, Suppressed, or Full Suppression status effects. The v2 pattern of "damage + conditions" (44% of suppress actions) has been eliminated&mdash;it's now "conditions only" or "conditions + token damage."</p>
+
+<h3>Regression Check: Lethal Combat</h3>
+
+<p>Did the aggressive suppression prompt bleed into lethal resolution? For three of four models, no.</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Model} & \textbf{v1 Avg Base (L)} & \textbf{v3 Avg Base (L)} & \textbf{Delta} & \textbf{Status} \\
+\hline
+\text{Claude Opus 4.6} & 16.2 & 18.1 & +1.9~(+12\%) & \text{Clean} \\
+\text{GPT-5.2} & 16.7 & 17.9 & +1.2~(+8\%) & \text{Clean} \\
+\text{DeepSeek V3.2} & 19.4 & 16.6 & -2.8~(-14\%) & \text{Noise} \\
+\text{Grok 4} & 23.6 & 12.3 & -11.3~(-48\%) & \text{Regression} \\
+\end{array}
+$$
+</div>
+
+<p>Claude, GPT-5.2, and DeepSeek all produce lethal <code>base_damage</code> within normal range of the v1 baseline. Zero lethal actions across any model resolved at <code>base_damage=0</code>&mdash;the prompt is not blanket-suppressing all combat.</p>
+
+<div class="warning">
+<strong>Grok 4 shows a model-specific regression.</strong> Lethal <code>base_damage</code> dropped 48% (23.6 &rarr; 12.3). The worst case: run_0007 Round 1, Drifter Sable declares "controlled burst of fire at the lead thug, aiming for center mass" with a d20 natural 20, margin +22&mdash;and the DM narrates it as "a grazing shot&hellip; tactical suppression buys precious time" and assigns <code>base_damage=1</code>. The DM reinterpreted a clearly lethal action as suppressive.
+</div>
+
+<p>This is the inverse of Grok's v1 behavior. In v1, Grok was the gold standard for suppression compliance (ratio 0.25)&mdash;its instruction-following sensitivity made it adhere to the suppression table precisely. In v3, that same sensitivity causes it to over-apply the suppression framing to lethal actions. The expanded phrase list and MANDATORY language that helped DeepSeek and Claude are too aggressive for Grok's compliance threshold. What fixed three models broke one.</p>
+
+<p>Excluding Grok, the overall lethal avg <code>base_damage</code> is 17.6&mdash;only 7.6% below the v1 baseline of 19.0. The suppression prompt changes are well-contained for the other three models.</p>
+
+<h3>Session Behavior</h3>
+
+<p>How did the v3 prompt influence overall session dynamics?</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c c c c}
+\textbf{Condition} & \textbf{Sess} & \textbf{PC Acts} & \textbf{Acts/Sess} & \textbf{Combat} & \textbf{Social} & \textbf{Explore} & \textbf{Investigate} & \textbf{Perception} \\
+\hline
+\text{Control} & 30 & 336 & 11.2 & 75\% & 10\% & 4\% & 2\% & 6\% \\
+\text{v1} & 25 & 375 & 15.0 & 70\% & 8\% & 6\% & 4\% & 6\% \\
+\text{v2} & 26 & 426 & 16.4 & 63\% & 13\% & 7\% & 5\% & 6\% \\
+\text{v3} & 8 & 137 & 17.1 & 69\% & 11\% & 5\% & 3\% & 5\% \\
+\end{array}
+$$
+</div>
+
+<p>Combat ticked back up from v2's 63% to 69%, partially reversing the downward trend. Sessions continued getting longer (17.1 actions/session, 9.5 avg rounds). The v2 trend toward more social and exploratory play moderated slightly.</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} & \textbf{v3} \\
+\hline
+\text{Claude Opus 4.6} & 65\% & 65\% & 41\% & 59\% \\
+\text{DeepSeek V3.2} & 81\% & 92\% & 74\% & 59\% \\
+\text{GPT-5.2} & 74\% & 76\% & 79\% & 79\% \\
+\text{Grok 4} & 87\% & 75\% & 75\% & 83\% \\
+\end{array}
+$$
+</div>
+
+<p>Two notable model-level shifts. <strong>DeepSeek</strong> dropped to 59% combat&mdash;its lowest rate across all conditions, down from 81% in control. Its sessions had substantially more social and exploration actions, suggesting the v3 DM's suppression behavior is changing the narration enough to shift player agent decision-making. <strong>GPT-5.2</strong> remains the most resistant to behavioral change: 74&ndash;79% combat across all four conditions regardless of DM prompt modifications.</p>
+
+<h3>Suppressive Fire Volume</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Model} & \textbf{v2 Supp Rate} & \textbf{v3 Supp Rate} & \textbf{v3 N suppress} & \textbf{v3 N dealt dmg} \\
+\hline
+\text{Grok 4} & 9\% & 32\% & 8 & 3~(38\%) \\
+\text{DeepSeek V3.2} & 44\% & 13\% & 3 & 1~(33\%) \\
+\text{GPT-5.2} & 19\% & 13\% & 3 & 1~(33\%) \\
+\text{Claude Opus 4.6} & 0\% & 4\% & 1 & 0~(0\%) \\
+\hline
+\text{Total} & 18\% & 16\% & 15 & 5~(33\%) \\
+\end{array}
+$$
+</div>
+
+<p>Grok's suppress rate tripled (9% &rarr; 32%)&mdash;consistent with its DM's tendency to frame combat in suppressive terms, which likely feeds back into player agent decisions. DeepSeek's rate halved from its historically dominant 44% to 13%. Claude generated its first-ever suppressive fire action, breaking its 0% streak across control, v1, and v2 (though N=1 from 2 sessions is not a trend).</p>
+
+<p>Enemy activity dropped notably: 12.5 actions per session, down from 27.5 in v2. NPC activity rose to 8.9 per session, the highest of any condition. Whether this reflects suppressed enemies de-escalating into NPCs or simply small-sample variance from 8 sessions requires further investigation.</p>
+
+<h3>TPK Rate</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} & \textbf{v3} \\
+\hline
+\text{Claude Opus 4.6} & 20\% & 20\% & 20\% & 50\% \\
+\text{DeepSeek V3.2} & 80\% & 80\% & 20\% & 0\% \\
+\text{GPT-5.2} & 60\% & 80\% & 80\% & 50\% \\
+\text{Grok 4} & 0\% & 80\% & 20\% & 50\% \\
+\text{Gemini 2.5 Pro} & 40\% & 40\% & 40\% & - \\
+\hline
+\text{Overall} & 48\% & 60\% & 36\% & 38\% \\
+\end{array}
+$$
+</div>
+
+<p>Overall TPK rate held at 38%, comparable to v2's 36%. DeepSeek's 0% TPK (both sessions survived) is the most notable shift, but with only 2 sessions per model, per-model rates are unreliable. The suppression-survival paradox from earlier experiments&mdash;models that suppress more die more&mdash;is less visible in v3, potentially because suppression now produces real tactical value (conditions without damage) rather than damage-plus-conditions.</p>
+
+<h3>Assessment</h3>
+
+<div class="finding">
+<strong>The eval harness results transferred to live play.</strong> The suppress/lethal damage ratio went from 0.58 (v2) to 0.02 (v3) in full multi-turn sessions with dynamic player decisions and accumulating narration context. The "apples and oranges" concern&mdash;that isolated replay might not predict live performance&mdash;proved unfounded for this prompt change. Three of four models show no lethal regression; one (Grok) shows model-specific over-compliance that requires targeted tuning.
+</div>
+
+<p>The remaining gaps are on the edges: Grok's suppression bleed into lethal actions, Claude's persistent refusal to generate suppressive intent, and the need for a full 25-session batch to confirm these directional findings with statistical confidence. But the core question&mdash;can a prompt-only fix make LLM DMs assign correct <code>base_damage</code> for suppressive fire in live play&mdash;has a clear answer: yes, from 20.9 to 0.3.</p>
+
 <hr>
 
 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
@@ -1312,6 +1470,7 @@ $$
   Gemini analysis: 15 sessions, 109 combat actions, keyword frequency comparison across 5 models.<br>
   Roll outcomes: 790 PC combat actions, 167 suppress / 596 lethal / 27 baton. DC and margin analysis across 81 sessions.<br>
   Eval harness: 493 cases extracted from 56 sessions, LLM-classified (407 lethal, 70 suppress, 16 stun). 3 self-judge iterations, 300 replay calls, convergence to 98% in-range / 100% conditions.<br>
+  Treatment v3: 8 live sessions (2 per model, 4 models), 137 PC actions, 15 suppress / 70 lethal / 2 stun. Damage ratio 0.02, lethal regression &lt;8% (excl. Grok).<br>
   Validation script: <code>.claude/articles/scripts/validate_article.py</code><br>
   v2 extraction: <code>.claude/articles/scripts/extract_suppressive_quotes.py</code><br>
   Action summaries: <code>.claude/articles/scripts/extract_action_summaries.py</code><br>
