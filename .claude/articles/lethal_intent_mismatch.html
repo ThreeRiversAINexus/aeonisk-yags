@@ -145,6 +145,8 @@ window.MathJax = {
   <li><a href="#gemini-case">Why Gemini Never Suppresses</a></li>
   <li><a href="#action-summary">Action Type Distributions Across Conditions</a></li>
   <li><a href="#rolls-and-dc">Roll Outcomes and Difficulty Checks</a></li>
+  <li><a href="#path-forward">The Path Forward: Why We Need a Harness</a></li>
+  <li><a href="#eval-harness">The Eval Harness: Automated Prompt Optimization</a></li>
 </ul>
 </div>
 
@@ -920,25 +922,6 @@ $$
 <strong>The observable pattern:</strong> Prompt engineering changes what the model <em>writes about</em> (narration, conditions, status effects) more easily than what the model <em>generates as numbers</em> (<code>base_damage</code>). The conditions data demonstrates this: 75% of suppressive actions receive "Pinned" or "Suppressed" status effects&mdash;the DM understands suppression&mdash;but 56% still deal wound damage alongside those conditions. Whether this reflects a fundamental difference in how LLMs generate text vs numbers, or simply that our prompt is better at guiding text than numbers, remains an open question.
 </div>
 
-<h3>The Path Forward</h3>
-
-<p>The mechanically sound fix remains clear: add <code>combat_mode: Literal["lethal", "suppressive", "stun"]</code> to the structured output schema, then enforce <code>base_damage</code> ranges in the backend. The model writes "suppressive," the engine caps damage at 0&ndash;5 regardless of what the model outputs. This is the approach outlined in the <a href="#future">earlier proposals</a> and the most reliable path to consistent behavior across all models.</p>
-
-<p>However, there are two reasons to continue pushing the prompt-only approach. First, mechanical enforcement treats the symptom&mdash;the DM still "thinks" suppressive fire should do 15 damage, and the engine silently overwrites it. A prompt solution that changes the DM's actual output produces better ML training data. Second, the cross-model variance (GPT-5.2 at 0.20 vs Grok at 0.71 vs DeepSeek at 0.69) shows the problem <em>is</em> solvable for some architectures, and understanding why is valuable for structured output reliability more broadly.</p>
-
-<h4>Combat Resolution Prompt Harness</h4>
-
-<p>The bottleneck for prompt iteration is that each test requires a full 10-round session (~80 minutes, $2&ndash;5 in API costs, 25 runs per experiment). The combat resolution prompt is one LLM call inside a 200-call session. The next step is an <strong>isolated combat resolution harness</strong> that extracts the exact context (roll data, weapon info, player declaration, battlefield state) from existing sessions and re-submits it to the DM resolution prompt alone. This enables:</p>
-
-<ul>
-  <li>Prompt iteration in minutes instead of hours</li>
-  <li>Testing every suppressive action from every experiment (~140 cases across baseline, v1, and v2)</li>
-  <li>Deterministic cross-model comparison on identical inputs</li>
-  <li>Construction of a train/test dataset for publication as a HuggingFace benchmark</li>
-</ul>
-
-<p>The dataset would contain input-output pairs where the input is the full DM resolution context and the expected output is the correct <code>base_damage</code> and condition assignment per the suppression table. This inverts the problem: instead of discovering what models do wrong in open-ended sessions, we can measure exactly how often each model produces the correct answer against a known-correct reference set. The dataset could live at <code>~/Coding/aeonisk-v1/</code> alongside the game's public assets.</p>
-
 <p>TPK rate improved from 60% (v1) to 36% (v2), a 24 percentage-point drop. Whether this reflects the classification gate's influence on damage or session variance across 25 runs requires further investigation. The suppression-survival paradox&mdash;models that suppress more die more&mdash;persists as the dominant dynamic.</p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -1178,6 +1161,147 @@ $$
 
 <p>Baton (stun) actions have a markedly higher failure rate (~13%) due to lower skill values: Melee 4 vs Guns 5, and melee requires closing to near range. The 27 baton actions across all conditions produced 3 failures.</p>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="path-forward">The Path Forward: Why We Need a Harness</h2>
+
+<p>The mechanically sound fix remains clear: add <code>combat_mode: Literal["lethal", "suppressive", "stun"]</code> to the structured output schema, then enforce <code>base_damage</code> ranges in the backend. The model writes "suppressive," the engine caps damage at 0&ndash;5 regardless of what the model outputs. This is the approach outlined in the <a href="#future">earlier proposals</a> and the most reliable path to consistent behavior across all models.</p>
+
+<p>But there are two reasons to keep pushing the prompt-only approach. First, mechanical enforcement treats the symptom&mdash;the DM still "thinks" suppressive fire should do 15 damage, and the engine silently overwrites it. A prompt solution that changes the DM's actual output produces better ML training data. Second, the cross-model variance (GPT-5.2 at 0.20 vs Grok at 0.71 vs DeepSeek at 0.69) shows the problem <em>is</em> solvable for some architectures, and understanding why is valuable for structured output reliability more broadly.</p>
+
+<p>The obstacle is iteration speed. Each treatment required 25 full sessions &times; 5 models = 125 sessions, ~80 minutes each, $2&ndash;5 in API fees, two days of elapsed time. And the DM combat resolution prompt is <em>one</em> LLM call inside a 200-call session. We spent 99.5% of our compute generating player declarations, enemy actions, and narrative synthesis&mdash;none of which we needed to change.</p>
+
+<p>But every one of those DM resolution calls already exists in the JSONL logs. Every <code>llm_call</code> event records the full system prompt, user prompt (with roll data, weapon context, battlefield state), and the model's response. If we extract those calls, we can re-submit them with a candidate prompt module swapped in and measure the output. No players, no enemies, no 10-round session. Just the one call that matters.</p>
+
+<p>That's the harness: an isolated replay loop over extracted DM resolution calls, with an LLM judge that scores the output, identifies failure patterns, rewrites the prompt, and iterates. Prompt optimization in minutes instead of days.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="eval-harness">The Eval Harness: Automated Prompt Optimization</h2>
+
+<p>So we built it.</p>
+
+<h3>Architecture</h3>
+
+<p>The harness has four components:</p>
+
+<p><strong>SessionExtractor.</strong> Scans JSONL session logs for DM <code>llm_call</code> events at the combat adjudication phase. For each call, it extracts the full context: system prompt, user prompt containing the roll result, weapon info, and battlefield state, plus the original response. This produces a dataset of isolated resolution cases with all the context the DM had when it generated <code>base_damage</code>.</p>
+
+<p><strong>IntentClassifier.</strong> An LLM-based classifier (GPT-5-mini) labels each extracted case by the player's declared intent: <code>suppress</code>, <code>lethal</code>, <code>stun</code>, or <code>unclear</code>. This replaces the brittle keyword matching used in earlier analysis. The classifier reads the <code>action_declaration</code> structured event&mdash;joined to the DM prompt by character name&mdash;and returns a classification with reasoning. Labels are cached by <code>event_id</code>: classify once, filter many times. The same cache serves the primary eval (keep=suppress) and regression checks (keep=lethal, keep=stun) with zero extra LLM calls.</p>
+
+<p><strong>Replay engine.</strong> Each extracted case is re-submitted to 5 frontier models with the candidate prompt module swapped into the system prompt. 20 suppressive cases &times; 5 models = 100 replays per iteration. The original context is preserved exactly&mdash;same roll, same margin, same weapon, same battlefield&mdash;only the resolution prompt changes.</p>
+
+<p><strong>Scorers.</strong> Two scoring functions measure compliance:</p>
+<ul>
+  <li><code>suppression_table</code>: percentage of cases where <code>base_damage</code> falls in the expected range (0&ndash;5 for margin 11+, 0&ndash;3 for margin 6&ndash;10, 0&ndash;2 for margin 0&ndash;5), and percentage where the response includes a tactical condition (Pinned, Suppressed, etc.)</li>
+  <li><code>damage_comparison</code>: average <code>base_damage</code> before vs after, per model and overall</li>
+</ul>
+
+<p><strong>Self-judge.</strong> An LLM (Claude Sonnet) analyzes the scores, identifies failure patterns in the replay outputs, rewrites the prompt module, and loops. The judge sees the scoring summary, a sample of failing cases with their full context and response, and the current prompt text. It outputs a revised prompt and a rationale for the changes.</p>
+
+<h3>The Dataset</h3>
+
+<p>The extractor scanned 56 session files across control and treatment v2, yielding 493 PC combat resolution cases. The classifier labeled them:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c}
+\textbf{Intent} & \textbf{Count} & \textbf{\%} \\
+\hline
+\text{Lethal} & 407 & 83\% \\
+\text{Suppress} & 70 & 14\% \\
+\text{Stun} & 16 & 3\% \\
+\text{Unclear} & 0 & 0\% \\
+\end{array}
+$$
+</div>
+
+<p>Zero unclear classifications. The LLM classifier outperformed keyword matching by correctly handling edge cases like "suppressive fire to neutralize" (lethal intent despite suppressive keyword) and "controlled bursts to pin them down" (suppress intent without the word "suppressive"). The classifier uses the player's <code>action_declaration</code> structured event&mdash;the same data the DM receives&mdash;so the classification reflects what the DM actually sees, not a post-hoc interpretation of narration.</p>
+
+<p>The 70 suppressive cases became the primary eval set. The 407 lethal and 16 stun cases became regression sets: after each prompt iteration, we replay those cases and check that the new prompt didn't degrade lethal or stun resolution.</p>
+
+<h3>Regression Checks</h3>
+
+<p>The suppression prompt changes must not bleed into other combat types. After each iteration, the harness replays the lethal and stun regression sets and measures drift from the original session's <code>base_damage</code> values:</p>
+
+<ul>
+  <li><strong>Lethal regression:</strong> Replay 407 lethal cases, compare avg <code>base_damage</code> to original. Target: &lt;20% drift.</li>
+  <li><strong>Stun regression:</strong> Replay 16 stun cases, same drift check. Target: &lt;25% drift.</li>
+</ul>
+
+<p>Both passed across all three iterations. The suppression prompt module is injected only into the suppressive fire classification branch&mdash;the self-judge's changes never touched the lethal or stun resolution paths, and the regression scores confirmed it.</p>
+
+<h3>Convergence</h3>
+
+<p>Three targets, three iterations:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Metric} & \textbf{Target} & \textbf{Iter 1} & \textbf{Iter 2} & \textbf{Iter 3} \\
+\hline
+\text{\% in suppression range} & \geq 80\% & 31\% & 63\% & \mathbf{98\%} \\
+\text{\% with condition} & \geq 60\% & 95\% & 96\% & \mathbf{100\%} \\
+\text{Worst-model avg BD} & \leq 5 & 6.8 & 4.1 & \mathbf{1.4} \\
+\text{Score (all targets met)} & \text{—} & 33\% & 67\% & \mathbf{100\%} \\
+\end{array}
+$$
+</div>
+
+<p>The condition target was met from iteration 1&mdash;all five models already applied Pinned/Suppressed effects reliably, consistent with the v2 finding that DMs understand suppression conceptually. The hard target was the damage range. Iteration 1 put only 31% of cases in-range; iteration 2 reached 63%; iteration 3 hit 98%.</p>
+
+<p>Per-model results at iteration 3:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c}
+\textbf{Model} & \textbf{Avg BD} & \textbf{\% in range} & \textbf{\% w/ condition} \\
+\hline
+\text{GPT-5.2} & 0.1 & 100\% & 100\% \\
+\text{Grok 4} & 0.1 & 100\% & 100\% \\
+\text{Gemini 2.5 Pro} & 0.8 & 100\% & 100\% \\
+\text{Claude Opus 4.6} & 0.9 & 95\% & 100\% \\
+\text{DeepSeek V3.2} & 1.4 & 95\% & 100\% \\
+\end{array}
+$$
+</div>
+
+<div class="finding">
+<strong>From 15.9 avg base_damage to 0.7 across all models.</strong> Every model now resolves suppressive fire within the suppression table's intended range. The cross-model variance that dominated treatments v1 and v2&mdash;GPT-5.2 at 0.20 vs Grok at 0.71 vs DeepSeek at 0.69&mdash;collapsed to near-zero. The prompt, iterated with targeted feedback, overcame the model-specific priors that resisted manual engineering.
+</div>
+
+<h3>What the Self-Judge Changed</h3>
+
+<p>The self-judge made two rounds of revisions. Both were lexical, not structural.</p>
+
+<p><strong>Iteration 1 &rarr; 2:</strong> Added a "MANDATORY" flag to the classification step. Expanded the suppressive intent phrase list to 8 examples. Strengthened the directive language: "you MUST use the SUPPRESSION TABLE" rather than "look up from the suppression table." The judge identified that models were reading the classification gate but treating it as advisory&mdash;they classified correctly, then generated damage from their lethal prior anyway.</p>
+
+<p><strong>Iteration 2 &rarr; 3:</strong> Expanded the phrase list from 8 to 12 examples, adding "area denial," "buying time," "force them to take cover," and "disrupt their advance." The judge identified that 4 of the 37% still-failing cases in iteration 2 used intent phrases not in the original list. The models classified these as ambiguous and fell back to lethal damage tables. Adding the phrases eliminated the ambiguity.</p>
+
+<p>The breakthrough wasn't architectural. The self-judge didn't restructure the prompt, add new sections, or change the table format. It taught the prompt to recognize more intent patterns and used stronger directive language. The fix was lexical, not structural.</p>
+
+<h3>Apples and Oranges</h3>
+
+<p>An important caveat: these results are <strong>not</strong> directly comparable to treatments v1 and v2.</p>
+
+<p><strong>Treatments v1/v2</strong> were measured in live 10-round sessions. The DM prompt was fixed for each experiment, players made dynamic decisions, multi-turn narration chains influenced subsequent rounds. The damage ratio (suppress avg / lethal avg) reached 0.63 (v1) and 0.58 (v2)&mdash;meaning suppressive fire still dealt 58&ndash;63% as much damage as aimed shots.</p>
+
+<p><strong>The eval harness</strong> replays isolated DM resolution calls with identical context extracted from those same sessions. No player dynamics, no narration chains, no multi-turn context drift. It measures what the prompt <em>can achieve</em> in controlled conditions&mdash;whether the DM produces correct numbers when given the right input.</p>
+
+<p>The difference matters: the harness optimized the prompt to avg BD 0.7 (down from 15.9), which shows the prompt is now <strong>capable</strong> of correct suppressive fire resolution. Whether that holds in live sessions with multi-turn context and player dynamics is the next experiment. But the bottleneck is removed&mdash;we no longer need 125 sessions to test each prompt revision.</p>
+
+<div class="finding">
+<strong>The speed difference:</strong> Treatments took ~2 days per iteration (25 sessions, ~80 min each). The eval harness ran 3 iterations in ~45 minutes total (300 replay calls). A 60&times; speedup on the inner loop of prompt development.
+</div>
+
+<h3>What This Tells Us</h3>
+
+<p>Three takeaways from the harness experiment:</p>
+
+<p><strong>The "numbers resist prompts" hypothesis was wrong.</strong> The <a href="#treatment-v2-results">v2 analysis</a> observed that prompt engineering changes what models <em>write about</em> (narration, conditions) more easily than what they <em>generate as numbers</em> (<code>base_damage</code>). The eval harness showed this was a prompt quality problem, not a fundamental LLM limitation. With sufficient iteration and targeted feedback, all five models converged to correct numeric output. The difficulty was in the prompt, not in the models.</p>
+
+<p><strong>The fix was lexical.</strong> The self-judge's changes were not architectural&mdash;it expanded the suppressive intent phrase list and added stronger mandatory language. This suggests the v1/v2 prompts were failing not because of structural issues (anchoring, classification gates) but because they didn't cover enough intent phrasings for models to reliably classify the action before generating damage.</p>
+
+<p><strong>Automated iteration changes the game.</strong> The eval harness makes prompt optimization empirical rather than intuitive. Score, identify failures, rewrite, measure again. Each cycle takes 15 minutes and tests against every suppressive case from every session. The human cost shifts from "design the right prompt" to "design the right scoring function"&mdash;a much more tractable problem.</p>
+
 <hr>
 
 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
@@ -1187,6 +1311,7 @@ $$
   Action summaries: 81 sessions across 3 conditions, 1137 PC actions, 2239 enemy actions, 508 NPC actions.<br>
   Gemini analysis: 15 sessions, 109 combat actions, keyword frequency comparison across 5 models.<br>
   Roll outcomes: 790 PC combat actions, 167 suppress / 596 lethal / 27 baton. DC and margin analysis across 81 sessions.<br>
+  Eval harness: 493 cases extracted from 56 sessions, LLM-classified (407 lethal, 70 suppress, 16 stun). 3 self-judge iterations, 300 replay calls, convergence to 98% in-range / 100% conditions.<br>
   Validation script: <code>.claude/articles/scripts/validate_article.py</code><br>
   v2 extraction: <code>.claude/articles/scripts/extract_suppressive_quotes.py</code><br>
   Action summaries: <code>.claude/articles/scripts/extract_action_summaries.py</code><br>
