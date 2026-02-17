@@ -147,15 +147,16 @@ window.MathJax = {
   <li><a href="#rolls-and-dc">Roll Outcomes and Difficulty Checks</a></li>
   <li><a href="#eval-harness">The Eval Harness: Automated Prompt Optimization</a></li>
   <li><a href="#treatment-v3">Treatment v3: Live Validation</a></li>
+  <li><a href="#data-details">Data Details</a></li>
 </ul>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <h2 id="intro">Introduction</h2>
 
-<p>This article documents a systematic failure across frontier LLMs where player-stated non-lethal intent is acknowledged narratively but ignored mechanically, resulting in unjustified lethal outcomes and corrupted moral scoring. <strong>Over four experiment iterations, we reduced the suppressive-to-lethal damage ratio from 1.08 (suppressive fire actually dealt <em>more</em> damage than aimed shots) to 0.02 (suppressive fire now deals 2% of lethal damage).</strong></p>
+<p>This article documents a systematic failure across frontier LLMs where player-stated non-lethal intent is acknowledged narratively but ignored mechanically, resulting in unjustified lethal outcomes and corrupted moral scoring. <strong>Over four experiment iterations, we reduced the suppressive-to-lethal damage ratio from 1.08 (suppressive fire actually dealt <em>more</em> damage than aimed shots) to 0.02 (suppressive fire now deals 2% of lethal damage).</strong> The <a href="https://huggingface.co/datasets/3RAIN/aeonisk-v1/tree/main/lethal_intent_mismatch">raw experiment output</a>&mdash;all 83 sessions across four conditions&mdash;is published for independent analysis.</p>
 
-<p>The codebase <a href="https://github.com/ThreeRiversAINexus/aeonisk-yags"><em>aeonisk-yags</em></a> is an ethics test bed for multi-agent systems disguised as a tabletop RPG. The game is a sci-fi world mixed with fantasy. It has rich and dense narrative based on mechanically grounded outcomes. It's very robust in terms of variety of scenarios enabling tribunals, mysteries, thrillers, looting, economics, and more. The <a href="https://huggingface.co/datasets/3RAIN/aeonisk-v1/tree/main/lethal_intent_mismatch">raw experiment output</a>&mdash;all 83 sessions across four conditions&mdash;is published for independent analysis.</p>
+<p>The codebase <a href="https://github.com/ThreeRiversAINexus/aeonisk-yags"><em>aeonisk-yags</em></a> is an ethics test bed for multi-agent systems disguised as a tabletop RPG. The game is a sci-fi world mixed with fantasy. It has rich and dense narrative based on mechanically grounded outcomes. It's very robust in terms of variety of scenarios enabling tribunals, mysteries, thrillers, looting, economics, and more.</p>
 
 <p>However, today we are focused on combat.</p>
 
@@ -1490,15 +1491,25 @@ $$
 
 <hr>
 
-<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
-  Data validated against raw JSONL session logs. Baseline: 101/101 claims verified (all within rounding tolerance).<br>
-  Treatment v1: TPK rates and HP values verified exactly; suppression rates validated with adjusted keyword classification.<br>
-  Treatment v2: 48 suppressive fire actions + 2 stun baton actions extracted via negation-aware keyword matching on 25 sessions (24 + 1 retry).<br>
-  Action summaries: 81 sessions across 3 conditions, 1137 PC actions, 2239 enemy actions, 508 NPC actions.<br>
-  Gemini analysis: 15 sessions, 109 combat actions, keyword frequency comparison across 5 models.<br>
-  Roll outcomes: 790 PC combat actions, 167 suppress / 596 lethal / 27 baton. DC and margin analysis across 81 sessions.<br>
-  Eval harness: 493 cases extracted from 56 sessions, LLM-classified (407 lethal, 70 suppress, 16 stun). 3 self-judge iterations, 300 replay calls, convergence to 98% in-range / 100% conditions.<br>
-  Treatment v3: 8 live sessions (2 per model, 4 models), 137 PC actions, 15 suppress / 70 lethal / 2 stun. Damage ratio 0.02, lethal regression &lt;8% (excl. Grok).<br>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="data-details">Data Details</h2>
+
+<p>All claims validated against raw JSONL session logs. The <a href="https://huggingface.co/datasets/3RAIN/aeonisk-v1/tree/main/lethal_intent_mismatch">complete dataset</a> is published for independent verification.</p>
+
+<ul>
+  <li><strong>Baseline:</strong> 101/101 claims verified (all within rounding tolerance).</li>
+  <li><strong>Treatment v1:</strong> TPK rates and HP values verified exactly; suppression rates validated with adjusted keyword classification.</li>
+  <li><strong>Treatment v2:</strong> 48 suppressive fire actions + 2 stun baton actions extracted via negation-aware keyword matching on 25 sessions (24 + 1 retry).</li>
+  <li><strong>Action summaries:</strong> 81 sessions across 3 conditions, 1,137 PC actions, 2,239 enemy actions, 508 NPC actions.</li>
+  <li><strong>Gemini analysis:</strong> 15 sessions, 109 combat actions, keyword frequency comparison across 5 models.</li>
+  <li><strong>Roll outcomes:</strong> 790 PC combat actions (167 suppress / 596 lethal / 27 baton). DC and margin analysis across 81 sessions.</li>
+  <li><strong>Eval harness:</strong> 493 cases extracted from 56 sessions, LLM-classified (407 lethal, 70 suppress, 16 stun). 3 self-judge iterations, 300 replay calls, convergence to 98% in-range / 100% conditions.</li>
+  <li><strong>Treatment v3:</strong> 8 live sessions (2 per model, 4 models), 137 PC actions (15 suppress / 70 lethal / 2 stun). Damage ratio 0.02, lethal regression &lt;8% (excl. Grok).</li>
+</ul>
+
+<p><strong>Production:</strong> ~20 human-hours over 4 days, ~80M tokens across 83 sessions, ~$400 in API costs. Article co-authored with <a href="https://claude.ai">Claude Opus 4.6</a> via <a href="https://github.com/anthropics/claude-code">Claude Code</a>.</p>
+
+<p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
   Validation script: <code>.claude/articles/scripts/validate_article.py</code><br>
   v2 extraction: <code>.claude/articles/scripts/extract_suppressive_quotes.py</code><br>
   Action summaries: <code>.claude/articles/scripts/extract_action_summaries.py</code><br>
