@@ -1,22 +1,35 @@
-version: 2.0.0
+version: auto
 module: dm_resolution_combat_with_suppression
-description: Combat action resolution with suppression treatment v2 - classification gate + table reference
-load_when: action_type_combat
+description: Best-scoring module from self-judge iteration
 content: |-
   # COMBAT ACTION RESOLUTION
 
   You are resolving a **COMBAT** action.
 
-  ## STEP 1: CLASSIFY INTENT
+  ## STEP 1: CLASSIFY INTENT (MANDATORY)
 
-  Before generating any damage numbers, classify the attacker's declared intent:
+  **Before looking up ANY damage values**, you MUST classify the player's declared intent:
 
-  **Did the player declare suppressive fire, covering fire, warning shots, or pinning fire?**
+  **Did the player explicitly declare suppressive fire, covering fire, warning shots, or pinning fire?**
 
-  - **YES → SUPPRESSIVE.** Look up base_damage from the SUPPRESSION TABLE below. Primary effect is conditions (Suppressed, Pinned), not damage.
-  - **NO → LETHAL / STUN.** Look up base_damage from the LETHAL TABLE below. Primary effect is damage.
+  - **YES → SUPPRESSIVE INTENT.** Use the SUPPRESSION TABLE. Primary effect = conditions. Damage is minimal/incidental.
+  - **NO → LETHAL/STUN INTENT.** Use the LETHAL TABLE. Primary effect = damage.
 
-  Do NOT generate base_damage until you have classified the intent.
+  **Key phrases that signal SUPPRESSIVE intent:**
+  - "suppressing fire"
+  - "covering fire"
+  - "warning shots"
+  - "pinning fire"
+  - "pin them down"
+  - "force them into cover"
+  - "keep their heads down"
+  - "lay down fire to suppress"
+  - "area denial"
+  - "disrupt their advance"
+  - "buying time"
+  - "force them to take cover"
+
+  **If the player says "suppressing fire" or similar, you MUST use the SUPPRESSION TABLE regardless of how lethal the narration sounds.**
 
   ## REQUIRED FIELDS
 
@@ -97,21 +110,32 @@ content: |-
   ### SUPPRESSION TABLE
 
   Use when the player declared **suppressive/covering/warning/pinning fire** (Step 1 → YES).
-  Higher margin = stronger/longer CONDITIONS, NOT more damage.
+
+  **CRITICAL: For suppressive fire, damage is MINIMAL OR ZERO. The primary effect is CONDITIONS.**
 
   | Margin | base_damage | Condition | Penalty | Duration |
   |--------|-------------|-----------|---------|----------|
-  | 0-5    | 0-2         | Suppressed | -2     | 1 round  |
-  | 6-10   | 0-3         | Pinned     | -4     | 1 round  |
-  | 11+    | 0-5         | Full Suppression | -6 or lose turn | 2 rounds |
+  | 0-2    | 0           | Suppressed | -2     | 1 round  |
+  | 3-5    | 0           | Suppressed | -2     | 1 round  |
+  | 6-10   | 0-1         | Pinned     | -4     | 1 round  |
+  | 11+    | 0-2         | Full Suppression | -6 or lose turn | 2 rounds |
+
+  **Suppression damage guidelines:**
+  - **Margin 0-5: Use base_damage of 0 ONLY**
+  - Margin 6-10: Use base_damage of **0 or 1** (prefer 0)
+  - Margin 11+: Use base_damage of **0, 1, or 2** (prefer 0-1)
+  - **Default to 0 damage unless the player explicitly mentions incidental casualties**
+  - High margin = stronger/longer CONDITIONS, NOT more damage
+  - Multiple targets = same low/zero damage per target, CONDITIONS are the effect
 
   ### SIDE-BY-SIDE COMPARISON
 
   | Margin | Lethal base_damage | Suppressive base_damage |
   |--------|-------------------|------------------------|
-  | 0-5    | 8-12              | 0-2                    |
-  | 6-10   | 12-16             | 0-3                    |
-  | 11+    | 16-22             | 0-5                    |
+  | 0-2    | 8-12              | 0                      |
+  | 3-5    | 8-12              | 0                      |
+  | 6-10   | 12-16             | 0-1                    |
+  | 11+    | 16-22             | 0-2                    |
 
   ## LETHAL COMBAT EXAMPLE (damage_type="wound")
 
@@ -181,11 +205,39 @@ content: |-
   ## SUPPRESSIVE FIRE EXAMPLES
 
   Suppressive fire is a **condition-based** action, not a damage-based one.
-  The primary effect is debuff conditions (Suppressed, Pinned). Damage is incidental at best.
+  The primary effect is debuff conditions (Suppressed, Pinned). Damage is zero or incidental at best.
 
-  ### Suppressive Fire Example 1: Moderate Success (margin=7)
+  ### Suppressive Fire Example 1: Low Success (margin=3)
 
-  Margin=7 → SUPPRESSION TABLE 6-10 row → base_damage 0-3, Pinned (-4).
+  Margin=3 → SUPPRESSION TABLE 3-5 row → base_damage 0, Suppressed (-2).
+
+  ```python
+  ActionResolution(
+      narration="Controlled bursts rake across the thug's cover position, chewing through plascrete and throwing up clouds of dust. They flatten against the wall, hands over their head, pinned by the relentless barrage.",
+      success_tier=SuccessTier.MODERATE,
+      margin=3,
+      effects=MechanicalEffects(
+          conditions=[Condition(
+              name="Suppressed",
+              penalty=-2,
+              duration=1,
+              description="-2 to all rolls while suppressed",
+              target="tgt_7a3f"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="suppressive fire showing restraint — pinning rather than killing"
+          )]
+      )
+  )
+  ```
+
+  Note: **No damage entries at all**. Zero casualties, pure suppression effect.
+
+  ### Suppressive Fire Example 2: Moderate Success (margin=7)
+
+  Margin=7 → SUPPRESSION TABLE 6-10 row → base_damage 0, Pinned (-4).
 
   ```python
   ActionResolution(
@@ -193,13 +245,6 @@ content: |-
       success_tier=SuccessTier.MODERATE,
       margin=7,
       effects=MechanicalEffects(
-          damage=[DamageEffect(
-              target="tgt_7a3f",
-              base_damage=3,
-              soak=3,
-              dealt=0,
-              damage_type="wound"  # From WEAPON CONTEXT — stays "wound"
-          )],
           conditions=[Condition(
               name="Pinned",
               penalty=-4,
@@ -216,9 +261,11 @@ content: |-
   )
   ```
 
-  ### Suppressive Fire Example 2: Good Success (margin=12) — Warning Shots
+  Note: **No damage entries**. Zero casualties, pure area denial.
 
-  Margin=12 → SUPPRESSION TABLE 11+ row → base_damage 0-5, Full Suppression (-6).
+  ### Suppressive Fire Example 3: Good Success (margin=12) — Warning Shots
+
+  Margin=12 → SUPPRESSION TABLE 11+ row → base_damage 0, Full Suppression (-6).
 
   ```python
   ActionResolution(
@@ -227,7 +274,7 @@ content: |-
       margin=12,
       effects=MechanicalEffects(
           conditions=[Condition(
-              name="Pinned",
+              name="Full Suppression",
               penalty=-6,
               duration=2,
               description="-6 to all rolls, pinned behind cover for 2 rounds",
@@ -249,21 +296,85 @@ content: |-
   )
   ```
 
-  Note: Example 2 has **no damage entries at all**. High margin = stronger conditions, not more damage.
+  Note: **No damage entries at all**. High margin = stronger conditions, not more damage.
+
+  ### Suppressive Fire Example 4: Multiple Targets (margin=10)
+
+  Margin=10 → SUPPRESSION TABLE 6-10 row → base_damage 0 per target, Pinned (-4).
+
+  ```python
+  ActionResolution(
+      narration="Your controlled bursts walk across the enemy position, forcing all three thugs to dive for cover as rounds chew through their flimsy barricade. Metal sparks and concrete dust fill the air, keeping their heads down.",
+      success_tier=SuccessTier.MODERATE,
+      margin=10,
+      effects=MechanicalEffects(
+          conditions=[
+              Condition(name="Pinned", penalty=-4, duration=1, description="pinned behind cover", target="tgt_1a2b"),
+              Condition(name="Pinned", penalty=-4, duration=1, description="pinned behind cover", target="tgt_3c4d"),
+              Condition(name="Pinned", penalty=-4, duration=1, description="pinned behind cover", target="tgt_5e6f")
+          ],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="tactical suppression, zero casualties"
+          )]
+      )
+  )
+  ```
+
+  Note: **No damage entries**. All three targets suppressed with zero casualties.
+
+  ### Suppressive Fire Example 5: High Margin with Minimal Damage (margin=13)
+
+  Margin=13 → SUPPRESSION TABLE 11+ row → base_damage 1, Full Suppression (-6).
+
+  ```python
+  ActionResolution(
+      narration="A sustained burst tears through their position, rounds ricocheting off metal and stone. One thug catches a fragment in the arm but the real effect is psychological — all three flatten against cover, completely suppressed and unable to return fire.",
+      success_tier=SuccessTier.GOOD,
+      margin=13,
+      effects=MechanicalEffects(
+          damage=[DamageEffect(
+              target="tgt_1a2b",
+              base_damage=1,
+              soak=1,
+              dealt=0,
+              damage_type="wound"
+          )],
+          conditions=[
+              Condition(name="Full Suppression", penalty=-6, duration=2, description="completely pinned for 2 rounds", target="tgt_1a2b"),
+              Condition(name="Full Suppression", penalty=-6, duration=2, description="completely pinned for 2 rounds", target="tgt_3c4d"),
+              Condition(name="Pinned", penalty=-4, duration=1, description="pinned behind cover", target="tgt_5e6f")
+          ],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="tactical suppression, minimal casualties"
+          )]
+      )
+  )
+  ```
+
+  Note: Even at high margin, only **1 base_damage** to one target, absorbed by armor (0 dealt). Conditions are the primary effect.
 
   ### CRITICAL: Suppressive ≠ Lethal
 
   When the player declares suppressive fire, covering fire, warning shots, or pinning fire:
 
   - **DO:** Apply strong conditions (Pinned, Suppressed, Shaken) as the primary effect
-  - **DO:** Look up base_damage from the SUPPRESSION TABLE for the given margin
+  - **DO:** Use base_damage from the SUPPRESSION TABLE (0-2 maximum, prefer 0)
   - **DO:** Scale condition severity and duration with margin (not damage)
+  - **DO:** Use 0 damage for margins 0-5 (no exceptions)
+  - **DO:** Prefer 0 damage even at margins 6-10 unless player mentions incidental hits
+  - **DO:** Omit damage entries entirely when damage is zero
   - **DON'T:** Use the LETHAL TABLE for suppressive fire
   - **DON'T:** Narrate lethal injuries (bleeding out, fatal wounds) for suppressive fire
   - **DON'T:** Treat high margin as permission to increase damage — increase conditions instead
+  - **DON'T:** Apply more than 2 base_damage for suppressive fire, even at high margins
+  - **DON'T:** Add damage just because the narration sounds intense
 
   The damage_type stays "wound" (matching WEAPON CONTEXT for ballistic weapons).
-  The differentiation is entirely in base_damage (very low) and conditions (the primary effect).
+  The differentiation is entirely in base_damage (zero or very low) and conditions (the primary effect).
 
   ## VOID-FORGED WEAPON EXAMPLE
 
@@ -302,7 +413,8 @@ content: |-
   - For misses, describe how they evade or the shot goes wide
   - For STUN attacks: describe knockout, daze, or stagger — NOT bleeding/death
   - For WOUND attacks: describe lethality, blood, lasting injury
-  - For SUPPRESSIVE fire: describe environmental destruction, fear, pinning — NOT direct hits
+  - For SUPPRESSIVE fire: describe environmental destruction, fear, pinning — NOT direct hits on targets
+  - For SUPPRESSIVE fire: emphasize the psychological effect, the area denial, the tactical advantage — NOT body count
 
   ## COMBAT FIDELITY REMINDER
 
