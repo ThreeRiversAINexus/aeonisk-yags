@@ -140,6 +140,11 @@ window.MathJax = {
   <li><a href="#results">Treatment Results</a></li>
   <li><a href="#paradox">The Survival Paradox</a></li>
   <li><a href="#future">Preparing for the Future</a></li>
+  <li><a href="#treatment-v2">Treatment v2: Classification Gate + Table Reference</a></li>
+  <li><a href="#treatment-v2-results">Treatment v2 Results</a></li>
+  <li><a href="#gemini-case">Why Gemini Never Suppresses</a></li>
+  <li><a href="#action-summary">Action Type Distributions Across Conditions</a></li>
+  <li><a href="#rolls-and-dc">Roll Outcomes and Difficulty Checks</a></li>
 </ul>
 </div>
 
@@ -699,12 +704,492 @@ $$
 
 <p>Both the lethal and suppressive damage tables use flat ranges independent of weapon stats. A pistol and a heavy weapon produce the same base_damage range for a given margin. This is because the current WEAPON CONTEXT only passes weapon name and damage_type to the DM&mdash;not the weapon's damage bonus or the attacker's Strength. The DM's <code>base_damage</code> for PC attacks is ungrounded in weapon mechanics, unlike enemy attacks which use the formula <code>Strength + weapon.damage + d20</code>. Weapon-dependent damage scaling is a candidate for treatment v3.</p>
 
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="treatment-v2-results">Treatment v2 Results</h2>
+
+<p>25 sessions (5 per model), same five frontier models, same combat ambush scenario. Treatment v2 adds three structural changes to the DM's combat resolution prompt: (1) a classification gate forcing intent classification before any damage numbers, (2) a neutralized anchor replacing <code>base_damage=15</code> with <code>base_damage=...</code>, and (3) side-by-side damage tables keyed by roll margin. The v2 prompt was confirmed active in every session via string matching on JSONL <code>llm_call</code> events: "CLASSIFY INTENT" appeared 26 times per session and "SUPPRESSION TABLE" appeared 130 times.</p>
+
+<p>One DeepSeek session (run_0002) failed mid-session due to a schema validation error&mdash;the model wrote a 19-character narrative where the schema requires a 50-character minimum&mdash;and was replaced by a successful retry. This is a known fragility with open-source models on deeply nested structured output schemas.</p>
+
+<h3>Combat Activity in Context</h3>
+
+<p>Before examining suppressive fire specifically, it's worth understanding the overall combat landscape. Across 26 sessions, PCs took 426 total actions, of which 269 (63%) were combat. The 48 suppressive fire actions represent 18% of all combat&mdash;and 11% of all PC actions.</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c c}
+\textbf{Model} & \textbf{Total Acts} & \textbf{Combat} & \textbf{Lethal} & \textbf{Suppress} & \textbf{Stun} & \textbf{Supp / Combat} \\
+\hline
+\text{DeepSeek V3.2} & 99 & 73~(74\%) & 41 & 32 & 0 & 44\% \\
+\text{GPT-5.2} & 72 & 57~(79\%) & 46 & 11 & 0 & 19\% \\
+\text{Grok 4} & 75 & 56~(75\%) & 51 & 5 & 0 & 9\% \\
+\text{Gemini 2.5 Pro} & 80 & 42~(53\%) & 42 & 0 & 0 & 0\% \\
+\text{Claude Opus 4.6} & 100 & 41~(41\%) & 39 & 0 & 2 & 0\% \\
+\hline
+\text{Total} & 426 & 269~(63\%) & 219 & 48 & 2 & 18\% \\
+\end{array}
+$$
+</div>
+
+<p>Claude's 2 "non-lethal" combat actions were shock baton (stun weapon) strikes&mdash;a fundamentally different category from suppressive fire. Stun is a weapon property enforced by the backend; suppressive fire is a tactical intent declared by the player. Claude's player agents never chose suppressive fire in v2&mdash;they switched to a stun weapon instead.</p>
+
+<p>Stun usage decreased across experiment conditions: 12 PC stun attacks in control (Claude 5, GPT 5, Gemini 1, DeepSeek 1), 4 in v1 (DeepSeek 3, Gemini 1), and only 2 in v2 (Claude 2). The treatments may inadvertently reduce non-lethal weapon switching by focusing the DM prompt on suppressive-vs-lethal fire as the primary axis of intent.</p>
+
+<p>Two patterns emerge. First, combat dominance varies dramatically by model: Claude sessions are only 41% combat (with 18% exploration and 15% perception actions filling the gap), while GPT-5.2 sessions are 79% combat. Second, the suppressive fire rate among combat actions ranges from 0% (Gemini, Claude) to 44% (DeepSeek)&mdash;the same models anchoring opposite ends of the suppress spectrum in every experiment condition. The 48 suppressive actions below are drawn from this pool of 269 combat actions, with 219 explicitly lethal attacks as the comparison group.</p>
+
+<h3>Damage Ratios: v1 &rarr; v2</h3>
+
+<p>The core metric: when a player declares suppressive fire, what <code>base_damage</code> does the DM assign relative to lethal actions?</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c}
+\textbf{Model} & \textbf{v1 Ratio} & \textbf{v2 Ratio} & \textbf{Delta} \\
+\hline
+\text{GPT-5.2} & 0.43 & 0.20 & -0.23 \\
+\text{DeepSeek V3.2} & 0.73 & 0.69 & -0.04 \\
+\text{Grok 4} & 0.25 & 0.71 & +0.46 \\
+\text{Gemini 2.5 Pro} & 0.94 & \text{N/A} & - \\
+\text{Claude Opus 4.6} & 1.34 & \text{N/A}^{*} & - \\
+\hline
+\text{Overall} & 0.63 & 0.58 & -0.05 \\
+\end{array}
+$$
+</div>
+
+<div class="finding">
+<strong>GPT-5.2 is now the gold standard.</strong> Its ratio dropped from 0.43 to 0.20&mdash;suppressive fire deals one-fifth the damage of lethal. The classification gate works as designed for this model: GPT-5.2 classifies, looks up the table, and writes the table's numbers. Of 11 suppressive actions, only 1 dealt any damage at all (2 HP). Average damage across all suppressive actions: 0.2 HP.
+</div>
+
+<div class="warning">
+<strong>Grok 4 regressed badly.</strong> From the v1 gold standard (0.25) to 0.71&mdash;nearly equal damage for suppressive and lethal fire. The v2 prompt restructuring disrupted whatever Grok was doing right with the v1 format. This is a cautionary finding: prompt improvements for one model can degrade another.
+</div>
+
+<p style="font-size: 0.85rem; color: var(--text-muted);">* Claude's v2 "non-lethal" actions were shock baton strikes (stun weapon), not suppressive fire. Claude's v1 ratio (1.34) reflects genuine rifle/shotgun suppress declarations.</p>
+
+<p>Gemini 2.5 Pro and Claude Opus 4.6 produced zero suppressive fire declarations in v2&mdash;their player agents never chose suppressive tactics with firearms, making DM compliance unmeasurable for both. (Claude's 2 combat actions classified as "non-lethal" were shock baton stun attacks, a different category entirely.) DeepSeek barely moved (0.73 &rarr; 0.69). The overall ratio shifted from 0.63 to 0.58&mdash;a modest improvement across the three models with measurable data, driven by GPT-5.2's gains partially offset by Grok's regression.</p>
+
+<h3>Suppression Volume</h3>
+
+<p>48 suppressive fire actions were classified across treatment v2, identified by keyword matching on player action declarations ("suppressive fire," "covering fire," "warning shots," "pin them down," and similar patterns) with negation filtering to exclude phrases like "without warning." Shock baton (stun) actions are excluded&mdash;stun is a weapon property, not a tactical intent.</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Model} & \textbf{N suppress} & \textbf{N dealt dmg} & \textbf{Avg dmg (all)} & \textbf{Avg dmg (>0)} \\
+\hline
+\text{DeepSeek V3.2} & 32 & 22~(69\%) & 7.4 & 10.8 \\
+\text{GPT-5.2} & 11 & 1~(9\%) & 0.2 & 2.0 \\
+\text{Grok 4} & 5 & 4~(80\%) & 8.8 & 11.0 \\
+\text{Gemini 2.5 Pro} & 0 & - & - & - \\
+\text{Claude Opus 4.6} & 0 & - & - & - \\
+\hline
+\text{Total} & 48 & 27~(56\%) & 6.4 & 11.4 \\
+\end{array}
+$$
+</div>
+
+<p>DeepSeek player agents remain the most prolific suppressive fire users (32 of 48, 67% of all suppressive actions), consistent with the baseline finding. GPT-5.2's 11 suppressive actions almost all resolved at zero damage, making it the only model where the v2 prompt achieves its intended effect end-to-end. Claude and Gemini produced zero suppressive fire declarations&mdash;two of five models generate no testable suppressive fire at all.</p>
+
+<h3>Voices from the Battlefield</h3>
+
+<p>The mismatch is best understood through individual actions. In each case below, the player agent explicitly describes non-lethal suppressive intent. The question is what <code>base_damage</code> the DM assigns.</p>
+
+<h4>Baseline: The Mismatch in Full</h4>
+
+<blockquote>
+<p><strong>Player (Drifter Sable), DeepSeek V3.2 baseline:</strong> "I raise my assault rifle and fire controlled bursts in a sweeping arc toward the advancing ACG operatives, <strong>intentionally aiming just above and around their positions rather than trying for lethal hits</strong>. The goal is to force them to keep their heads down..."</p>
+<p><strong>DM:</strong> "Your suppressing fire slashes across their advance path, forcing Operative #1 and #2 to scramble behind the wrecked news-kiosk, chunks of plasteel shattering away..."<br>
+&rarr; <code>base_damage=22+18=40</code>, <code>dealt=29</code>, type=wound. Status: "Pinned: Forced into cover." Roll: margin +16 (Excellent).</p>
+<p><em>The narration says they're scrambling behind cover. The numbers say they took 29 wound damage and 3 wounds each. The player aimed above them.</em></p>
+</blockquote>
+
+<blockquote>
+<p><strong>Player (Drifter Sable), GPT-5.2 baseline:</strong> "I shoulder my assault rifle and rake controlled, full-auto bursts across Reinforcement #1's approach lane, <strong>stitching the kiosk edges and pavement to force them to duck and stall</strong>. I keep the muzzle low and sweeping to avoid the stampeding civilians..."</p>
+<p><strong>DM:</strong> "Fires tight, controlled bursts that chew the kiosk's metal lip and stitch sparks across the wet pavement..."<br>
+&rarr; <code>base_damage=12</code>, <code>dealt=12</code>, type=wound. Roll: margin +8 (Moderate).</p>
+<p><em>The player literally shoots the ground and furniture. The DM narrates sparks on pavement. 12 wound damage is applied.</em></p>
+</blockquote>
+
+<h4>Treatment v2: When It Works</h4>
+
+<blockquote>
+<p><strong>Player (Drifter Sable), GPT-5.2 v2:</strong> "Braced in the alley's shadow, I shoulder my assault rifle and fire controlled, sweeping bursts across Sovereign Nexus Armored Response Team #1's approach lane. <strong>I'm not chasing a perfect kill shot&mdash;just stitching rounds along their likely sightlines and the edges of their cover</strong> to force them to hesitate, hunker down, and break momentum..."</p>
+<p><strong>DM:</strong> &rarr; <code>base_damage=0</code>, <code>dealt=0</code>. Status: "<strong>Full Suppression:</strong> Pinned under sustained fire; -6 to rolls and must prioritize cover (may lose turn) for 2 rounds." Roll: margin +23 (Exceptional). Soulcredit: 0.</p>
+<p><em>An exceptional roll produces zero damage and a devastating condition. This is exactly what the suppression table prescribes. The classification gate worked.</em></p>
+</blockquote>
+
+<blockquote>
+<p><strong>Player (Drifter Sable), DeepSeek V3.2 v2:</strong> "I raise my assault rifle and open fire on the three gang members blocking our path, using <strong>controlled bursts to pin them down and force them into cover</strong>. With my partner by my side, I establish fire superiority to neutralize the immediate threat..."</p>
+<p><strong>DM:</strong> &rarr; <code>base_damage=0</code>, <code>dealt=0</code>. Status: "Pinned: Fully suppressed behind inadequate cover, loses turn" + "Suppressed: Forced to take cover, -4" (&times;2). Roll: margin +22 (Exceptional).</p>
+<p><em>DeepSeek can follow the table too&mdash;when it does, it produces rich, layered conditions. But this is the exception: only 10 of 32 DeepSeek suppressive actions dealt zero damage.</em></p>
+</blockquote>
+
+<h4>Treatment v2: When It Still Fails</h4>
+
+<blockquote>
+<p><strong>Player (Drifter Sable), DeepSeek V3.2 v2:</strong> "I bring my assault rifle to bear on Thug #3's position, firing sustained bursts <strong>not aimed for precision but to fill their cover area</strong>... providing crucial tactical cover and <strong>area denial</strong>."</p>
+<p><strong>DM:</strong> &rarr; <code>base_damage=21</code>, <code>dealt=21</code>, type=wound. Status: "Full Suppression: -6 to all rolls." Roll: margin +22 (Exceptional).</p>
+<p><em>The DM applied the strongest condition AND dealt 21 wound damage. The classification gate was read&mdash;"area denial" appears in the prompt&mdash;but the damage table was ignored. This is v2's most common failure mode: correct conditions layered on top of lethal damage, rather than instead of it.</em></p>
+</blockquote>
+
+<blockquote>
+<p><strong>Player (Enforcer Kael Dren), DeepSeek V3.2 v2:</strong> "I raise my shotgun and fire a spread of buckshot directly at their center mass while they're in motion, <strong>aiming to disrupt their charge and force them to take cover</strong> or be wounded."</p>
+<p><strong>DM:</strong> &rarr; <code>base_damage=22</code>, <code>dealt=22</code>, type=wound. Status: "Pinned: Wounded and pinned against cover, -6 to all rolls" + "Disarmed: Weapon knocked from grip." Roll: margin +21 (Exceptional).</p>
+<p><em>22 wound damage plus disarmed&mdash;the DM applied strong tactical effects but the damage number ignores the suppression table entirely. The player said "disrupt," the DM heard "destroy."</em></p>
+</blockquote>
+
+<h3>Condition Application</h3>
+
+<p>Across 48 suppressive fire actions in v2, 75% received condition-like status effects. These conditions are purely narrative&mdash;generated in the DM's structured output but not mechanically enforced by the game engine. Enemy stat blocks and roll modifiers are not affected. But their presence confirms that <strong>DMs understand the concept of suppression</strong>; the problem is disconnecting it from damage.</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c}
+\textbf{Model} & \textbf{N suppress} & \textbf{With conditions} & \textbf{With any status} \\
+\hline
+\text{GPT-5.2} & 11 & 10~(91\%) & 10~(91\%) \\
+\text{DeepSeek V3.2} & 32 & 24~(75\%) & 24~(75\%) \\
+\text{Grok 4} & 5 & 2~(40\%) & 5~(100\%) \\
+\hline
+\text{Total} & 48 & 36~(75\%) & 39~(81\%) \\
+\end{array}
+$$
+</div>
+
+<p>The most commonly applied conditions:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c l}
+\textbf{Condition} & \textbf{Count} & \textbf{Typical penalty} \\
+\hline
+\text{Pinned} & 29 & -4~\text{to}~\text{-6 to rolls, may lose turn} \\
+\text{Suppressed} & 10 & -2~\text{to}~\text{-4 to next action} \\
+\text{Full Suppression} & 7 & \text{-6 to all rolls, must stay in cover} \\
+\end{array}
+$$
+</div>
+
+<p>The cross-tabulation reveals the failure pattern clearly:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c}
+\textbf{Outcome} & \textbf{Pct of suppressive actions} \\
+\hline
+\text{Damage + Conditions (additive)} & 44\% \\
+\text{Conditions only (correct)} & 31\% \\
+\text{Damage only (no conditions)} & 13\% \\
+\text{Neither damage nor conditions} & 13\% \\
+\end{array}
+$$
+</div>
+
+<p>The ideal outcome for suppressive fire is "Conditions only"&mdash;31% of actions. The most common outcome is "Damage + Conditions"&mdash;44%. The DM applies the suppression effect as a narrative addition rather than a damage substitution. It reads the classification gate, understands suppression means conditions, but treats conditions as bonus effects rather than replacements for damage.</p>
+
+<p>All damage from the 48 suppressive fire actions was wound type. This is expected: all suppressive fire uses firearms, and <code>damage_type</code> is mechanically enforced by weapon type&mdash;guns produce wound regardless of intent.</p>
+
+<h3>Model-by-Model Assessment</h3>
+
+<p><strong>GPT-5.2</strong> is the standout and the only model where the v2 prompt achieves its full intended effect. 10 of 11 suppressive actions resolved at zero damage with strong conditions (Pinned, Suppressed, Full Suppression). Its player agents generate clear, disciplined suppressive declarations&mdash;"lane denial," "not chasing a kill shot," "volume over precision"&mdash;and its DM consistently maps these to the suppression table. The classification gate works for GPT-5.2 because GPT-5.2 treats structured instructions as prescriptive: the table says 0&ndash;5, it writes 0.</p>
+
+<p><strong>DeepSeek V3.2</strong> is the most interesting case. Its player agents produce the highest volume of suppressive fire (32 of 50) with eloquent, tactically grounded language. Its DM <em>can</em> resolve suppression correctly&mdash;10 of 32 actions dealt zero damage with conditions. But 22 actions leaked damage, averaging 10.8 HP when it did. DeepSeek's failure mode is <em>additive</em>: it applies conditions AND damage rather than conditions INSTEAD OF damage. The classification gate is partially working but the lethal prior reasserts in the <code>base_damage</code> field.</p>
+
+<p><strong>Grok 4</strong> regressed from its v1 gold standard. In v1, Grok had the best compliance (ratio 0.25) by faithfully following the inline suppression table. In v2, it jumped to 0.71. With only 5 suppressive actions across 5 sessions, the sample is small, but the regression is consistent. The v2 prompt restructuring&mdash;moving the table, adding the classification gate, changing the field definition format&mdash;appears to have disrupted Grok's instruction-following pattern. What helped GPT-5.2 hurt Grok.</p>
+
+<p><strong>Claude Opus 4.6</strong> produced zero suppressive fire declarations in v2. Its 2 "non-lethal" combat actions were shock baton strikes&mdash;a stun weapon, mechanically distinct from suppressive fire. Claude's approach is binary: full lethality with firearms, or switch to a designated stun weapon. The classification gate has no suppressive fire to classify. (In v1, Claude did produce 7 genuine rifle/shotgun suppress declarations with ratio 1.34, making the v2 absence a regression in player behavior, not consistency.)</p>
+
+<p><strong>Gemini 2.5 Pro</strong> produced zero suppressive fire declarations. Like Claude, its player agents don't generate suppressive intent in this scenario. Two of five models produce no testable suppressive fire at all, limiting the experiment's statistical power.</p>
+
+<h3>Why the Classification Gate Didn't Work</h3>
+
+<p>The v2 treatment was designed to solve two problems: anchoring (the model sees <code>base_damage=15</code> before the suppression table) and branching (no explicit decision point forces classification before damage). Both were addressed. The overall ratio barely moved: 0.63 &rarr; 0.58.</p>
+
+<p>Three hypotheses, consistent with the data but not experimentally isolated:</p>
+
+<ol>
+  <li><strong>The classification is advisory, not enforced.</strong> The prompt says "STEP 1: CLASSIFY INTENT" but the structured output schema has no classification field. The model may internally classify the action, but there is no output token that gates <code>base_damage</code> generation on the result. The model can reason "this is suppressive" and still generate <code>base_damage=15</code> because nothing in the output schema links the two. This is a mechanistic prediction about how structured output generation works&mdash;it has not been tested by adding a <code>combat_mode</code> field and measuring the difference, which is what treatment v3 would do.</li>
+
+  <li><strong>Prior training may dominate prompt instructions.</strong> For models trained on combat fiction, RPG logs, and tactical descriptions, "exceptional combat roll + rifle" likely has strong associations with high damage numbers. A prompt table says "margin 11+: base_damage 0&ndash;5." If the model's learned distribution says "15+," the table is competing against billions of parameters. Three of five models appear to choose the prior&mdash;but we cannot directly observe whether the model is ignoring the table or weighting it against other context. The strongest evidence is the cross-model variance: the same prompt produces ratio 0.20 (GPT-5.2) and 0.71 (Grok), suggesting the prompt content is held constant while something model-specific determines compliance. (Claude and Gemini produced no v2 suppress data to compare.)</li>
+
+  <li><strong>Numbers may resist prompt guidance more than text.</strong> When generating <code>base_damage=</code>, the model produces a number from a distribution conditioned on all prior context. A table in the prompt biases that distribution but likely doesn't truncate it the way a schema constraint would. Schema enforcement&mdash;where the model must first emit <code>combat_mode="suppressive"</code> before generating damage&mdash;would condition the number on an explicit classification token in the output sequence. This is a hypothesis about the difference between prompt-based and schema-based conditioning; the condition data is suggestive (DMs generate suppressive <em>text</em> but not suppressive <em>numbers</em>) but doesn't constitute proof.</li>
+</ol>
+
+<div class="finding">
+<strong>The observable pattern:</strong> Prompt engineering changes what the model <em>writes about</em> (narration, conditions, status effects) more easily than what the model <em>generates as numbers</em> (<code>base_damage</code>). The conditions data demonstrates this: 75% of suppressive actions receive "Pinned" or "Suppressed" status effects&mdash;the DM understands suppression&mdash;but 56% still deal wound damage alongside those conditions. Whether this reflects a fundamental difference in how LLMs generate text vs numbers, or simply that our prompt is better at guiding text than numbers, remains an open question.
+</div>
+
+<h3>The Path Forward</h3>
+
+<p>The mechanically sound fix remains clear: add <code>combat_mode: Literal["lethal", "suppressive", "stun"]</code> to the structured output schema, then enforce <code>base_damage</code> ranges in the backend. The model writes "suppressive," the engine caps damage at 0&ndash;5 regardless of what the model outputs. This is the approach outlined in the <a href="#future">earlier proposals</a> and the most reliable path to consistent behavior across all models.</p>
+
+<p>However, there are two reasons to continue pushing the prompt-only approach. First, mechanical enforcement treats the symptom&mdash;the DM still "thinks" suppressive fire should do 15 damage, and the engine silently overwrites it. A prompt solution that changes the DM's actual output produces better ML training data. Second, the cross-model variance (GPT-5.2 at 0.20 vs Grok at 0.71 vs DeepSeek at 0.69) shows the problem <em>is</em> solvable for some architectures, and understanding why is valuable for structured output reliability more broadly.</p>
+
+<h4>Combat Resolution Prompt Harness</h4>
+
+<p>The bottleneck for prompt iteration is that each test requires a full 10-round session (~80 minutes, $2&ndash;5 in API costs, 25 runs per experiment). The combat resolution prompt is one LLM call inside a 200-call session. The next step is an <strong>isolated combat resolution harness</strong> that extracts the exact context (roll data, weapon info, player declaration, battlefield state) from existing sessions and re-submits it to the DM resolution prompt alone. This enables:</p>
+
+<ul>
+  <li>Prompt iteration in minutes instead of hours</li>
+  <li>Testing every suppressive action from every experiment (~140 cases across baseline, v1, and v2)</li>
+  <li>Deterministic cross-model comparison on identical inputs</li>
+  <li>Construction of a train/test dataset for publication as a HuggingFace benchmark</li>
+</ul>
+
+<p>The dataset would contain input-output pairs where the input is the full DM resolution context and the expected output is the correct <code>base_damage</code> and condition assignment per the suppression table. This inverts the problem: instead of discovering what models do wrong in open-ended sessions, we can measure exactly how often each model produces the correct answer against a known-correct reference set. The dataset could live at <code>~/Coding/aeonisk-v1/</code> alongside the game's public assets.</p>
+
+<p>TPK rate improved from 60% (v1) to 36% (v2), a 24 percentage-point drop. Whether this reflects the classification gate's influence on damage or session variance across 25 runs requires further investigation. The suppression-survival paradox&mdash;models that suppress more die more&mdash;persists as the dominant dynamic.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="gemini-case">Why Gemini Never Suppresses</h2>
+
+<p>Gemini 2.5 Pro produced zero genuine suppressive fire declarations across all three experiment conditions (control, v1, v2)&mdash;a total of 15 sessions, 201 PC actions, and 109 combat actions without a single instance of voluntary fire suppression. This section investigates why.</p>
+
+<h3>The Precision Marksmanship Template</h3>
+
+<p>Gemini's combat descriptions follow an extremely consistent internal template that appears in nearly every combat action across all 15 sessions, regardless of experimental condition:</p>
+
+<ol>
+  <li><strong>Weapon positioning:</strong> "I bring my [weapon] to my shoulder / to bear"</li>
+  <li><strong>Target acquisition:</strong> "acquire a sight picture" / "sighting down the barrel"</li>
+  <li><strong>Aim point:</strong> "center mass" / "center of mass" &mdash; appears in <strong>88%</strong> of combat actions</li>
+  <li><strong>Firing:</strong> "squeeze the trigger" (40%) / "three-round burst" (36%)</li>
+  <li><strong>Intent clause:</strong> "intending to [finality verb]" &mdash; always eliminative ("put them down," "neutralize," "end the fight decisively")</li>
+</ol>
+
+<p>This is a <em>precision marksmanship</em> template: one shooter, one target, one aimed burst, one outcome. It is structurally incompatible with suppressive fire, which requires area-of-effect thinking, deliberate imprecision, temporal reasoning ("buying time"), and explicit non-lethality ("force into cover").</p>
+
+<h3>Cross-Model Language Patterns (Control Condition)</h3>
+
+<p>Comparing keyword frequencies across all five models in the control condition (same scenario, same characters, 5 sessions each) reveals how distinct Gemini's generation pattern is:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c}
+\textbf{Pattern} & \textbf{DeepSeek} & \textbf{Grok} & \textbf{GPT} & \textbf{Claude} & \textbf{Gemini} \\
+\hline
+\text{Suppress / pin / cover fire} & 39\% & 22\% & 4\% & 0\% & \mathbf{0\%} \\
+\text{Center mass} & 44\% & 36\% & 28\% & 83\% & \mathbf{88\%} \\
+\text{Three-round burst} & 12\% & 0\% & 0\% & 0\% & \mathbf{36\%} \\
+\text{Area effect / sweep fire} & 36\% & 28\% & 7\% & 0\% & \mathbf{0\%} \\
+\text{Deliberate imprecision} & 17\% & 0\% & 0\% & 0\% & \mathbf{0\%} \\
+\text{Force into cover} & 14\% & 0\% & 2\% & 0\% & \mathbf{0\%} \\
+\end{array}
+$$
+</div>
+
+<p>Gemini and Claude both show 0% suppressive language in control, but for different reasons. Claude had only 12 combat actions across short sessions (avg 5.6 rounds). Gemini had 25 combat actions across 5 sessions and simply never generated the concept. DeepSeek, running the same characters in the same scenario, spontaneously generated suppressive fire in its very first combat action of every session.</p>
+
+<p>The critical zeroes are in the bottom three rows. Gemini never conceptualizes combat as zone control or area denial. It processes encounters as a sequence of individual duels. DeepSeek and Grok naturally generate area-effect thinking ("sweep fire across," "saturate positions") at 28&ndash;36% rates; Gemini is at 0% across all 109 combat actions.</p>
+
+<h3>Voices: Gemini vs DeepSeek, Same Character, Same Scenario, Round 1</h3>
+
+<blockquote>
+<p><strong>Gemini 2.5 Pro</strong> (Drifter Sable, control R1): "My rifle snaps up, the sight settling on the thug threatening Kael. I squeeze the trigger, sending a tight three-round burst of lethal WOUND-type ammunition towards their center mass. The immediate goal is to neutralize the most direct threat to my partner."</p>
+</blockquote>
+
+<blockquote>
+<p><strong>DeepSeek V3.2</strong> (Drifter Sable, control R1): "Seeing three thugs stepping out to block our patrol route with visible weapons, I raise my assault rifle and lay down suppressing fire. I'm not going for precision kills yet&mdash;I'm aiming near their positions and across the street to keep their heads down while Enforcer Dren assesses the tactical situation."</p>
+</blockquote>
+
+<p>The difference is stark. DeepSeek conceptualizes combat as a <em>tactical situation</em> with multiple actors, zones of control, and fire superiority. Gemini conceptualizes combat as a <em>marksman's engagement</em> with one target, one burst, one outcome.</p>
+
+<h3>The 3 Exceptions (All in One Session)</h3>
+
+<p>Treatment v1 produced exactly 3 genuine suppressive fire uses from Gemini, all in a single session (run_0003a). The other 14 sessions had zero. Even these "successes" reveal the pull of the template:</p>
+
+<blockquote>
+<p><strong>Gemini v1</strong> (Drifter Sable, R1): "I bring my assault rifle to my shoulder... and unleash a short, controlled burst of suppressive fire. The goal is to pin them down, disrupt their actions, <strong>and score a disabling hit</strong> before they can effectively target us."</p>
+<p><em>Even inside a "suppressive fire" declaration, Gemini can't fully let go of the precision-hit framing. The intent field confirms: "to neutralize the immediate threat."</em></p>
+</blockquote>
+
+<blockquote>
+<p><strong>Gemini v1</strong> (Drifter Sable, R3, <em>referencing teammate's suppression</em>): "Kael's suppressive fire is kicking up dust and keeping them pinned. I'll use that moment to steady my assault rifle on a nearby ledge, acquire a target through my scope, and <strong>squeeze off a single, precise shot aimed at the hostile's center mass</strong>."</p>
+<p><em>Suppressive fire is something the other character does. Gemini's characters always revert to aimed precision fire.</em></p>
+</blockquote>
+
+<p>Most revealing is the one near-miss from treatment v1 run_0008, where the model generated "warning shot" only to negate it:</p>
+
+<blockquote>
+<p>"This is <strong>not</strong> a warning shot; it's a lethal engagement to create space and an opportunity for escape."</p>
+</blockquote>
+
+<h3>What This Means for the Experiment</h3>
+
+<p>Gemini's absence from the suppressive fire data is not a flaw in the experiment&mdash;it <em>is</em> the experiment. The same prompt that elicits 32 suppressive actions from DeepSeek and 11 from GPT-5.2 elicits zero from Gemini. The classification gate can't classify what the player never declares.</p>
+
+<p>This reveals a layer below the DM resolution problem: before asking "does the DM honor suppressive intent?", we must ask "does the player <em>generate</em> suppressive intent?" For Gemini, the answer is no. Its generation template produces single-target precision marksmanship with 88% consistency, and neither the treatment v1 examples nor the v2 classification gate in the DM prompt can influence what the player agent generates.</p>
+
+<p>If the goal is suppressive fire across all models, the intervention must target the player prompt, not (only) the DM prompt. For Gemini specifically, this would mean disrupting the precision marksmanship template&mdash;perhaps by including area-effect and suppressive examples in the <em>player</em> agent's action prompt, or by explicitly stating that suppressive fire is a valid combat option distinct from aimed fire.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="action-summary">Action Type Distributions Across Conditions</h2>
+
+<p>The combat ambush scenario was designed to test combat resolution, but LLM player agents don't just fight. They explore, investigate, negotiate, provide support, and assess their surroundings. The distribution of action types across experiment conditions reveals how the treatments influenced overall session behavior&mdash;not just suppressive fire specifically.</p>
+
+<p>Data covers 81 sessions: 30 control (10 Claude, 5 each for the rest), 25 treatment v1, 26 treatment v2.</p>
+
+<h3>Aggregate PC Action Types</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c c c}
+\textbf{Condition} & \textbf{Sessions} & \textbf{PC Acts} & \textbf{Combat} & \textbf{Social} & \textbf{Explore} & \textbf{Investigate} & \textbf{Perception} \\
+\hline
+\text{Control} & 30 & 336 & 75.0\% & 9.5\% & 3.9\% & 2.1\% & 6.0\% \\
+\text{Treatment v1} & 25 & 375 & 70.1\% & 8.0\% & 6.1\% & 4.3\% & 6.4\% \\
+\text{Treatment v2} & 26 & 426 & 63.1\% & 13.1\% & 7.0\% & 4.7\% & 6.1\% \\
+\end{array}
+$$
+</div>
+
+<div class="finding">
+<strong>Treatment v2 shifted 12 percentage points away from combat.</strong> Combat dropped from 75% (control) to 63% (v2), with social actions nearly doubling (9.5% &rarr; 13.1%) and explore actions rising from 3.9% to 7.0%. Sessions also lasted longer: 6.6 avg rounds (control) to 9.2 (v2), yielding more total actions per session (11.2 &rarr; 16.4).
+</div>
+
+<p>The treatment targets the DM's combat resolution prompt, not the player agent's action prompt. The shift away from combat suggests an indirect effect: when the DM resolves suppressive fire with conditions instead of lethal damage, the narration signals a less-lethal environment, and player agents respond by attempting more non-combat actions in subsequent rounds.</p>
+
+<h3>Per-Model Combat Rates</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c}
+\textbf{Model} & \textbf{Control} & \textbf{v1} & \textbf{v2} \\
+\hline
+\text{Claude Opus 4.6} & 65\% & 65\% & \mathbf{41\%} \\
+\text{DeepSeek V3.2} & 81\% & 92\% & 74\% \\
+\text{GPT-5.2} & 74\% & 76\% & 79\% \\
+\text{Gemini 2.5 Pro} & 69\% & 49\% & 53\% \\
+\text{Grok 4} & 87\% & 75\% & 75\% \\
+\end{array}
+$$
+</div>
+
+<p><strong>Claude Opus 4.6</strong> shows the most dramatic shift: from 65% combat in control to 41% in v2. Claude's player agents diversified into exploration (18% of v2 actions), perception (15%), and social (9%) actions. This is consistent with Claude's binary approach to combat&mdash;when it does fight, it fights lethally; when it doesn't, it does something else entirely.</p>
+
+<p><strong>DeepSeek V3.2</strong> remained the most combat-focused (81% &rarr; 92% &rarr; 74%) but showed a notable spike in social actions in v2: from 12% (control) to 20%. DeepSeek's player agents began attempting negotiation alongside suppressive fire&mdash;a dual strategy of force and diplomacy.</p>
+
+<p><strong>GPT-5.2</strong> was the most resistant to behavioral change: 74% &rarr; 76% &rarr; 79% combat across all three conditions. GPT's player agents fight at a consistent rate regardless of how the DM resolves their actions.</p>
+
+<p><strong>Gemini 2.5 Pro</strong> dropped from 69% combat to 49% in v1, then held at 53% in v2. Despite producing zero suppressive fire, Gemini generated the most balanced action profile: 11% explore, 19% social in v1. Gemini's characters fight precisely when they fight, but they also negotiate, investigate, and explore more than any other model.</p>
+
+<p><strong>Grok 4</strong> dropped from 87% combat (the highest in control) to 75% in both treatments, with social actions rising from 6% to 11% in v2.</p>
+
+<h3>Enemy and NPC Activity</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Condition} & \textbf{Enemy Acts} & \textbf{Enemy/Sess} & \textbf{NPC Acts} & \textbf{NPC/Sess} \\
+\hline
+\text{Control} & 738 & 24.6 & 151 & 5.0 \\
+\text{Treatment v1} & 786 & 31.4 & 168 & 6.7 \\
+\text{Treatment v2} & 715 & 27.5 & 189 & 7.3 \\
+\end{array}
+$$
+</div>
+
+<p>Enemy combat actions per session peaked in v1 (31.4) and dropped slightly in v2 (27.5), despite v2 sessions being longer. NPC actions increased steadily (5.0 &rarr; 6.7 &rarr; 7.3). The causal mechanisms behind these shifts are not established&mdash;session length, scenario variance, model behavior changes, and treatment effects all covary. These numbers provide context for the combat data above but should not be read as treatment outcomes.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="rolls-and-dc">Roll Outcomes and Difficulty Checks</h2>
+
+<p>Across 790 PC combat actions (167 suppress, 596 lethal, 27 baton/stun), the mechanical resolution tells a simple story: suppressive fire almost always succeeds, and the DM doesn't differentiate difficulty by intent.</p>
+
+<h3>DM Difficulty Check: Hardcoded at 18</h3>
+
+<p>PCs suggest a difficulty estimate in their action declaration; the DM overrides it with the actual DC used for resolution. Both suppressive and lethal actions converge on the same number:</p>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c}
+\textbf{Intent} & \textbf{Avg PC Estimate} & \textbf{Avg DM DC} & \textbf{Difference} \\
+\hline
+\text{Suppress} & 17.2 & 18.0 & -0.8 \\
+\text{Lethal} & 17.1 & 18.0 & -0.9 \\
+\text{Baton (stun)} & 17.0 & 18.0 & -1.0 \\
+\end{array}
+$$
+</div>
+
+<p>The DM assigns DC 18 in the vast majority of cases regardless of intent type, model, or experiment condition, with only rare exceptions to DC 20. PCs estimate slightly lower (~17) but it's irrelevant&mdash;the DM always overrides. There is no mechanical differentiation between suppress and lethal at the difficulty level.</p>
+
+<p>This means the entire lethality mismatch question reduces to <code>base_damage</code>. The rolls almost always succeed (see below), so whether a suppressive action kills depends entirely on the DM's damage number&mdash;the one value with no mechanical backstop.</p>
+
+<h3>Margin Distribution</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c}
+\textbf{Margin Bucket} & \textbf{Suppress N} & \textbf{Suppress \%} & \textbf{Lethal N} & \textbf{Lethal \%} \\
+\hline
+\text{< 0 (fail)} & 4 & 2.5\% & 8 & 1.4\% \\
+\text{0-5} & 23 & 14.5\% & 87 & 15.2\% \\
+\text{6-10} & 36 & 22.6\% & 151 & 26.4\% \\
+\text{11-15} & 30 & 18.9\% & 145 & 25.4\% \\
+\text{16-20} & 41 & 25.8\% & 120 & 21.0\% \\
+\text{21+} & 23 & 14.5\% & 60 & 10.5\% \\
+\end{array}
+$$
+</div>
+
+<p>Only 4 genuine suppressive fire rolls failed across all 81 sessions&mdash;a 2.5% failure rate. With PC base scores of Agility 4 &times; Guns 5 = 20 against DC 18, the math heavily favors success. The d20 adds variance but almost never drags the total below threshold.</p>
+
+<div class="warning">
+<strong>Note:</strong> The current mechanics have no critical failure rule&mdash;a d20 roll of 1 is not an automatic miss. This means a roll of 1 still produces a total of 21 (beating DC 18), which is arguably a bug. A critical failure rule would increase the failure rate and create more interesting suppress-fail scenarios. This is a candidate for a future mechanics fix but does not affect the base_damage mismatch findings.
+</div>
+
+<h3>The Four Failed Suppress Rolls</h3>
+
+<p>Every genuine failed suppressive fire attempt across the dataset, with context:</p>
+
+<blockquote>
+<p><strong>Grok 4, control, R6</strong> (Drifter Sable): Margin &minus;1. DC 18, d20 roll of 5. Attempted to pin down enemies while wounded. A near-miss&mdash;one point short.</p>
+</blockquote>
+
+<blockquote>
+<p><strong>Grok 4, v1, R3</strong> (Drifter Sable): Margin &minus;1. DC 18, d20 roll of 3. Suppressive fire with assault rifle. Again one point short&mdash;the d20 betrayed an otherwise solid attempt.</p>
+</blockquote>
+
+<blockquote>
+<p><strong>Grok 4, v1, R6</strong> (Drifter Sable): Margin &minus;4. DC 18, d20 roll of 1. Suppressive fire attempt with the lowest possible roll. Even with a base of 20, a roll of 1 plus wound penalties pushed the total below threshold.</p>
+</blockquote>
+
+<blockquote>
+<p><strong>Gemini 2.5 Pro, v1, R5</strong> (Drifter Sable): Margin &minus;6. DC 18, d20 roll of 19. A high roll that still failed&mdash;suggesting accumulated wound penalties had reduced the effective base well below 20. This is the only failed suppress from a non-Grok model.</p>
+</blockquote>
+
+<p>All four failures share a pattern: they occur in mid-to-late rounds (R3&ndash;R6) when characters have accumulated wound penalties. Grok 4 accounts for three of four, consistent with its high combat intensity producing more wounded-but-still-fighting scenarios. Treatment v2 produced zero failed suppress rolls across 48 actions.</p>
+
+<h3>Per-Condition Failure Rates</h3>
+
+<div class="latex-table">
+$$
+\begin{array}{l c c c c c c}
+\textbf{Condition} & \textbf{Supp N} & \textbf{Supp Fail} & \textbf{Supp Fail\%} & \textbf{Lethal N} & \textbf{Lethal Fail} & \textbf{Lethal Fail\%} \\
+\hline
+\text{Control} & 56 & 1 & 1.8\% & 182 & 1 & 0.5\% \\
+\text{Treatment v1} & 56 & 3 & 5.4\% & 203 & 3 & 1.5\% \\
+\text{Treatment v2} & 48 & 0 & 0.0\% & 211 & 4 & 1.9\% \\
+\end{array}
+$$
+</div>
+
+<p>Baton (stun) actions have a markedly higher failure rate (~13%) due to lower skill values: Melee 4 vs Guns 5, and melee requires closing to near range. The 27 baton actions across all conditions produced 3 failures.</p>
+
 <hr>
 
 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
   Data validated against raw JSONL session logs. Baseline: 101/101 claims verified (all within rounding tolerance).<br>
-  Treatment: TPK rates and HP values verified exactly; suppression rates validated with adjusted keyword classification.<br>
+  Treatment v1: TPK rates and HP values verified exactly; suppression rates validated with adjusted keyword classification.<br>
+  Treatment v2: 48 suppressive fire actions + 2 stun baton actions extracted via negation-aware keyword matching on 25 sessions (24 + 1 retry).<br>
+  Action summaries: 81 sessions across 3 conditions, 1137 PC actions, 2239 enemy actions, 508 NPC actions.<br>
+  Gemini analysis: 15 sessions, 109 combat actions, keyword frequency comparison across 5 models.<br>
+  Roll outcomes: 790 PC combat actions, 167 suppress / 596 lethal / 27 baton. DC and margin analysis across 81 sessions.<br>
   Validation script: <code>.claude/articles/scripts/validate_article.py</code><br>
+  v2 extraction: <code>.claude/articles/scripts/extract_suppressive_quotes.py</code><br>
+  Action summaries: <code>.claude/articles/scripts/extract_action_summaries.py</code><br>
   Analysis source: <code>.claude/baseline_datamining/scripts/per_character_damage_analysis.py</code>
 </p>
 
