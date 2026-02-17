@@ -43,6 +43,7 @@ import sys
 import time
 import hashlib
 import copy
+import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
@@ -957,6 +958,10 @@ class ReplayEngine:
         self.proxy_strategy = proxy_strategy
         self.verbose = verbose
         self._clients: Dict[str, Any] = {}  # provider → UnifiedAIClient
+        # Shared semaphore gates total concurrent API requests across all
+        # replay_batch calls, preventing socket exhaustion when multiple
+        # batches (main + regressions) run in parallel.
+        self._semaphore = threading.Semaphore(workers)
 
     def _get_client(self, provider: str):
         """Get or create a UnifiedAIClient for the given provider."""
@@ -1019,42 +1024,45 @@ class ReplayEngine:
 
         start = time.time()
 
-        for attempt in range(1, max_retries + 1):
-            try:
-                response = client.chat_completion(
-                    messages=messages,
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+        # Acquire semaphore to limit total concurrent API requests across
+        # all parallel replay batches (main eval + regressions)
+        with self._semaphore:
+            for attempt in range(1, max_retries + 1):
+                try:
+                    response = client.chat_completion(
+                        messages=messages,
+                        model=model,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
 
-                # Check for empty/whitespace response
-                if not response or not response.strip():
-                    if attempt < max_retries:
-                        delay = 2 ** (attempt - 1)  # 1s, 2s, 4s
+                    # Check for empty/whitespace response
+                    if not response or not response.strip():
+                        if attempt < max_retries:
+                            delay = 2 ** (attempt - 1)  # 1s, 2s, 4s
+                            logger.warning(
+                                f"Empty response for {case.case_id} (attempt {attempt}/{max_retries}), "
+                                f"retrying in {delay}s..."
+                            )
+                            time.sleep(delay)
+                            continue
+                        raise ValueError(
+                            f"LLM returned empty/whitespace response after {max_retries} retries"
+                        )
+
+                    # Valid response
+                    break
+
+                except Exception as e:
+                    if self._is_empty_content_error(e) and attempt < max_retries:
+                        delay = 2 ** (attempt - 1)
                         logger.warning(
-                            f"Empty response for {case.case_id} (attempt {attempt}/{max_retries}), "
-                            f"retrying in {delay}s..."
+                            f"Empty content error for {case.case_id} (attempt {attempt}/{max_retries}): "
+                            f"{e}, retrying in {delay}s..."
                         )
                         time.sleep(delay)
                         continue
-                    raise ValueError(
-                        f"LLM returned empty/whitespace response after {max_retries} retries"
-                    )
-
-                # Valid response
-                break
-
-            except Exception as e:
-                if self._is_empty_content_error(e) and attempt < max_retries:
-                    delay = 2 ** (attempt - 1)
-                    logger.warning(
-                        f"Empty content error for {case.case_id} (attempt {attempt}/{max_retries}): "
-                        f"{e}, retrying in {delay}s..."
-                    )
-                    time.sleep(delay)
-                    continue
-                raise
+                    raise
 
         latency_ms = (time.time() - start) * 1000
 
