@@ -174,8 +174,9 @@ multiagent.log
 # Game session data
 game.txt
 
-# Eval results (generated, large)
+# Eval results and labels (generated, large)
 evals/results/
+evals/labels/
 
 # Generated releases
 releases/

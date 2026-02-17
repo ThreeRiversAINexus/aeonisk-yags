@@ -40,6 +40,7 @@ from prompt_eval_harness import (
     ReportGenerator,
     ResultStore,
     SelfJudge,
+    IntentClassifier,
     SCORER_REGISTRY,
     parse_model_spec,
     parse_args,
@@ -2872,3 +2873,256 @@ class TestRegressions:
         exclude_calls = [kw for kw in all_call_kwargs if kw.get("exclude_keywords")]
         assert len(exclude_calls) >= 1
         assert "suppress" in exclude_calls[0]["exclude_keywords"]
+
+
+# ---------------------------------------------------------------------------
+# Table alignment tests
+# ---------------------------------------------------------------------------
+
+class TestTableAlignment:
+    """Tests for dynamic table column width in ReportGenerator."""
+
+    @staticmethod
+    def _make_dc_result(case_id, model, orig_bd, replay_bd):
+        return ReplayResult(
+            case_id=case_id, condition="control", round_num=1,
+            action_type="combat", original_model="gpt-5-mini",
+            eval_model=model, margin=10,
+            original={"total_base_damage": orig_bd},
+            replay={"total_base_damage": replay_bd},
+            scores={
+                "damage_comparison": {
+                    "original_base_damage": orig_bd,
+                    "replay_base_damage": replay_bd,
+                    "delta": replay_bd - orig_bd,
+                    "zero_damage": replay_bd == 0,
+                },
+            },
+        )
+
+    def test_long_model_names_aligned(self):
+        """Table columns align when model names exceed 30 chars."""
+        long_model = "deepinfra:deepseek-ai/DeepSeek-V3.2"
+        short_model = "openai:gpt-5-mini"
+        scorer = DamageComparisonScorer()
+        results = [
+            self._make_dc_result("c1", long_model, 10, 12),
+            self._make_dc_result("c2", short_model, 10, 8),
+        ]
+        report, _ = ReportGenerator.generate(results, "test_mod", [scorer])
+        lines = report.strip().split("\n")
+
+        # Find data lines (contain " | ")
+        data_lines = [l for l in lines if " | " in l and "Model" not in l and l[0] != "-"]
+        assert len(data_lines) == 2
+
+        # Both model columns should end at the same position (first " | ")
+        pipe_positions = [l.index(" | ") for l in data_lines]
+        assert pipe_positions[0] == pipe_positions[1], (
+            f"Column misaligned: pipes at {pipe_positions}"
+        )
+
+    def test_short_model_names_use_minimum_width(self):
+        """Short model names still get reasonable column width."""
+        scorer = DamageComparisonScorer()
+        results = [
+            self._make_dc_result("c1", "a:b", 10, 12),
+        ]
+        report, _ = ReportGenerator.generate(results, "test_mod", [scorer])
+        # Header "Model" is 5 chars, column should be at least that wide
+        lines = report.strip().split("\n")
+        header_line = [l for l in lines if "Model" in l][0]
+        # "Model" should have padding after it
+        assert "Model" in header_line
+
+
+# ---------------------------------------------------------------------------
+# IntentClassifier tests
+# ---------------------------------------------------------------------------
+
+class TestIntentClassifier:
+    """Tests for LLM-based intent classification."""
+
+    def test_event_id_on_eval_case(self):
+        """EvalCase carries event_id field."""
+        case = _make_eval_case(event_id="abc-123-uuid")
+        assert case.event_id == "abc-123-uuid"
+
+    def test_event_id_default_none(self):
+        """EvalCase event_id defaults to None."""
+        case = _make_eval_case()
+        assert case.event_id is None
+
+    def test_classifier_loads_config_from_dict(self):
+        """IntentClassifier initializes from a config dict."""
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+            "prompt": "Classify: {action_text} {intent_text}",
+        }
+        classifier = IntentClassifier(config=config)
+        assert classifier.provider == "openai"
+        assert classifier.model == "gpt-5-mini"
+        assert classifier.keep_labels == {"suppress"}
+        assert classifier.drop_labels == {"lethal"}
+
+    def test_classifier_default_prompt(self):
+        """IntentClassifier uses a default prompt when none provided."""
+        classifier = IntentClassifier(config={})
+        assert "{action_text}" in classifier.prompt_template
+        assert "{intent_text}" in classifier.prompt_template
+
+    def test_classifier_cache_roundtrip(self, tmp_path):
+        """Cache saves and reloads labels keyed by event_id."""
+        cache_file = str(tmp_path / "labels.json")
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+            "cache_file": cache_file,
+        }
+
+        # Pre-populate cache
+        import json
+        cache_data = {
+            "evt-001": {
+                "label": "suppress",
+                "action_text": "suppressing fire...",
+                "intent": "pin them down",
+                "case_id": "test_1",
+                "margin": 10,
+                "classified_by": "openai:gpt-5-mini",
+                "timestamp": "2026-02-17",
+            },
+            "evt-002": {
+                "label": "lethal",
+                "action_text": "center mass...",
+                "intent": "kill the thug",
+                "case_id": "test_2",
+                "margin": 14,
+                "classified_by": "openai:gpt-5-mini",
+                "timestamp": "2026-02-17",
+            },
+        }
+        with open(cache_file, "w") as f:
+            json.dump(cache_data, f)
+
+        # Create classifier — should load cache
+        classifier = IntentClassifier(config=config)
+        assert len(classifier._cache) == 2
+
+        # Classify cases that are all in cache
+        cases = [
+            _make_eval_case(case_id="test_1", event_id="evt-001"),
+            _make_eval_case(case_id="test_2", event_id="evt-002"),
+        ]
+        labels = classifier.classify(cases)
+        assert labels["evt-001"] == "suppress"
+        assert labels["evt-002"] == "lethal"
+
+    def test_classifier_filter_cases(self):
+        """filter_cases splits into kept and review lists."""
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+        classifier = IntentClassifier(config=config)
+
+        cases = [
+            _make_eval_case(case_id="c1", event_id="e1"),
+            _make_eval_case(case_id="c2", event_id="e2"),
+            _make_eval_case(case_id="c3", event_id="e3"),
+        ]
+        labels = {"e1": "suppress", "e2": "lethal", "e3": "unclear"}
+
+        kept, review = classifier.filter_cases(cases, labels)
+        assert len(kept) == 1
+        assert kept[0].case_id == "c1"
+        assert len(review) == 1
+        assert review[0].case_id == "c3"
+
+    def test_classifier_fallback_to_case_id(self):
+        """When event_id is None, classifier uses case_id as key."""
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+        classifier = IntentClassifier(config=config)
+        # Pre-populate cache with case_id as key
+        classifier._cache["test_case_1"] = {"label": "suppress"}
+
+        cases = [_make_eval_case(case_id="test_case_1")]  # no event_id
+        labels = classifier.classify(cases)
+        assert labels["test_case_1"] == "suppress"
+
+    def test_classifier_from_goal_file(self, tmp_path):
+        """Classifier config parsed from goal file."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test",
+                "targets": {"suppression_table": {"in_range_pct": 80}},
+                "classifier": {
+                    "model": "anthropic:claude-haiku-4-5",
+                    "keep": ["suppress"],
+                    "drop": ["lethal"],
+                    "cache_file": str(tmp_path / "labels.json"),
+                    "prompt": "Custom prompt: {action_text} {intent_text}",
+                },
+            }, f)
+
+        with open(goal_file, "r") as f:
+            goal_data = yaml.safe_load(f)
+
+        classifier = IntentClassifier(config=goal_data["classifier"])
+        assert classifier.provider == "anthropic"
+        assert classifier.model == "claude-haiku-4-5"
+        assert "Custom prompt" in classifier.prompt_template
+
+    @patch("prompt_eval_harness.IntentClassifier._classify_one")
+    def test_classifier_calls_llm_for_uncached(self, mock_classify):
+        """Classifier calls LLM for cases not in cache."""
+        mock_classify.return_value = "suppress"
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+        classifier = IntentClassifier(config=config)
+
+        cases = [
+            _make_eval_case(case_id="c1", event_id="e1"),
+            _make_eval_case(case_id="c2", event_id="e2"),
+        ]
+        labels = classifier.classify(cases, workers=1)
+        assert labels["e1"] == "suppress"
+        assert labels["e2"] == "suppress"
+        assert mock_classify.call_count == 2
+        # Both should now be in cache
+        assert "e1" in classifier._cache
+        assert "e2" in classifier._cache
+
+    @patch("prompt_eval_harness.IntentClassifier._classify_one")
+    def test_classifier_skips_cached(self, mock_classify):
+        """Classifier skips LLM calls for cached event_ids."""
+        mock_classify.return_value = "lethal"
+        config = {
+            "model": "openai:gpt-5-mini",
+            "keep": ["suppress"],
+            "drop": ["lethal"],
+        }
+        classifier = IntentClassifier(config=config)
+        # Pre-cache one
+        classifier._cache["e1"] = {"label": "suppress"}
+
+        cases = [
+            _make_eval_case(case_id="c1", event_id="e1"),
+            _make_eval_case(case_id="c2", event_id="e2"),
+        ]
+        labels = classifier.classify(cases, workers=1)
+        assert labels["e1"] == "suppress"  # from cache, not LLM
+        assert labels["e2"] == "lethal"  # from LLM
+        assert mock_classify.call_count == 1  # only called for e2

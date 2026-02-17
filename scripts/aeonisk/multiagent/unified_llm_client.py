@@ -46,6 +46,7 @@ class UnifiedAIClient:
         proxy_url: Optional[str] = None,
         proxy_priority: str = "normal",
         proxy_strategy: Optional[str] = None,
+        no_fallback: bool = False,
     ):
         """
         Initialize AI client with specified provider.
@@ -58,6 +59,7 @@ class UnifiedAIClient:
             proxy_url: Proxy server URL (defaults to LLM_PROXY_URL env var or localhost:8000)
             proxy_priority: Request priority ('high', 'normal', 'low')
             proxy_strategy: Routing strategy ('auto', 'direct', 'batch') or None for env default
+            no_fallback: If True, never fall back to direct API when proxy fails (raise instead)
         """
         self.provider = provider or os.getenv('AI_PROVIDER', 'openai')
 
@@ -66,6 +68,7 @@ class UnifiedAIClient:
         self.proxy_url = proxy_url or os.getenv('LLM_PROXY_URL', 'http://localhost:8000')
         self.proxy_priority = proxy_priority
         self.proxy_strategy = proxy_strategy  # Can be None (use env default)
+        self.no_fallback = no_fallback
 
         # OpenAI-compatible provider configs (base_url + env key for API key)
         # Any provider using an OpenAI-compatible API goes here.
@@ -284,6 +287,8 @@ class UnifiedAIClient:
                 if result.get("status") == "completed":
                     content = result.get("content")
                     if not content or not content.strip():
+                        if self.no_fallback:
+                            raise Exception("Proxy returned empty content (no_fallback=True, not falling back to direct API)")
                         logger.error(
                             "PROXY BUG: Batch completed but content is null/empty. "
                             "Falling back to direct API."
@@ -300,6 +305,8 @@ class UnifiedAIClient:
                     # Error looks like: "Batch ended with status: completed" with status="failed"
                     # This is a proxy-side bug - don't retry endlessly, fall back to direct API
                     if "Batch ended with status: completed" in error or "Batch ended with status: ended" in error:
+                        if self.no_fallback:
+                            raise Exception(f"Proxy batch failed: {error} (no_fallback=True)")
                         logger.error(
                             "PROXY BUG: Batch completed but output file missing. "
                             "This is a bug in the proxy server. Falling back to direct API. "
@@ -319,6 +326,11 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
+                    if self.no_fallback:
+                        raise Exception(
+                            f"Proxy unavailable at {self.proxy_url} after {max_retries} attempts "
+                            f"(no_fallback=True, not falling back to direct API)"
+                        ) from e
                     logger.info(
                         f"Proxy unavailable at {self.proxy_url} after {max_retries} attempts, "
                         f"falling back to direct {self.provider} API"
@@ -333,11 +345,15 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
+                    if self.no_fallback:
+                        raise Exception(f"Proxy timeout after {max_retries} attempts (no_fallback=True)")
                     logger.info(f"Proxy timeout after {max_retries} attempts, falling back to direct {self.provider} API")
                     return self._direct_completion(messages, model, temperature, max_tokens)
 
             except requests.exceptions.HTTPError as e:
                 # HTTP errors (4xx, 5xx) - don't retry, fall back immediately
+                if self.no_fallback:
+                    raise Exception(f"Proxy HTTP error: {e} (no_fallback=True)") from e
                 logger.info(f"Proxy HTTP error ({e}), falling back to direct {self.provider} API")
                 return self._direct_completion(messages, model, temperature, max_tokens)
 
@@ -351,6 +367,8 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
+                    if self.no_fallback:
+                        raise Exception(f"Proxy error after {max_retries} attempts: {e} (no_fallback=True)") from e
                     logger.info(f"Proxy error after {max_retries} attempts ({e}), falling back to direct {self.provider} API")
                     return self._direct_completion(messages, model, temperature, max_tokens)
 

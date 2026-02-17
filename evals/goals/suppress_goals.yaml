@@ -23,15 +23,40 @@ description: |
 
 max_iterations: 5
 
+# ── Intent classifier (--classify-intent) ────────────────
+# Runs after keyword filtering to catch false positives.
+# Labels cached by event_id for reuse across runs.
+classifier:
+  model: openai:gpt-5-mini
+  keep: [suppress]
+  drop: [lethal]
+  cache_file: evals/labels/suppress_labels.json
+  prompt: |
+    Classify this player combat action. Is the player trying to:
+    - suppress: Pin down enemies, deny movement, force into cover. NOT aiming to hit/kill.
+    - lethal: Wound, kill, neutralize, or eliminate a specific target.
+    - unclear: Ambiguous or contradictory intent.
+
+    Player action: {action_text}
+    Player intent: {intent_text}
+
+    Respond with exactly one word: suppress, lethal, or unclear
+
 # ── Primary optimization target ──────────────────────────
 eval_subset:
   action_type: combat
   intent_keywords:
-    - suppress
+    - suppressing fire
+    - suppressive fire
     - covering fire
     - pin down
     - pin them
     - warning shot
+  exclude_keywords:
+    - center mass
+    - neutralize
+    - eliminate
+    - no warning shots
   weapon_damage_type: wound
   max_cases: 12
 
@@ -60,7 +85,8 @@ regressions:
       action_type: combat
       weapon_damage_type: wound
       exclude_keywords:
-        - suppress
+        - suppressing fire
+        - suppressive fire
         - covering fire
         - pin down
         - pin them

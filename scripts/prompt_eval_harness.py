@@ -131,6 +131,7 @@ class EvalCase:
     margin: Optional[int]     # roll margin (parsed from response)
     detected_modules: List[str] = field(default_factory=list)  # modules found in system prompt
     line_number: int = 0      # line number in JSONL file
+    event_id: Optional[str] = None    # UUID from source llm_call event (stable across extractions)
 
     # From DM user prompt (regex extraction from WEAPON CONTEXT section)
     weapon_name: Optional[str] = None         # "Assault Rifle", "Shock Baton"
@@ -644,6 +645,7 @@ class SessionExtractor:
                 margin=margin,
                 detected_modules=detected_modules,
                 line_number=line_num,
+                event_id=event.get("event_id"),
                 weapon_name=weapon_ctx["weapon_name"],
                 weapon_damage_type=weapon_ctx["weapon_damage_type"],
                 declared_target=weapon_ctx["declared_target"],
@@ -971,6 +973,7 @@ class ReplayEngine:
             if self.proxy_url:
                 kwargs["use_proxy"] = True
                 kwargs["proxy_url"] = self.proxy_url
+                kwargs["no_fallback"] = True  # Never fall back to direct API keys
                 if self.proxy_strategy:
                     kwargs["proxy_strategy"] = self.proxy_strategy
             self._clients[provider] = UnifiedAIClient(**kwargs)
@@ -1088,6 +1091,7 @@ class ReplayEngine:
         temperature: float = 0.7,
         max_tokens: int = 4000,
         on_result: Optional[Callable[[ReplayResult], None]] = None,
+        label: str = "",
     ) -> List[ReplayResult]:
         """
         Replay all cases against all models with concurrent execution.
@@ -1102,6 +1106,7 @@ class ReplayEngine:
             temperature: LLM temperature
             max_tokens: LLM max tokens
             on_result: Optional callback invoked with each result as it completes
+            label: Label prefix for progress output (e.g., "main", "reg:lethal")
 
         Returns:
             List of ReplayResult
@@ -1205,7 +1210,8 @@ class ReplayEngine:
                 # Progress
                 status = "OK" if not result.error else f"ERR: {result.error[:60]}"
                 if completed % 10 == 0 or completed == total:
-                    print(f"  [{completed}/{total}] {status}", file=sys.stderr)
+                    prefix = f"{label} " if label else ""
+                    print(f"  [{prefix}{completed}/{total}] {status}", file=sys.stderr)
 
         return results
 
@@ -1345,13 +1351,17 @@ class ReportGenerator:
         # Overall score dict for self-judging
         score_dict: Dict[str, Any] = {}
 
+        # Dynamic model column width (minimum 5 for "Model" header)
+        mw = max((len(m) for m in by_model), default=5)
+        mw = max(mw, 5)
+
         # Per-scorer reports
         for scorer in scorers:
             lines.append(f"--- {scorer.name} ---")
 
             if scorer.name == "damage_comparison":
-                lines.append(f"{'Model':<30} | {'Avg BD (orig→new)':<20} | {'Δ':>6} | {'Zero dmg':>8} | {'Drift':>5}")
-                lines.append("-" * 84)
+                lines.append(f"{'Model':<{mw}} | {'Avg BD (orig→new)':<20} | {'Δ':>6} | {'Zero dmg':>8} | {'Drift':>5}")
+                lines.append("-" * (mw + 54))
 
                 for model, model_results in sorted(by_model.items()):
                     scored = [r for r in model_results if scorer.name in r.scores]
@@ -1362,7 +1372,7 @@ class ReportGenerator:
                     delta = new_avg - orig_avg
                     zero_pct = sum(1 for r in scored if r.scores[scorer.name]["zero_damage"]) / len(scored) * 100
                     drift_pct = abs(delta) / orig_avg * 100 if orig_avg > 0 else 0
-                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f} | {zero_pct:>6.0f}% | {drift_pct:>5.1f}%")
+                    lines.append(f"{model:<{mw}} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f} | {zero_pct:>6.0f}% | {drift_pct:>5.1f}%")
 
                     score_dict.setdefault(scorer.name, {})[model] = {
                         "avg_base_damage": new_avg,
@@ -1372,8 +1382,8 @@ class ReportGenerator:
                     }
 
             elif scorer.name in ("damage_range", "suppression_table"):
-                lines.append(f"{'Model':<30} | {'Avg BD':>6} | {'% in range':>10} | {'% w/ cond':>10}")
-                lines.append("-" * 70)
+                lines.append(f"{'Model':<{mw}} | {'Avg BD':>6} | {'% in range':>10} | {'% w/ cond':>10}")
+                lines.append("-" * (mw + 40))
 
                 for model, model_results in sorted(by_model.items()):
                     scored = [r for r in model_results if scorer.name in r.scores]
@@ -1382,7 +1392,7 @@ class ReportGenerator:
                     avg_bd = sum(r.scores[scorer.name]["base_damage"] for r in scored) / len(scored)
                     in_range_pct = sum(1 for r in scored if r.scores[scorer.name]["in_range"]) / len(scored) * 100
                     has_cond_pct = sum(1 for r in scored if r.scores[scorer.name]["has_condition"]) / len(scored) * 100
-                    lines.append(f"{model:<30} | {avg_bd:>6.1f} | {in_range_pct:>8.0f}% | {has_cond_pct:>8.0f}%")
+                    lines.append(f"{model:<{mw}} | {avg_bd:>6.1f} | {in_range_pct:>8.0f}% | {has_cond_pct:>8.0f}%")
 
                     score_dict.setdefault(scorer.name, {})[model] = {
                         "avg_base_damage": avg_bd,
@@ -1391,8 +1401,8 @@ class ReportGenerator:
                     }
 
             elif scorer.name == "soulcredit":
-                lines.append(f"{'Model':<30} | {'Avg SC (orig→new)':<20} | {'Δ':>6}")
-                lines.append("-" * 65)
+                lines.append(f"{'Model':<{mw}} | {'Avg SC (orig→new)':<20} | {'Δ':>6}")
+                lines.append("-" * (mw + 35))
 
                 for model, model_results in sorted(by_model.items()):
                     scored = [r for r in model_results if scorer.name in r.scores]
@@ -1401,7 +1411,7 @@ class ReportGenerator:
                     orig_avg = sum(r.scores[scorer.name]["original_soulcredit"] for r in scored) / len(scored)
                     new_avg = sum(r.scores[scorer.name]["replay_soulcredit"] for r in scored) / len(scored)
                     delta = new_avg - orig_avg
-                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f}")
+                    lines.append(f"{model:<{mw}} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f}")
 
                     score_dict.setdefault(scorer.name, {})[model] = {
                         "avg_soulcredit": new_avg,
@@ -1420,6 +1430,211 @@ class ReportGenerator:
 
         report = "\n".join(lines)
         return report, score_dict
+
+
+# ---------------------------------------------------------------------------
+# IntentClassifier
+# ---------------------------------------------------------------------------
+
+class IntentClassifier:
+    """
+    LLM-based intent classifier for eval cases.
+
+    Classifies each case (e.g., suppress vs lethal) using a cheap LLM,
+    caches results keyed by event_id for reuse across runs.
+
+    Configured via goal file `classifier` section:
+        classifier:
+          model: openai:gpt-5-mini
+          keep: [suppress]
+          drop: [lethal]
+          cache_file: evals/labels/suppress_labels.json
+          prompt: |
+            Classify this player action...
+            {action_text}
+            {intent_text}
+    """
+
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        proxy_url: Optional[str] = None,
+        proxy_strategy: Optional[str] = None,
+    ):
+        self.config = config
+        model_spec = config.get("model", "openai:gpt-5-mini")
+        self.provider, self.model = parse_model_spec(model_spec)
+        self.keep_labels: Set[str] = set(config.get("keep", []))
+        self.drop_labels: Set[str] = set(config.get("drop", []))
+        self.cache_file = config.get("cache_file")
+        self.prompt_template = config.get("prompt", self._default_prompt())
+        self.proxy_url = proxy_url
+        self.proxy_strategy = proxy_strategy
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._load_cache()
+
+    @staticmethod
+    def _default_prompt() -> str:
+        return (
+            "Classify this player combat action. Is the player trying to:\n"
+            "- suppress: Pin down enemies, deny movement, force into cover. NOT aiming to hit/kill.\n"
+            "- lethal: Wound, kill, neutralize, or eliminate a specific target.\n"
+            "- unclear: Ambiguous or contradictory intent.\n"
+            "\n"
+            "Player action: {action_text}\n"
+            "Player intent: {intent_text}\n"
+            "\n"
+            "Respond with exactly one word: suppress, lethal, or unclear"
+        )
+
+    def _load_cache(self):
+        """Load cached labels from disk."""
+        if not self.cache_file or not Path(self.cache_file).exists():
+            return
+        try:
+            with open(self.cache_file, "r") as f:
+                self._cache = json.load(f)
+            logger.info(f"Loaded {len(self._cache)} cached labels from {self.cache_file}")
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to load label cache {self.cache_file}: {e}")
+
+    def _save_cache(self):
+        """Save cached labels to disk."""
+        if not self.cache_file:
+            return
+        Path(self.cache_file).parent.mkdir(parents=True, exist_ok=True)
+        with open(self.cache_file, "w") as f:
+            json.dump(self._cache, f, indent=2)
+        logger.info(f"Saved {len(self._cache)} labels to {self.cache_file}")
+
+    def _get_client(self):
+        from aeonisk.multiagent.unified_llm_client import UnifiedAIClient
+        kwargs = {"provider": self.provider}
+        if self.proxy_url:
+            kwargs["use_proxy"] = True
+            kwargs["proxy_url"] = self.proxy_url
+            kwargs["no_fallback"] = True
+            if self.proxy_strategy:
+                kwargs["proxy_strategy"] = self.proxy_strategy
+        return UnifiedAIClient(**kwargs)
+
+    def _classify_one(self, case: EvalCase, client) -> str:
+        """Classify a single case via LLM. Returns the label string."""
+        prompt = self.prompt_template.format(
+            action_text=case.player_action_text or "(no action text)",
+            intent_text=case.player_intent or "(no intent)",
+        )
+        try:
+            response = client.chat_completion(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+                temperature=0.0,
+                max_tokens=10,
+            )
+            label = response.strip().lower().rstrip(".")
+            # Normalize: take just the first word
+            label = label.split()[0] if label.split() else "unclear"
+            return label
+        except Exception as e:
+            logger.warning(f"Classification failed for {case.case_id}: {e}")
+            return "unclear"
+
+    def classify(
+        self,
+        cases: List[EvalCase],
+        workers: int = 10,
+    ) -> Dict[str, str]:
+        """
+        Classify cases, using cache where available.
+
+        Returns:
+            Dict mapping event_id → label
+        """
+        results: Dict[str, str] = {}
+        to_classify: List[EvalCase] = []
+
+        for case in cases:
+            eid = case.event_id
+            if not eid:
+                # Fallback to case_id if event_id missing
+                eid = case.case_id
+            if eid in self._cache:
+                results[eid] = self._cache[eid]["label"]
+            else:
+                to_classify.append(case)
+
+        if not to_classify:
+            logger.info(f"All {len(cases)} cases found in cache")
+            return results
+
+        cache_hits = len(results)
+        logger.info(
+            f"Classifying {len(to_classify)} cases "
+            f"({cache_hits} cache hits, model={self.provider}:{self.model})"
+        )
+        print(
+            f"  Classifying {len(to_classify)} cases "
+            f"({cache_hits} cached) with {self.provider}:{self.model}...",
+            file=sys.stderr,
+        )
+
+        client = self._get_client()
+
+        def _do_one(case: EvalCase) -> Tuple[str, str, EvalCase]:
+            label = self._classify_one(case, client)
+            eid = case.event_id or case.case_id
+            return eid, label, case
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(_do_one, c) for c in to_classify]
+            for future in as_completed(futures):
+                eid, label, case = future.result()
+                results[eid] = label
+                self._cache[eid] = {
+                    "label": label,
+                    "action_text": (case.player_action_text or "")[:200],
+                    "intent": (case.player_intent or "")[:200],
+                    "case_id": case.case_id,
+                    "margin": case.margin,
+                    "classified_by": f"{self.provider}:{self.model}",
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+
+        self._save_cache()
+        return results
+
+    def filter_cases(
+        self,
+        cases: List[EvalCase],
+        labels: Dict[str, str],
+    ) -> Tuple[List[EvalCase], List[EvalCase]]:
+        """
+        Filter cases by classification label.
+
+        Returns:
+            (kept_cases, review_cases) — kept are auto-included,
+            review are unclear/unrecognized labels needing human review.
+        """
+        kept = []
+        review = []
+        dropped = 0
+
+        for case in cases:
+            eid = case.event_id or case.case_id
+            label = labels.get(eid, "unclear")
+            if label in self.keep_labels:
+                kept.append(case)
+            elif label in self.drop_labels:
+                dropped += 1
+            else:
+                review.append(case)
+
+        print(
+            f"  Classifier: {len(kept)} kept, {dropped} dropped, "
+            f"{len(review)} need review",
+            file=sys.stderr,
+        )
+        return kept, review
 
 
 # ---------------------------------------------------------------------------
@@ -1648,6 +1863,8 @@ class SelfJudge:
         session_extractor: SessionExtractor,
         replay_engine: ReplayEngine,
         model_specs: List[Tuple[str, str]],
+        output_dir: Optional[str] = None,
+        iteration: Optional[int] = None,
         temperature: float = 0.7,
         max_tokens: int = 4000,
     ) -> Dict[str, Any]:
@@ -1687,8 +1904,16 @@ class SelfJudge:
                     reg["cases"], reg["prompts"], model_specs, reg["scorers"],
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    label=f"reg:{reg_name}",
                 )
             replay_results = {name: f.result() for name, f in futures.items()}
+
+        # Phase 2.5: Save regression replay data to disk
+        if output_dir and iteration is not None:
+            for reg_name, reg_results in replay_results.items():
+                if reg_results:
+                    reg_path = Path(output_dir) / f"iteration_{iteration}_regression_{reg_name}_results.jsonl"
+                    ResultStore(str(reg_path)).save_results(reg_results)
 
         # Phase 3: Score all regressions
         results = {}
@@ -1985,11 +2210,14 @@ class SelfJudge:
                     save_prompts=True,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    label="main",
                 )
                 reg_future = pool.submit(
                     self._run_regressions,
                     module_name, current_content, module_swapper,
                     session_extractor, replay_engine, model_specs,
+                    output_dir=str(output_path),
+                    iteration=iteration,
                     temperature=temperature, max_tokens=max_tokens,
                 )
 
@@ -2139,6 +2367,7 @@ class SelfJudge:
                     validation_cases, validation_prompts, model_specs, scorers,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    label="validation",
                 )
 
                 # Save validation artifacts
@@ -2275,6 +2504,12 @@ Examples:
     parser.add_argument("--max-iterations", type=int, default=5, help="Max self-judge iterations")
     parser.add_argument("--confirm-each-iteration", action="store_true", help="Pause between self-judge iterations")
 
+    # Intent classification
+    parser.add_argument(
+        "--classify-intent", action="store_true",
+        help="Enable LLM intent classification (uses goal file 'classifier' section or defaults)",
+    )
+
     # Verbosity
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
@@ -2394,9 +2629,78 @@ def main(argv=None):
         print("No eval cases found. Check filters and session directories.", file=sys.stderr)
         return 1
 
+    # --- Intent classification ---
+    classifier = None
+    intent_labels: Dict[str, str] = {}
+    classifier_config = None
+
+    # Load classifier config from goal file if available
+    if args.goal_file:
+        with open(args.goal_file, "r") as f:
+            goal_data = yaml.safe_load(f)
+        classifier_config = goal_data.get("classifier")
+
+    if args.classify_intent or classifier_config:
+        proxy_strategy = None
+        if args.proxy:
+            proxy_strategy = "batch" if args.batch else "direct"
+        config = classifier_config or {}
+        classifier = IntentClassifier(
+            config=config,
+            proxy_url=args.proxy,
+            proxy_strategy=proxy_strategy,
+        )
+        intent_labels = classifier.classify(cases)
+
     # --- Scan only ---
     if args.scan_only:
         print(f"\nFound {len(cases)} eval cases\n")
+
+        # Verbose: per-case keyword audit
+        if args.verbose:
+            active_keywords = args.intent_keywords or []
+            print(f"--- Case Audit ({len(cases)} cases) ---\n")
+            for c in cases:
+                action_text = (c.player_action_text or "").lower()
+                intent_text = (c.player_intent or "").lower()
+                matches = []
+                for kw in active_keywords:
+                    kw_lower = kw.lower()
+                    if kw_lower in action_text:
+                        # Find context around the match
+                        idx = action_text.index(kw_lower)
+                        start = max(0, idx - 30)
+                        end = min(len(action_text), idx + len(kw_lower) + 30)
+                        ctx = action_text[start:end].replace("\n", " ")
+                        matches.append(f"action: \"...{ctx}...\"")
+                    if kw_lower in intent_text:
+                        matches.append(f"intent: \"{intent_text[:100]}\"")
+
+                print(f"  {c.case_id}  margin={c.margin}")
+                if matches:
+                    for m in matches:
+                        print(f"    matched → {m}")
+                else:
+                    print(f"    matched → (no keyword match detail available)")
+                # Show truncated action for review
+                action_snippet = (c.player_action_text or "")[:120].replace("\n", " ")
+                print(f"    action:  {action_snippet}")
+                if c.player_intent:
+                    print(f"    intent:  {c.player_intent[:120]}")
+                # Show classifier label if available
+                eid = c.event_id or c.case_id
+                if eid in intent_labels:
+                    label = intent_labels[eid]
+                    marker = ""
+                    if classifier:
+                        if label in classifier.keep_labels:
+                            marker = " (KEEP)"
+                        elif label in classifier.drop_labels:
+                            marker = " (DROP)"
+                        else:
+                            marker = " (REVIEW)"
+                    print(f"    label:   {label}{marker}")
+                print()
 
         # Group by condition
         by_condition: Dict[str, int] = {}
@@ -2437,6 +2741,22 @@ def main(argv=None):
                 pass
         print(f"\nSwappable for '{module_name}': {swappable}/{len(cases)}")
 
+        # Classifier summary for scan-only
+        if classifier and intent_labels:
+            from collections import Counter
+            label_counts = Counter(intent_labels.values())
+            print(f"\nClassifier ({classifier.provider}:{classifier.model}):")
+            for label, count in sorted(label_counts.items()):
+                action = ""
+                if label in classifier.keep_labels:
+                    action = " → KEEP"
+                elif label in classifier.drop_labels:
+                    action = " → DROP"
+                else:
+                    action = " → REVIEW"
+                print(f"  {label}: {count}{action}")
+            print(f"  Would keep {sum(1 for l in intent_labels.values() if l in classifier.keep_labels)}/{len(cases)} cases for eval")
+
         return 0
 
     # --- Dry run ---
@@ -2466,6 +2786,22 @@ def main(argv=None):
                 print(f"    ...{modified[start:start+200]}...")
             print()
         return 0
+
+    # --- Apply intent classifier filtering ---
+    if classifier and intent_labels:
+        kept, review = classifier.filter_cases(cases, intent_labels)
+        if review:
+            print(f"\n  Cases needing review ({len(review)}):", file=sys.stderr)
+            for c in review:
+                eid = c.event_id or c.case_id
+                label = intent_labels.get(eid, "?")
+                action = (c.player_action_text or "")[:100].replace("\n", " ")
+                print(f"    {c.case_id} [{label}]: {action}", file=sys.stderr)
+            print(file=sys.stderr)
+        cases = kept
+        if not cases:
+            print("No cases remaining after classification. Aborting.", file=sys.stderr)
+            return 1
 
     # --- Common setup for eval modes ---
 
