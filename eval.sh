@@ -1,0 +1,5 @@
+# Single-pass eval (score current prompt, no rewriting):
+# python scripts/prompt_eval_harness.py --swap-module scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml --sessions ~/Coding/aeonisk-v1/lethal_intent_mismatch/control ~/Coding/aeonisk-v1/lethal_intent_mismatch/treatment_v2 --action-type combat --intent-filter suppress --models openai:gpt-5-mini --scorers suppression_table damage_comparison --output-dir results --save-prompts --proxy "http://localhost:8000" --direct
+
+# Self-judge loop (Claude Sonnet 4.5 rewrites, GPT-5-mini evaluates):
+python scripts/prompt_eval_harness.py --swap-module scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml --sessions ~/Coding/aeonisk-v1/lethal_intent_mismatch/control ~/Coding/aeonisk-v1/lethal_intent_mismatch/treatment_v2 --self-judge --goal-file goals/suppress_goals.yaml --judge-model anthropic:claude-sonnet-4-5 --models openai:gpt-5-mini --scorers suppression_table damage_comparison --max-iterations 5 --output-dir results --proxy "http://localhost:8000" --direct

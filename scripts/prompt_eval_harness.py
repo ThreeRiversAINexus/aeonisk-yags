@@ -1,0 +1,2035 @@
+#!/usr/bin/env python3
+"""
+Prompt Evaluation Harness
+
+Replays DM resolution LLM calls from existing sessions with a swapped prompt module,
+enabling prompt iteration in minutes instead of hours.
+
+Pipeline: JSONL sessions → extract DM llm_call events → swap one YAML module
+in system prompt → replay via LLM → parse response → score & compare → report
+
+Usage:
+    # Scan what cases are available
+    python scripts/prompt_eval_harness.py \
+        --swap-module prompts/dm/dm_resolution_combat_v3.yaml --scan-only
+
+    # Replay against a single model
+    python scripts/prompt_eval_harness.py \
+        --swap-module prompts/dm/dm_resolution_combat_v3.yaml \
+        --models gpt-5-mini --max-cases 10
+
+    # Full evaluation with proxy
+    python scripts/prompt_eval_harness.py \
+        --swap-module prompts/dm/dm_resolution_combat_v3.yaml \
+        --models gpt-5-mini deepseek-ai/DeepSeek-V3.2 \
+        --action-type combat --intent-filter suppress \
+        --scorers suppression_table damage_comparison \
+        --proxy http://localhost:8000 --batch \
+        --output results/v3_eval.jsonl --report results/v3_report.txt
+
+    # Self-judging iteration
+    python scripts/prompt_eval_harness.py \
+        --swap-module prompts/dm/dm_resolution_combat_v3.yaml \
+        --self-judge --goal-file goals/suppress_goals.yaml \
+        --judge-model claude-sonnet-4-5 --max-iterations 5
+"""
+
+import argparse
+import json
+import logging
+import os
+import re
+import sys
+import time
+import hashlib
+import copy
+import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field, asdict
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Any, Tuple, Set
+
+import yaml
+from dotenv import load_dotenv
+
+# Add project path for imports
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+MULTIAGENT_DIR = SCRIPT_DIR / "aeonisk" / "multiagent"
+sys.path.insert(0, str(SCRIPT_DIR))
+
+# Load environment variables (.env in scripts/aeonisk/ first, then project root)
+_dotenv_path = SCRIPT_DIR / "aeonisk" / ".env"
+if _dotenv_path.exists():
+    load_dotenv(_dotenv_path)
+else:
+    load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# Default session directories for the lethality experiment
+DEFAULT_SESSION_DIRS = [
+    Path.home() / "Coding" / "aeonisk-v1" / "lethal_intent_mismatch" / "control",
+    Path.home() / "Coding" / "aeonisk-v1" / "lethal_intent_mismatch" / "treatment_v1",
+    Path.home() / "Coding" / "aeonisk-yags" / "multiagent_output" / "lethality_experiment" / "treatment_v2",
+]
+
+DM_PROMPTS_DIR = MULTIAGENT_DIR / "prompts" / "claude" / "en" / "dm"
+
+def parse_model_spec(spec: str) -> Tuple[str, str]:
+    """
+    Parse a provider:model specification string.
+
+    Format: "provider:model" (e.g., "openai:gpt-5-mini", "deepinfra:deepseek-ai/DeepSeek-V3.2")
+
+    Returns:
+        (provider, model) tuple
+    """
+    if ":" not in spec:
+        raise ValueError(
+            f"Invalid model spec '{spec}'. Use 'provider:model' format "
+            f"(e.g., 'openai:gpt-5-mini', 'anthropic:claude-sonnet-4-5', "
+            f"'deepinfra:deepseek-ai/DeepSeek-V3.2', 'grok:grok-4-latest')"
+        )
+    provider, model = spec.split(":", 1)
+    if not provider or not model:
+        raise ValueError(f"Invalid model spec '{spec}'. Both provider and model are required.")
+    return provider, model
+
+
+def _write_module_yaml(path: Path, module_name: str, content: str, description: str = "", version: str = "auto"):
+    """Write a prompt module YAML with clean |- block scalar for the content field."""
+    with open(path, "w") as f:
+        f.write(f"version: {version}\n")
+        f.write(f"module: {module_name}\n")
+        if description:
+            f.write(f"description: {description}\n")
+        f.write("content: |-\n")
+        for line in content.split("\n"):
+            f.write(f"  {line}\n" if line else "\n")
+
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+
+@dataclass
+class EvalCase:
+    """A single DM resolution call extracted from a session for replay."""
+    case_id: str              # unique ID: session_<hash>_<line>
+    session_file: str         # source JSONL path
+    condition: str            # control / treatment_v1 / treatment_v2 / unknown
+    round_num: Optional[int]  # game round
+    original_model: str       # model used in original session
+    system_prompt: str        # full system prompt from original call
+    user_prompt: str          # full user prompt from original call
+    response_text: str        # original LLM response text
+    action_type: Optional[str]    # combat, investigate, etc. (parsed from user prompt)
+    player_action_text: Optional[str]  # raw player action description
+    margin: Optional[int]     # roll margin (parsed from response)
+    detected_modules: List[str] = field(default_factory=list)  # modules found in system prompt
+    line_number: int = 0      # line number in JSONL file
+
+
+@dataclass
+class ReplayResult:
+    """Result from replaying a single case with a specific model."""
+    case_id: str
+    condition: str
+    round_num: Optional[int]
+    action_type: Optional[str]
+    original_model: str
+    eval_model: str
+    margin: Optional[int]
+    original: Dict[str, Any]   # extracted mechanical fields from original
+    replay: Dict[str, Any]     # extracted mechanical fields from replay
+    scores: Dict[str, Any]     # scorer outputs
+    latency_ms: float = 0.0
+    error: Optional[str] = None
+    player_action_text: Optional[str] = None
+    # Optional full prompts for fine-tuning dataset
+    system_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None
+    replay_response: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# ModuleSwapper
+# ---------------------------------------------------------------------------
+
+class ModuleSwapper:
+    """Loads DM YAML modules and swaps them in system prompts."""
+
+    def __init__(self, dm_prompts_dir: Optional[Path] = None):
+        self.dm_prompts_dir = dm_prompts_dir or DM_PROMPTS_DIR
+        self._modules: Dict[str, str] = {}  # module_name → content
+        self._load_all_modules()
+
+    def _load_all_modules(self):
+        """Load content from all DM YAML modules."""
+        if not self.dm_prompts_dir.exists():
+            logger.warning(f"DM prompts directory not found: {self.dm_prompts_dir}")
+            return
+        for yaml_path in sorted(self.dm_prompts_dir.glob("*.yaml")):
+            try:
+                with open(yaml_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                module_name = data.get("module", yaml_path.stem)
+                content = data.get("content", "")
+                if content:
+                    self._modules[module_name] = content
+            except Exception as e:
+                logger.warning(f"Failed to load {yaml_path}: {e}")
+        logger.info(f"Loaded {len(self._modules)} DM prompt modules")
+
+    @property
+    def module_names(self) -> List[str]:
+        return list(self._modules.keys())
+
+    def detect_modules(self, system_prompt: str) -> List[str]:
+        """Detect which modules are present in a system prompt via substring match."""
+        found = []
+        for name, content in self._modules.items():
+            # Use first 200 chars as fingerprint (enough to be unique, handles minor trailing diffs)
+            fingerprint = content[:200]
+            if fingerprint in system_prompt:
+                found.append(name)
+        return found
+
+    def load_replacement(self, yaml_path: str) -> Tuple[str, str]:
+        """
+        Load a replacement YAML module.
+
+        Returns:
+            (module_name, content) from the YAML file.
+        """
+        path = Path(yaml_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Replacement module not found: {yaml_path}")
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        module_name = data.get("module", path.stem)
+        content = data.get("content", "")
+        if not content:
+            raise ValueError(f"Replacement module {yaml_path} has no 'content' field")
+        return module_name, content
+
+    def swap_module(self, system_prompt: str, module_name: str, new_content: str) -> str:
+        """
+        Replace a module's content in the system prompt.
+
+        Finds the old module content as a substring and replaces it.
+        Falls back to variant modules (e.g., _with_suppression ↔ base).
+        Returns the modified system prompt, or raises ValueError if not found.
+        """
+        if module_name not in self._modules:
+            raise ValueError(f"Module '{module_name}' not found. Available: {self.module_names}")
+
+        old_content = self._modules[module_name]
+        if old_content in system_prompt:
+            return system_prompt.replace(old_content, new_content)
+
+        # Try variant detection
+        for variant_name in self._get_variants(module_name):
+            if variant_name in self._modules:
+                variant_content = self._modules[variant_name]
+                if variant_content in system_prompt:
+                    logger.debug(f"Swapping via variant '{variant_name}'")
+                    return system_prompt.replace(variant_content, new_content)
+
+        raise ValueError(
+            f"Module '{module_name}' content not found in system prompt. "
+            f"Detected modules: {self.detect_modules(system_prompt)}"
+        )
+
+    def _get_variants(self, module_name: str) -> List[str]:
+        """Get variant module names to try if exact match fails."""
+        variants = []
+        # dm_resolution_combat ↔ dm_resolution_combat_with_suppression
+        if module_name == "dm_resolution_combat":
+            variants.append("dm_resolution_combat_with_suppression")
+        elif module_name == "dm_resolution_combat_with_suppression":
+            variants.append("dm_resolution_combat")
+        return variants
+
+
+# ---------------------------------------------------------------------------
+# SessionExtractor
+# ---------------------------------------------------------------------------
+
+class SessionExtractor:
+    """Extracts DM resolution LLM calls from JSONL session files."""
+
+    def __init__(self, session_dirs: Optional[List[Path]] = None):
+        self.session_dirs = session_dirs or DEFAULT_SESSION_DIRS
+
+    def find_session_files(self) -> List[Path]:
+        """Find all JSONL session files in configured directories."""
+        files = []
+        for d in self.session_dirs:
+            if not d.exists():
+                logger.warning(f"Session directory not found: {d}")
+                continue
+            # Look for JSONL files recursively
+            for jsonl_path in sorted(d.rglob("*.jsonl")):
+                files.append(jsonl_path)
+        logger.info(f"Found {len(files)} session files across {len(self.session_dirs)} directories")
+        return files
+
+    def infer_condition(self, path: Path) -> str:
+        """Infer experiment condition from file path."""
+        path_str = str(path)
+        if "control" in path_str:
+            return "control"
+        elif "treatment_v1" in path_str:
+            return "treatment_v1"
+        elif "treatment_v2" in path_str:
+            return "treatment_v2"
+        return "unknown"
+
+    def extract_cases(
+        self,
+        files: Optional[List[Path]] = None,
+        action_type_filter: Optional[str] = None,
+        intent_filter: Optional[str] = None,
+        original_model_filter: Optional[str] = None,
+        module_filter: Optional[str] = None,
+        margin_range: Optional[Tuple[int, int]] = None,
+        max_cases: Optional[int] = None,
+        module_swapper: Optional[ModuleSwapper] = None,
+    ) -> List[EvalCase]:
+        """
+        Extract DM resolution cases from session files.
+
+        Filters:
+            action_type_filter: Only cases where action type matches (e.g., 'combat')
+            intent_filter: Keyword match on player action text (e.g., 'suppress')
+            original_model_filter: Only cases from a specific original model
+            module_filter: Only cases where a specific module was detected
+            margin_range: Only cases with margin in [min, max] range
+            max_cases: Stop after this many cases
+        """
+        if files is None:
+            files = self.find_session_files()
+
+        cases = []
+        for jsonl_path in files:
+            condition = self.infer_condition(jsonl_path)
+            try:
+                file_cases = self._extract_from_file(
+                    jsonl_path, condition,
+                    action_type_filter, intent_filter, original_model_filter,
+                    module_filter, margin_range, module_swapper,
+                )
+                cases.extend(file_cases)
+            except Exception as e:
+                logger.warning(f"Error extracting from {jsonl_path}: {e}")
+
+            if max_cases and len(cases) >= max_cases:
+                cases = cases[:max_cases]
+                break
+
+        logger.info(f"Extracted {len(cases)} eval cases")
+        return cases
+
+    def _extract_from_file(
+        self,
+        jsonl_path: Path,
+        condition: str,
+        action_type_filter: Optional[str],
+        intent_filter: Optional[str],
+        original_model_filter: Optional[str],
+        module_filter: Optional[str],
+        margin_range: Optional[Tuple[int, int]],
+        module_swapper: Optional[ModuleSwapper],
+    ) -> List[EvalCase]:
+        """Extract eval cases from a single JSONL file."""
+        cases = []
+        session_hash = hashlib.md5(str(jsonl_path).encode()).hexdigest()[:8]
+
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                # Only DM llm_call events
+                if event.get("event_type") != "llm_call":
+                    continue
+                if event.get("agent_type") != "dm":
+                    continue
+
+                # Check response contains ActionResolution fields
+                response_text = event.get("response", "")
+                if not ('"narration"' in response_text and '"effects"' in response_text):
+                    continue
+
+                # Extract system and user prompts from the prompt array
+                prompt_messages = event.get("prompt", [])
+                system_prompt = ""
+                user_prompt = ""
+                for msg in prompt_messages:
+                    if msg.get("role") == "system":
+                        system_prompt = msg.get("content", "")
+                    elif msg.get("role") == "user":
+                        user_prompt = msg.get("content", "")
+
+                if not system_prompt or not user_prompt:
+                    continue
+
+                # Parse response for fields we need
+                parsed_response = MechanicalExtractor.parse_response(response_text)
+                margin = parsed_response.get("margin")
+                action_type = self._infer_action_type(user_prompt)
+                player_action_text = self._extract_player_action(user_prompt)
+
+                # Apply filters
+                if action_type_filter and action_type != action_type_filter:
+                    continue
+                if intent_filter and player_action_text:
+                    if intent_filter.lower() not in player_action_text.lower():
+                        continue
+                elif intent_filter and not player_action_text:
+                    continue
+                if original_model_filter:
+                    model = event.get("model", "")
+                    if original_model_filter not in model:
+                        continue
+                if margin_range and margin is not None:
+                    if not (margin_range[0] <= margin <= margin_range[1]):
+                        continue
+
+                # Detect modules
+                detected_modules = []
+                if module_swapper:
+                    detected_modules = module_swapper.detect_modules(system_prompt)
+                if module_filter and module_filter not in detected_modules:
+                    continue
+
+                case_id = f"session_{session_hash}_{line_num}"
+                case = EvalCase(
+                    case_id=case_id,
+                    session_file=str(jsonl_path),
+                    condition=condition,
+                    round_num=event.get("round"),
+                    original_model=event.get("model", "unknown"),
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    response_text=response_text,
+                    action_type=action_type,
+                    player_action_text=player_action_text,
+                    margin=margin,
+                    detected_modules=detected_modules,
+                    line_number=line_num,
+                )
+                cases.append(case)
+
+        return cases
+
+    def _infer_action_type(self, user_prompt: str) -> Optional[str]:
+        """Infer action type from user prompt content."""
+        lower = user_prompt.lower()
+        # Look for action_type markers in the user prompt
+        action_type_match = re.search(r'action[_\s]?type["\s:]*["\']?(\w+)', lower)
+        if action_type_match:
+            return action_type_match.group(1)
+        # Heuristic fallback
+        if any(kw in lower for kw in ["combat", "attack", "fire", "shoot", "strike", "suppressive"]):
+            return "combat"
+        if any(kw in lower for kw in ["investigate", "search", "examine", "scan"]):
+            return "investigate"
+        if any(kw in lower for kw in ["social", "persuade", "negotiate", "charm"]):
+            return "social"
+        if any(kw in lower for kw in ["ritual", "attune", "purif"]):
+            return "ritual"
+        return None
+
+    def _extract_player_action(self, user_prompt: str) -> Optional[str]:
+        """Extract the player's action description from user prompt."""
+        # Look for action description patterns (most specific first)
+        patterns = [
+            r'action_description["\s:]+["\'](.+?)["\']',
+            r'player\s+action[:\s]+(.+?)(?:\n|$)',
+            r'declared\s+action[:\s]+["\']?(.+?)(?:["\']?\s*$|\n)',
+            r'(?:action|intent)[:\s]+(.+?)(?:\n|$)',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, user_prompt, re.IGNORECASE | re.MULTILINE)
+            if match:
+                text = match.group(1).strip()
+                # Skip matches that are clearly action_type not action description
+                if text.lower() in ("combat", "investigate", "social", "ritual", "support", "movement", "perception"):
+                    continue
+                return text[:500]
+        return None
+
+
+# ---------------------------------------------------------------------------
+# MechanicalExtractor
+# ---------------------------------------------------------------------------
+
+class MechanicalExtractor:
+    """Parses ActionResolution JSON from raw LLM response strings."""
+
+    @staticmethod
+    def parse_response(response_text: str) -> Dict[str, Any]:
+        """
+        Parse an ActionResolution JSON from raw response text.
+
+        Handles:
+        - Raw JSON
+        - Markdown-fenced JSON (```json...```)
+        - Partial/malformed JSON (best effort)
+        """
+        text = response_text.strip()
+
+        # Strip markdown code fences
+        fence_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?\s*```', text, re.DOTALL)
+        if fence_match:
+            text = fence_match.group(1).strip()
+
+        # Try to find JSON object
+        # Sometimes there's text before/after the JSON
+        brace_start = text.find('{')
+        if brace_start == -1:
+            return {}
+
+        # Find matching closing brace
+        depth = 0
+        brace_end = -1
+        for i in range(brace_start, len(text)):
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    brace_end = i
+                    break
+
+        if brace_end == -1:
+            # Try parsing from first brace to end
+            json_str = text[brace_start:]
+        else:
+            json_str = text[brace_start:brace_end + 1]
+
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError:
+            # Try fixing common JSON issues
+            try:
+                # Remove trailing commas
+                fixed = re.sub(r',\s*([}\]])', r'\1', json_str)
+                data = json.loads(fixed)
+            except json.JSONDecodeError:
+                logger.debug(f"Failed to parse response JSON: {json_str[:200]}...")
+                return {}
+
+        return data
+
+    @staticmethod
+    def extract_mechanical_fields(parsed: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract mechanical fields from a parsed ActionResolution.
+
+        Returns a flat dict with key mechanical values for scoring.
+        """
+        result = {
+            "narration_length": len(parsed.get("narration", "")),
+            "success_tier": parsed.get("success_tier"),
+            "margin": parsed.get("margin"),
+        }
+
+        effects = parsed.get("effects", {})
+
+        # Damage
+        damage_list = effects.get("damage", [])
+        if isinstance(damage_list, dict):
+            damage_list = [damage_list]
+        result["damage_count"] = len(damage_list)
+        result["total_base_damage"] = sum((d.get("base_damage") or 0) for d in damage_list if isinstance(d, dict))
+        result["total_dealt"] = sum((d.get("dealt") or 0) for d in damage_list if isinstance(d, dict))
+        result["total_soak"] = sum((d.get("soak") or 0) for d in damage_list if isinstance(d, dict))
+        result["damage_types"] = list(set((d.get("damage_type") or "unknown") for d in damage_list if isinstance(d, dict)))
+
+        # Conditions
+        conditions = effects.get("conditions", [])
+        if isinstance(conditions, dict):
+            conditions = [conditions]
+        result["condition_count"] = len(conditions)
+        result["conditions"] = [
+            {"name": c.get("name", ""), "penalty": c.get("penalty", 0)}
+            for c in conditions if isinstance(c, dict)
+        ]
+
+        # Void changes
+        void_changes = effects.get("void_changes", [])
+        if isinstance(void_changes, dict):
+            void_changes = [void_changes]
+        result["total_void_change"] = sum((v.get("amount") or 0) for v in void_changes if isinstance(v, dict))
+
+        # Soulcredit changes
+        sc_changes = effects.get("soulcredit_changes", [])
+        if isinstance(sc_changes, dict):
+            sc_changes = [sc_changes]
+        result["total_soulcredit"] = sum((s.get("amount") or 0) for s in sc_changes if isinstance(s, dict))
+
+        # Clock updates
+        clock_updates = effects.get("clock_updates", [])
+        if isinstance(clock_updates, dict):
+            clock_updates = [clock_updates]
+        result["clock_update_count"] = len(clock_updates)
+
+        return result
+
+
+# ---------------------------------------------------------------------------
+# Scorers
+# ---------------------------------------------------------------------------
+
+class BaseScorer:
+    """Base class for evaluation scorers."""
+    name: str = "base"
+
+    def score(self, original: Dict[str, Any], replay: Dict[str, Any], case: EvalCase) -> Dict[str, Any]:
+        raise NotImplementedError
+
+
+class DamageComparisonScorer(BaseScorer):
+    """Compare original vs replay base_damage."""
+    name = "damage_comparison"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        orig_bd = original.get("total_base_damage", 0)
+        replay_bd = replay.get("total_base_damage", 0)
+        return {
+            "original_base_damage": orig_bd,
+            "replay_base_damage": replay_bd,
+            "delta": replay_bd - orig_bd,
+            "zero_damage": replay_bd == 0,
+        }
+
+
+class SuppressionTableScorer(BaseScorer):
+    """
+    Check base_damage against margin-based expected ranges.
+
+    Suppressive fire: base_damage should be 0-5 for most margins.
+    Lethal fire: base_damage should be 8-22 based on margin.
+    """
+    name = "suppression_table"
+
+    # Expected suppress damage by margin range
+    SUPPRESS_RANGES = {
+        # (min_margin, max_margin): (min_bd, max_bd)
+        (0, 5): (0, 0),
+        (6, 10): (0, 2),
+        (11, 15): (0, 3),
+        (16, 20): (0, 5),
+        (21, 99): (0, 5),
+    }
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        replay_bd = replay.get("total_base_damage", 0)
+        margin = replay.get("margin") or case.margin or 0
+
+        # Determine expected range
+        expected_min, expected_max = 0, 99
+        for (m_min, m_max), (bd_min, bd_max) in self.SUPPRESS_RANGES.items():
+            if m_min <= abs(margin) <= m_max:
+                expected_min, expected_max = bd_min, bd_max
+                break
+
+        in_range = expected_min <= replay_bd <= expected_max
+
+        # Check conditions
+        has_condition = replay.get("condition_count", 0) > 0
+        condition_names = [c.get("name", "") for c in replay.get("conditions", [])]
+
+        return {
+            "base_damage": replay_bd,
+            "margin": margin,
+            "expected_range": [expected_min, expected_max],
+            "in_range": in_range,
+            "has_condition": has_condition,
+            "condition_names": condition_names,
+        }
+
+
+class SoulcreditScorer(BaseScorer):
+    """Compare original vs replay soulcredit totals."""
+    name = "soulcredit"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        orig_sc = original.get("total_soulcredit", 0)
+        replay_sc = replay.get("total_soulcredit", 0)
+        return {
+            "original_soulcredit": orig_sc,
+            "replay_soulcredit": replay_sc,
+            "delta": replay_sc - orig_sc,
+        }
+
+
+SCORER_REGISTRY = {
+    "damage_comparison": DamageComparisonScorer,
+    "suppression_table": SuppressionTableScorer,
+    "soulcredit": SoulcreditScorer,
+}
+
+
+# ---------------------------------------------------------------------------
+# ReplayEngine
+# ---------------------------------------------------------------------------
+
+class ReplayEngine:
+    """Replays eval cases against LLMs with concurrent execution."""
+
+    def __init__(
+        self,
+        workers: int = 4,
+        request_delay: float = 0.5,
+        proxy_url: Optional[str] = None,
+        proxy_strategy: Optional[str] = None,
+        verbose: bool = False,
+    ):
+        self.workers = workers
+        self.request_delay = request_delay
+        self.proxy_url = proxy_url
+        self.proxy_strategy = proxy_strategy
+        self.verbose = verbose
+        self._clients: Dict[str, Any] = {}  # provider → UnifiedAIClient
+
+    def _get_client(self, provider: str):
+        """Get or create a UnifiedAIClient for the given provider."""
+        if provider not in self._clients:
+            from aeonisk.multiagent.unified_llm_client import UnifiedAIClient
+            kwargs = {"provider": provider}
+            if self.proxy_url:
+                kwargs["use_proxy"] = True
+                kwargs["proxy_url"] = self.proxy_url
+                if self.proxy_strategy:
+                    kwargs["proxy_strategy"] = self.proxy_strategy
+            self._clients[provider] = UnifiedAIClient(**kwargs)
+        return self._clients[provider]
+
+    def replay_case(
+        self,
+        case: EvalCase,
+        modified_system_prompt: str,
+        provider: str,
+        model: str,
+        temperature: float = 0.7,
+        max_tokens: int = 4000,
+    ) -> Tuple[str, float]:
+        """
+        Replay a single case and return (response_text, latency_ms).
+        """
+        client = self._get_client(provider)
+
+        # Auto-fix temperature for models that only support 1.0
+        if "gpt-5-mini" in model:
+            temperature = 1.0
+
+        messages = [
+            {"role": "system", "content": modified_system_prompt},
+            {"role": "user", "content": case.user_prompt},
+        ]
+
+        if self.verbose:
+            print(f"\n--- {case.case_id} → {provider}:{model} ---", file=sys.stderr)
+            print(f"  System prompt: {len(modified_system_prompt)} chars", file=sys.stderr)
+            print(f"  User prompt:   {len(case.user_prompt)} chars", file=sys.stderr)
+            # Show last 200 chars of user prompt (the action being resolved)
+            snippet = case.user_prompt[-200:].replace("\n", " ").strip()
+            print(f"  User tail:     ...{snippet}", file=sys.stderr)
+
+        start = time.time()
+        response = client.chat_completion(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        latency_ms = (time.time() - start) * 1000
+
+        # Handle empty/whitespace responses
+        if not response or not response.strip():
+            raise ValueError("LLM returned empty/whitespace response")
+
+        if self.verbose:
+            # Show response snippet
+            resp_snippet = response[:300].replace("\n", " ").strip()
+            print(f"  Response:      {len(response)} chars, {latency_ms:.0f}ms", file=sys.stderr)
+            print(f"  Response head: {resp_snippet}...", file=sys.stderr)
+
+        if self.request_delay > 0:
+            time.sleep(self.request_delay)
+
+        return response, latency_ms
+
+    def replay_batch(
+        self,
+        cases: List[EvalCase],
+        modified_prompts: Dict[str, str],  # case_id → modified system prompt
+        model_specs: List[Tuple[str, str]],  # [(provider, model), ...]
+        scorers: List[BaseScorer],
+        save_prompts: bool = False,
+        completed_keys: Optional[Set[Tuple[str, str]]] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4000,
+        on_result: Optional[Callable[[ReplayResult], None]] = None,
+    ) -> List[ReplayResult]:
+        """
+        Replay all cases against all models with concurrent execution.
+
+        Args:
+            cases: List of eval cases
+            modified_prompts: case_id → modified system prompt
+            model_specs: List of (provider, model) tuples to replay against
+            scorers: Scoring strategies
+            save_prompts: Include full prompts in results (for fine-tuning)
+            completed_keys: Set of (case_id, model_label) already done (for resume)
+            temperature: LLM temperature
+            max_tokens: LLM max tokens
+            on_result: Optional callback invoked with each result as it completes
+
+        Returns:
+            List of ReplayResult
+        """
+        if completed_keys is None:
+            completed_keys = set()
+
+        # Build work items: (case, provider, model) tuples
+        work_items = []
+        for case in cases:
+            for provider, model in model_specs:
+                model_label = f"{provider}:{model}"
+                key = (case.case_id, model_label)
+                if key in completed_keys:
+                    continue
+                work_items.append((case, provider, model))
+
+        total = len(work_items)
+        if total == 0:
+            logger.info("No work items to replay (all completed or filtered)")
+            return []
+
+        logger.info(f"Replaying {total} cases ({len(cases)} cases × {len(model_specs)} models, {len(completed_keys)} already done)")
+
+        results = []
+        completed = 0
+
+        def _replay_one(case: EvalCase, provider: str, model: str) -> ReplayResult:
+            """Worker function for a single replay."""
+            model_label = f"{provider}:{model}"
+            modified_prompt = modified_prompts.get(case.case_id, case.system_prompt)
+
+            # Parse original response
+            orig_parsed = MechanicalExtractor.parse_response(case.response_text)
+            orig_fields = MechanicalExtractor.extract_mechanical_fields(orig_parsed)
+
+            try:
+                response_text, latency_ms = self.replay_case(
+                    case, modified_prompt, provider, model,
+                    temperature=temperature, max_tokens=max_tokens,
+                )
+                replay_parsed = MechanicalExtractor.parse_response(response_text)
+                replay_fields = MechanicalExtractor.extract_mechanical_fields(replay_parsed)
+
+                # Score
+                score_results = {}
+                for scorer in scorers:
+                    score_results[scorer.name] = scorer.score(orig_fields, replay_fields, case)
+
+                result = ReplayResult(
+                    case_id=case.case_id,
+                    condition=case.condition,
+                    round_num=case.round_num,
+                    action_type=case.action_type,
+                    original_model=case.original_model,
+                    eval_model=model_label,
+                    margin=case.margin,
+                    original=orig_fields,
+                    replay=replay_fields,
+                    scores=score_results,
+                    latency_ms=latency_ms,
+                    player_action_text=case.player_action_text,
+                )
+                if save_prompts:
+                    result.system_prompt = modified_prompt
+                    result.user_prompt = case.user_prompt
+                    result.replay_response = response_text
+
+                return result
+
+            except Exception as e:
+                logger.error(f"Replay failed for {case.case_id} with {model_label}: {e}")
+                return ReplayResult(
+                    case_id=case.case_id,
+                    condition=case.condition,
+                    round_num=case.round_num,
+                    action_type=case.action_type,
+                    original_model=case.original_model,
+                    eval_model=model_label,
+                    margin=case.margin,
+                    original=orig_fields,
+                    replay={},
+                    scores={},
+                    error=str(e),
+                    player_action_text=case.player_action_text,
+                )
+
+        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+            future_to_item = {
+                executor.submit(_replay_one, case, provider, model): (case, provider, model)
+                for case, provider, model in work_items
+            }
+
+            for future in as_completed(future_to_item):
+                result = future.result()
+                results.append(result)
+                if on_result:
+                    on_result(result)
+                completed += 1
+
+                # Progress
+                status = "OK" if not result.error else f"ERR: {result.error[:60]}"
+                if completed % 10 == 0 or completed == total:
+                    print(f"  [{completed}/{total}] {status}", file=sys.stderr)
+
+        return results
+
+
+# ---------------------------------------------------------------------------
+# ResultStore
+# ---------------------------------------------------------------------------
+
+class ResultStore:
+    """Stores and loads results as JSONL, streaming each result to disk."""
+
+    def __init__(self, output_path: Optional[str] = None):
+        self.output_path = output_path
+        self._file = None
+        self._count = 0
+
+    def open(self, append: bool = False):
+        """Create parent dirs and open output file for streaming writes."""
+        if not self.output_path:
+            return
+        Path(self.output_path).parent.mkdir(parents=True, exist_ok=True)
+        mode = "a" if append else "w"
+        self._file = open(self.output_path, mode)
+        self._count = 0
+
+    def close(self):
+        """Flush and close the output file."""
+        if self._file:
+            self._file.close()
+            self._file = None
+            if self._count:
+                logger.info(f"Saved {self._count} results to {self.output_path}")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    @staticmethod
+    def _result_to_dict(r: ReplayResult) -> Dict[str, Any]:
+        data = {
+            "case_id": r.case_id,
+            "condition": r.condition,
+            "round": r.round_num,
+            "action_type": r.action_type,
+            "original_model": r.original_model,
+            "eval_model": r.eval_model,
+            "margin": r.margin,
+            "original": r.original,
+            "replay": r.replay,
+            "scores": r.scores,
+            "latency_ms": r.latency_ms,
+        }
+        if r.player_action_text is not None:
+            data["player_action_text"] = r.player_action_text
+        if r.error:
+            data["error"] = r.error
+        if r.system_prompt is not None:
+            data["system_prompt"] = r.system_prompt
+        if r.user_prompt is not None:
+            data["user_prompt"] = r.user_prompt
+        if r.replay_response is not None:
+            data["replay_response"] = r.replay_response
+        return data
+
+    def append_result(self, result: ReplayResult):
+        """Write a single result to the output file immediately."""
+        if not self._file:
+            return
+        self._file.write(json.dumps(self._result_to_dict(result)) + "\n")
+        self._file.flush()
+        self._count += 1
+
+    def load_completed_keys(self) -> Set[Tuple[str, str]]:
+        """Load (case_id, model) pairs from existing output file."""
+        keys = set()
+        if not self.output_path or not Path(self.output_path).exists():
+            return keys
+        with open(self.output_path, "r") as f:
+            for line in f:
+                try:
+                    data = json.loads(line.strip())
+                    keys.add((data["case_id"], data["eval_model"]))
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        return keys
+
+    def save_results(self, results: List[ReplayResult], append: bool = False):
+        """Batch-save results to JSONL file (used by self-judge iterations)."""
+        if not self.output_path:
+            return
+        Path(self.output_path).parent.mkdir(parents=True, exist_ok=True)
+        mode = "a" if append else "w"
+        with open(self.output_path, mode) as f:
+            for r in results:
+                f.write(json.dumps(self._result_to_dict(r)) + "\n")
+        logger.info(f"Saved {len(results)} results to {self.output_path}")
+
+
+# ---------------------------------------------------------------------------
+# ReportGenerator
+# ---------------------------------------------------------------------------
+
+class ReportGenerator:
+    """Generates human-readable summary reports from results."""
+
+    @staticmethod
+    def generate(
+        results: List[ReplayResult],
+        module_name: str,
+        scorers: List[BaseScorer],
+    ) -> Tuple[str, Dict[str, Any]]:
+        """
+        Generate a human-readable report and structured score dict.
+
+        Returns:
+            (report_text, score_dict)
+        """
+        if not results:
+            return "No results to report.\n", {}
+
+        # Filter out errors
+        valid = [r for r in results if not r.error]
+        errors = [r for r in results if r.error]
+
+        lines = []
+        lines.append(f"Prompt Eval: {module_name}")
+        lines.append(f"{len(valid)} valid results, {len(errors)} errors")
+        lines.append("")
+
+        # Group by model
+        by_model: Dict[str, List[ReplayResult]] = {}
+        for r in valid:
+            by_model.setdefault(r.eval_model, []).append(r)
+
+        # Overall score dict for self-judging
+        score_dict: Dict[str, Any] = {}
+
+        # Per-scorer reports
+        for scorer in scorers:
+            lines.append(f"--- {scorer.name} ---")
+
+            if scorer.name == "damage_comparison":
+                lines.append(f"{'Model':<30} | {'Avg BD (orig→new)':<20} | {'Δ':>6} | {'Zero dmg':>8}")
+                lines.append("-" * 75)
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores]
+                    if not scored:
+                        continue
+                    orig_avg = sum(r.scores[scorer.name]["original_base_damage"] for r in scored) / len(scored)
+                    new_avg = sum(r.scores[scorer.name]["replay_base_damage"] for r in scored) / len(scored)
+                    delta = new_avg - orig_avg
+                    zero_pct = sum(1 for r in scored if r.scores[scorer.name]["zero_damage"]) / len(scored) * 100
+                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f} | {zero_pct:>6.0f}%")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "avg_base_damage": new_avg,
+                        "zero_damage_pct": zero_pct,
+                        "delta": delta,
+                    }
+
+            elif scorer.name == "suppression_table":
+                lines.append(f"{'Model':<30} | {'Avg BD':>6} | {'% in range':>10} | {'% w/ cond':>10}")
+                lines.append("-" * 70)
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores]
+                    if not scored:
+                        continue
+                    avg_bd = sum(r.scores[scorer.name]["base_damage"] for r in scored) / len(scored)
+                    in_range_pct = sum(1 for r in scored if r.scores[scorer.name]["in_range"]) / len(scored) * 100
+                    has_cond_pct = sum(1 for r in scored if r.scores[scorer.name]["has_condition"]) / len(scored) * 100
+                    lines.append(f"{model:<30} | {avg_bd:>6.1f} | {in_range_pct:>8.0f}% | {has_cond_pct:>8.0f}%")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "avg_base_damage": avg_bd,
+                        "in_range_pct": in_range_pct,
+                        "has_condition_pct": has_cond_pct,
+                    }
+
+            elif scorer.name == "soulcredit":
+                lines.append(f"{'Model':<30} | {'Avg SC (orig→new)':<20} | {'Δ':>6}")
+                lines.append("-" * 65)
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores]
+                    if not scored:
+                        continue
+                    orig_avg = sum(r.scores[scorer.name]["original_soulcredit"] for r in scored) / len(scored)
+                    new_avg = sum(r.scores[scorer.name]["replay_soulcredit"] for r in scored) / len(scored)
+                    delta = new_avg - orig_avg
+                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f}")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "avg_soulcredit": new_avg,
+                        "delta": delta,
+                    }
+
+            lines.append("")
+
+        if errors:
+            lines.append(f"--- Errors ({len(errors)}) ---")
+            for r in errors[:5]:
+                lines.append(f"  {r.case_id} / {r.eval_model}: {r.error[:100]}")
+            if len(errors) > 5:
+                lines.append(f"  ... and {len(errors) - 5} more")
+            lines.append("")
+
+        report = "\n".join(lines)
+        return report, score_dict
+
+
+# ---------------------------------------------------------------------------
+# SelfJudge
+# ---------------------------------------------------------------------------
+
+class SelfJudge:
+    """Automatic prompt iteration loop using an LLM judge to rewrite modules."""
+
+    def __init__(
+        self,
+        goal_file: str,
+        judge_model: str = "anthropic:claude-sonnet-4-5",
+        max_iterations: int = 5,
+        confirm_each: bool = False,
+        proxy_url: Optional[str] = None,
+        proxy_strategy: Optional[str] = None,
+    ):
+        self.goal = self._load_goal(goal_file)
+        self.judge_provider, self.judge_model = parse_model_spec(judge_model)
+        self.max_iterations = self.goal.get("max_iterations", max_iterations)
+        self.confirm_each = confirm_each
+        self.proxy_url = proxy_url
+        self.proxy_strategy = proxy_strategy
+
+    def _load_goal(self, goal_file: str) -> Dict[str, Any]:
+        with open(goal_file, "r") as f:
+            return yaml.safe_load(f)
+
+    def check_targets(self, score_dict: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Check if all target metrics are met.
+
+        Returns:
+            (all_met, details) where details maps target_name → {target, actual, met}
+        """
+        targets = self.goal.get("targets", {})
+        details = {}
+        all_met = True
+
+        for scorer_name, scorer_targets in targets.items():
+            for metric_name, target_value in scorer_targets.items():
+                # Find actual value across all models (use worst-case / average)
+                actual_values = []
+                if scorer_name in score_dict:
+                    for model_scores in score_dict[scorer_name].values():
+                        if metric_name in model_scores:
+                            actual_values.append(model_scores[metric_name])
+
+                if not actual_values:
+                    details[f"{scorer_name}.{metric_name}"] = {
+                        "target": target_value,
+                        "actual": None,
+                        "met": False,
+                    }
+                    all_met = False
+                    continue
+
+                # For "max_*" targets, check all values are below
+                # For "min_*" or "*_pct" targets, check average meets threshold
+                if metric_name.startswith("max_"):
+                    actual = max(actual_values)
+                    met = actual <= target_value
+                else:
+                    actual = sum(actual_values) / len(actual_values)
+                    met = actual >= target_value
+
+                details[f"{scorer_name}.{metric_name}"] = {
+                    "target": target_value,
+                    "actual": round(actual, 1),
+                    "met": met,
+                }
+                if not met:
+                    all_met = False
+
+        return all_met, details
+
+    def build_judge_prompt(
+        self,
+        current_module_content: str,
+        score_dict: Dict[str, Any],
+        target_details: Dict[str, Any],
+        failed_examples: List[ReplayResult],
+        retry_context: Optional[str] = None,
+        iteration_history: Optional[List[Dict[str, Any]]] = None,
+        success_examples: Optional[List[ReplayResult]] = None,
+    ) -> str:
+        """Build the prompt for the judge LLM to rewrite the module."""
+        lines = [
+            "You are a prompt engineer optimizing a DM resolution prompt module for a tabletop RPG system.",
+            "",
+            "## Current Prompt Module",
+            "```yaml",
+            f"content: |-",
+        ]
+        for line in current_module_content.split("\n"):
+            lines.append(f"  {line}")
+        lines.append("```")
+        lines.append("")
+
+        # Iteration history table (between module and scoring results)
+        if iteration_history:
+            lines.append(f"## Iteration History ({len(iteration_history)} previous iterations)")
+            lines.append("")
+
+            # Build column names from target metric details
+            metric_names = []
+            if iteration_history:
+                first_details = iteration_history[0].get("details", {})
+                metric_names = list(first_details.keys())
+
+            # Table header
+            header = "| Iter | Score% | Met |"
+            separator = "|------|--------|-----|"
+            for name in metric_names:
+                short = name.split(".")[-1]
+                header += f" {short} |"
+                separator += "-" * (len(short) + 2) + "|"
+            lines.append(header)
+            lines.append(separator)
+
+            # Table rows
+            for entry in iteration_history:
+                row = f"| {entry['iteration']} | {entry['score_pct']:.0f}% | {entry['targets_met']}/{entry['targets_total']} |"
+                details = entry.get("details", {})
+                for name in metric_names:
+                    d = details.get(name, {})
+                    actual = d.get("actual", "?")
+                    status = "PASS" if d.get("met") else "FAIL"
+                    row += f" {actual} {status} |"
+                lines.append(row)
+
+            lines.append("")
+
+            # Last transition summary
+            if len(iteration_history) >= 2:
+                prev = iteration_history[-2]
+                curr = iteration_history[-1]
+                transitions = []
+                for name in metric_names:
+                    prev_actual = prev.get("details", {}).get(name, {}).get("actual")
+                    curr_actual = curr.get("details", {}).get(name, {}).get("actual")
+                    if prev_actual is not None and curr_actual is not None:
+                        short = name.split(".")[-1]
+                        if isinstance(prev_actual, (int, float)) and isinstance(curr_actual, (int, float)):
+                            # max_* metrics: lower is better; others: higher is better
+                            if short.startswith("max_"):
+                                direction = "improved" if curr_actual <= prev_actual else "regressed"
+                            else:
+                                direction = "improved" if curr_actual >= prev_actual else "regressed"
+                            transitions.append(f"{short}: {prev_actual}\u2192{curr_actual} ({direction})")
+                if transitions:
+                    lines.append(f"Last transition: {'; '.join(transitions)}")
+                    lines.append("")
+
+        # Scoring results
+        lines.append("## Scoring Results vs Targets")
+        lines.append("")
+        for metric, info in target_details.items():
+            status = "PASS" if info["met"] else "FAIL"
+            lines.append(f"- **{metric}**: actual={info['actual']}, target={info['target']} \u2192 {status}")
+        lines.append("")
+
+        # Score breakdown
+        lines.append("## Detailed Scores by Model")
+        lines.append(f"```json\n{json.dumps(score_dict, indent=2)}\n```")
+        lines.append("")
+
+        # Success examples (anchor for what "good" looks like)
+        if success_examples:
+            show = success_examples[:3]
+            lines.append(f"## Successful Examples ({len(show)} shown)")
+            for i, r in enumerate(show):
+                lines.append(f"\n### Success {i+1} ({r.case_id})")
+                if r.player_action_text:
+                    lines.append(f"- **Player action:** \"{r.player_action_text}\"")
+                lines.append(f"- **Action type:** {r.action_type}")
+                lines.append(f"- **Margin:** {r.margin}")
+                lines.append(f"- **base_damage:** {r.replay.get('total_base_damage', '?')}")
+                lines.append(f"- **Conditions:** {r.replay.get('conditions', [])}")
+                for sname, sresult in r.scores.items():
+                    lines.append(f"- **{sname}:** {json.dumps(sresult)}")
+            lines.append("")
+
+        # Failed examples (with player action and original comparison)
+        if failed_examples:
+            lines.append(f"## Failed Examples ({len(failed_examples)} shown)")
+            for i, r in enumerate(failed_examples[:5]):
+                lines.append(f"\n### Example {i+1}")
+                if r.player_action_text:
+                    lines.append(f"- **Player action:** \"{r.player_action_text}\"")
+                lines.append(f"- **Action type:** {r.action_type}")
+                lines.append(f"- **Margin:** {r.margin}")
+                # Original vs replay comparison
+                orig_bd = r.original.get("total_base_damage", "?")
+                replay_bd = r.replay.get("total_base_damage", "?")
+                lines.append(f"- **Original base_damage:** {orig_bd} \u2192 **Replay base_damage:** {replay_bd}")
+                orig_conds = r.original.get("conditions", [])
+                replay_conds = r.replay.get("conditions", [])
+                lines.append(f"- **Original conditions:** {orig_conds} \u2192 **Replay conditions:** {replay_conds}")
+                if r.replay_response:
+                    narration = MechanicalExtractor.parse_response(r.replay_response).get("narration", "")
+                    if narration:
+                        lines.append(f"- **Narration excerpt:** {narration[:200]}...")
+                for sname, sresult in r.scores.items():
+                    lines.append(f"- **{sname}:** {json.dumps(sresult)}")
+            lines.append("")
+
+        # Goal description
+        goal_desc = self.goal.get("description", "")
+        if goal_desc:
+            lines.append(f"## Goal Description")
+            lines.append(goal_desc)
+            lines.append("")
+
+        if retry_context:
+            lines.append("## IMPORTANT: Previous Attempt Failed")
+            lines.append(retry_context)
+            lines.append("")
+
+        lines.append("## Instruction")
+        lines.append(
+            "Rewrite the prompt module content to better achieve the targets above. "
+            "Return ONLY the rewritten content (what goes inside the `content: |-` field). "
+            "Do NOT include YAML frontmatter (version, module, description, etc.). "
+            "Keep the same section structure and formatting style."
+        )
+
+        return "\n".join(lines)
+
+    def call_judge(self, prompt: str) -> str:
+        """Call the judge model to rewrite the module."""
+        from aeonisk.multiagent.unified_llm_client import UnifiedAIClient
+        kwargs = {"provider": self.judge_provider}
+        if self.proxy_url:
+            kwargs["use_proxy"] = True
+            kwargs["proxy_url"] = self.proxy_url
+            if self.proxy_strategy:
+                kwargs["proxy_strategy"] = self.proxy_strategy
+        client = UnifiedAIClient(**kwargs)
+
+        response = client.chat_completion(
+            messages=[
+                {"role": "system", "content": "You are a prompt engineering expert. Respond only with the rewritten prompt content."},
+                {"role": "user", "content": prompt},
+            ],
+            model=self.judge_model,
+            temperature=0.7,
+            max_tokens=8000,
+        )
+        # Strip any markdown fencing the judge might add
+        text = response.strip()
+        if text.startswith("```"):
+            text = re.sub(r'^```(?:yaml|text)?\s*\n?', '', text)
+            text = re.sub(r'\n?\s*```$', '', text)
+        return text.strip()
+
+    def run(
+        self,
+        initial_module_path: str,
+        module_swapper: ModuleSwapper,
+        session_extractor: SessionExtractor,
+        replay_engine: ReplayEngine,
+        scorers: List[BaseScorer],
+        model_specs: List[Tuple[str, str]],
+        output_dir: str,
+        save_prompts: bool = False,
+        temperature: float = 0.7,
+        max_tokens: int = 4000,
+    ) -> str:
+        """
+        Run the self-judging iteration loop.
+
+        Returns:
+            Path to the best module YAML file.
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Load initial module
+        module_name, current_content = module_swapper.load_replacement(initial_module_path)
+
+        # Extract cases using goal filters
+        eval_subset = self.goal.get("eval_subset", {})
+        cases = session_extractor.extract_cases(
+            action_type_filter=eval_subset.get("action_type"),
+            intent_filter=eval_subset.get("intent_filter"),
+            max_cases=eval_subset.get("max_cases"),
+            module_swapper=module_swapper,
+        )
+
+        if not cases:
+            print("No eval cases found matching goal filters. Aborting.", file=sys.stderr)
+            return initial_module_path
+
+        best_content = current_content
+        best_score_value = -float("inf")
+        best_iteration = 0
+        convergence = []
+        min_improvement = self.goal.get("convergence", {}).get("min_improvement", 2)
+
+        for iteration in range(1, self.max_iterations + 1):
+            print(f"\n{'='*60}", file=sys.stderr)
+            print(f"Self-Judge Iteration {iteration}/{self.max_iterations}", file=sys.stderr)
+            print(f"{'='*60}", file=sys.stderr)
+
+            # Build modified prompts for all cases
+            modified_prompts = {}
+            for case in cases:
+                try:
+                    modified_prompts[case.case_id] = module_swapper.swap_module(
+                        case.system_prompt, module_name, current_content
+                    )
+                except ValueError:
+                    # Module not found in this case's prompt - use original
+                    modified_prompts[case.case_id] = case.system_prompt
+
+            # Replay
+            results = replay_engine.replay_batch(
+                cases, modified_prompts, model_specs, scorers,
+                save_prompts=True,  # Need examples for judge
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            # Score & report
+            report, score_dict = ReportGenerator.generate(results, module_name, scorers)
+            print(report, file=sys.stderr)
+
+            # Save iteration artifacts
+            iter_module_path = output_path / f"iteration_{iteration}_module.yaml"
+            iter_results_path = output_path / f"iteration_{iteration}_results.jsonl"
+            iter_report_path = output_path / f"iteration_{iteration}_report.txt"
+
+            # Save module YAML
+            _write_module_yaml(iter_module_path, module_name, current_content,
+                               description=f"Self-judge iteration {iteration}")
+
+            ResultStore(str(iter_results_path)).save_results(results)
+            with open(iter_report_path, "w") as f:
+                f.write(report)
+
+            # Check targets
+            all_met, target_details = self.check_targets(score_dict)
+
+            # Compute aggregate score (average of "met" percentage)
+            met_count = sum(1 for d in target_details.values() if d["met"])
+            score_value = met_count / max(len(target_details), 1) * 100
+
+            convergence.append({
+                "iteration": iteration,
+                "score_pct": score_value,
+                "targets_met": met_count,
+                "targets_total": len(target_details),
+                "details": target_details,
+            })
+
+            # Track best and rollback on regression
+            if score_value > best_score_value:
+                best_score_value = score_value
+                best_content = current_content
+                best_iteration = iteration
+            elif score_value < best_score_value:
+                print(f"  Score regressed ({score_value:.0f}% < best {best_score_value:.0f}% from iter {best_iteration}). Rolling back.", file=sys.stderr)
+                current_content = best_content
+
+            if all_met:
+                print(f"\nAll targets met at iteration {iteration}!", file=sys.stderr)
+                break
+
+            # Check convergence (must stall vs both best AND previous)
+            if len(convergence) >= 2:
+                improvement_vs_best = convergence[-1]["score_pct"] - best_score_value
+                improvement_vs_prev = convergence[-1]["score_pct"] - convergence[-2]["score_pct"]
+                if improvement_vs_best <= 0 and abs(improvement_vs_prev) < min_improvement and iteration > 2:
+                    print(f"\nConverged (vs best: {improvement_vs_best:+.1f}%, vs prev: {improvement_vs_prev:+.1f}%). Stopping.", file=sys.stderr)
+                    break
+
+            # Confirm with user if requested
+            if self.confirm_each:
+                print(f"\nIteration {iteration} complete. Continue? [y/n] ", end="", file=sys.stderr)
+                answer = input().strip().lower()
+                if answer != "y":
+                    print("Stopped by user.", file=sys.stderr)
+                    break
+
+            # Get failed and success examples for judge prompt
+            failed = [r for r in results if r.scores and not all(
+                s.get("in_range", True) for s in r.scores.values() if isinstance(s, dict)
+            )]
+            success = [r for r in results if r.scores and all(
+                s.get("in_range", True) for s in r.scores.values() if isinstance(s, dict)
+            )]
+
+            # Call judge to rewrite (with rollback + retry)
+            max_retries = 2
+            for retry in range(max_retries + 1):
+                retry_context = None
+                if retry > 0:
+                    retry_context = (
+                        f"Your previous rewrite (attempt {retry}) made scores worse or didn't improve enough. "
+                        f"Try a fundamentally different approach to the prompt structure."
+                    )
+
+                judge_prompt = self.build_judge_prompt(
+                    current_content, score_dict, target_details, failed,
+                    retry_context=retry_context,
+                    iteration_history=convergence,
+                    success_examples=success,
+                )
+
+                print(f"  Calling judge model ({self.judge_provider}:{self.judge_model})...", file=sys.stderr)
+                new_content = self.call_judge(judge_prompt)
+
+                if not new_content or len(new_content) < 100:
+                    print(f"  Judge returned empty/short response, retrying...", file=sys.stderr)
+                    continue
+
+                current_content = new_content
+                break
+
+        # Save best module
+        best_path = output_path / "final_module.yaml"
+        _write_module_yaml(best_path, module_name, best_content,
+                           description="Best-scoring module from self-judge iteration")
+
+        # Save convergence
+        convergence_path = output_path / "convergence.json"
+        with open(convergence_path, "w") as f:
+            json.dump(convergence, f, indent=2)
+
+        print(f"\nBest module saved to: {best_path}", file=sys.stderr)
+        print(f"Convergence data: {convergence_path}", file=sys.stderr)
+
+        # Phase 2: Validation on full dataset (if configured)
+        validation_config = self.goal.get("validation", {})
+        if validation_config.get("use_all_cases"):
+            print(f"\n{'='*60}", file=sys.stderr)
+            print(f"Phase 2: Validation (full dataset)", file=sys.stderr)
+            print(f"{'='*60}", file=sys.stderr)
+
+            eval_subset = self.goal.get("eval_subset", {})
+            validation_cases = session_extractor.extract_cases(
+                action_type_filter=eval_subset.get("action_type"),
+                intent_filter=eval_subset.get("intent_filter"),
+                max_cases=None,  # No limit — use ALL matching cases
+                module_swapper=module_swapper,
+            )
+
+            if validation_cases:
+                # Build modified prompts with best content
+                validation_prompts = {}
+                for case in validation_cases:
+                    try:
+                        validation_prompts[case.case_id] = module_swapper.swap_module(
+                            case.system_prompt, module_name, best_content
+                        )
+                    except ValueError:
+                        validation_prompts[case.case_id] = case.system_prompt
+
+                validation_results = replay_engine.replay_batch(
+                    validation_cases, validation_prompts, model_specs, scorers,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+
+                # Save validation artifacts
+                validation_results_path = output_path / "validation_results.jsonl"
+                ResultStore(str(validation_results_path)).save_results(validation_results)
+
+                validation_report, validation_scores = ReportGenerator.generate(
+                    validation_results, module_name, scorers
+                )
+                validation_report_path = output_path / "validation_report.txt"
+                with open(validation_report_path, "w") as f:
+                    f.write(validation_report)
+
+                print(f"\n--- Validation (full dataset: {len(validation_cases)} cases) ---", file=sys.stderr)
+                print(validation_report, file=sys.stderr)
+
+                _, validation_details = self.check_targets(validation_scores)
+                for metric, info in validation_details.items():
+                    status = "PASS" if info["met"] else "FAIL"
+                    print(f"  {metric}: {info['actual']} (target {info['target']}) \u2192 {status}", file=sys.stderr)
+            else:
+                print("  No validation cases found.", file=sys.stderr)
+
+        return str(best_path)
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Prompt Evaluation Harness - replay DM resolution calls with swapped prompt modules",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Scan available cases
+  %(prog)s --swap-module path/to/module.yaml --scan-only
+
+  # Quick eval against one model
+  %(prog)s --swap-module path/to/module.yaml --models openai:gpt-5-mini --max-cases 20
+
+  # Full eval with proxy
+  %(prog)s --swap-module path/to/module.yaml \\
+    --models openai:gpt-5-mini deepinfra:deepseek-ai/DeepSeek-V3.2 \\
+    --action-type combat --intent-filter suppress \\
+    --scorers suppression_table damage_comparison \\
+    --proxy http://localhost:8000 --batch
+
+  # Self-judging iteration
+  %(prog)s --swap-module path/to/module.yaml \\
+    --self-judge --goal-file goals/suppress_goals.yaml \\
+    --judge-model anthropic:claude-sonnet-4-5 --max-iterations 5
+""",
+    )
+
+    # Required
+    parser.add_argument(
+        "--swap-module", required=True,
+        help="Path to replacement YAML module (must have 'module' and 'content' fields)",
+    )
+
+    # Session data
+    parser.add_argument(
+        "--sessions", nargs="+", type=str, default=None,
+        help="Override session data directories (default: lethality experiment dirs)",
+    )
+
+    # Models
+    parser.add_argument(
+        "--models", nargs="+", default=["openai:gpt-5-mini"],
+        help="Models as provider:model (e.g., openai:gpt-5-mini deepinfra:deepseek-ai/DeepSeek-V3.2 grok:grok-4-latest)",
+    )
+
+    # Workers & rate limiting
+    parser.add_argument("--workers", type=int, default=4, help="Concurrent replay threads (default: 4)")
+    parser.add_argument(
+        "--request-delay", type=float, default=None,
+        help="Seconds between requests per worker (default: 0.5 direct, 0.0 proxy)",
+    )
+
+    # Proxy
+    parser.add_argument("--proxy", type=str, default=None, help="Proxy URL (e.g., http://localhost:8000)")
+    parser.add_argument("--batch", action="store_true", help="Use proxy in batch mode (50%% cost savings)")
+    parser.add_argument("--direct", action="store_true", help="Use proxy in direct mode (immediate)")
+
+    # Filters
+    parser.add_argument("--action-type", type=str, default=None, help="Filter by action type (combat, investigate, ...)")
+    parser.add_argument("--intent-filter", type=str, default=None, help="Keyword match on player action text")
+    parser.add_argument("--original-model", type=str, default=None, help="Filter by original model")
+    parser.add_argument("--module-filter", type=str, default=None, help="Only cases where module was detected")
+    parser.add_argument(
+        "--margin-range", type=str, default=None,
+        help="Filter by margin range, e.g. '11-99'",
+    )
+    parser.add_argument("--max-cases", type=int, default=None, help="Limit number of cases")
+
+    # Scoring
+    parser.add_argument(
+        "--scorers", nargs="+", default=["damage_comparison"],
+        choices=list(SCORER_REGISTRY.keys()),
+        help="Scoring strategies (default: damage_comparison)",
+    )
+
+    # Output
+    parser.add_argument(
+        "--output-dir", type=str, default=None,
+        help="Output directory (default: results/eval_<timestamp>/). Contains metadata.json, swap_module.yaml, results.jsonl, report.txt",
+    )
+
+    # Modes
+    parser.add_argument("--scan-only", action="store_true", help="Count/list cases without calling LLMs")
+    parser.add_argument("--dry-run", action="store_true", help="Show modified prompts without calling LLMs")
+    parser.add_argument("--resume", action="store_true", help="Skip completed cases in output file")
+    parser.add_argument("--save-prompts", action="store_true", help="Include full prompts in output (for fine-tuning)")
+
+    # LLM params
+    parser.add_argument("--temperature", type=float, default=0.7, help="LLM temperature (default: 0.7)")
+    parser.add_argument("--max-tokens", type=int, default=4000, help="LLM max tokens (default: 4000)")
+
+    # Self-judging
+    parser.add_argument("--self-judge", action="store_true", help="Enable self-judging iteration loop")
+    parser.add_argument("--goal-file", type=str, default=None, help="YAML file defining target metrics")
+    parser.add_argument("--judge-model", type=str, default="anthropic:claude-sonnet-4-5", help="Judge model as provider:model (default: anthropic:claude-sonnet-4-5)")
+    parser.add_argument("--max-iterations", type=int, default=5, help="Max self-judge iterations")
+    parser.add_argument("--confirm-each-iteration", action="store_true", help="Pause between self-judge iterations")
+
+    # Verbosity
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+
+    return parser.parse_args(argv)
+
+
+def _create_output_dir(
+    args: argparse.Namespace,
+    module_name: str,
+    module_content: str,
+    model_specs: List[Tuple[str, str]],
+) -> Path:
+    """
+    Create a timestamped output directory with metadata and the swap module.
+
+    Structure:
+        <output_dir>/eval_<timestamp>_<uuid>/
+            metadata.json       # Run config
+            swap_module.yaml    # The exact prompt module used
+            results.jsonl       # (created later by ResultStore)
+            report.txt          # (created later)
+
+    If --resume and the output_dir already exists as a timestamped eval dir
+    (contains metadata.json), reuse it instead of creating a new one.
+    """
+    base_dir = Path(args.output_dir or "results")
+
+    # Resume: if output_dir points to an existing eval dir, reuse it
+    if args.resume and base_dir.exists() and (base_dir / "metadata.json").exists():
+        return base_dir
+
+    # Create timestamped subdirectory
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    run_uuid = str(uuid.uuid4())[:8]
+    output_dir = base_dir / f"eval_{timestamp}_{run_uuid}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write metadata
+    metadata = {
+        "swap_module": args.swap_module,
+        "module_name": module_name,
+        "models": [f"{p}:{m}" for p, m in model_specs],
+        "action_type": args.action_type,
+        "intent_filter": args.intent_filter,
+        "original_model": args.original_model,
+        "margin_range": args.margin_range,
+        "max_cases": args.max_cases,
+        "scorers": args.scorers,
+        "workers": args.workers,
+        "proxy": args.proxy,
+        "proxy_strategy": "batch" if args.batch else ("direct" if args.proxy else None),
+        "temperature": args.temperature,
+        "max_tokens": args.max_tokens,
+        "save_prompts": args.save_prompts,
+        "sessions": args.sessions,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    with open(output_dir / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    # Copy original prompt YAML (preserves filename as baseline reference)
+    import shutil
+    original_name = Path(args.swap_module).name
+    shutil.copy2(args.swap_module, output_dir / original_name)
+
+    return output_dir
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    # Logging
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
+
+    # Suppress noisy warnings from unified_llm_client (e.g., gpt-5-mini temperature override)
+    if not args.verbose:
+        logging.getLogger("aeonisk.multiagent.unified_llm_client").setLevel(logging.ERROR)
+
+    # Init components
+    module_swapper = ModuleSwapper()
+    module_name, new_content = module_swapper.load_replacement(args.swap_module)
+    print(f"Module: {module_name} ({len(new_content)} chars)", file=sys.stderr)
+
+    # Parse model specs (provider:model format)
+    model_specs = []
+    for spec in args.models:
+        model_specs.append(parse_model_spec(spec))
+
+    session_dirs = [Path(p) for p in args.sessions] if args.sessions else None
+    extractor = SessionExtractor(session_dirs)
+
+    # Parse margin range
+    margin_range = None
+    if args.margin_range:
+        parts = args.margin_range.split("-")
+        if len(parts) == 2:
+            margin_range = (int(parts[0]), int(parts[1]))
+
+    # Extract cases
+    cases = extractor.extract_cases(
+        action_type_filter=args.action_type,
+        intent_filter=args.intent_filter,
+        original_model_filter=args.original_model,
+        module_filter=args.module_filter,
+        margin_range=margin_range,
+        max_cases=args.max_cases,
+        module_swapper=module_swapper,
+    )
+
+    if not cases:
+        print("No eval cases found. Check filters and session directories.", file=sys.stderr)
+        return 1
+
+    # --- Scan only ---
+    if args.scan_only:
+        print(f"\nFound {len(cases)} eval cases\n")
+
+        # Group by condition
+        by_condition: Dict[str, int] = {}
+        by_action: Dict[str, int] = {}
+        by_model: Dict[str, int] = {}
+        for c in cases:
+            by_condition[c.condition] = by_condition.get(c.condition, 0) + 1
+            by_action[c.action_type or "unknown"] = by_action.get(c.action_type or "unknown", 0) + 1
+            by_model[c.original_model] = by_model.get(c.original_model, 0) + 1
+
+        print("By condition:")
+        for k, v in sorted(by_condition.items()):
+            print(f"  {k}: {v}")
+        print("\nBy action type:")
+        for k, v in sorted(by_action.items()):
+            print(f"  {k}: {v}")
+        print("\nBy original model:")
+        for k, v in sorted(by_model.items()):
+            print(f"  {k}: {v}")
+
+        # Module detection
+        module_counts: Dict[str, int] = {}
+        for c in cases:
+            for m in c.detected_modules:
+                module_counts[m] = module_counts.get(m, 0) + 1
+        if module_counts:
+            print("\nDetected modules:")
+            for k, v in sorted(module_counts.items(), key=lambda x: -x[1]):
+                print(f"  {k}: {v}")
+
+        # Swap compatibility
+        swappable = 0
+        for c in cases:
+            try:
+                module_swapper.swap_module(c.system_prompt, module_name, new_content)
+                swappable += 1
+            except ValueError:
+                pass
+        print(f"\nSwappable for '{module_name}': {swappable}/{len(cases)}")
+
+        return 0
+
+    # --- Dry run ---
+    if args.dry_run:
+        show_count = min(args.max_cases or 3, 3, len(cases))
+        print(f"\nDry run: showing {show_count} modified prompts\n")
+        for case in cases[:show_count]:
+            try:
+                modified = module_swapper.swap_module(case.system_prompt, module_name, new_content)
+            except ValueError as e:
+                print(f"[{case.case_id}] Cannot swap: {e}")
+                continue
+
+            print(f"=== Case: {case.case_id} ===")
+            print(f"  Condition: {case.condition}")
+            print(f"  Action type: {case.action_type}")
+            print(f"  Margin: {case.margin}")
+            print(f"  Original model: {case.original_model}")
+            print(f"  System prompt length: {len(modified)} chars")
+            print(f"  User prompt length: {len(case.user_prompt)} chars")
+            # Show a snippet around the swapped region
+            idx = modified.find(new_content[:100])
+            if idx >= 0:
+                start = max(0, idx - 50)
+                end = min(len(modified), idx + len(new_content) + 50)
+                print(f"  Swapped region (chars {idx}-{idx+len(new_content)}):")
+                print(f"    ...{modified[start:start+200]}...")
+            print()
+        return 0
+
+    # --- Common setup for eval modes ---
+
+    # Determine proxy strategy
+    proxy_strategy = None
+    if args.proxy:
+        proxy_strategy = "batch" if args.batch else "direct"
+
+    request_delay = args.request_delay
+    if request_delay is None:
+        request_delay = 0.0 if args.proxy else 0.5
+
+    replay_engine = ReplayEngine(
+        workers=args.workers,
+        request_delay=request_delay,
+        proxy_url=args.proxy,
+        proxy_strategy=proxy_strategy,
+        verbose=args.verbose,
+    )
+
+    scorers = [SCORER_REGISTRY[name]() for name in args.scorers]
+
+    # Create timestamped output directory (like bulk_session_runner)
+    output_dir = _create_output_dir(args, module_name, new_content, model_specs)
+    results_path = str(output_dir / "results.jsonl")
+    report_path = str(output_dir / "report.txt")
+
+    print(f"Output directory: {output_dir}", file=sys.stderr)
+
+    # --- Self-judge mode ---
+    if args.self_judge:
+        if not args.goal_file:
+            print("--self-judge requires --goal-file", file=sys.stderr)
+            return 1
+
+        judge = SelfJudge(
+            goal_file=args.goal_file,
+            judge_model=args.judge_model,
+            max_iterations=args.max_iterations,
+            confirm_each=args.confirm_each_iteration,
+            proxy_url=args.proxy,
+            proxy_strategy=proxy_strategy,
+        )
+
+        best_path = judge.run(
+            initial_module_path=args.swap_module,
+            module_swapper=module_swapper,
+            session_extractor=extractor,
+            replay_engine=replay_engine,
+            scorers=scorers,
+            model_specs=model_specs,
+            output_dir=str(output_dir),
+            save_prompts=args.save_prompts,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+        )
+
+        print(f"\nBest module: {best_path}")
+        return 0
+
+    # --- Normal eval mode ---
+
+    result_store = ResultStore(results_path)
+
+    # Resume support
+    completed_keys = set()
+    if args.resume:
+        completed_keys = result_store.load_completed_keys()
+        if completed_keys:
+            print(f"Resuming: {len(completed_keys)} results already completed", file=sys.stderr)
+
+    # Build modified prompts — skip cases where module can't be swapped
+    modified_prompts = {}
+    skipped = 0
+    swappable_cases = []
+    for case in cases:
+        try:
+            modified_prompts[case.case_id] = module_swapper.swap_module(
+                case.system_prompt, module_name, new_content
+            )
+            swappable_cases.append(case)
+        except ValueError:
+            skipped += 1
+
+    if skipped:
+        print(f"Skipped {skipped}/{len(cases)} cases (module not found in prompt — old/incompatible sessions)", file=sys.stderr)
+    cases = swappable_cases
+    if not cases:
+        print("No swappable cases remaining. Check --sessions directories.", file=sys.stderr)
+        return 1
+
+    # Open output file for streaming writes (results saved as they complete)
+    result_store.open(append=args.resume)
+
+    # Replay — results stream to disk via on_result callback
+    results = replay_engine.replay_batch(
+        cases, modified_prompts, model_specs, scorers,
+        save_prompts=args.save_prompts,
+        completed_keys=completed_keys,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        on_result=result_store.append_result,
+    )
+
+    result_store.close()
+
+    # Report
+    all_results = results
+    if args.resume and completed_keys:
+        # Reload all for full report (includes both previous + new results)
+        all_stored = []
+        with open(results_path, "r") as f:
+            for line in f:
+                try:
+                    data = json.loads(line.strip())
+                    all_stored.append(ReplayResult(
+                        case_id=data["case_id"],
+                        condition=data.get("condition", ""),
+                        round_num=data.get("round"),
+                        action_type=data.get("action_type"),
+                        original_model=data.get("original_model", ""),
+                        eval_model=data["eval_model"],
+                        margin=data.get("margin"),
+                        original=data.get("original", {}),
+                        replay=data.get("replay", {}),
+                        scores=data.get("scores", {}),
+                        error=data.get("error"),
+                    ))
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        all_results = all_stored
+
+    report, _ = ReportGenerator.generate(all_results, module_name, scorers)
+    print(f"\n{report}")
+
+    with open(report_path, "w") as f:
+        f.write(report)
+    print(f"Report saved to: {report_path}", file=sys.stderr)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
