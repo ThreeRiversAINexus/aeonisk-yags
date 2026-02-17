@@ -139,7 +139,6 @@ window.MathJax = {
   <li><a href="#treatment">The Treatment: Prompt Engineering</a></li>
   <li><a href="#results">Treatment Results</a></li>
   <li><a href="#paradox">The Survival Paradox</a></li>
-  <li><a href="#future">Preparing for the Future</a></li>
   <li><a href="#treatment-v2">Treatment v2: Classification Gate + Table Reference</a></li>
   <li><a href="#treatment-v2-results">Treatment v2 Results</a></li>
   <li><a href="#gemini-case">Why Gemini Never Suppresses</a></li>
@@ -629,20 +628,7 @@ $$
 
 <p>The models that comply (Grok 4, GPT-5.2) appear to treat the scaling table as prescriptive: "the table says 0&ndash;5, I'll write 3." The models that don't comply (Claude, Gemini, DeepSeek) appear to treat it as informational: "the table shows one option; I'll generate what seems right for this margin." Their priors about what a high-margin combat result looks like outweigh a single table in the prompt.</p>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<h2 id="future">Preparing for the Future</h2>
-
-<p>Three possible next steps:</p>
-
-<ol>
-  <li><strong>Explicit classification gate.</strong> Add a decision rule: "FIRST: Did the player declare suppressive fire? If YES &rarr; <code>base_damage</code> MUST be 0&ndash;5." Currently the DM has no branching point&mdash;it generates damage in one continuous pass. Forcing a classification token before the damage token would condition subsequent generation on the classification.</li>
-
-  <li><strong>Negative examples.</strong> Show the wrong answer: "WRONG: Player declares suppressive fire, margin=+12, you set base_damage=16." Models respond to contrastive pairs more reliably than to standalone guidance.</li>
-
-  <li><strong>Schema-level enforcement.</strong> Add a <code>combat_mode: Literal["lethal", "suppressive", "stun"]</code> field to the structured output schema. The DM would have to explicitly classify before generating damage. Once it writes "suppressive," the subsequent <code>base_damage</code> generation is conditioned on that token. This is the most mechanically sound fix but requires schema changes.</li>
-</ol>
-
-<p>The prompt-only treatment moved the overall damage ratio from ~1.08 to 0.63. That's real progress for two models. But it confirms what the baseline suggested: for the models with the strongest lethal priors, showing examples of the right answer is not the same as compelling it.</p>
+<p>The prompt-only treatment moved the overall damage ratio from ~1.08 to 0.63. That's real progress for two models. But for the other three, showing examples of the right answer is not the same as compelling it. The next step: force the model to classify intent <em>before</em> it encounters any damage numbers, and neutralize the anchoring effect of the first <code>base_damage=15</code> example it sees.</p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <h2 id="treatment-v2">Treatment v2: Classification Gate + Table Reference</h2>
