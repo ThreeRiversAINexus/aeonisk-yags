@@ -1342,8 +1342,8 @@ class ReportGenerator:
             lines.append(f"--- {scorer.name} ---")
 
             if scorer.name == "damage_comparison":
-                lines.append(f"{'Model':<30} | {'Avg BD (orig→new)':<20} | {'Δ':>6} | {'Zero dmg':>8}")
-                lines.append("-" * 75)
+                lines.append(f"{'Model':<30} | {'Avg BD (orig→new)':<20} | {'Δ':>6} | {'Zero dmg':>8} | {'Drift':>5}")
+                lines.append("-" * 84)
 
                 for model, model_results in sorted(by_model.items()):
                     scored = [r for r in model_results if scorer.name in r.scores]
@@ -1353,12 +1353,14 @@ class ReportGenerator:
                     new_avg = sum(r.scores[scorer.name]["replay_base_damage"] for r in scored) / len(scored)
                     delta = new_avg - orig_avg
                     zero_pct = sum(1 for r in scored if r.scores[scorer.name]["zero_damage"]) / len(scored) * 100
-                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f} | {zero_pct:>6.0f}%")
+                    drift_pct = abs(delta) / orig_avg * 100 if orig_avg > 0 else 0
+                    lines.append(f"{model:<30} | {orig_avg:>6.1f} → {new_avg:<6.1f}     | {delta:>+6.1f} | {zero_pct:>6.0f}% | {drift_pct:>5.1f}%")
 
                     score_dict.setdefault(scorer.name, {})[model] = {
                         "avg_base_damage": new_avg,
                         "zero_damage_pct": zero_pct,
                         "delta": delta,
+                        "drift_pct": drift_pct,
                     }
 
             elif scorer.name in ("damage_range", "suppression_table"):

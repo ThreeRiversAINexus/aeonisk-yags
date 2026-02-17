@@ -2548,6 +2548,127 @@ class TestDamageRangeScorer:
 
 
 # ---------------------------------------------------------------------------
+# Drift-based regression tests
+# ---------------------------------------------------------------------------
+
+class TestDriftRegression:
+    """Tests for drift_pct in DamageComparisonScorer and drift-based regression targets."""
+
+    @staticmethod
+    def _make_dc_result(case_id, model, orig_bd, replay_bd):
+        """Helper to create a ReplayResult with damage_comparison scores."""
+        return ReplayResult(
+            case_id=case_id, condition="control", round_num=1,
+            action_type="combat", original_model="gpt-5-mini",
+            eval_model=model, margin=10,
+            original={"total_base_damage": orig_bd},
+            replay={"total_base_damage": replay_bd},
+            scores={
+                "damage_comparison": {
+                    "original_base_damage": orig_bd,
+                    "replay_base_damage": replay_bd,
+                    "delta": replay_bd - orig_bd,
+                    "zero_damage": replay_bd == 0,
+                },
+            },
+        )
+
+    def test_drift_pct_in_report_score_dict(self):
+        """ReportGenerator includes drift_pct in damage_comparison score dict."""
+        scorer = DamageComparisonScorer()
+        results = [
+            self._make_dc_result("case_1", "openai:gpt-5-mini", 20, 16),
+            self._make_dc_result("case_2", "openai:gpt-5-mini", 10, 8),
+        ]
+        _, score_dict = ReportGenerator.generate(results, "test_mod", [scorer])
+        model_scores = score_dict["damage_comparison"]["openai:gpt-5-mini"]
+        assert "drift_pct" in model_scores
+        # orig_avg = 15, new_avg = 12, drift = |12-15|/15 * 100 = 20%
+        assert abs(model_scores["drift_pct"] - 20.0) < 0.1
+
+    def test_drift_pct_zero_baseline(self):
+        """drift_pct is 0 when original avg base_damage is 0 (no division by zero)."""
+        scorer = DamageComparisonScorer()
+        results = [
+            self._make_dc_result("case_1", "openai:gpt-5-mini", 0, 5),
+        ]
+        _, score_dict = ReportGenerator.generate(results, "test_mod", [scorer])
+        model_scores = score_dict["damage_comparison"]["openai:gpt-5-mini"]
+        assert model_scores["drift_pct"] == 0
+
+    def test_max_drift_pct_target_passes(self, tmp_path):
+        """max_drift_pct target passes when drift is within tolerance."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test drift",
+                "targets": {
+                    "damage_comparison": {"max_drift_pct": 25},
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+        score_dict = {
+            "damage_comparison": {
+                "gpt-5-mini": {"drift_pct": 15.0, "avg_base_damage": 14.0},
+            },
+        }
+        all_met, details = judge.check_targets(score_dict)
+        assert all_met is True
+        assert details["damage_comparison.max_drift_pct"]["actual"] == 15.0
+
+    def test_max_drift_pct_target_fails(self, tmp_path):
+        """max_drift_pct target fails when drift exceeds tolerance."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test drift",
+                "targets": {
+                    "damage_comparison": {"max_drift_pct": 20},
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+        score_dict = {
+            "damage_comparison": {
+                "gpt-5-mini": {"drift_pct": 35.0, "avg_base_damage": 10.0},
+            },
+        }
+        all_met, details = judge.check_targets(score_dict)
+        assert all_met is False
+        assert details["damage_comparison.max_drift_pct"]["actual"] == 35.0
+
+    def test_drift_regression_goal_file(self, tmp_path):
+        """Drift-based regression config parsed from goal file."""
+        goal_file = tmp_path / "goals.yaml"
+        with open(goal_file, "w") as f:
+            yaml.dump({
+                "description": "Test drift regressions",
+                "targets": {"suppression_table": {"in_range_pct": 80}},
+                "regressions": {
+                    "lethal_combat": {
+                        "description": "Lethal drift check",
+                        "eval_subset": {
+                            "action_type": "combat",
+                            "weapon_damage_type": "wound",
+                            "exclude_keywords": ["suppress"],
+                            "max_cases": 20,
+                        },
+                        "targets": {
+                            "damage_comparison": {"max_drift_pct": 20},
+                        },
+                    },
+                },
+            }, f)
+
+        judge = SelfJudge(str(goal_file))
+        reg = judge.goal["regressions"]["lethal_combat"]
+        assert reg["targets"]["damage_comparison"]["max_drift_pct"] == 20
+        # No scorers section needed — damage_comparison is a built-in scorer
+        assert "scorers" not in reg
+
+
+# ---------------------------------------------------------------------------
 # Regression scoring tests
 # ---------------------------------------------------------------------------
 

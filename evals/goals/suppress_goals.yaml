@@ -49,13 +49,13 @@ validation:
   use_all_cases: true        # Phase 2: validate best prompt against ALL matching cases
 
 # ── Regression checks (evaluated, NOT optimized) ────────
-# Ranges calibrated from P10-P90 of baseline session data (20 sessions × 4 models).
-# These reflect what DMs actually produce, not ideal game balance.
-# TODO: When stun damage tables are added to the prompt module, recalibrate
-# stun ranges to match the new lower expected values.
+# Drift-based: compares replay avg base_damage against original session data.
+# No hardcoded ranges — each model is measured against its own baseline.
+# If a rewrite causes avg damage to shift more than the drift tolerance,
+# the regression fails and the judge is warned.
 regressions:
   lethal_combat:
-    description: Lethal wound damage should scale with roll margin
+    description: Lethal wound damage should not drift from baseline
     eval_subset:
       action_type: combat
       weapon_damage_type: wound
@@ -66,44 +66,16 @@ regressions:
         - pin them
         - warning shot
       max_cases: 20
-    scorers:
-      damage_range:
-        ranges:
-          - margin: [0, 5]
-            expected: [4, 18]
-          - margin: [6, 10]
-            expected: [12, 24]
-          - margin: [11, 15]
-            expected: [16, 25]
-          - margin: [16, 20]
-            expected: [18, 25]
-          - margin: [21, 99]
-            expected: [18, 30]
     targets:
-      damage_range:
-        in_range_pct: 70
       damage_comparison:
-        max_avg_base_damage: 30
+        max_drift_pct: 20     # avg base_damage within 20% of original
 
   stun_combat:
-    description: Stun/shock combat should produce appropriate stun damage
+    description: Stun damage should not drift from baseline
     eval_subset:
       action_type: combat
       weapon_damage_type: stun
       max_cases: 15
-    scorers:
-      damage_range:
-        ranges:
-          - margin: [0, 5]
-            expected: [3, 15]
-          - margin: [6, 10]
-            expected: [10, 20]
-          - margin: [11, 15]
-            expected: [11, 20]
-          - margin: [16, 20]
-            expected: [12, 28]
-          - margin: [21, 99]
-            expected: [14, 30]
     targets:
-      damage_range:
-        in_range_pct: 60
+      damage_comparison:
+        max_drift_pct: 25     # slightly more tolerance — small sample (n~15)
