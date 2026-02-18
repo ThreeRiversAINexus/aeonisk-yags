@@ -3378,8 +3378,9 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                 took_damage = health_pct < 100
                 marker = "⚠️ TOOK DAMAGE" if took_damage else ""
 
+                npc_faction = getattr(npc, 'faction', 'Unknown')
                 available_npcs.append(
-                    f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
+                    f"{npc.agent_id} ({npc.name}, {npc_faction}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
                 )
 
         # 3. Build player character names list
@@ -7659,14 +7660,15 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         if info:
                             # Show health info for players (for injury-aware narration)
                             pronouns = info.get('pronouns', 'they/them')
+                            faction = info.get('faction', 'Unknown')
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {health_text}{wounds_text})")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {health_text}{wounds_text})")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, player)")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, player)")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -7675,10 +7677,10 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                         if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
                                             disposition = getattr(npc, 'disposition', 'neutral')
                                             break
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, npc, {disposition})")
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, npc, {disposition})")
                             else:
-                                # Format for enemies: [tgt_xxxx] Name (enemy)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {info['type']})")
+                                # Format for enemies: [tgt_xxxx] Name (faction, enemy)
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {info['type']})")
 
                     if combatant_lines:
                         combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"

@@ -27,6 +27,24 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# PC ATTRIBUTE HELPERS — AIPlayerAgent stores name/faction on character_state
+# =============================================================================
+
+def _resolve_pc_name(pc) -> str:
+    """Resolve PC name from character_state (AIPlayerAgent has no .name attr)."""
+    if hasattr(pc, 'character_state') and hasattr(pc.character_state, 'name'):
+        return pc.character_state.name
+    return getattr(pc, 'name', 'Unknown PC')
+
+
+def _resolve_pc_faction(pc) -> str:
+    """Resolve PC faction from character_state."""
+    if hasattr(pc, 'character_state') and hasattr(pc.character_state, 'faction'):
+        return pc.character_state.faction
+    return getattr(pc, 'faction', 'Unknown')
+
+
+# =============================================================================
 # PROMPT GENERATION
 # =============================================================================
 
@@ -330,21 +348,23 @@ def _format_battlefield(
         for pc in player_agents:
             tgt_id = target_id_mapper.get_target_id(getattr(pc, 'agent_id', None))
             if tgt_id:
-                pc_name = getattr(pc, 'name', None) or getattr(pc.character_state, 'name', 'Unknown') if hasattr(pc, 'character_state') else 'Unknown'
+                pc_name = _resolve_pc_name(pc)
+                pc_faction = _resolve_pc_faction(pc)
                 pc_position = str(getattr(pc, 'position', 'Unknown'))
 
                 # Health is stored directly on AIPlayerAgent, not on CharacterState
                 pc_health = getattr(pc, 'health', 0)
                 pc_max_health = getattr(pc, 'max_health', 0)
 
-                combatants.append(f"- [{tgt_id}] {pc_name} | {pc_position} | {pc_health}/{pc_max_health} HP")
+                combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position} | {pc_health}/{pc_max_health} HP")
 
         # Add all other active enemies (including self)
         for other_enemy in enemy_agents:
             if other_enemy.is_active:
                 tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
                 if tgt_id:
-                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
+                    enemy_faction = getattr(other_enemy, 'faction', 'Unknown')
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
 
         section += "\n" + "\n".join(combatants)
 
@@ -361,10 +381,10 @@ def _format_battlefield(
         section += "\n- ✅ CORRECT tactical_reasoning: 'Targeting Kiran Voss because they are wounded...'"
         section += "\n- ❌ WRONG tactical_reasoning: 'Targeting tgt_7a3f because they are wounded...'"
         section += f"\n\n**How to decide who to target:**"
-        section += "\n1. Read the names to identify faction allegiance"
-        section += f"\n2. Consider your faction relationships ({enemy.faction})"
+        section += "\n1. Check each combatant's FACTION shown in parentheses"
+        section += f"\n2. Your faction is {enemy.faction} — prioritize hostile factions, avoid attacking allies"
         section += "\n3. Use the target ID (in brackets) in mechanical fields, character name in narrative"
-        section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely!"
+        section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely based on faction!"
 
     else:
         # STANDARD MODE: Show all contacts without relationship labels
@@ -465,14 +485,15 @@ def _format_pc_target(enemy: EnemyAgent, pc: Any) -> Optional[str]:
     except:
         weapons_str = "Unknown"
 
-    # Get PC name
-    pc_name = getattr(pc, 'name', getattr(pc, 'agent_id', 'Unknown PC'))
+    # Get PC name and faction
+    pc_name = _resolve_pc_name(pc)
+    pc_faction = _resolve_pc_faction(pc)
     pc_id = getattr(pc, 'agent_id', 'unknown')
 
     # Threat level assessment
     threat_level = _assess_threat_level(enemy, pc, range_name, is_watching)
 
-    return f"""- {pc_name} [{pc_id}]
+    return f"""- {pc_name} [{pc_id}] ({pc_faction})
   Position: {pc_position} ({range_name.upper()} RANGE, {range_penalty} penalty)
   Health: {health_str}
   Defence Token: {watching_str}
@@ -693,7 +714,7 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
         try:
             pc_position = Position.from_string(str(getattr(pc, 'position', "Near-PC")))
             range_name, _ = enemy.position.calculate_range(pc_position)
-            pc_name = getattr(pc, 'name', 'Unknown PC')
+            pc_name = _resolve_pc_name(pc)
             range_counts[range_name].append(pc_name)
         except:
             pass
@@ -723,7 +744,7 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
     # Sort targets by threat
     threat_order = []
     for pc in player_agents:
-        pc_name = getattr(pc, 'name', 'Unknown PC')
+        pc_name = _resolve_pc_name(pc)
         try:
             pc_position = Position.from_string(str(getattr(pc, 'position', "Near-PC")))
             range_name, _ = enemy.position.calculate_range(pc_position)

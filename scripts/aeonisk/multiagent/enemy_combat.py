@@ -943,12 +943,27 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to attack allied player {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'attack',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot attack allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) attacking hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can attack each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to attack allied enemy {target_id} ({target_faction})")
                         return {
                             'enemy_id': enemy.agent_id,
@@ -1263,12 +1278,27 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to suppress allied player {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'suppress',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot suppress allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) suppressing hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can suppress each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to suppress allied enemy {target_id} ({target_faction})")
                         return {
                             'enemy_id': enemy.agent_id,
@@ -1682,12 +1712,20 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to charge allied player {target_id} ({target_faction})")
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) charging hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can charge each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to charge allied enemy {target_id} ({target_faction})")
                     else:
                         target = target_entity
