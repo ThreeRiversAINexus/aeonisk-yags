@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen a **technical action**. Now let's define the mechanical details.
 

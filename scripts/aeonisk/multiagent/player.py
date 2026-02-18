@@ -72,6 +72,33 @@ def format_story_beat(
     return beat
 
 
+def validate_player_skill(skill: Optional[str]) -> tuple:
+    """Validate that a declared skill exists in SKILL_DATABASE.
+
+    Args:
+        skill: The skill name declared by the player LLM, or None.
+
+    Returns:
+        (is_valid, feedback): is_valid is True if skill is None or in SKILL_DATABASE.
+            feedback is None when valid, or a rejection message string when invalid.
+    """
+    if skill is None:
+        return True, None
+
+    from .skill_descriptions import SKILL_DATABASE
+
+    if skill in SKILL_DATABASE:
+        return True, None
+
+    valid_skills = sorted(SKILL_DATABASE.keys())
+    feedback = (
+        f"REJECTED: skill='{skill}' does not exist in SKILL_DATABASE. "
+        f"Valid skills: {valid_skills}. "
+        f"Use one of these or skill=None for a raw attribute check."
+    )
+    return False, feedback
+
+
 @dataclass
 class CharacterState:
     """Current character state."""
@@ -2140,7 +2167,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Social-specific context (if applicable)
                 "empathy": str(self.character_state.attributes.get('Empathy', 0)),
                 "charm_skill": str(self.character_state.skills.get('Charm', 0)),
-                "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
+                "negotiation_skill": str(self.character_state.skills.get('Corporate Influence', 0)),
                 # Attunement-specific context (if applicable)
                 "willpower": str(self.character_state.attributes.get('Willpower', 0)),
                 "attunement_skill": str(self.character_state.skills.get('Attunement', 0)),
@@ -2163,8 +2190,13 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
                 "direction": f"**Direction:** {self.direction}" if self.direction else "",
                 # Player-only message (hidden from DM, per-player instruction)
-                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else ""
+                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else "",
+                # Skill rejection feedback (populated on retry after invalid skill)
+                "skill_rejection_feedback": f"\n⚠️ **SKILL REJECTION:** {self._skill_rejection_feedback}\n" if getattr(self, '_skill_rejection_feedback', None) else "",
             }
+
+            # Clear skill rejection feedback after building prompt (don't persist across action types)
+            self._skill_rejection_feedback = None
 
             # Load Phase 2 action-specific prompt from player/ subdirectory
             from .prompt_loader import load_modular_prompt
@@ -2465,6 +2497,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         max_retries = 3
         base_delay = 0.5  # Exponential backoff: 0.5s, 1s, 2s
+        self._skill_rejection_feedback = None
 
         logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
 
@@ -2497,6 +2530,44 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
                     )
                     return None
+
+                # ===== Skill Validation: Reject hallucinated skill names =====
+                if action_details and action_details.skill is not None:
+                    is_valid, feedback = validate_player_skill(action_details.skill)
+                    if not is_valid:
+                        logger.warning(
+                            f"Player {self.character_state.name}: Invalid skill '{action_details.skill}' "
+                            f"(attempt {attempt + 1}/{max_retries})"
+                        )
+                        # Log JSONL failure for ML training
+                        if self.shared_state:
+                            mechanics = self.shared_state.get_mechanics_engine()
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_pydantic_validation_failure(
+                                    round_num=getattr(self, 'current_round', 0) or 0,
+                                    agent_type='player',
+                                    agent_id=self.agent_id,
+                                    schema_name='invalid_skill_name',
+                                    exception_type='SkillValidationError',
+                                    error_message=feedback,
+                                    attempt_number=attempt + 1,
+                                    max_attempts=max_retries,
+                                    action_context={
+                                        'declared_skill': action_details.skill,
+                                        'character_skills': dict(self.character_state.skills),
+                                        'action_type': action_details.action_type.value if hasattr(action_details.action_type, 'value') else str(action_details.action_type),
+                                        'intent': action_details.intent,
+                                    }
+                                )
+                        # Store feedback for retry prompt
+                        self._skill_rejection_feedback = feedback
+                        action_details = None
+                        if attempt < max_retries - 1:
+                            delay = base_delay * (2 ** attempt)
+                            await asyncio.sleep(delay)
+                            continue
+                        logger.error(f"Player {self.character_state.name}: Invalid skill after {max_retries} attempts")
+                        return None
 
                 # Success - break out of retry loop
                 break
