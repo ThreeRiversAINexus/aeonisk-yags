@@ -107,6 +107,11 @@ def generate_tactical_prompt(
     if recent_narrations:
         sections.append(_format_recent_outcomes(recent_narrations))
 
+    # Declared Actions This Round (information parity with players)
+    declared_section = _format_declared_actions(player_agents)
+    if declared_section:
+        sections.append(declared_section)
+
     # Combat Doctrine
     sections.append(_format_doctrine(enemy))
 
@@ -193,6 +198,11 @@ def generate_tactical_prompt_structured(
     # Recent Action Outcomes
     if recent_narrations:
         sections.append(_format_recent_outcomes(recent_narrations))
+
+    # Declared Actions This Round (information parity with players)
+    declared_section = _format_declared_actions(player_agents)
+    if declared_section:
+        sections.append(declared_section)
 
     # Combat Doctrine
     sections.append(_format_doctrine(enemy))
@@ -895,6 +905,31 @@ Status: """
     return section
 
 
+def _format_declared_actions(player_agents: List[Any]) -> str:
+    """Format PC declared actions this round — same info players see."""
+    all_declarations = {}
+    for player in player_agents:
+        if hasattr(player, 'declared_actions_this_round'):
+            all_declarations.update(player.declared_actions_this_round)
+
+    if not all_declarations:
+        return ""
+
+    lines = ["## DECLARED ACTIONS THIS ROUND", "=" * 60]
+    sorted_decls = sorted(all_declarations.items(), key=lambda x: x[1][-1], reverse=True)
+    for char_name, action_data in sorted_decls:
+        if len(action_data) == 6:
+            description, intent, target, weapon, reasoning, init_score = action_data
+            action_text = description or intent
+            if target:
+                action_text += f" targeting {target}"
+            if weapon:
+                action_text += f" with {weapon}"
+            lines.append(f"- {char_name} [Init {init_score}]: {action_text}")
+
+    return "\n".join(lines)
+
+
 def _format_declaration_requirements() -> str:
     """
     Format declaration output requirements.
@@ -908,13 +943,14 @@ def _format_declaration_requirements() -> str:
 Provide your tactical decision in this EXACT format:
 
 DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
-MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Retreat]
+MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Retreat / Dialogue / Wait / Surrender]
 TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc)]
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
 TACTICAL_REASONING: [explain your choice with as much detail as needed]
 SHARE_INTEL: [Optional: info to share with allied enemies]
+DIALOGUE_CONTENT: [Required if MAJOR_ACTION is Dialogue — your actual spoken words]
 
 ### Example Declarations:
 
@@ -949,6 +985,27 @@ WEAPON: None
 MINOR_ACTION: None
 TACTICAL_REASONING: Health critical ({health}%), below retreat threshold ({threshold}%). Falling back through maintenance corridor to regroup.
 SHARE_INTEL: Withdrawing, recommend focus fire on primary threat
+```
+
+**De-escalation via Dialogue:**
+```
+DEFENCE_TOKEN: None
+MAJOR_ACTION: Dialogue
+TARGET: None
+WEAPON: None
+MINOR_ACTION: None
+DIALOGUE_CONTENT: "Hold your fire — we don't need to fight over this."
+TACTICAL_REASONING: They've made a compelling diplomatic case. Opening dialogue to negotiate a peaceful resolution.
+```
+
+**Surrender (defeated/captured):**
+```
+DEFENCE_TOKEN: None
+MAJOR_ACTION: Surrender
+TARGET: None
+WEAPON: None
+MINOR_ACTION: None
+TACTICAL_REASONING: Outmatched and morale broken. Laying down weapons to avoid further casualties.
 ```"""
 
 
@@ -959,10 +1016,13 @@ def _format_structured_decision_guidance() -> str:
 Provide your tactical decision as structured output conforming to the EnemyDecision schema. Include your tactical reasoning.
 
 ### Non-combat options:
+- **Dialogue**: Speak aloud — de-escalate, negotiate, warn, or demand. Requires `dialogue_content` with actual words.
+  **Use for de-escalation**: When Declared Actions or Recent Outcomes show successful diplomacy
+  targeting you, Dialogue is the rational response. Express your willingness to stand down.
+  Examples: "Hold your fire — we don't need to fight over this.", "We can talk about this.", "Stand down — I'm willing to negotiate."
 - **Wait**: Observe, maintain position, hold. Use when combat isn't clearly warranted yet.
-- **Dialogue**: Speak aloud — challenge, warn, demand, negotiate. Requires `dialogue_content` with actual words.
-  Examples: "Halt! Identify yourselves!", "Drop your weapons or we open fire!", "We can talk about this."
-- **Surrender**: Lay down weapons. Use when outmatched and your morale/doctrine permits it."""
+- **Surrender**: Lay down weapons (you become a prisoner). Use only when physically outmatched
+  and morale is broken — NOT for diplomatic de-escalation (use Dialogue instead)."""
 
 
 def _format_footer() -> str:

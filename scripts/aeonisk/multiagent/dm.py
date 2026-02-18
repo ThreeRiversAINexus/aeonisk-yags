@@ -3292,7 +3292,7 @@ Apply this narrative style to:
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None):
+    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None, social_target_ids: set = None):
         """
         Separate conversion check phase - determine which enemies/NPCs should convert.
 
@@ -3356,9 +3356,13 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                     if enemy.is_active:  # Only active enemies (not defeated/retreated)
                         health_pct = int((enemy.health / enemy.max_health) * 100) if enemy.max_health > 0 else 0
 
-                        # Flag low HP enemies as conversion candidates
-                        is_candidate = health_pct < 30
-                        marker = "🎯 CANDIDATE" if is_candidate else ""
+                        # Flag conversion candidates (HP-based or social target)
+                        markers = []
+                        if health_pct < 30:
+                            markers.append("🎯 CANDIDATE")
+                        if social_target_ids and enemy.agent_id in social_target_ids:
+                            markers.append("🎯 SOCIAL TARGET")
+                        marker = " ".join(markers)
 
                         morale = getattr(enemy, 'morale_behavior', 'flee_when_broken')
                         faction = getattr(enemy, 'faction', 'Unknown')

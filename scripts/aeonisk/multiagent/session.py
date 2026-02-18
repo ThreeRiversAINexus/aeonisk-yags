@@ -2648,6 +2648,9 @@ Generate narratives (numbered list only):"""
             # Step 2: Build resolution summary for DM context (include morale results)
             resolution_summary = self._build_resolution_summary(all_resolutions)
 
+            # Extract social target IDs (enemies targeted by successful non-damage PC actions)
+            social_target_ids = self._extract_social_target_ids(all_resolutions)
+
             # Add morale events to resolution summary for DM context
             if entity_lifecycle_result.morale_events:
                 morale_summary = "\n\nMORALE EVENTS THIS ROUND:\n"
@@ -2667,7 +2670,8 @@ Generate narratives (numbered list only):"""
                 try:
                     conversion_decisions = await dm_agent.check_conversions(
                         round_number=mechanics.current_round if mechanics else 0,
-                        resolution_summary=resolution_summary
+                        resolution_summary=resolution_summary,
+                        social_target_ids=social_target_ids if social_target_ids else None
                     )
                     entity_lifecycle_result.conversion_decisions = conversion_decisions
 
@@ -3746,19 +3750,57 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if not all_resolutions:
             return "No resolutions this round"
 
+        # Get target_id_mapper for resolving target names
+        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+
         summary_lines = []
         for resolution in all_resolutions:
             agent_name = resolution.get('character_name', 'Unknown')
-            action = resolution.get('action_description', 'Unknown action')
+
+            # Extract action text from either PC dict format or enemy string format
+            action_raw = resolution.get('action')
+            if isinstance(action_raw, dict):
+                # PC format: action is a dict with intent/description/target
+                action = action_raw.get('intent') or action_raw.get('description', 'Unknown action')
+                target_id = action_raw.get('target')
+            else:
+                # Enemy format: action is a string like 'attack'
+                action = resolution.get('action_description') or str(action_raw or 'Unknown action')
+                target_id = resolution.get('target')
 
             # Truncate long actions
             if len(action) > 100:
                 action = action[:97] + "..."
 
-            # Get success status and margin
-            success = resolution.get('success', False)
-            margin = resolution.get('margin', 0)
-            tier = resolution.get('outcome_tier', 'UNKNOWN')
+            # Extract success/margin — handle nested resolution dict (PC) vs flat (enemy)
+            outcome = resolution.get('resolution', {})
+            if isinstance(outcome, dict) and 'resolution' in outcome:
+                # PC format: resolution.resolution.success/margin
+                inner = outcome['resolution']
+                success = inner.get('success', outcome.get('success', False))
+                margin = inner.get('margin', outcome.get('margin', 0))
+                tier = inner.get('success_tier', outcome.get('outcome_tier', 'UNKNOWN'))
+            elif isinstance(outcome, dict) and ('success' in outcome or 'margin' in outcome):
+                # Outcome dict with flat success/margin keys
+                success = outcome.get('success', False)
+                margin = outcome.get('margin', 0)
+                tier = outcome.get('outcome_tier', outcome.get('success_tier', 'UNKNOWN'))
+            else:
+                # Enemy format with flat keys at top level, or no resolution dict
+                success = resolution.get('success', resolution.get('result') not in ['invalidated', 'failed', 'target not found'])
+                margin = resolution.get('margin', 0)
+                tier = resolution.get('outcome_tier', 'UNKNOWN')
+
+            # Resolve target name
+            target_text = ""
+            if target_id and target_id_mapper:
+                entity = target_id_mapper.resolve_target(target_id)
+                if entity:
+                    name = getattr(entity, 'name', None)
+                    if not name and hasattr(entity, 'character_state'):
+                        name = getattr(entity.character_state, 'name', None)
+                    if name:
+                        target_text = f" → targeting {name}"
 
             # Build status with margin/tier for context
             if success:
@@ -3823,7 +3865,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     condition_text = f" | Conditions: {', '.join(conditions)}"
 
             # Build full summary line with narration
-            summary_line = f"- {agent_name}: {action} ({status}){damage_text}{clock_text}{condition_text}"
+            summary_line = f"- {agent_name}: {action}{target_text} ({status}){damage_text}{clock_text}{condition_text}"
 
             # Add DM narration on next line (indented for readability)
             if narration:
@@ -3832,6 +3874,81 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             summary_lines.append(summary_line)
 
         return "\n".join(summary_lines)
+
+    def _extract_social_target_ids(self, all_resolutions: List[Dict]) -> set:
+        """
+        Extract enemy agent_ids that were targeted by successful non-damage PC actions.
+
+        Uses mechanical signals (target + success + no damage), NOT keyword detection.
+
+        Args:
+            all_resolutions: List of resolution dicts from this round
+
+        Returns:
+            Set of enemy agent_ids that were socially targeted
+        """
+        social_targets = set()
+
+        if not self.shared_state:
+            return social_targets
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper:
+            return social_targets
+
+        # Build set of active enemy agent_ids for quick lookup
+        enemy_agent_ids = set()
+        enemy_combat = self.shared_state.enemy_combat
+        if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
+            for enemy in enemy_combat.enemy_agents:
+                if enemy.is_active:
+                    enemy_agent_ids.add(enemy.agent_id)
+
+        for resolution in all_resolutions:
+            action = resolution.get('action')
+            if not isinstance(action, dict):
+                continue  # Enemy format — skip
+
+            target_id = action.get('target')
+            if not target_id:
+                continue
+
+            # Check success from nested resolution
+            outcome = resolution.get('resolution', {})
+            if isinstance(outcome, dict) and 'resolution' in outcome:
+                inner = outcome['resolution']
+                success = inner.get('success', False)
+            elif isinstance(outcome, dict):
+                success = outcome.get('success', False)
+            else:
+                continue
+
+            if not success:
+                continue
+
+            # Check no damage dealt
+            effects = resolution.get('effects')
+            has_damage = False
+            if effects:
+                if hasattr(effects, 'damage') and effects.damage:
+                    total = sum(getattr(d, 'dealt', 0) for d in effects.damage)
+                    has_damage = total > 0
+                elif isinstance(effects, dict):
+                    damage = effects.get('damage')
+                    if damage and isinstance(damage, dict):
+                        has_damage = (damage.get('dealt', 0) or 0) > 0
+
+            if has_damage:
+                continue
+
+            # Resolve target to agent and check if it's an enemy
+            entity = target_id_mapper.resolve_target(target_id)
+            if entity:
+                agent_id = getattr(entity, 'agent_id', None)
+                if agent_id and agent_id in enemy_agent_ids:
+                    social_targets.add(agent_id)
+
+        return social_targets
 
     def _resolve_target_ids_in_text(self, text: str) -> str:
         """

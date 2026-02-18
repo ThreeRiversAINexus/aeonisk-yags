@@ -105,13 +105,14 @@ sections:
 
     ```
     DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
-    MAJOR_ACTION: [Attack|Shift|Shift_2|Charge|Suppress|Push_Through|Retreat|FLEE]
+    MAJOR_ACTION: [Attack|Shift|Shift_2|Charge|Suppress|Push_Through|Retreat|FLEE|Dialogue|Wait|Surrender]
     TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position]
     WEAPON: [weapon name if attacking]
     MINOR_ACTION: [Shift|Claim_Token|Reload|Disengage|None]
     TOKEN_TARGET: [token name if claiming]
     TACTICAL_REASONING: [1-2 sentences explaining your choice]
     SHARE_INTEL: [Optional: info to share with allied enemies]
+    DIALOGUE_CONTENT: [Required if MAJOR_ACTION is Dialogue — your actual spoken words]
     ```
 
     ### Example Declarations:
@@ -159,6 +160,27 @@ sections:
     TACTICAL_REASONING: Morale broken, attempting escape. Will roll Agility × Athletics vs DC 15 to escape successfully.
     SHARE_INTEL: Morale broken, withdrawing from engagement
     ```
+
+    **De-escalation via Dialogue:**
+    ```
+    DEFENCE_TOKEN: None
+    MAJOR_ACTION: Dialogue
+    TARGET: None
+    WEAPON: None
+    MINOR_ACTION: None
+    DIALOGUE_CONTENT: "Hold your fire — we don't need to fight over this."
+    TACTICAL_REASONING: They've made a compelling diplomatic case. Opening dialogue to negotiate a peaceful resolution.
+    ```
+
+    **Surrender (defeated/captured):**
+    ```
+    DEFENCE_TOKEN: None
+    MAJOR_ACTION: Surrender
+    TARGET: None
+    WEAPON: None
+    MINOR_ACTION: None
+    TACTICAL_REASONING: Outmatched and morale broken. Laying down weapons to avoid further casualties.
+    ```
   structured_output_format: |-
     ## ⚙️ STRUCTURED OUTPUT FORMAT
 
@@ -185,7 +207,7 @@ sections:
     ## 🚨 MANDATORY FIELD RULES 🚨
 
     **1. MAJOR_ACTION - Must be valid tactical option**
-    - ✅ VALID: Attack, Shift, Shift_2, Charge, Suppress, Push_Through, Retreat, FLEE
+    - ✅ VALID: Attack, Shift, Shift_2, Charge, Suppress, Push_Through, Retreat, FLEE, Dialogue, Wait, Surrender
     - ❌ INVALID: "shoot", "move", "run away" (use proper action names!)
 
     **2. TARGET - Must be appropriate for action**
@@ -250,6 +272,23 @@ sections:
         minor_action=None,
         tactical_reasoning="Morale broken (HP < 25%, last ally down). Attempting escape via Athletics check DC 15. Self-preservation overrides combat objectives.",
         shared_intel="Morale broken, withdrawing from engagement"
+    )
+    ```
+
+    **Example 4: De-escalation via Dialogue**
+    ```python
+    EnemyDecision(
+        agent_id="enemy_elite_a1b2",
+        character_name="Veyra Sato",
+        initiative=12,
+        major_action="Dialogue",
+        target=None,
+        weapon=None,
+        defence_token=None,
+        minor_action=None,
+        dialogue_content="Hold your fire — we don't need to fight over this. I'm willing to negotiate.",
+        tactical_reasoning="PCs successfully negotiated this round (diplomacy targeting me). Continuing combat serves no purpose. Opening dialogue to de-escalate.",
+        shared_intel=None
     )
     ```
 
