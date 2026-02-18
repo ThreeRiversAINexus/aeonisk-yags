@@ -659,16 +659,20 @@ def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]])
     items = []
     for i, prev in enumerate(previous_resolutions[-3:], 1):
         char_name = prev.get('character_name', 'Unknown')
-        action_dict = prev.get('action') or {}
+        # Guard: action/resolution/effects may be None, a string, or a dict
+        raw_action = prev.get('action')
+        action_dict = raw_action if isinstance(raw_action, dict) else {}
         action_type = action_dict.get('action_type', 'unknown').upper()
-        resolution_dict = prev.get('resolution') or {}
+        raw_resolution = prev.get('resolution')
+        resolution_dict = raw_resolution if isinstance(raw_resolution, dict) else {}
         margin = resolution_dict.get('margin', prev.get('margin', '?'))
         narration = prev.get('narration', '')
         # Truncate narration for recap
         narration_brief = narration[:120] + '...' if len(narration) > 120 else narration
 
         # Extract SC changes
-        effects_dict = prev.get('effects') or {}
+        raw_effects = prev.get('effects')
+        effects_dict = raw_effects if isinstance(raw_effects, dict) else {}
         sc_changes = effects_dict.get('soulcredit_changes', [])
         if sc_changes:
             sc_parts = []

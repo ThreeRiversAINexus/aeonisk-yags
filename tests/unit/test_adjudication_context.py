@@ -298,6 +298,24 @@ class TestInRoundContextIncludesSc:
         assert "Arden" in result
         assert "UNKNOWN" in result  # action_type defaults to 'unknown'.upper()
 
+    def test_in_round_context_handles_string_resolution(self):
+        """Previous resolutions where 'resolution' is a string (serialized outcome) don't crash."""
+        from scripts.aeonisk.multiagent.dm import _build_enhanced_previous_context
+        # This matches the actual resolution_data format from dm.py:3137
+        # where resolution = res['resolution']['outcome'] (a string like "failure")
+        previous_resolutions = [
+            {
+                'character_name': 'Kael',
+                'narration': 'Kael proposed terms but was rebuffed.',
+                'action': {'action_type': 'social'},
+                'effects': None,
+                'resolution': 'failure',  # String, not dict!
+            }
+        ]
+        result = _build_enhanced_previous_context(previous_resolutions)
+        assert "Kael" in result
+        assert "SOCIAL" in result
+
 
 class TestSessionContextInPrompt:
     """Phase 1d-1e: DM prompt contains SESSION CONTEXT block."""
