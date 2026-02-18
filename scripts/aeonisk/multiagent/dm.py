@@ -644,6 +644,57 @@ def _process_structured_healing_effects(
     return messages
 
 
+def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]]) -> str:
+    """Build enhanced in-round context showing SC changes for each prior action.
+
+    Args:
+        previous_resolutions: List of earlier resolved actions this round.
+
+    Returns:
+        Formatted context string, or empty string if no resolutions.
+    """
+    if not previous_resolutions:
+        return ""
+
+    items = []
+    for i, prev in enumerate(previous_resolutions[-3:], 1):
+        char_name = prev.get('character_name', 'Unknown')
+        action_dict = prev.get('action') or {}
+        action_type = action_dict.get('action_type', 'unknown').upper()
+        resolution_dict = prev.get('resolution') or {}
+        margin = resolution_dict.get('margin', prev.get('margin', '?'))
+        narration = prev.get('narration', '')
+        # Truncate narration for recap
+        narration_brief = narration[:120] + '...' if len(narration) > 120 else narration
+
+        # Extract SC changes
+        effects_dict = prev.get('effects') or {}
+        sc_changes = effects_dict.get('soulcredit_changes', [])
+        if sc_changes:
+            sc_parts = []
+            for sc in sc_changes:
+                amt = sc.get('amount', 0)
+                reason = sc.get('reason', '')
+                sc_parts.append(f"{amt:+d} {reason}" if reason else f"{amt:+d}")
+            sc_text = f"[SC: {', '.join(sc_parts)}]"
+        else:
+            sc_text = "[SC: +0]"
+
+        success = "success" if isinstance(margin, (int, float)) and margin >= 0 else "failure"
+        margin_str = f"{margin:+d}" if isinstance(margin, (int, float)) else str(margin)
+        items.append(f"{i}. {char_name}: {action_type} ({success}, {margin_str}) → {narration_brief} {sc_text}")
+
+    return (
+        "\n**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**\n\n"
+        + "\n".join(items)
+        + "\n\n**CONSISTENCY REQUIREMENTS:**\n"
+        "- Your narration MUST acknowledge these established facts\n"
+        "- DO NOT contradict details from earlier resolutions\n"
+        "- Build on the tactical/narrative situation they created\n"
+        "- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT\n"
+    )
+
+
 @dataclass
 class Scenario:
     """Current game scenario state."""
@@ -719,6 +770,9 @@ class AIDMAgent(Agent):
 
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
+
+        # Rolling narrative digest for adjudication context (mirrors session._round_synthesis_history)
+        self._round_synthesis_history: List[tuple] = []
 
         # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
@@ -2572,6 +2626,10 @@ Apply this narrative style to:
         print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
         print(narration_text)
         print("=" * 40)
+
+        # Store synthesis for narrative digest (adjudication context in future rounds)
+        if narration_text and round_num is not None:
+            self._round_synthesis_history.append((round_num, narration_text))
 
         # Broadcast the round synthesis to all players
         # If structured, include the full object; otherwise just text
@@ -5233,29 +5291,11 @@ For **other actions** (flee, hide, assist, attack):
             mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)
 
             # Build context from previous resolutions this round (for narrative consistency)
-            if previous_resolutions:
-                previous_items = []
-                for prev in previous_resolutions[-3:]:  # Last 3 to keep prompt manageable
-                    char_name = prev.get('character_name', 'Unknown')
-                    narration = prev.get('narration', '')
-                    if narration:
-                        # NO TRUNCATION - ML training needs complete data
-                        previous_items.append(f"- {char_name}: {narration}")
-
-                if previous_items:
-                    action['previous_context'] = f"""
-
-**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**
-
-The following actions ALREADY resolved (faster initiative):
-{chr(10).join(previous_items)}
-
-**CONSISTENCY REQUIREMENTS:**
-- Your narration MUST acknowledge these established facts
-- DO NOT contradict details from earlier resolutions
-- Build on the tactical/narrative situation they created
-- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT
-"""
+            enhanced_context = _build_enhanced_previous_context(previous_resolutions or [])
+            if enhanced_context:
+                action['previous_context'] = enhanced_context
+            # Stash raw resolutions for session_context builder in _build_resolution_prompt
+            action['_previous_resolutions'] = previous_resolutions or []
 
             # Generate narrative description using LLM
             if self.llm_config:
@@ -5944,7 +5984,8 @@ The following actions ALREADY resolved (faster initiative):
             sc_source = state_changes.get('soulcredit_source', '')
 
             if sc_change != 0:
-                sc_state.adjust(sc_change, reasons_text)
+                current_round = mechanics.current_round if mechanics else None
+                sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
             # SC is applied mechanically above - no need to inject into narration
             # Players see their soulcredit via game UI, not narrative text
@@ -6416,7 +6457,8 @@ The following actions ALREADY resolved (faster initiative):
             sc_source = state_changes.get('soulcredit_source', '')
 
             if sc_change != 0:
-                sc_state.adjust(sc_change, reasons_text)
+                current_round = mechanics.current_round if mechanics else None
+                sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
             # SC is applied mechanically above - no need to inject into narration
             # Players see their soulcredit via game UI, not narrative text
@@ -6753,7 +6795,8 @@ The following actions ALREADY resolved (faster initiative):
         target_character: str = "",
         target_id: str = "",
         previous_context: str = "",
-        combatant_list: str = ""
+        combatant_list: str = "",
+        session_context: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -6853,6 +6896,8 @@ The following actions ALREADY resolved (faster initiative):
                 prompt_parts.append(bond_matrix)
             if combatant_list:
                 prompt_parts.append(combatant_list)
+            if session_context:
+                prompt_parts.append(session_context)
 
             # Add narration task template with outcome guidance
             variables = {
@@ -7431,6 +7476,62 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             raise RuntimeError(f"Structured output generation failed: {e}") from e
 
+    def _build_narrative_digest(self, current_round: int, lookback: int = 3) -> str:
+        """Build rolling narrative digest from recent round synthesis history.
+
+        Returns full untruncated narration for the last `lookback` rounds.
+        Returns empty string for round 1 or when no history exists.
+        """
+        if not self._round_synthesis_history:
+            return ""
+
+        # Take last `lookback` entries
+        recent = self._round_synthesis_history[-lookback:]
+
+        lines = ["PRIOR ROUNDS:"]
+        for round_num, narration in recent:
+            lines.append(f"  R{round_num}: {narration}")
+
+        return "\n".join(lines)
+
+    def _build_session_context(
+        self,
+        agent_id: str,
+        character_name: str,
+        previous_resolutions: List[Dict[str, Any]],
+        current_round: int,
+    ) -> str:
+        """Assemble SESSION CONTEXT block for DM adjudication prompt.
+
+        Combines:
+        1. Acting character's SC history
+        2. In-round action recap (earlier actions this round)
+        3. Prior round narration digest
+        """
+        parts = []
+
+        # 1. Acting character's SC history
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        if mechanics and hasattr(mechanics, 'format_character_soulcredit'):
+            sc_text = mechanics.format_character_soulcredit(agent_id, character_name)
+            if sc_text and isinstance(sc_text, str):
+                parts.append(sc_text)
+
+        # 2. In-round action recap
+        recap = _build_enhanced_previous_context(previous_resolutions or [])
+        if recap:
+            parts.append(recap)
+
+        # 3. Prior round narration digest
+        digest = self._build_narrative_digest(current_round)
+        if digest:
+            parts.append(digest)
+
+        if not parts:
+            return ""
+
+        return "--- SESSION CONTEXT ---\n" + "\n\n".join(parts) + "\n--- END SESSION CONTEXT ---"
+
     async def _build_resolution_prompt(
         self,
         player_id: str,
@@ -7459,10 +7560,11 @@ Void Level: {self.current_scenario.void_level}/10
         character_context = ""
         if action:
             character_name = action.get('character', 'Unknown')
+            pronouns = action.get('pronouns', 'they/them')
             faction = action.get('faction', 'Unaffiliated')
             party_personalities = self._get_party_personalities()
             character_context = f"""
-Character: {character_name} ({faction})
+Character: {character_name} ({pronouns}, {faction})
 Note: NPCs and other characters are aware of this affiliation.
 {party_personalities}
 """
@@ -7597,6 +7699,16 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                     f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
                 )
 
+        # Build session context (SC history + in-round recap + narrative digest)
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        current_round = mechanics.current_round if mechanics else 0
+        session_context = self._build_session_context(
+            agent_id=player_id,
+            character_name=action.get('character', 'The character') if action else "The character",
+            previous_resolutions=action.get('_previous_resolutions', []) if action else [],
+            current_round=current_round,
+        )
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -7617,7 +7729,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_character="",
             target_id=target_id,
             previous_context=previous_context,
-            combatant_list=combatant_list
+            combatant_list=combatant_list,
+            session_context=session_context
         )
 
         return prompt

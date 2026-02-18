@@ -899,6 +899,7 @@ class AIPlayerAgent(Agent):
         action['character'] = self.character_state.name
         action['agent_id'] = self.agent_id
         action['faction'] = self.character_state.faction  # Track faction affiliation
+        action['pronouns'] = self.character_state.pronouns  # For DM narration context
         action['is_free_action'] = is_free_action  # Mark free inter-party dialogue
 
         # Add inventory info for rituals
@@ -1252,12 +1253,28 @@ class AIPlayerAgent(Agent):
         """Handle session start messages (no-op for players - handled via SCENARIO_SETUP)."""
         pass
 
+    def _get_soulcredit_display(self) -> str:
+        """Get soulcredit display string with history trail if available."""
+        if hasattr(self, 'shared_state') and self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                return mechanics.format_player_soulcredit(self.agent_id)
+        return str(self.character_state.soulcredit)
+
     def _show_character_status(self):
         """Show current character status."""
         print(f"\n=== {self.character_state.name} Status ===")
         print(f"Faction: {self.character_state.faction}")
         print(f"Void Score: {self.character_state.void_score}/10")
-        print(f"Soulcredit: {self.character_state.soulcredit}")
+        # Show SC with history trail if mechanics engine available
+        if hasattr(self, 'shared_state') and self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                print(mechanics.format_player_soulcredit(self.agent_id))
+            else:
+                print(f"Soulcredit: {self.character_state.soulcredit}")
+        else:
+            print(f"Soulcredit: {self.character_state.soulcredit}")
         print(f"Goals: {', '.join(self.character_state.goals)}")
         if self.character_state.bonds:
             bond_names = [f"{bond.character_b} ({bond.bond_type.value}, {bond.status.value})" for bond in self.character_state.bonds]
@@ -1576,7 +1593,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             "wound_status": wound_status,
             "stuns": str(self.stuns),
             "void_score": str(self.character_state.void_score),
-            "soulcredit": str(self.character_state.soulcredit),
+            "soulcredit": self._get_soulcredit_display(),
             "void_warning": void_warning,
             "currency_display": currency_display,
             "seeds_display": seeds_display,
@@ -1862,7 +1879,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "stuns": str(self.stuns),
                 "void_score": str(self.character_state.void_score),
                 "void_warning": void_warning,
-                "soulcredit": str(self.character_state.soulcredit),
+                "soulcredit": self._get_soulcredit_display(),
                 "position": str(self.position) if hasattr(self, 'position') else "Unknown",
                 # Scenario context (current location and situation)
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',

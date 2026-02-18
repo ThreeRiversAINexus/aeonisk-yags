@@ -1914,13 +1914,14 @@ class SoulcreditState:
     score: int = 0  # -10 to +10
     history: List[Dict[str, Any]] = field(default_factory=list)
 
-    def adjust(self, amount: int, reason: str) -> int:
+    def adjust(self, amount: int, reason: str, round_num: Optional[int] = None) -> int:
         """
         Adjust soulcredit and clamp to [-10, +10] range.
 
         Args:
             amount: Soulcredit delta (can be positive or negative)
             reason: Why soulcredit is changing
+            round_num: Which round this change occurred in (for history tracking)
 
         Returns:
             New soulcredit score
@@ -1933,7 +1934,8 @@ class SoulcreditState:
                 'change': self.score - old_score,
                 'reason': reason,
                 'old_score': old_score,
-                'new_score': self.score
+                'new_score': self.score,
+                'round': round_num
             })
             logger.info(f"Soulcredit: {old_score} → {self.score} ({reason})")
 
@@ -2512,6 +2514,69 @@ class MechanicsEngine:
             state = SoulcreditState(score=initial_score)
             self.soulcredit_states[agent_id] = state
         return self.soulcredit_states[agent_id]
+
+    def format_character_soulcredit(self, agent_id: str, character_name: str) -> str:
+        """Format soulcredit history for the acting character (DM-facing context).
+
+        Returns empty string if no SC history exists or agent is unknown.
+        """
+        if agent_id not in self.soulcredit_states:
+            return ""
+        sc_state = self.soulcredit_states[agent_id]
+        if not sc_state.history:
+            return ""
+
+        # Group history entries by round
+        from collections import defaultdict
+        by_round = defaultdict(list)
+        for entry in sc_state.history:
+            r = entry.get('round')
+            by_round[r].append(entry)
+
+        # Build per-round summary
+        round_parts = []
+        for r in sorted(by_round.keys(), key=lambda x: (x is None, x)):
+            entries = by_round[r]
+            descs = [f"{e['change']:+d} {e['reason']}" for e in entries]
+            label = f"R{r}" if r is not None else "R?"
+            round_parts.append(f"{label}: {', '.join(descs)}")
+
+        score_str = f"{sc_state.score:+d}" if sc_state.score != 0 else "0"
+        return (
+            f"ACTING CHARACTER SOULCREDIT:\n"
+            f"  {character_name}: {score_str} [{sc_state.reputation_level}] "
+            f"({'; '.join(round_parts)})"
+        )
+
+    def format_player_soulcredit(self, agent_id: str) -> str:
+        """Format soulcredit for player-facing display (Codex kiosk query).
+
+        Shows score, reputation, and per-round history trail.
+        """
+        if agent_id not in self.soulcredit_states:
+            return "Soulcredit: 0 [Neutral]"
+        sc_state = self.soulcredit_states[agent_id]
+
+        score_str = f"{sc_state.score:+d}" if sc_state.score != 0 else "0"
+        result = f"Soulcredit: {score_str} [{sc_state.reputation_level}]"
+
+        if sc_state.history:
+            from collections import defaultdict
+            by_round = defaultdict(list)
+            for entry in sc_state.history:
+                r = entry.get('round')
+                by_round[r].append(entry)
+
+            round_parts = []
+            for r in sorted(by_round.keys(), key=lambda x: (x is None, x)):
+                entries = by_round[r]
+                descs = [f"{e['change']:+d} ({e['reason']})" for e in entries]
+                label = f"R{r}" if r is not None else "R?"
+                round_parts.append(f"{label}: {', '.join(descs)}")
+
+            result += f"\n  {' | '.join(round_parts)}"
+
+        return result
 
     def has_offering(self, character_state: Any) -> tuple[bool, Optional[str], int]:
         """
