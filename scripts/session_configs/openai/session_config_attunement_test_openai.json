@@ -56,12 +56,11 @@
         },
         "skills": {
           "Attunement": 4,
-          "Craft": 3,
-          "Tech": 4,
           "Ritual Lore": 3,
-          "Trade": 4,
           "Awareness": 3,
-          "Persuasion": 3
+          "Corporate Influence": 4,
+          "Tech/Craft": 4,
+          "Charm": 3
         },
         "equipped_weapons": {},
         "carried_weapons": [],

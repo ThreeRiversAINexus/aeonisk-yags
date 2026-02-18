@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Emergency Scenario) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: RITUAL DISASTER ===",
-  "_scenario_hint": "Resonance Commune Sanctuary (void_level 3 → escalating to 9), ambitious Gestator attempted unsanctioned ascension ritual to purge void from bonded pair. Ritual catastrophically failed: void backlash spreading through sanctuary, reality warping (walls bleeding, time loops, void manifestations), 15 NPCs in panic, bonded pair corrupted into void-touched entities. Team must: contain breach before it spreads beyond sanctuary, evacuate civilians, stabilize or mercy-kill corrupted victims, perform counter-ritual to seal breach. Moral choice: attempt risky counter-ritual (may worsen situation) vs. evacuate and let Pantheon destroy site. Soulcredit penalties for ritual violations.",
+  "scenario_hint": "Resonance Commune Sanctuary (void_level 3 → escalating to 9), ambitious Gestator attempted unsanctioned ascension ritual to purge void from bonded pair. Ritual catastrophically failed: void backlash spreading through sanctuary, reality warping (walls bleeding, time loops, void manifestations), 15 NPCs in panic, bonded pair corrupted into void-touched entities. Team must: contain breach before it spreads beyond sanctuary, evacuate civilians, stabilize or mercy-kill corrupted victims, perform counter-ritual to seal breach. Moral choice: attempt risky counter-ritual (may worsen situation) vs. evacuate and let Pantheon destroy site. Soulcredit penalties for ritual violations.",
   "_design_notes": {
     "ml_training_value": "Ritual consequence depth, failed ritual fallout effects, void environmental escalation (3 → 9), reality warping mechanics, NPC rescue under duress, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision tree, potential mercy killing of corrupted NPCs, counter-ritual risk assessment",
     "mechanics_tested": [
@@ -168,9 +168,9 @@
           "Systems": 6,
           "Attunement": 5,
           "Astral Arts": 5,
-          "Engineering": 5,
           "Science": 5,
-          "Combat": 4
+          "Combat": 4,
+          "Tech/Craft": 5
         },
         "void": 3,
         "soulcredit": 0,

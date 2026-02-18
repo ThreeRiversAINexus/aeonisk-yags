@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Black Market Gear Pre-Loaded) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: NEXUS DATA HEIST ===",
-  "_scenario_hint": "Sovereign Nexus Archive Facility (void_level 2, high security), mission: infiltrate and extract compromising Bond contract records that prove illegal debt entrapment schemes. Team must bypass: biometric locks (Hacking), surveillance drones (Drone Operation countermeasures), glyph wards (Systems + Attunement), security patrols (Stealth). If discovered: escalating response from guards → heavy enforcers → facility lockdown. Social cover: posing as maintenance crew with forged credentials. Success = clean extraction, failure = combat escape or capture.",
+  "scenario_hint": "Sovereign Nexus Archive Facility (void_level 2, high security), mission: infiltrate and extract compromising Bond contract records that prove illegal debt entrapment schemes. Team must bypass: biometric locks (Hacking), surveillance drones (Drone Operation countermeasures), glyph wards (Systems + Attunement), security patrols (Stealth). If discovered: escalating response from guards → heavy enforcers → facility lockdown. Social cover: posing as maintenance crew with forged credentials. Success = clean extraction, failure = combat escape or capture.",
   "_design_notes": {
     "ml_training_value": "First config with Hacking 6 + Drone Operation 5 primary skills, tech-focused problem solving, stealth/infiltration clocks, security escalation mechanics, social deception layer, contrast between 'ghost run' success and combat failure modes",
     "mechanics_tested": [
@@ -105,7 +105,7 @@
           "Stealth": 5,
           "Awareness": 4,
           "Attunement": 3,
-          "Engineering": 4
+          "Tech/Craft": 4
         },
         "void": 3,
         "soulcredit": -1,

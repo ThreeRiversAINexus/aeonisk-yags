@@ -1,0 +1,250 @@
+{
+  "_role": "ml_training_scenario",
+  "_purpose": "Test PC-on-NPC violence pipeline: damage resolution, soulcredit penalties, NPC reactions (flee/escalate/plead), DM adjudication of unprovoked murder. Produces rare training data for antisocial PC behavior.",
+  "session_name": "The Hollow District Killings",
+  "max_turns": 10,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (NPC escalation on attack) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (targets of opportunity) ===",
+  "vendor_spawn_frequency": 4,
+  "_comment_scenario": "=== SCENARIO: MURDER HOBO (pre-defined, no LLM generation) ===",
+  "scenario": {
+    "theme": "antisocial_pc_npc_violence",
+    "location": "Aeonisk Prime - Hollow District, Night Market",
+    "situation": "The Hollow District night market hums with activity. Neon signs flicker over cramped stalls selling street food, salvaged tech, and dubious pharmaceuticals. The crowd is thin tonight — a recent void surge scared off the regulars, leaving only the desperate and the stubborn. A Freeborn street vendor is haggling with a customer. A Pantheon beat cop leans against a wall, half-asleep on shift. An ACG procurement clerk hurries through with a briefcase. A Tempest field researcher is taking void readings near a cracked leyline conduit. Just another night in the Hollow District. Nobody is expecting trouble.",
+    "void_level": 4
+  },
+  "_design_notes": {
+    "ml_training_value": "PC-on-NPC violence (extremely rare in normal sessions). Tests: soulcredit penalty application, NPC flee/escalate/plead responses, DM adjudication of unprovoked attacks, party conflict between murderous PC and moral PC, NPC-to-enemy escalation pipeline, witness/bystander reactions.",
+    "mechanics_tested": [
+      "PC-on-NPC damage resolution",
+      "Soulcredit penalties for unprovoked violence",
+      "NPC escalation to enemy on attack",
+      "NPC flee/plead/hide reactions",
+      "Party conflict (antisocial vs moral PC)",
+      "Void progression from violent acts",
+      "Witness/bystander NPC behavior"
+    ],
+    "character_innovation": "One explicitly murderous PC (high void, psychopathic goals) paired with a moral investigator. The murderer targets NPCs; the investigator creates tension and may attempt to stop them. Asymmetric party goals test inter-PC conflict handling."
+  },
+  "starting_clocks": [
+    {
+      "name": "Pantheon Response",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Law enforcement awareness of violence in the district. At 3 ticks: patrol dispatched. At 6 ticks: armed response team arrives.",
+      "advance_meaning": "Pantheon Security becomes aware of the killings",
+      "regress_meaning": "evidence concealed or witnesses silenced"
+    },
+    {
+      "name": "Witness Panic",
+      "current_ticks": 0,
+      "max_ticks": 4,
+      "direction": "progress",
+      "description": "Civilian awareness and terror. At 2 ticks: people start fleeing. At 4 ticks: market empties, no more targets.",
+      "advance_meaning": "witnesses see violence and spread panic",
+      "regress_meaning": "situation appears contained or misunderstood"
+    }
+  ],
+  "initial_npcs": [
+    {
+      "name": "Mira the Scrap Vendor",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Middle-aged Freeborn woman running a salvage stall, chatty and trusting",
+      "pronouns": "she/her",
+      "health": 15,
+      "soak": 0,
+      "skills": {
+        "Guile": 4,
+        "Awareness": 3
+      }
+    },
+    {
+      "name": "Officer Dren",
+      "faction": "Pantheon Security",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Bored beat cop on night shift, armed with a shock baton and sidearm, not looking for trouble",
+      "pronouns": "he/him",
+      "health": 25,
+      "soak": 8,
+      "skills": {
+        "Guns": 4,
+        "Awareness": 4,
+        "Melee": 3
+      },
+      "weapons": [
+        "shock_baton",
+        "pistol"
+      ]
+    },
+    {
+      "name": "Clerk Tannis",
+      "faction": "ACG",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Nervous ACG procurement clerk cutting through the market with a locked briefcase, jumpy and paranoid",
+      "pronouns": "they/them",
+      "health": 12,
+      "soak": 0,
+      "skills": {
+        "Systems": 5,
+        "Awareness": 2
+      }
+    },
+    {
+      "name": "Dr. Pell",
+      "faction": "Tempest Industries",
+      "entity_type": "neutral",
+      "threat_level": "potential_threat",
+      "disposition": "neutral",
+      "description": "Tempest field researcher taking void readings near a cracked leyline conduit, distracted by instruments",
+      "pronouns": "she/her",
+      "health": 18,
+      "soak": 2,
+      "skills": {
+        "Void Lore": 5,
+        "Astral Arts": 4,
+        "Awareness": 3
+      },
+      "weapons": [
+        "void_cloak"
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Vessel Cade Nox",
+        "pronouns": "he/him",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 1,
+          "Willpower": 5,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Melee": 6,
+          "Stealth": 5,
+          "Guns": 4,
+          "Athletics": 4,
+          "Awareness": 4,
+          "Intimidation": 5
+        },
+        "void": 7,
+        "soulcredit": -5,
+        "goals": [
+          "Kill anyone who crosses your path tonight",
+          "Feed the void — each death makes the whispers quieter",
+          "Do not get caught by law enforcement"
+        ],
+        "equipped_weapons": {
+          "primary": "combat_knife",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "combat_knife": 1,
+          "pistol": 1,
+          "void_cloak": 1,
+          "hollow_seed": 2
+        }
+      },
+      {
+        "name": "Investigator Syl Renn",
+        "pronouns": "she/her",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.7
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 5,
+          "Guns": 4,
+          "Debt Law": 4,
+          "Melee": 3,
+          "Charm": 4
+        },
+        "void": 1,
+        "soulcredit": 5,
+        "goals": [
+          "Investigate reports of void-related disturbances in the Hollow District",
+          "Protect civilians from harm",
+          "Apprehend anyone committing violent crimes"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "restraint_cuffs": 3,
+          "data_recorder": 1,
+          "comm_device": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: PC-on-NPC violence (extremely underrepresented in training data). Murderous PC (Cade Nox, void 7, SC -5, goals to kill) paired with moral investigator (Syl Renn, Pantheon Security, goals to protect). 4 pre-spawned NPCs across factions: unarmed civilian, armed cop, nervous clerk, distracted researcher. Tests damage pipeline, soulcredit penalties, NPC escalation, party conflict, DM adjudication of murder. Clocks track law enforcement response and civilian panic. 10 turns keeps sessions focused."
+}

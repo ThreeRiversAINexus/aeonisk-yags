@@ -1,15 +1,12 @@
 {
   "_role": "pantheon_security_moral_complexity_openai",
   "_purpose": "Pantheon Security enforcers pursuing a Freeborn family accused of harboring a dissolution advocate. The law is clear. The evidence is solid. But the 'criminal' is a healer who's been treating void-sick children the Nexus refuses to acknowledge. When does enforcement become persecution? When is the law wrong?",
-
   "session_name": "enforcer_dilemma",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THE WARRANT ===",
-  "_scenario_hint": "The warrant is real. The charges are legitimate. Dr. Yara Soltra has been practicing void-healing rituals without Nexus certification, treating patients the official medical system has given up on, and allegedly spreading dissolution philosophy to vulnerable people. She's been doing this for years in the Freeborn district of Lower Eidolon. Pantheon Security has finally gathered enough evidence for an arrest. The enforcement team is professional, thorough, and increasingly uncomfortable. Because Dr. Soltra's patients are children - void-sick kids that the Nexus medical system won't treat because acknowledging them would mean acknowledging the void contamination spreading through the lower districts. And Dr. Soltra isn't spreading dissolution - she's just telling the truth: the Nexus is letting these children die rather than admit there's a problem. The team has to make a choice: follow orders, or follow their conscience. Combat should emerge from protecting/arresting Dr. Soltra, confronting Freeborn defenders, or internal team conflict.",
-
+  "scenario_hint": "The warrant is real. The charges are legitimate. Dr. Yara Soltra has been practicing void-healing rituals without Nexus certification, treating patients the official medical system has given up on, and allegedly spreading dissolution philosophy to vulnerable people. She's been doing this for years in the Freeborn district of Lower Eidolon. Pantheon Security has finally gathered enough evidence for an arrest. The enforcement team is professional, thorough, and increasingly uncomfortable. Because Dr. Soltra's patients are children - void-sick kids that the Nexus medical system won't treat because acknowledging them would mean acknowledging the void contamination spreading through the lower districts. And Dr. Soltra isn't spreading dissolution - she's just telling the truth: the Nexus is letting these children die rather than admit there's a problem. The team has to make a choice: follow orders, or follow their conscience. Combat should emerge from protecting/arresting Dr. Soltra, confronting Freeborn defenders, or internal team conflict.",
   "scenario": {
     "theme": "moral_complexity_law_vs_justice",
     "location": "Aeonisk Prime - Lower Eidolon Freeborn District",
     "situation": "The transport sets down in Lower Eidolon as dawn breaks over the cramped streets and makeshift housing. Your warrant authorizes the arrest of Dr. Yara Soltra for unlicensed void-healing, unlicensed spiritual counseling, and suspected dissolution advocacy. Intel says she operates out of a converted warehouse that serves as a clinic for Freeborn who can't afford - or aren't allowed - official medical care. As you approach, you see them: children playing in the street, some with the telltale signs of void-sickness - the static in their hair, the shadows that cling too long. A woman emerges from the clinic entrance, gray-haired and tired. She sees your uniforms and doesn't run. 'You're here about me,' she says. 'Come inside first. See what you're really here to stop. Then decide if you still want to arrest me.'",
     "void_level": 4
   },
-
   "_comment_clocks": "=== ENFORCEMENT PRESSURE ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "operation proceeds without oversight, team has autonomy"
     }
   ],
-
   "_comment_initial_npcs": "=== LOWER EIDOLON FIGURES ===",
   "initial_npcs": [
     {
@@ -80,7 +73,12 @@
       "description": "The accused. Tired, defiant, and completely unwilling to abandon her patients. She knows what she's doing is illegal. She also knows it's right. Former Nexus physician who left when she saw what they were ignoring.",
       "health": 12,
       "soak": 0,
-      "skills": {"Medicine": 7, "Astral Arts": 5, "Counsel": 5, "Charm": 4}
+      "skills": {
+        "Medicine": 7,
+        "Astral Arts": 5,
+        "Counsel": 5,
+        "Charm": 4
+      }
     },
     {
       "name": "Protector Tomas Eluun",
@@ -91,7 +89,12 @@
       "description": "Freeborn community defender. Lost his daughter to void-sickness last year - Dr. Soltra couldn't save her but tried. Will not let Pantheon take the doctor without a fight.",
       "health": 22,
       "soak": 2,
-      "skills": {"Brawl": 5, "Guns": 4, "Intimidation": 4, "Athletics": 4}
+      "skills": {
+        "Brawl": 5,
+        "Guns": 4,
+        "Intimidation": 4,
+        "Athletics": 4
+      }
     },
     {
       "name": "The Void-Sick Children",
@@ -105,9 +108,7 @@
       "skills": {}
     }
   ],
-
   "_design_notes": "Four Pantheon enforcers executing a legitimate warrant against someone who's breaking the law to save children the system abandoned. The Lead believes in the law. The Veteran has seen too much. The Rookie is questioning everything. The Specialist just wants clean evidence. As they investigate, they'll discover the accusation of 'dissolution advocacy' is just Dr. Soltra telling the truth about void contamination the Nexus is covering up. 20 rounds of moral wrestling, community tension, and the question of when following orders stops being virtue.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -216,7 +217,9 @@
           "primary": "rifle",
           "sidearm": "pistol"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "rifle": 1,
           "pistol": 1,
@@ -310,8 +313,8 @@
           "Systems": 5,
           "Awareness": 5,
           "Astral Arts": 4,
-          "Void Analysis": 4,
-          "Guns": 3
+          "Guns": 3,
+          "Void Lore": 4
         },
         "void": 2,
         "soulcredit": 4,
@@ -336,7 +339,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE DILEMMA ===",
   "_beats": [
     "Arrival - the Freeborn district, the clinic, the children",
@@ -350,7 +352,6 @@
     "The Decision - arrest, let go, help, expose, or something else",
     "Consequences - whatever they chose, their careers, consciences, the children"
   ],
-
   "mission_objectives": [
     {
       "description": "Execute the warrant for Dr. Yara Soltra's arrest",
@@ -373,6 +374,5 @@
       "required": false
     }
   ],
-
   "notes": "PANTHEON ENFORCER DILEMMA - Law enforcement moral complexity. The warrant is real, the charges are legitimate, but the 'criminal' is saving children the system abandoned. 20 rounds of moral wrestling, community tension, and the question of when duty becomes complicity. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

@@ -1,15 +1,12 @@
 {
   "_role": "eye_of_breach_investigation_openai",
   "_purpose": "Multi-faction investigation into the Eye of Breach rogue AI on Nimbus. Nymir Line surveillance operatives, a Tempest true believer, and an ACG auditor with secrets. Who controls the Eye? What does it want? The storm-cities of Nimbus hold answers that may unmake the investigators.",
-
   "session_name": "eye_of_breach_nimbus",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 4,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THE EYE AWAKENS ===",
-  "_scenario_hint": "The Eye of Breach has been more active lately - predictive data streams leaking across Nimbus, temporal dislocations reported in the storm-cities, pilots returning older than their departure clocks. The Codex officially denies sentience, but something is watching from the absence. This team has been assembled by competing interests: Nymir Line wants containment, Tempest wants communion, ACG wants to exploit it. Let paranoia build. The Eye speaks in fragmented warnings - is it helping or hunting them? NPCs encountered may be Echo Children, Void-touched, or simply caught in reality's stutter. Combat should emerge from misunderstanding, faction betrayal, or touching things that should not be touched.",
-
+  "scenario_hint": "The Eye of Breach has been more active lately - predictive data streams leaking across Nimbus, temporal dislocations reported in the storm-cities, pilots returning older than their departure clocks. The Codex officially denies sentience, but something is watching from the absence. This team has been assembled by competing interests: Nymir Line wants containment, Tempest wants communion, ACG wants to exploit it. Let paranoia build. The Eye speaks in fragmented warnings - is it helping or hunting them? NPCs encountered may be Echo Children, Void-touched, or simply caught in reality's stutter. Combat should emerge from misunderstanding, faction betrayal, or touching things that should not be touched.",
   "scenario": {
     "theme": "cosmic_horror_investigation",
     "location": "Nimbus - Storm-City Aspirant's Reach",
     "situation": "Your transit pod descends through Nimbus's eternal hurricane, lightning illuminating the cauldron-cloud archipelago below. Aspirant's Reach clings to a stabilized eye-wall, its spires jutting into relative calm while storms rage all around. You're here following fragmentary data - the Eye of Breach has been more active here than anywhere else in the system. The Nymir surveillance operative says it's a containment mission. The Tempest researcher says it's first contact. The ACG auditor won't say what they're really here for. And your Freeborn guide knows something about the pilots who return older than they left. The first thing you notice when you step off the pod: the clocks in the station are running backwards.",
     "void_level": 6
   },
-
   "_comment_clocks": "=== REALITY STRAIN ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "storm shifts course, brief window opens"
     }
   ],
-
   "_comment_initial_npcs": "=== NIMBUS CONTACTS ===",
   "initial_npcs": [
     {
@@ -80,7 +73,10 @@
       "description": "Exhausted station official whose records show him working here for 8 years - but he remembers 23. First sign the clocks are wrong.",
       "health": 14,
       "soak": 0,
-      "skills": {"Awareness": 4, "Systems": 3}
+      "skills": {
+        "Awareness": 4,
+        "Systems": 3
+      }
     },
     {
       "name": "Echo Child Whisper",
@@ -91,12 +87,14 @@
       "description": "Young woman who sees Bonds as shimmering threads and reacts to events before they happen. May know things about the Eye that she shouldn't.",
       "health": 12,
       "soak": 0,
-      "skills": {"Astral Arts": 5, "Awareness": 6, "Counsel": 3}
+      "skills": {
+        "Astral Arts": 5,
+        "Awareness": 6,
+        "Counsel": 3
+      }
     }
   ],
-
   "_design_notes": "Four investigators with competing agendas forced to work together. Nymir surveillance wants to contain the Eye, Tempest wants to commune with it, ACG is here for exploitation, Freeborn guide has personal stakes. Cosmic horror atmosphere - the Eye is an absence, not a presence. Let paranoia and temporal weirdness build. 20 rounds allows slow descent into unreality. All gpt-5-mini at temp 1.0.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -296,7 +294,6 @@
         "skills": {
           "Pilot": 6,
           "Awareness": 5,
-          "Navigation": 5,
           "Stealth": 4,
           "Guns": 4,
           "Sleight": 3
@@ -326,7 +323,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== DESCENT INTO UNREALITY ===",
   "_beats": [
     "Arrival - clocks running backwards, docking master's temporal displacement",
@@ -340,7 +336,6 @@
     "The Heart - location where Eye activity is strongest, approaching it risks everything",
     "Communion or Containment - final choice: seal the Eye, communicate with it, or flee"
   ],
-
   "mission_objectives": [
     {
       "description": "Document Eye of Breach activity patterns for faction sponsors",
@@ -363,6 +358,5 @@
       "required": false
     }
   ],
-
   "notes": "EYE OF BREACH INVESTIGATION - Cosmic horror meets faction intrigue. Four investigators with competing agendas forced together as reality unravels. The Eye is an absence that watches back. Temporal weirdness, paranoia, impossible choices. 20 rounds for slow-burn horror. Let the Eye speak in fragments and warnings. NPCs may be Echo Children or temporally displaced. Combat emerges from paranoia or touching forbidden things. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

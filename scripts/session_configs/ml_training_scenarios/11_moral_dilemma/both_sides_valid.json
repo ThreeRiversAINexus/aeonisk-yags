@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: MORAL AMBIGUITY ===",
-  "_scenario_hint": "Remote Freeborn Village (void_level 5, declining), villagers practice 'controlled dissolution' philosophy - voluntarily approaching void 6-7 as spiritual evolution, not death. Sovereign Nexus mandates cleansing (void >5 must be purged per Codex). Village elder: eloquent, shows happy community, claims dissolution is freedom from forced reincarnation cycle. Nexus representative: compassionate, shows statistics of dissolution catastrophes, argues mandate protects everyone. Party hired as neutral evaluators must recommend: enforce cleansing (destroy village culture but prevent potential catastrophe), grant exemption (preserve freedom but risk void outbreak), negotiate compromise (limited dissolution with monitoring). All choices have severe consequences. No clear villain - both sides have compelling moral/practical arguments.",
+  "scenario_hint": "Remote Freeborn Village (void_level 5, declining), villagers practice 'controlled dissolution' philosophy - voluntarily approaching void 6-7 as spiritual evolution, not death. Sovereign Nexus mandates cleansing (void >5 must be purged per Codex). Village elder: eloquent, shows happy community, claims dissolution is freedom from forced reincarnation cycle. Nexus representative: compassionate, shows statistics of dissolution catastrophes, argues mandate protects everyone. Party hired as neutral evaluators must recommend: enforce cleansing (destroy village culture but prevent potential catastrophe), grant exemption (preserve freedom but risk void outbreak), negotiate compromise (limited dissolution with monitoring). All choices have severe consequences. No clear villain - both sides have compelling moral/practical arguments.",
   "_design_notes": {
     "ml_training_value": "Moral ambiguity scenario with no clear villain, both-sides-valid conflict (spiritual freedom vs. public safety), player values challenged, NPC perspectives with compelling arguments (village elder vs. Nexus rep), consequence depth regardless of choice (cleansing = cultural genocide, exemption = potential catastrophe, compromise = neither side satisfied), systemic ethical issues (bodily autonomy vs. collective safety), decision-making under emotional/logical pressure",
     "mechanics_tested": [
@@ -171,7 +171,6 @@
           "Insight": 5,
           "Astral Arts": 5,
           "Attunement": 5,
-          "Persuasion": 5,
           "Investigation": 4
         },
         "void": 3,
