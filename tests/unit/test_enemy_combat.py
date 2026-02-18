@@ -1,14 +1,17 @@
 """
-Unit tests for enemy declaration parsing in enemy_combat.py.
+Unit tests for enemy declaration parsing and action execution in enemy_combat.py.
 
 Tests the parse_enemy_declaration function handles various LLM output formats,
 including markdown bold formatting that was previously dropped.
+
+Also tests dialogue and wait action handlers.
 """
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from scripts.aeonisk.multiagent.enemy_combat import parse_enemy_declaration
+from scripts.aeonisk.multiagent.enemy_combat import parse_enemy_declaration, EnemyCombatManager, EnemyDeclaration
+from scripts.aeonisk.multiagent.enemy_agent import EnemyAgent, Position
 
 
 def _make_mock_enemy(name="Thug #2", agent_id="enemy_02", initiative=5):
@@ -149,3 +152,171 @@ TARGET: tgt_1234
         assert result.major_action == "Attack"
         # Bold markers in values get stripped — acceptable trade-off
         assert "important reason" in result.reasoning
+
+
+# =============================================================================
+# DIALOGUE AND WAIT ACTION HANDLERS
+# =============================================================================
+
+def _make_enemy_agent(name="Test Guard", agent_id="enemy_guard_01", faction="Sovereign Nexus"):
+    """Create a real EnemyAgent for combat manager tests."""
+    return EnemyAgent(
+        agent_id=agent_id,
+        name=name,
+        template="grunt",
+        attributes={"Agility": 3, "Strength": 3, "Perception": 2, "Intelligence": 2, "Empathy": 2, "Willpower": 2, "Health": 3},
+        skills={"Brawl": 2, "Guns": 3, "Awareness": 2},
+        health=30,
+        max_health=30,
+        soak=0,
+        wounds=0,
+        position=Position(ring="Near", side="Enemy"),
+        initiative=10,
+        faction=faction,
+        morale_behavior="flee_when_broken",
+        character_brief="Test guard.",
+    )
+
+
+def _make_combat_manager_with_enemy(enemy):
+    """Create an EnemyCombatManager with a single enemy registered."""
+    manager = EnemyCombatManager()
+    manager.enabled = True
+    manager.enemy_agents = [enemy]
+    manager.current_round = 1
+    return manager
+
+
+class TestExecuteDialogue:
+    """Tests for enemy dialogue action execution."""
+
+    def test_execute_dialogue_returns_success(self):
+        """Dialogue action should return a result dict with dialogue_content."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+        manager.enemy_declarations[enemy.agent_id] = EnemyDeclaration(
+            agent_id=enemy.agent_id,
+            character_name=enemy.name,
+            initiative=10,
+            defence_token=None,
+            major_action="Dialogue",
+            target=None,
+            weapon=None,
+            minor_action=None,
+            token_target=None,
+            reasoning="Demanding surrender",
+            shared_intel=None,
+            dialogue_content="Drop your weapons or we open fire!",
+        )
+
+        result = manager.execute_enemy_action(
+            enemy_id=enemy.agent_id,
+            player_agents=[],
+            mechanics_engine=None,
+        )
+
+        assert result is not None
+        assert result['action'] == 'dialogue'
+        assert result['result'] == 'success'
+        assert result['dialogue_content'] == "Drop your weapons or we open fire!"
+        assert enemy.name in result['narration']
+
+    def test_execute_dialogue_logs_to_jsonl(self):
+        """Dialogue action should log to JSONL logger."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+        manager.enemy_declarations[enemy.agent_id] = EnemyDeclaration(
+            agent_id=enemy.agent_id,
+            character_name=enemy.name,
+            initiative=10,
+            defence_token=None,
+            major_action="Dialogue",
+            target=None,
+            weapon=None,
+            minor_action=None,
+            token_target=None,
+            reasoning="Warning intruders",
+            shared_intel=None,
+            dialogue_content="Halt! Identify yourselves!",
+        )
+
+        mock_logger = MagicMock()
+        mock_mechanics = MagicMock()
+        mock_mechanics.jsonl_logger = mock_logger
+
+        result = manager.execute_enemy_action(
+            enemy_id=enemy.agent_id,
+            player_agents=[],
+            mechanics_engine=mock_mechanics,
+        )
+
+        assert result is not None
+        mock_logger.log_enemy_action.assert_called_once()
+        call_kwargs = mock_logger.log_enemy_action.call_args
+        assert call_kwargs[1]['action_type'] == 'dialogue' or call_kwargs[0][3] == 'dialogue'
+
+
+class TestExecuteWait:
+    """Tests for enemy wait action execution."""
+
+    def test_execute_wait_returns_success(self):
+        """Wait action should return a hold-position result."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+        manager.enemy_declarations[enemy.agent_id] = EnemyDeclaration(
+            agent_id=enemy.agent_id,
+            character_name=enemy.name,
+            initiative=10,
+            defence_token=None,
+            major_action="Wait",
+            target=None,
+            weapon=None,
+            minor_action=None,
+            token_target=None,
+            reasoning="Observing before engaging",
+            shared_intel=None,
+        )
+
+        result = manager.execute_enemy_action(
+            enemy_id=enemy.agent_id,
+            player_agents=[],
+            mechanics_engine=None,
+        )
+
+        assert result is not None
+        assert result['action'] == 'wait'
+        assert result['result'] == 'success'
+        assert enemy.name in result['narration']
+
+    def test_execute_wait_logs_to_jsonl(self):
+        """Wait action should log to JSONL logger."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+        manager.enemy_declarations[enemy.agent_id] = EnemyDeclaration(
+            agent_id=enemy.agent_id,
+            character_name=enemy.name,
+            initiative=10,
+            defence_token=None,
+            major_action="Wait",
+            target=None,
+            weapon=None,
+            minor_action=None,
+            token_target=None,
+            reasoning="Holding position",
+            shared_intel=None,
+        )
+
+        mock_logger = MagicMock()
+        mock_mechanics = MagicMock()
+        mock_mechanics.jsonl_logger = mock_logger
+
+        result = manager.execute_enemy_action(
+            enemy_id=enemy.agent_id,
+            player_agents=[],
+            mechanics_engine=mock_mechanics,
+        )
+
+        assert result is not None
+        mock_logger.log_enemy_action.assert_called_once()
+        call_kwargs = mock_logger.log_enemy_action.call_args
+        assert call_kwargs[1]['action_type'] == 'wait' or call_kwargs[0][3] == 'wait'

@@ -867,7 +867,7 @@ class SelfPlayingSession:
         print()
 
         # Generate narratives via LLM
-        scenario_context = self.config.get('_scenario_hint', '') if use_scenario_context else None
+        scenario_context = (self.config.get('scenario_hint', '') or self.config.get('_scenario_hint', '')) if use_scenario_context else None
         bond_suggestions = await self._generate_bond_narratives(
             bond_suggestions=bond_suggestions,
             character_names=character_names,
@@ -1616,21 +1616,27 @@ Generate narratives (numbered list only):"""
                     # Broadcast enemy declaration to all players (for tactical awareness)
                     # Note: sender must be agent_id for proper buffering in _handle_action_declared
                     if declaration:
+                        broadcast_payload = {
+                            'agent_id': declaration['agent_id'],
+                            'character_name': declaration['character_name'],
+                            'intent': declaration.get('major_action', 'Unknown action'),
+                            'target': declaration.get('target'),  # NEW: targeting info
+                            'weapon': declaration.get('weapon'),  # NEW: weapon info
+                            'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
+                            'initiative': declaration['initiative'],
+                            'agent_type': 'enemy'
+                        }
+                        # Include dialogue_content so players/NPCs see enemy speech
+                        if declaration.get('dialogue_content'):
+                            broadcast_payload['dialogue_content'] = declaration['dialogue_content']
+                            broadcast_payload['description'] = f'speaks: "{declaration["dialogue_content"]}"'
+
                         broadcast_message = Message(
                             id=f"enemy_declared_{datetime.now().isoformat()}_{agent.agent_id}",
                             type=MessageType.ACTION_DECLARED,
                             sender=declaration['agent_id'],  # Use enemy agent_id, not 'coordinator'
                             recipient=None,  # Broadcast to all
-                            payload={
-                                'agent_id': declaration['agent_id'],
-                                'character_name': declaration['character_name'],
-                                'intent': declaration.get('major_action', 'Unknown action'),
-                                'target': declaration.get('target'),  # NEW: targeting info
-                                'weapon': declaration.get('weapon'),  # NEW: weapon info
-                                'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
-                                'initiative': declaration['initiative'],
-                                'agent_type': 'enemy'
-                            },
+                            payload=broadcast_payload,
                             timestamp=datetime.now()
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
@@ -1821,10 +1827,9 @@ Generate narratives (numbered list only):"""
                                     else:
                                         status = ""
 
-                                    entity_type = info.get('type', 'unknown')
-                                    type_label = {'player': 'ally', 'npc': 'npc', 'enemy': 'hostile'}.get(entity_type, entity_type)
+                                    faction = info.get('faction', 'Unknown')
 
-                                    entry = f"{info['name']} ({target_id}, {type_label}) — {health}/{max_health} HP, wounds: {wounds}{status}"
+                                    entry = f"{info['name']} ({target_id}, {faction}) — {health}/{max_health} HP, wounds: {wounds}{status}"
 
                                     if death_state in ('dead', 'unconscious'):
                                         down_combatants.append(entry)
@@ -2271,8 +2276,11 @@ Generate narratives (numbered list only):"""
                                 # Resolve target IDs in narration for readability
                                 narration = self._resolve_target_ids_in_text(result['narration'])
                                 print(f"\n[{result['character_name']}] {narration}")
+                                # Show dialogue content prominently (like NPC dialogue)
+                                if result.get('dialogue_content'):
+                                    print(f'         💬 "{result["dialogue_content"]}"')
                                 # Show additional details on second line if combat action with damage
-                                if result.get('damage_dealt') is not None:
+                                elif result.get('damage_dealt') is not None:
                                     damage_str = f"Damage: {result.get('damage_dealt')}"
                                     range_str = f"Range: {result.get('range', 'N/A')}"
                                     print(f"         └─ {damage_str} | {range_str} | {health_str} | {position_str}")
@@ -2283,6 +2291,29 @@ Generate narratives (numbered list only):"""
                                 # Fallback if enemy not found
                                 narration = self._resolve_target_ids_in_text(result['narration'])
                                 print(f"\n[{result['character_name']}] {narration}")
+
+                            # Broadcast enemy dialogue/wait results as ACTION_RESOLVED
+                            # so they appear in players' recent_narrations (like NPC/PC actions)
+                            if result.get('action') in ('dialogue', 'wait'):
+                                resolved_narration = self._resolve_target_ids_in_text(result.get('narration', ''))
+                                broadcast_message = Message(
+                                    id=f"enemy_resolved_{datetime.now().isoformat()}_{agent.agent_id}",
+                                    type=MessageType.ACTION_RESOLVED,
+                                    sender=agent.agent_id,
+                                    recipient=None,  # Broadcast to all
+                                    payload={
+                                        'agent_id': agent.agent_id,
+                                        'original_action': {
+                                            'character_name': result.get('character_name', agent.name),
+                                            'intent': result.get('action', 'dialogue'),
+                                        },
+                                        'narration': resolved_narration,
+                                        'aware_agents': [],  # Public — everyone hears it
+                                        'resolution_data': result
+                                    },
+                                    timestamp=datetime.now()
+                                )
+                                await self.coordinator.message_bus._route_message(broadcast_message)
 
                         # Add enemy result to synthesis input
                         # Enemy actions use a simplified result dict compared to ActionResolution schema

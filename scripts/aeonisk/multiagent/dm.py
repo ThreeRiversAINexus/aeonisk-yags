@@ -953,9 +953,8 @@ class AIDMAgent(Agent):
             logger.debug("Force combat enabled - using combat scenario template")
             scenario_data = self._create_combat_scenario(config)
         else:
-            # Check for scenario constraints/hints in DM config
-            dm_config = config.get('agents', {}).get('dm', {})
-            scenario_hint = dm_config.get('_scenario_hint', '')
+            # Check for scenario constraints/hints (top-level config, with legacy fallback)
+            scenario_hint = config.get('scenario_hint', '') or config.get('_scenario_hint', '')
 
             scenario_constraints = ""
             if scenario_hint:
@@ -3513,6 +3512,11 @@ Void Level: {self.current_scenario.void_level}/10"""
                     intent = f"attacked {resolved_target}"
                 elif intent == 'hold':
                     intent = "held position"
+                elif intent == 'dialogue':
+                    dialogue = res.get('dialogue_content', '')
+                    intent = f'spoke aloud: "{dialogue}"' if dialogue else "attempted to communicate"
+                elif intent == 'wait':
+                    intent = "held position, observing"
 
             # Check if action was invalidated
             if res.get('result') == 'invalidated':
@@ -3555,6 +3559,10 @@ Void Level: {self.current_scenario.void_level}/10"""
                 dmg_target = resolve_target_name(res.get('target', 'unknown'))
                 dmg_dealt = res.get('damage_dealt', 0)
                 effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+            # Include enemy dialogue_content for DM narration (like NPC dialogue)
+            if res.get('dialogue_content'):
+                effects_info += f'\n  💬 **Enemy\'s Actual Words:** "{res["dialogue_content"]}" — Include this dialogue in your narration.'
 
             # CRITICAL: Include full narration from individual resolution so DM can maintain consistency
             narration = res.get('narration', '')

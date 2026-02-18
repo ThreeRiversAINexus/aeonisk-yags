@@ -92,6 +92,11 @@ def generate_tactical_prompt(
     # Combat Doctrine
     sections.append(_format_doctrine(enemy))
 
+    # Engagement Stance (non-lethal guidance when applicable)
+    stance_section = _format_engagement_stance(enemy)
+    if stance_section:
+        sections.append(stance_section)
+
     # Battlefield Situation
     sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
 
@@ -173,6 +178,11 @@ def generate_tactical_prompt_structured(
 
     # Combat Doctrine
     sections.append(_format_doctrine(enemy))
+
+    # Engagement Stance (non-lethal guidance when applicable)
+    stance_section = _format_engagement_stance(enemy)
+    if stance_section:
+        sections.append(stance_section)
 
     # Battlefield Situation
     sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
@@ -357,8 +367,8 @@ def _format_battlefield(
         section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely!"
 
     else:
-        # STANDARD MODE: Separate hostile/allied lists (backwards compatible)
-        section += "\n\n### Hostile Targets (Player Characters):"
+        # STANDARD MODE: Show all contacts without relationship labels
+        section += "\n\n### Detected Contacts:"
 
         # Format PC targets (skip if Unseen)
         pc_targets_shown = 0
@@ -369,32 +379,19 @@ def _format_battlefield(
                 pc_targets_shown += 1
 
         if pc_targets_shown == 0:
-            section += "\nNo visible player targets detected. They may be using stealth or concealment."
+            section += "\nNo visible targets detected. They may be using stealth or concealment."
 
-        # Separate allies from hostile enemies based on faction
-        allies = []
-        hostiles = []
+        # Show other enemy agents (without ally/hostile labels)
+        other_enemies = []
         for other_enemy in enemy_agents:
             if other_enemy.agent_id == enemy.agent_id or not other_enemy.is_active:
                 continue
+            other_enemies.append(other_enemy)
 
-            if are_factions_allied(enemy.faction, other_enemy.faction):
-                allies.append(other_enemy)
-            else:
-                hostiles.append(other_enemy)
-
-        # Format hostile enemy forces (opposing factions)
-        if hostiles:
-            section += "\n\n### Hostile Forces (Opposing Faction Enemies):"
-            section += "\n**These enemy units are HOSTILE to you - treat them as targets!**"
-            for hostile in hostiles:
-                section += "\n" + _format_hostile_enemy(enemy, hostile)
-
-        # Format allied enemies
-        if allies:
-            section += "\n\n### Allied Forces (Same Faction):"
-            for ally in allies:
-                section += "\n" + _format_allied_enemy(ally)
+        if other_enemies:
+            section += "\n\n### Other Forces:"
+            for other in other_enemies:
+                section += "\n" + _format_other_enemy(enemy, other)
 
     # Format tactical tokens (same for both modes)
     if available_tokens:
@@ -524,15 +521,15 @@ def _assess_threat_level(enemy: EnemyAgent, pc: Any, range_name: str, is_watchin
         return "LOW"
 
 
-def _format_hostile_enemy(observer: EnemyAgent, hostile: EnemyAgent) -> str:
-    """Format hostile enemy (opposing faction) as a target."""
-    # Calculate range to hostile enemy
+def _format_other_enemy(observer: EnemyAgent, other: EnemyAgent) -> str:
+    """Format another enemy agent's information without relationship labels."""
+    # Calculate range
     try:
-        range_name, range_penalty = observer.position.calculate_range(hostile.position)
+        range_name, range_penalty = observer.position.calculate_range(other.position)
     except:
         range_name, range_penalty = "Unknown", 0
 
-    health_pct = hostile.get_health_percentage()
+    health_pct = other.get_health_percentage()
 
     if health_pct >= 75:
         health_str = "~100% (healthy)"
@@ -543,33 +540,10 @@ def _format_hostile_enemy(observer: EnemyAgent, hostile: EnemyAgent) -> str:
     else:
         health_str = f"~{health_pct}% (CRITICAL)"
 
-    from .faction_utils import get_faction_stance
-    faction_stance = get_faction_stance(hostile.faction)
-
-    return f"""- {hostile.name} (HOSTILE {faction_stance})
-  Position: {hostile.position} (Range: {range_name}, Penalty: {range_penalty})
+    return f"""- {other.name} (Faction: {other.faction})
+  Position: {other.position} (Range: {range_name}, Penalty: {range_penalty})
   Health: {health_str}
-  Tactics: {hostile.tactics}
-  **You can target this enemy agent_id for attacks!**"""
-
-
-def _format_allied_enemy(ally: EnemyAgent) -> str:
-    """Format allied enemy information."""
-    health_pct = ally.get_health_percentage()
-
-    if health_pct >= 75:
-        health_str = "~100% (healthy)"
-    elif health_pct >= 50:
-        health_str = f"~{health_pct}% (wounded)"
-    elif health_pct >= 25:
-        health_str = f"~{health_pct}% (bloodied)"
-    else:
-        health_str = f"~{health_pct}% (CRITICAL)"
-
-    return f"""- {ally.name} [{ally.agent_id}]
-  Position: {ally.position}
-  Health: {health_str}
-  Tactics: {ally.tactics}"""
+  Tactics: {other.tactics}"""
 
 
 def _format_tactical_options(enemy: EnemyAgent) -> str:
@@ -652,11 +626,18 @@ def _format_weapon_option(weapon, enemy: EnemyAgent) -> str:
     if weapon.special:
         special_str = f"\n   Special: {', '.join(weapon.special)}"
 
+    # Annotate stun damage type for clarity
+    damage_type_str = weapon.damage_type
+    if weapon.damage_type == "stun":
+        damage_type_str = "stun (NON-LETHAL — incapacitates without killing)"
+    elif weapon.damage_type == "mixed":
+        damage_type_str = "mixed (lethal + stun components)"
+
     return f"""- **{weapon.name}** ({weapon.skill})
    Range: {ranges}
    Damage: {total_damage} + d20 (Str {strength} + Weapon {weapon.damage})
    Attack Bonus: {weapon.attack:+d}
-   Damage Type: {weapon.damage_type}{ammo_str}{special_str}"""
+   Damage Type: {damage_type_str}{ammo_str}{special_str}"""
 
 
 def _format_ability_option(ability: str, enemy: EnemyAgent) -> str:
@@ -832,6 +813,33 @@ What has been happening (most recent first):
         section += f"\nRound {round_num}: {truncated}"
 
     return section
+
+
+def _format_engagement_stance(enemy: EnemyAgent) -> str:
+    """Format engagement stance guidance for non-lethal or adaptive enemies."""
+    stance = getattr(enemy, 'engagement_stance', 'lethal')
+
+    if stance == "capture":
+        return f"""## ENGAGEMENT STANCE: CAPTURE
+{"=" * 60}
+**Your objective is to INCAPACITATE, not kill.**
+- Prefer stun-type weapons (Damage Type: stun). A dead target is a FAILED mission.
+- Use Dialogue to demand surrender before engaging. Example: "Stand down — you're coming with us."
+- Use Wait if combat isn't clearly warranted yet — observe before attacking.
+- Lethal force is a LAST RESORT only if your unit is in mortal danger.
+- If a target surrenders or is incapacitated, cease fire immediately."""
+
+    elif stance == "adaptive":
+        return f"""## ENGAGEMENT STANCE: ADAPTIVE
+{"=" * 60}
+**You may use lethal or non-lethal force as the situation demands.**
+- Consider stun weapons when capture or de-escalation is preferable.
+- Use Dialogue to warn, negotiate, or demand compliance before engaging.
+- Use Wait to observe when the tactical situation is unclear.
+- Match your force level to the threat — don't escalate beyond what's needed."""
+
+    # "lethal" stance — no extra text needed (default behavior)
+    return ""
 
 
 def _format_retreat_assessment(enemy: EnemyAgent) -> str:

@@ -56,6 +56,51 @@ class TestFactionDescriptions:
         assert are_factions_allied("Aether Dynamics", "Sovereign Nexus")
 
 
+class TestNeutralFactionAlliance:
+    """Neutral factions (Freeborn, Independent) should NOT be blanket-allied with everyone.
+
+    Bug: are_factions_allied() returned True for Neutral+Others, which prevented
+    escalated Freeborn enemies from attacking any non-Void target.
+    """
+
+    def test_neutral_vs_neutral_allied(self):
+        """Freeborn + Freeborn = allied (same alignment, don't fight each other)."""
+        assert are_factions_allied("Freeborn", "Freeborn") is True
+        assert are_factions_allied("Freeborn", "Independent") is True
+
+    def test_neutral_vs_anti_nexus_not_allied(self):
+        """Freeborn + Tempest = NOT allied (independent factions, can be hostile)."""
+        assert are_factions_allied("Freeborn", "Tempest Industries") is False
+        assert are_factions_allied("Freeborn", "Tempest") is False
+
+    def test_neutral_vs_pro_nexus_not_allied(self):
+        """Freeborn + Sovereign Nexus = NOT allied."""
+        assert are_factions_allied("Freeborn", "Sovereign Nexus") is False
+        assert are_factions_allied("Independent", "Pantheon Security") is False
+
+    def test_neutral_vs_corporate_not_allied(self):
+        """Freeborn + ACG = NOT allied."""
+        assert are_factions_allied("Freeborn", "ACG") is False
+        assert are_factions_allied("Independent", "Aether Dynamics") is False
+
+    def test_neutral_vs_void_not_allied(self):
+        """Freeborn + Void = NOT allied (Void hostile to all)."""
+        assert are_factions_allied("Freeborn", "Void") is False
+
+    def test_existing_alliances_unchanged(self):
+        """Verify the fix doesn't break existing alliance logic."""
+        # Pro-Nexus alliances
+        assert are_factions_allied("Sovereign Nexus", "Pantheon Security") is True
+        # Corporate alliances
+        assert are_factions_allied("ACG", "Aether Dynamics") is True
+        # Pro-Nexus + Corporate
+        assert are_factions_allied("Sovereign Nexus", "ACG") is True
+        # Anti-Nexus vs Pro-Nexus
+        assert are_factions_allied("Tempest Industries", "Sovereign Nexus") is False
+        # Same faction
+        assert are_factions_allied("Tempest", "Tempest") is True
+
+
 class TestFactionContextInPrompt:
     """Tactical prompt includes faction context."""
 

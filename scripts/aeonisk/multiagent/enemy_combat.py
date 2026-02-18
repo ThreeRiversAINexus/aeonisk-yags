@@ -54,6 +54,7 @@ class EnemyDeclaration:
     token_target: Optional[str]
     reasoning: str
     shared_intel: Optional[str]
+    dialogue_content: Optional[str] = None
 
 
 def _get_panicked_action(enemy: EnemyAgent) -> str:
@@ -902,6 +903,10 @@ class EnemyCombatManager:
             return self._execute_charge(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'retreat' in major_action:
             return self._execute_retreat(enemy, declaration, resolution_state)
+        elif 'dialogue' in major_action:
+            return self._execute_dialogue(enemy, declaration, mechanics_engine)
+        elif 'wait' in major_action:
+            return self._execute_wait(enemy, declaration, mechanics_engine)
         elif 'surrender' in major_action:
             return self._execute_surrender(enemy, declaration, resolution_state)
         elif 'grenade' in major_action or 'throw' in major_action:
@@ -1740,6 +1745,55 @@ class EnemyCombatManager:
             'narration': f"{enemy.name} lowers their weapon and surrenders",
             'surrender': True  # Signal for conversion check
         }
+
+    def _execute_dialogue(self, enemy: EnemyAgent, declaration: EnemyDeclaration, mechanics_engine: Any) -> Dict[str, Any]:
+        """Execute enemy dialogue action (speak, warn, demand, negotiate)."""
+        dialogue = getattr(declaration, 'dialogue_content', None) or ''
+
+        result = {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'dialogue',
+            'result': 'success',
+            'dialogue_content': dialogue,
+            'narration': f'{enemy.name} speaks: "{dialogue}"' if dialogue else f'{enemy.name} attempts to communicate.'
+        }
+
+        # JSONL logging
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            mechanics_engine.jsonl_logger.log_enemy_action(
+                round_num=self.current_round,
+                enemy_id=enemy.agent_id,
+                enemy_name=enemy.name,
+                action_type='dialogue',
+                result='success',
+                narration=result['narration']
+            )
+
+        return result
+
+    def _execute_wait(self, enemy: EnemyAgent, declaration: EnemyDeclaration, mechanics_engine: Any) -> Dict[str, Any]:
+        """Execute enemy wait action (observe, hold position)."""
+        result = {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'wait',
+            'result': 'success',
+            'narration': f'{enemy.name} holds position, observing.'
+        }
+
+        # JSONL logging
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            mechanics_engine.jsonl_logger.log_enemy_action(
+                round_num=self.current_round,
+                enemy_id=enemy.agent_id,
+                enemy_name=enemy.name,
+                action_type='wait',
+                result='success',
+                narration=result['narration']
+            )
+
+        return result
 
     def _execute_retreat(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
         """Execute enemy retreat action."""

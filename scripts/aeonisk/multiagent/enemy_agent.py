@@ -322,6 +322,7 @@ class EnemyAgent:
     retreat_threshold: float = 0.3  # Morale % (0.0-1.0)
     morale_behavior: str = "flee_when_broken"  # flee_when_broken | surrender_if_cornered | fight_to_death
     character_brief: str = ""  # Narrative personality description for LLM prompts
+    engagement_stance: str = "lethal"  # lethal | capture | adaptive
 
     # =========================================================================
     # AEONISK-SPECIFIC
@@ -708,7 +709,7 @@ class SharedIntel:
             List of formatted intel strings
         """
         recent = [
-            f"[ALLY {item.source_agent}] {item.intel}"
+            f"[FROM {item.source_agent}] {item.intel}"
             for item in self.intel_pool
             if current_round - item.round <= lookback
         ]

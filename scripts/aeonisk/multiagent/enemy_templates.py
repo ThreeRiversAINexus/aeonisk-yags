@@ -66,6 +66,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "aggressive_melee",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.3,  # 30% health
+        "engagement_stance": "lethal",
 
         # Special Abilities
         "special_abilities": []
@@ -110,6 +111,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "tactical_ranged",
         "threat_priority": "optimal_target",
         "retreat_threshold": 0.2,
+        "engagement_stance": "lethal",
 
         "special_abilities": ["suppress", "grenade"]
     },
@@ -152,6 +154,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "extreme_range",
         "threat_priority": "high_value_target",
         "retreat_threshold": 0.5,  # Retreats early
+        "engagement_stance": "lethal",
 
         "special_abilities": []
     },
@@ -195,6 +198,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "adaptive",
         "threat_priority": "objective_focus",
         "retreat_threshold": 0.1,  # Fights to near-death
+        "engagement_stance": "lethal",
 
         "special_abilities": ["void_surge", "suppress", "grenade"]
     },
@@ -238,6 +242,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "support",
         "threat_priority": "high_value_target",
         "retreat_threshold": 0.2,
+        "engagement_stance": "lethal",
 
         "special_abilities": ["void_surge", "ritual_attack"]
     },
@@ -274,12 +279,13 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "size": 5,
         "move": 10,
 
-        "weapons": ["void_blade", "shotgun"],
+        "weapons": ["void_blade", "shotgun", "shock_baton"],
         "armor": "heavy_armor",
 
         "default_tactics": "aggressive_melee",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.15,
+        "engagement_stance": "adaptive",
 
         "special_abilities": ["charge"]
     },
@@ -322,6 +328,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "support",
         "threat_priority": "assist_allies",
         "retreat_threshold": 0.3,
+        "engagement_stance": "lethal",
 
         "special_abilities": ["suppress", "overwatch", "grenade"]
     },
@@ -365,8 +372,54 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "ambush",
         "threat_priority": "weakest_target",
         "retreat_threshold": 0.4,  # Retreats quickly
+        "engagement_stance": "lethal",
 
         "special_abilities": ["backstab"]
+    },
+
+    # =========================================================================
+    # CAPTURE TEAM - Non-lethal retrieval unit
+    # =========================================================================
+    "capture_team": {
+        "description": "Faction retrieval unit equipped for live capture",
+        "morale_behavior": "surrender_if_cornered",
+        "character_brief": "Disciplined operative on a retrieval mission. Objective is to detain the target alive. Lethal force is a last resort — a dead target is a failed mission.",
+
+        "attributes": {
+            "Agility": 3,
+            "Strength": 3,
+            "Perception": 3,
+            "Intelligence": 3,
+            "Empathy": 2,
+            "Willpower": 3,
+            "Endurance": 3,
+            "Dexterity": 3
+        },
+
+        "skills": {
+            "Guns": 3,
+            "Brawl": 3,
+            "Melee": 2,
+            "Awareness": 3,
+            "Athletics": 3,
+            "Stealth": 2
+        },
+
+        "health": 24,
+        "soak": 0,
+        "void_score": 0,
+        "size": 5,
+        "move": 5,
+
+        "weapons": ["tranq_gun", "stun_gun", "shock_baton"],
+        "armor": "light_armor",
+
+        "default_tactics": "tactical_ranged",
+        "threat_priority": "objective_focus",
+        "retreat_threshold": 0.35,
+        "engagement_stance": "capture",
+
+        "special_abilities": []
     },
 
     # =========================================================================
@@ -405,6 +458,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "aggressive_melee",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.0,  # Never retreats
+        "engagement_stance": "lethal",
 
         "special_abilities": []
     },
@@ -441,6 +495,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "tactical_ranged",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.5,  # Retreats at 50% HP
+        "engagement_stance": "lethal",
 
         "special_abilities": []
     },
@@ -478,6 +533,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "aggressive_melee",
         "threat_priority": "high_value_target",
         "retreat_threshold": 0.0,  # Never retreats
+        "engagement_stance": "lethal",
 
         "special_abilities": []
     },
@@ -519,6 +575,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "extreme_range",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.6,  # Retreats easily
+        "engagement_stance": "adaptive",
 
         "special_abilities": ["flying", "evasive"]
     },
@@ -557,6 +614,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "aggressive_melee",
         "threat_priority": "closest_threat",
         "retreat_threshold": 0.1,  # Almost never retreats
+        "engagement_stance": "lethal",
 
         "special_abilities": ["heavy", "strong_melee"]
     },
@@ -596,6 +654,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "default_tactics": "tactical_ranged",
         "threat_priority": "optimal_target",
         "retreat_threshold": 0.3,
+        "engagement_stance": "lethal",
 
         "special_abilities": ["disables_tech", "void_corrupted"]
     },

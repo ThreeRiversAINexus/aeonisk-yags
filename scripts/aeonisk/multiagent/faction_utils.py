@@ -129,10 +129,6 @@ def are_factions_allied(faction_a: str, faction_b: str) -> bool:
     if faction_a in NEUTRAL_FACTIONS and faction_b in NEUTRAL_FACTIONS:
         return True
 
-    # Neutral + Others = allied (neutral doesn't initiate hostility)
-    if faction_a in NEUTRAL_FACTIONS or faction_b in NEUTRAL_FACTIONS:
-        return True
-
     # Default: hostile
     return False
 
