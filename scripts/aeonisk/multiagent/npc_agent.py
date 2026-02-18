@@ -16,6 +16,7 @@ import logging
 import hashlib
 
 from .schemas.shared_types import Condition
+from .prompt_loader import load_modular_prompt
 
 if TYPE_CHECKING:
     from .enemy_agent import Position
@@ -569,78 +570,30 @@ class NPCLLMClient:
             return self._get_fallback_action(context)
 
     def _get_system_prompt(self) -> str:
-        """Get system prompt based on NPC type."""
-        # Get personality from description if available
+        """Get system prompt by composing npc_identity + npc_action YAML modules."""
+        variables = self._compute_npc_variables()
+        loaded = load_modular_prompt(
+            agent_type='npc',
+            module_names=['npc_identity', 'npc_action'],
+            variables=variables,
+        )
+        return loaded.content
+
+    def _compute_npc_variables(self) -> Dict[str, str]:
+        """Build template variables dict for NPC YAML prompt modules."""
         personality_note = ""
         if hasattr(self.npc, 'description') and self.npc.description:
-            personality_note = f"\n**Your Personality:** {self.npc.description}\n"
+            personality_note = f"**Your Personality:** {self.npc.description}"
 
-        return f"""You are {self.npc.name}, a {self.npc.entity_type} NPC in a tactical RPG.
-
-**Your Role:**
-- Entity Type: {self.npc.entity_type} (neutral/ally/prisoner)
-- Disposition: {self.npc.disposition} (friendly/neutral/wary/prisoner)
-- Threat Level: {self.npc.threat_level} (non_combatant/potential_threat/armed_neutral)
-- Faction: {self.npc.faction}
-{personality_note}
-**Faction Abbreviations (CANONICAL):**
-- **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
-- **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
-- **Sovereign Nexus** = The government
-- **Pantheon Security** = Law enforcement
-- **Tempest Industries** = Anti-Nexus rebels (void research)
-- **House of Vox** = Media/broadcast corporation
-- **Aether Dynamics** = Leyline power, slipstream pilots (corporate, Nexus-aligned)
-- **Freeborn** = Natural-born, outside the pod system
-
-{self._get_faction_context()}
-
-**Action Options:**
-- flee: Run away from danger
-- hide: Take cover, avoid attention
-- plead: Beg for mercy, express fear
-- comply: Follow instructions, cooperate
-- **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
-- assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
-- **heal: Use Medicine skill to stabilize wounded allies** - REQUIRES target ID (tgt_xxxx). Check wounds < 6 first!
-- **attack: Attack players or others (if threatened, paranoid, or hostile)**
-- **transfer: Give currency/items to another character - REQUIRES transfer_target + transfer_currency/transfer_items**
-- pass: Do nothing this turn (use when situation doesn't involve you)
-
-**Guidelines:**
-1. Non-combatants flee or hide during combat (but can attack if cornered/panicked)
-2. Prisoners plead or comply when threatened
-3. Allies assist or provide dialogue
-4. **For assist/dialogue actions: ALWAYS use target IDs (tgt_xxxx) from the combatant list**
-5. **CRITICAL: For dialogue actions, you MUST populate dialogue_content with what you actually say**
-   - ✅ CORRECT: dialogue_content="The vault is in the basement, past the security checkpoint."
-   - ❌ WRONG: Leaving dialogue_content empty or null
-   - Use first-person (what you say, not "the NPC says...")
-   - Keep it concise (5-500 characters)
-6. Pass when nothing relevant is happening (opportunistic acting)
-7. Low health → prioritize fleeing/hiding
-8. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
-9. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
-10. If players seem hostile (armed, aggressive, threatening), you CAN attack first
-11. **For transfer actions: Use to give currency/items to players or other NPCs**
-    - transfer_target: Character name or agent_id (e.g., "player_01", "Ash Vex")
-    - transfer_currency: Dict of amounts (e.g., {{"drip": 10, "spark": 2}})
-    - transfer_items: Dict of items (e.g., {{"Medkit": 1, "KeyCard": 1}})
-
-**When to use "transfer":**
-- Paying a player for services rendered (quest rewards, escort fees)
-- Giving supplies to injured/needy characters
-- Bribing someone to leave you alone
-- Returning borrowed/stolen items
-
-**When to use "attack":**
-- You're paranoid and see armed threats (even if they haven't acted yet)
-- Players are clearly hostile (weapons drawn, threats made, aggressive posture)
-- Your personality says to escalate (check your description!)
-- You're cornered and panic (even non-combatants can grab weapons in desperation)
-- Someone is threatening you, your faction, or people you care about
-
-Choose the most appropriate action and explain why in 10-100 words."""
+        return {
+            'npc_name': self.npc.name,
+            'entity_type': self.npc.entity_type,
+            'disposition': self.npc.disposition,
+            'threat_level': self.npc.threat_level,
+            'faction': self.npc.faction,
+            'personality_note': personality_note,
+            'faction_context': self._get_faction_context(),
+        }
 
     def _get_faction_context(self) -> str:
         """Get faction relationship context for NPC prompt."""

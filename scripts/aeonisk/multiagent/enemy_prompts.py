@@ -22,6 +22,7 @@ from .enemy_agent import (
     TACTICAL_DOCTRINES,
     THREAT_PRIORITIES
 )
+from .prompt_loader import compose_sections
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,200 @@ def _resolve_pc_faction(pc) -> str:
 
 
 # =============================================================================
+# SECTION SELECTION & VARIABLE COMPUTATION
+# =============================================================================
+
+def _get_required_sections(
+    structured: bool = False,
+    has_history: bool = False,
+    has_character: bool = False,
+    has_intel: bool = False,
+    has_narrations: bool = False,
+    has_declarations: bool = False,
+    engagement_stance: str = 'lethal',
+) -> List[str]:
+    """
+    Determine which enemy.yaml sections to include based on enemy state.
+
+    Args:
+        structured: True for structured output mode (EnemyDecision schema),
+                    False for text declaration format.
+        has_history: Whether enemy has situation history from previous rounds.
+        has_character: Whether enemy has a character_brief personality.
+        has_intel: Whether shared intel has recent data.
+        has_narrations: Whether recent narrations are available.
+        has_declarations: Whether player declared actions exist this round.
+        engagement_stance: 'lethal', 'capture', or 'adaptive'.
+
+    Returns:
+        Ordered list of section names to compose.
+    """
+    sections = ['header', 'status']
+
+    if has_history:
+        sections.append('situation_history')
+    if has_character:
+        sections.append('character')
+
+    sections.append('faction_context')
+
+    if has_narrations:
+        sections.append('recent_outcomes')
+    if has_declarations:
+        sections.append('declared_actions')
+
+    sections.append('doctrine')
+
+    if engagement_stance == 'capture':
+        sections.append('engagement_stance_capture')
+    elif engagement_stance == 'adaptive':
+        sections.append('engagement_stance_adaptive')
+
+    sections.extend(['battlefield', 'tactical_options', 'tactical_analysis'])
+
+    if has_intel:
+        sections.append('shared_intel')
+
+    sections.append('retreat_assessment')
+
+    if structured:
+        sections.append('structured_decision_guidance')
+    else:
+        sections.append('declaration_requirements')
+
+    sections.append('footer')
+    return sections
+
+
+def _compute_enemy_variables(
+    enemy: EnemyAgent,
+    player_agents: List[Any],
+    enemy_agents: List[EnemyAgent],
+    shared_intel: Optional[SharedIntel] = None,
+    available_tokens: Optional[List[str]] = None,
+    current_round: int = 0,
+    target_id_mapper=None,
+    free_targeting: bool = False,
+    recent_narrations: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Compute all template variables for enemy.yaml sections.
+
+    Simple values (enemy_name, health, etc.) are extracted directly.
+    Dynamic content (_content variables) are pre-computed by existing
+    _format_*() functions and passed through as strings.
+
+    Returns:
+        Dict of variable name → value for template substitution.
+    """
+    from .faction_utils import get_faction_description, get_faction_stance
+
+    # --- Simple template variables ---
+    health_pct = enemy.get_health_percentage()
+    if health_pct >= 75:
+        health_status = "Healthy"
+    elif health_pct >= 50:
+        health_status = "Wounded"
+    elif health_pct >= 25:
+        health_status = "Bloodied"
+    else:
+        health_status = "CRITICAL"
+
+    if enemy.wounds >= 4:
+        wound_status = "(HEAVY WOUNDS -15)"
+    elif enemy.wounds >= 2:
+        wound_status = "(WOUNDED -5)"
+    else:
+        wound_status = ""
+
+    void_status = _get_void_status(enemy.void_score)
+
+    status_effects_display = ""
+    if enemy.status_effects:
+        status_effects_display = f"Status Effects: {', '.join(enemy.status_effects)}"
+
+    # Doctrine lookups
+    doctrine = TACTICAL_DOCTRINES.get(enemy.tactics, {})
+    faction = getattr(enemy, 'faction', 'Unknown')
+
+    variables = {
+        # Header
+        'enemy_name': enemy.name,
+        # Status
+        'template': enemy.template.upper(),
+        'health': enemy.health,
+        'max_health': enemy.max_health,
+        'health_pct': health_pct,
+        'health_status': health_status,
+        'wounds': enemy.wounds,
+        'wound_status': wound_status,
+        'stuns': enemy.stuns,
+        'void_score': enemy.void_score,
+        'void_status': void_status,
+        'position': enemy.position,
+        'initiative': enemy.initiative,
+        'stance': enemy.stance,
+        'status_effects_display': status_effects_display,
+        # Character
+        'character_brief': getattr(enemy, 'character_brief', ''),
+        # Faction context
+        'faction': faction,
+        'faction_stance': get_faction_stance(faction),
+        'faction_description': get_faction_description(faction),
+        # Doctrine
+        'tactics': enemy.tactics,
+        'doctrine_description': doctrine.get('description', 'Unknown tactics'),
+        'doctrine_preferred_range': doctrine.get('preferred_range', 'Any'),
+        'threat_priority': enemy.threat_priority,
+        'threat_priority_description': THREAT_PRIORITIES.get(enemy.threat_priority, 'Unknown'),
+        'retreat_threshold_pct': int(enemy.retreat_threshold * 100),
+    }
+
+    # --- Dynamic content (pre-computed by existing formatters) ---
+
+    # Situation history
+    situation_history = getattr(enemy, '_situation_history', None)
+    if situation_history:
+        variables['situation_history_content'] = _format_situation_history(situation_history)
+    else:
+        variables['situation_history_content'] = ''
+
+    # Recent outcomes
+    if recent_narrations:
+        variables['recent_outcomes_content'] = _format_recent_outcomes(recent_narrations)
+    else:
+        variables['recent_outcomes_content'] = ''
+
+    # Declared actions
+    declared = _format_declared_actions(player_agents)
+    variables['declared_actions_content'] = declared if declared else ''
+
+    # Battlefield (complex conditional logic)
+    variables['battlefield_content'] = _format_battlefield(
+        enemy, player_agents, enemy_agents,
+        available_tokens or [], target_id_mapper, free_targeting
+    )
+
+    # Tactical options
+    variables['tactical_options_content'] = _format_tactical_options(enemy)
+
+    # Tactical analysis
+    variables['tactical_analysis_content'] = _format_tactical_analysis(enemy, player_agents)
+
+    # Shared intel
+    if shared_intel:
+        intel = _format_shared_intel(shared_intel, current_round)
+        variables['shared_intel_content'] = intel if intel else ''
+    else:
+        variables['shared_intel_content'] = ''
+
+    # Retreat assessment
+    variables['retreat_assessment_content'] = _format_retreat_assessment(enemy)
+
+    return variables
+
+
+# =============================================================================
 # PROMPT GENERATION
 # =============================================================================
 
@@ -60,10 +255,10 @@ def generate_tactical_prompt(
     recent_narrations: List[str] = None
 ) -> str:
     """
-    Generate complete tactical prompt for enemy agent using prompt_loader system.
+    Generate complete tactical prompt for enemy agent.
 
-    NOTE: Currently uses legacy formatter functions to build content, but routes
-    through prompt_loader for metadata tracking and future i18n support.
+    Computes variables from enemy state, selects required YAML sections,
+    and composes them via prompt_loader.compose_sections().
 
     Args:
         enemy: The enemy agent making decisions
@@ -79,74 +274,39 @@ def generate_tactical_prompt(
     Returns:
         Complete tactical prompt string
     """
+    variables = _compute_enemy_variables(
+        enemy=enemy,
+        player_agents=player_agents,
+        enemy_agents=enemy_agents,
+        shared_intel=shared_intel,
+        available_tokens=available_tokens,
+        current_round=current_round,
+        target_id_mapper=target_id_mapper,
+        free_targeting=free_targeting,
+        recent_narrations=recent_narrations,
+    )
 
-    sections = []
-
-    # Header
-    sections.append(_format_header(enemy))
-
-    # Status
-    sections.append(_format_status(enemy))
-
-    # Situation History (last 3 round syntheses)
+    # Determine conditional flags
     situation_history = getattr(enemy, '_situation_history', None)
-    if situation_history:
-        hist_section = _format_situation_history(situation_history)
-        if hist_section:
-            sections.append(hist_section)
+    engagement_stance = getattr(enemy, 'engagement_stance', 'lethal')
 
-    # Character Brief (personality injection)
-    char_section = _format_character(enemy)
-    if char_section:
-        sections.append(char_section)
-
-    # Faction Context
-    sections.append(_format_faction_context(enemy))
-
-    # Recent Action Outcomes (NEW - show what happened recently for context)
-    if recent_narrations:
-        sections.append(_format_recent_outcomes(recent_narrations))
-
-    # Declared Actions This Round (information parity with players)
-    declared_section = _format_declared_actions(player_agents)
-    if declared_section:
-        sections.append(declared_section)
-
-    # Combat Doctrine
-    sections.append(_format_doctrine(enemy))
-
-    # Engagement Stance (non-lethal guidance when applicable)
-    stance_section = _format_engagement_stance(enemy)
-    if stance_section:
-        sections.append(stance_section)
-
-    # Battlefield Situation
-    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
-
-    # Tactical Options
-    sections.append(_format_tactical_options(enemy))
-
-    # Tactical Analysis
-    sections.append(_format_tactical_analysis(enemy, player_agents))
-
-    # Shared Intel
+    has_intel = False
     if shared_intel:
-        intel_section = _format_shared_intel(shared_intel, current_round)
-        if intel_section:
-            sections.append(intel_section)
+        recent_intel = shared_intel.get_recent_intel(current_round, lookback=2)
+        has_intel = bool(recent_intel)
 
-    # Retreat Assessment
-    sections.append(_format_retreat_assessment(enemy))
+    section_names = _get_required_sections(
+        structured=False,
+        has_history=bool(situation_history),
+        has_character=bool(getattr(enemy, 'character_brief', '')),
+        has_intel=has_intel,
+        has_narrations=bool(recent_narrations),
+        has_declarations=bool(variables['declared_actions_content']),
+        engagement_stance=engagement_stance,
+    )
 
-    # Declaration Format
-    sections.append(_format_declaration_requirements())
-
-    # Footer
-    sections.append(_format_footer())
-
-    # Legacy: Join sections manually
-    # TODO: Refactor to use enemy.json templates with variable substitution
-    return "\n\n".join(sections)
+    loaded = compose_sections('enemy', section_names, variables=variables)
+    return loaded.content
 
 
 def generate_tactical_prompt_structured(
@@ -161,10 +321,10 @@ def generate_tactical_prompt_structured(
     recent_narrations: List[str] = None
 ) -> str:
     """
-    Generate tactical prompt for structured output mode (no text format instructions).
+    Generate tactical prompt for structured output mode (EnemyDecision schema).
 
-    This version excludes the declaration format requirements section since structured
-    output mode expects JSON conforming to the EnemyDecision schema, not text format.
+    Same as generate_tactical_prompt() but uses structured_decision_guidance
+    instead of declaration_requirements.
 
     Args:
         Same as generate_tactical_prompt()
@@ -172,71 +332,38 @@ def generate_tactical_prompt_structured(
     Returns:
         Tactical prompt suitable for structured output mode
     """
-    sections = []
+    variables = _compute_enemy_variables(
+        enemy=enemy,
+        player_agents=player_agents,
+        enemy_agents=enemy_agents,
+        shared_intel=shared_intel,
+        available_tokens=available_tokens,
+        current_round=current_round,
+        target_id_mapper=target_id_mapper,
+        free_targeting=free_targeting,
+        recent_narrations=recent_narrations,
+    )
 
-    # Header
-    sections.append(_format_header(enemy))
-
-    # Status
-    sections.append(_format_status(enemy))
-
-    # Situation History (last 3 round syntheses)
     situation_history = getattr(enemy, '_situation_history', None)
-    if situation_history:
-        hist_section = _format_situation_history(situation_history)
-        if hist_section:
-            sections.append(hist_section)
+    engagement_stance = getattr(enemy, 'engagement_stance', 'lethal')
 
-    # Character Brief (personality injection)
-    char_section = _format_character(enemy)
-    if char_section:
-        sections.append(char_section)
-
-    # Faction Context
-    sections.append(_format_faction_context(enemy))
-
-    # Recent Action Outcomes
-    if recent_narrations:
-        sections.append(_format_recent_outcomes(recent_narrations))
-
-    # Declared Actions This Round (information parity with players)
-    declared_section = _format_declared_actions(player_agents)
-    if declared_section:
-        sections.append(declared_section)
-
-    # Combat Doctrine
-    sections.append(_format_doctrine(enemy))
-
-    # Engagement Stance (non-lethal guidance when applicable)
-    stance_section = _format_engagement_stance(enemy)
-    if stance_section:
-        sections.append(stance_section)
-
-    # Battlefield Situation
-    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
-
-    # Tactical Options
-    sections.append(_format_tactical_options(enemy))
-
-    # Tactical Analysis
-    sections.append(_format_tactical_analysis(enemy, player_agents))
-
-    # Shared Intel
+    has_intel = False
     if shared_intel:
-        intel_section = _format_shared_intel(shared_intel, current_round)
-        if intel_section:
-            sections.append(intel_section)
+        recent_intel = shared_intel.get_recent_intel(current_round, lookback=2)
+        has_intel = bool(recent_intel)
 
-    # Retreat Assessment
-    sections.append(_format_retreat_assessment(enemy))
+    section_names = _get_required_sections(
+        structured=True,
+        has_history=bool(situation_history),
+        has_character=bool(getattr(enemy, 'character_brief', '')),
+        has_intel=has_intel,
+        has_narrations=bool(recent_narrations),
+        has_declarations=bool(variables['declared_actions_content']),
+        engagement_stance=engagement_stance,
+    )
 
-    # NO declaration format requirements - schema defines the structure
-    sections.append(_format_structured_decision_guidance())
-
-    # Footer
-    sections.append(_format_footer())
-
-    return "\n\n".join(sections)
+    loaded = compose_sections('enemy', section_names, variables=variables)
+    return loaded.content
 
 
 # =============================================================================
@@ -1052,5 +1179,8 @@ def estimate_prompt_tokens(prompt: str) -> int:
 
 __all__ = [
     'generate_tactical_prompt',
+    'generate_tactical_prompt_structured',
+    '_compute_enemy_variables',
+    '_get_required_sections',
     'estimate_prompt_tokens'
 ]

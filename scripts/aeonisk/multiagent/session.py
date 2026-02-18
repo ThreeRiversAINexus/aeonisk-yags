@@ -5505,6 +5505,16 @@ NO conversions/morale checks needed (scene just started).
                         resolution_summary=new_scene_context
                     )
 
+                    # Mechanical guard: preserve enemies when config says so
+                    if not adv.clear_all_enemies:
+                        if post_advancement_decisions.enemy_departures:
+                            blocked = post_advancement_decisions.enemy_departures
+                            logger.info(
+                                f"Blocking {len(blocked)} enemy departures "
+                                f"(clear_all_enemies=False): {blocked}"
+                            )
+                            post_advancement_decisions.enemy_departures = []
+
                     print(f"\n✅ New scene entities:")
                     print(f"   - NPC departures: {len(post_advancement_decisions.npc_departures)}")
                     print(f"   - Enemy departures: {len(post_advancement_decisions.enemy_departures)}")
