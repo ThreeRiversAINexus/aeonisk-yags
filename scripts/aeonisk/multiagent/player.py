@@ -2167,7 +2167,6 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Social-specific context (if applicable)
                 "empathy": str(self.character_state.attributes.get('Empathy', 0)),
                 "charm_skill": str(self.character_state.skills.get('Charm', 0)),
-                "negotiation_skill": str(self.character_state.skills.get('Corporate Influence', 0)),
                 # Attunement-specific context (if applicable)
                 "willpower": str(self.character_state.attributes.get('Willpower', 0)),
                 "attunement_skill": str(self.character_state.skills.get('Attunement', 0)),

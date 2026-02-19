@@ -35,7 +35,7 @@ content: |-
       intent: str,                    # Your Phase 1 intent
       description: str,               # 50-800 chars - Describe the transaction
       attribute: str,                 # Usually Empathy or Empathy for negotiation
-      skill: str,                     # Charm, Negotiation, Corporate Influence, etc.
+      skill: str,                     # Charm, Guile, Corporate Influence
       difficulty_estimate: int,       # Your DC estimate (consider vendor, relationship)
       difficulty_justification: str,  # Why that DC?
 
@@ -48,7 +48,7 @@ content: |-
 
   ## Common Purchase Skills
 
-  **Negotiation/Haggling:**
+  **Haggling/Bargaining:**
   - `Empathy × Charm` - Friendly persuasion, building rapport
   - `Empathy × Guile` - Professional bargaining, reading leverage
   - `Empathy × Corporate Influence` - Leveraging faction connections
@@ -72,7 +72,6 @@ content: |-
   **Your Social Skills:**
   - Empathy: {empathy}
   - Charm: {charm_skill}
-  - Negotiation: {negotiation_skill}
 
   ## Vendors & Items Available
 

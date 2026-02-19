@@ -33,7 +33,7 @@ content: |-
       intent: str,
       description: str,               # 50-800 chars
       attribute: str,                 # Empathy, Willpower
-      skill: str,                     # Charm, Intimidation, Guile, Negotiation
+      skill: str,                     # Charm, Intimidation, Guile, Insight, Corporate Influence
       difficulty_estimate: int,
       difficulty_justification: str,
       action_type: ActionType.SOCIAL,
