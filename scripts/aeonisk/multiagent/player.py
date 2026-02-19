@@ -928,6 +928,7 @@ class AIPlayerAgent(Agent):
         action['faction'] = self.character_state.faction  # Track faction affiliation
         action['pronouns'] = self.character_state.pronouns  # For DM narration context
         action['is_free_action'] = is_free_action  # Mark free inter-party dialogue
+        action['initiative'] = self.current_initiative  # Include initiative so other agents see real values
 
         # Add inventory info for rituals
         if action_declaration.is_ritual or action_declaration.action_type == 'ritual':
@@ -992,6 +993,7 @@ class AIPlayerAgent(Agent):
             main_action_dict['agent_id'] = self.agent_id
             main_action_dict['faction'] = self.character_state.faction
             main_action_dict['is_free_action'] = False
+            main_action_dict['initiative'] = self.current_initiative
 
             if main_action.is_ritual or main_action.action_type == 'ritual':
                 main_action_dict['has_offering'] = self.character_state.has_offering()
