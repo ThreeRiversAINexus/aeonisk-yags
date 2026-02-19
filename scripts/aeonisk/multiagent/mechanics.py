@@ -554,10 +554,10 @@ class JSONLLogger:
         effects: Dict[str, Any] = None
     ):
         """
-        Log an enemy action resolution event.
+        DEPRECATED: Use log_combat_action() instead.
 
-        Enemy actions are executed locally (not via DM adjudication) so they use
-        a simplified format compared to player action_resolution events.
+        This method produces action_resolution events with null skill data,
+        duplicating the combat_action events logged by enemy_combat.py.
 
         Args:
             round_num: Current round number
@@ -572,6 +572,12 @@ class JSONLLogger:
             roll_data: Roll details if available (d20, total, dc, etc.)
             effects: Additional effects (status changes, positioning, etc.)
         """
+        import warnings
+        warnings.warn(
+            "log_enemy_action() is deprecated. Use log_combat_action() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         event = {
             "event_type": "action_resolution",
             "ts": datetime.now().isoformat(),

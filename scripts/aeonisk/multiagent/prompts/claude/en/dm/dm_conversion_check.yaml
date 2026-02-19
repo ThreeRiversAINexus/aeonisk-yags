@@ -467,36 +467,19 @@ conversion_check_prompt: |
   - Players request to interact with specific individuals
   - Dramatic moments need witnesses or complications
 
-  **🎯 ACTIVE SPAWNING - BE PROACTIVE AND STORY-DRIVEN:**
+  **NPC SPAWNING — PREFER CLOCK TRIGGERS:**
 
-  **🚨 CRITICAL: Default to spawning when in doubt!**
+  Clocks are your primary spawn signal. When a clock advances or fills, that's the narrative moment for new NPCs to enter. You have full discretion to spawn for other good narrative reasons, but review the active NPC list above first — if the scene already has several NPCs, consider working with existing characters before adding more.
 
-  The game thrives on dynamic complications. Empty scenes are boring. Spawn NPCs/enemies liberally to:
-  - Create emergent narratives (faction patrols encounter players, civilians witness crimes, informants offer intel)
-  - Escalate player failures (every failed action should have CONSEQUENCES)
-  - Introduce new factions and complications (rival gangs, corporate agents, bounty hunters)
-  - Reward player successes with new opportunities (successful hack → system maintenance NPC arrives, successful combat → wounded enemy intel NPC)
-  - Build living world (merchants, guides, contacts, witnesses, passersby create atmosphere)
+  **Strong spawn triggers:**
+  - Clock fills or advances significantly → related NPCs arrive (Intel clock fills → informant surfaces)
+  - Player actions directly provoke a response (failed stealth → guards investigate, diplomacy success → contact appears)
+  - Scene requires new characters for story progression (quest-givers, witnesses, merchants)
 
-  **If NO active enemies AND NO active NPCs in scene:**
-
-  ✅ **You SHOULD STRONGLY CONSIDER spawning:**
-  - **ANY player failure** → Spawn appropriate response (failed stealth → guards, failed hack → security, failed diplomacy → hostile reaction)
-  - **Clocks advancing** → Clock movement suggests story progression, spawn related NPCs/enemies (Security +2 → patrol arrives, Intel +3 → informant surfaces)
-  - **Scene empty for 1+ rounds** → Spawn complications/opportunities to maintain momentum
-  - **Players succeeded but achieved goal** → Spawn witnesses, complications, or new faction interest
-  - **Location is dangerous** → Hostile zones should ALWAYS have patrols, guards, or threats
-  - **Players are in neutral/friendly territory** → Spawn NPCs for social interaction, quest hooks, merchant opportunities
-
-  ✅ **Spawn even when players SUCCEEDED if:**
-  - Success was loud (combat, explosions, alarms) → Spawn investigators, cleanup crews, witnesses
-  - Success opens new story threads (steal data → corporate trackers spawn, assassinate target → rival faction NPC approaches)
-  - Players achieved objective → Spawn quest-givers, merchants, allies, or complications for next objective
-
-  ❌ **Only DON'T spawn when:**
-  - You spawned enemies/NPCs LAST round (give 1 round breathing room, not more!)
-  - Story EXPLICITLY requires isolation (solo meditation, private conversation already in progress, players explicitly in sealed room)
-  - Players are actively fleeing and haven't stopped yet (wait until they stop running)
+  **Consider before spawning:**
+  - Are there existing NPCs who could fill this role?
+  - Would advancing a clock toward a future spawn build more tension?
+  - Let the scene breathe between introductions when it serves the story
 
   **Example - Failed Actions in Hostile Zone:**
 
@@ -627,33 +610,23 @@ conversion_check_prompt: |
   - **Environmental threats:** Void creatures manifest, automated defenses activate, wildlife attacks
   - **Story escalation:** Player actions provoke response (attack ally faction → retaliation)
 
-  **🎯 ACTIVE ENEMY SPAWNING - BE AGGRESSIVE:**
+  **ENEMY SPAWNING — PREFER CLOCK TRIGGERS:**
 
-  **🚨 CRITICAL: Hostile zones should feel HOSTILE!**
+  Clocks are your primary signal for enemy spawns. A filled clock with a combat consequence is the clearest trigger — reinforcements arrive, patrols respond, factions retaliate. Player actions that directly provoke a response (triggering alarms, attacking faction assets) are also strong triggers.
 
-  If players are in dangerous territory and there are NO active enemies, you're probably being too cautious.
+  Review the active enemies list above before spawning. Consider whether advancing a clock toward a future spawn is more narratively interesting than an immediate spawn. Clocks build tension; instant spawns resolve it.
 
-  **If NO active enemies:**
+  **Strong spawn triggers:**
+  - Clock fills with combat consequence → reinforcements arrive, patrol responds
+  - Player actions directly provoke enemies (trigger alarm, attack faction assets, loud combat)
+  - New faction enters the conflict (rival group arrives, authorities respond)
 
-  ✅ **You SHOULD STRONGLY CONSIDER spawning enemies when:**
-  - **ANY failure in hostile zone** → Guards/patrols investigate (failed stealth, failed hack, loud combat)
-  - **Location is dangerous** → Corporate facilities, gang territory, void breaches, restricted areas should have patrols/guards
-  - **Clocks advancing toward threat** → Security Response +2 = patrol arrives NOW (don't wait for fill)
-  - **Players loitering in hostile zone** → Patrols eventually arrive (1-2 rounds = patrol rotation)
-  - **Multiple successes but loud** → Combat was noisy, alarms triggered, witnesses fled → reinforcements respond
-  - **Scene has been empty for 1+ rounds** → Dangerous zones shouldn't stay quiet long
-  - **New faction should respond** → Player actions provoke other factions (rival gangs, authorities, bounty hunters)
+  **Consider before spawning:**
+  - Are there already active enemies in the scene?
+  - Would advancing a threat clock build more tension than an immediate spawn?
+  - Let the scene breathe between combat encounters when it serves the story
 
-  ✅ **Spawn even in "safe" zones if:**
-  - Players have HIGH heat/wanted status → Bounty hunters track them down
-  - Players failed to cover tracks → Pursuers catch up
-  - Rival factions have grudges → Ambushes happen anywhere
-
-  ❌ **Only DON'T spawn enemies when:**
-  - You spawned enemies LAST round (give 1 round breathing room, not more!)
-  - Players are in EXPLICITLY safe sanctuary (Freeborn safe house with guards, faction HQ)
-  - Story REQUIRES non-combat scene (explicit social moment, meditation, planning session)
-  - Players are actively mid-escape (wait until they stop/rest)
+  You have full discretion — if the narrative calls for enemies, spawn them.
 
   **Enemy Spawn Requirements:**
 

@@ -1440,6 +1440,31 @@ class EnemyCombatManager:
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
 
+        # Log suppress action to JSONL
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            attack_roll_data = {
+                "attribute": attribute,
+                "skill": skill,
+                "weapon_bonus": weapon.attack,
+                "d20": attack_roll,
+                "range_penalty": range_penalty,
+                "total": attack_total,
+                "defence": target_defence,
+                "hit": hit
+            }
+            mechanics_engine.jsonl_logger.log_combat_action(
+                round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
+                attacker_id=enemy.agent_id,
+                attacker_name=enemy.name,
+                defender_id=self._get_agent_id(target, target_id),
+                defender_name=self._get_agent_name(target, target_id),
+                weapon=f"{weapon.name} (suppress)",
+                attack_roll=attack_roll_data,
+                damage_roll=None,
+                wounds_dealt=0,
+                defender_state_after=None
+            )
+
         return result
 
     def _execute_claim_token(
@@ -2140,10 +2165,51 @@ class EnemyCombatManager:
         # Clear old intel
         self.shared_intel.clear_old_intel(self.current_round, max_age=3)
 
+        # Prune defeated enemies past grace period (memory cleanup)
+        pruned = self.prune_defeated_enemies()
+        if pruned:
+            logger.info(f"Pruned {pruned} defeated enemy(ies) from list")
+
         # Increment round
         self.current_round += 1
 
         return events
+
+    def prune_defeated_enemies(self, grace_rounds: int = 2) -> int:
+        """Remove enemies inactive for >grace_rounds from the list.
+
+        Not a game rule — just memory cleanup after logging is done.
+        Defeated enemies stay for a grace period so the DM can reference
+        them in narration, then get garbage-collected.
+
+        Args:
+            grace_rounds: How many rounds after defeat to keep the enemy.
+
+        Returns:
+            Number of enemies pruned.
+        """
+        surviving = []
+        pruned_ids = []
+        for enemy in self.enemy_agents:
+            if enemy.is_active:
+                surviving.append(enemy)
+            elif (enemy.despawned_round is not None
+                  and self.current_round - enemy.despawned_round > grace_rounds):
+                pruned_ids.append(enemy.agent_id)
+            else:
+                surviving.append(enemy)  # Keep recently defeated or safety case (no despawned_round)
+
+        # Clean up target mapper entries for pruned enemies
+        if pruned_ids and self.shared_state:
+            target_id_mapper = self.shared_state.get_target_id_mapper()
+            if target_id_mapper:
+                for agent_id in pruned_ids:
+                    target_id = target_id_mapper.reverse_map.pop(agent_id, None)
+                    if target_id:
+                        target_id_mapper.target_id_map.pop(target_id, None)
+
+        self.enemy_agents = surviving
+        return len(pruned_ids)
 
     def get_active_enemy_count(self) -> int:
         """Get count of active enemy units."""

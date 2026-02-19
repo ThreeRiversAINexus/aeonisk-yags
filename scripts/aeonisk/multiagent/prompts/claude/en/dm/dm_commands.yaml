@@ -264,11 +264,17 @@ story_advancement=StoryAdvancement(\n\
   \ IDs from combat status\n\n**IMPORTANT: Story\
   \ Advancement Auto-Clears Enemies**\nWhen you use `story_advancement` with `should_advance=True`,\
   \ ALL active enemies are automatically removed (unless you set `clear_all_enemies=False`).\
-  \ This prevents enemies from persisting across scene changes.\n\nExample:\n```python\n\
+  \ This prevents enemies from persisting across scene changes.\n\n\
+  **Clock Persistence Across Story Advancement:**\n\
+  Clocks persist through story advancement by default. Use `clear_specific_clocks`\
+  \ to remove clocks that no longer apply in the new scene.\
+  \ Ongoing threats/objectives (faction pursuit, void corruption, dying NPC countdown)\
+  \ should carry forward with their current tick progress.\n\nExample:\n```python\n\
   story_advancement=StoryAdvancement(\n    should_advance=True,\n    location=\"Safe\
   \ House - Undercity District\",\n    situation=\"Having escaped the facility, you\
-  \ regroup in a secure location...\",\n    clear_all_enemies=True  # Default - removes\
-  \ all enemies from previous scene\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
+  \ regroup in a secure location...\",\n    clear_all_enemies=True,  # Default - removes\
+  \ all enemies from previous scene\n    clear_specific_clocks=[\"Facility Lockdown\", \"Breach Containment\"],  # Remove scene-specific clocks\n\
+  \    # \"Faction Pursuit\" clock persists with current ticks\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
   \ have been removed. Always use structured output (RoundSynthesis schema) instead.\n\n\
   **⚠️ CRITICAL: Death vs Unconscious Rules**\n\n\
   **Death occurs at 6+ Wounds, NOT at 0 HP:**\n\

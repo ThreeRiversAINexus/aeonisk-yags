@@ -2320,21 +2320,7 @@ Generate narratives (numbered list only):"""
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
 
-                        # Log enemy action to JSONL (uses dedicated method for simplified format)
-                        if mechanics and mechanics.jsonl_logger:
-                            mechanics.jsonl_logger.log_enemy_action(
-                                round_num=mechanics.current_round,
-                                enemy_id=result.get('enemy_id', agent.agent_id),
-                                enemy_name=result.get('character_name', 'Unknown Enemy'),
-                                action_type=result.get('action', 'unknown'),
-                                result=result.get('result', 'unknown'),
-                                narration=result.get('narration', ''),
-                                target_id=result.get('target'),
-                                target_name=result.get('target_name'),
-                                damage_dealt=result.get('damage_dealt'),
-                                roll_data=result.get('roll'),
-                                effects=result.get('effects')
-                            )
+                        # Combat logging handled in enemy_combat.py via log_combat_action()
 
             elif agent_type == 'npc':
                 # NPC action execution - route through DM adjudication like players
@@ -5324,38 +5310,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             adv = synthesis.story_advancement
             logger.info(f"Story advancement: {adv.location} - {adv.situation}")
 
-            # Clear clocks (always happens on story advancement)
-            if mechanics and mechanics.scene_clocks:
-                # Log each clock removal before clearing
-                for clock_name, clock in mechanics.scene_clocks.items():
-                    if mechanics.jsonl_logger:
-                        mechanics.jsonl_logger.log_event(
-                            event_type="clock_removal",
-                            data={
-                                "clock_name": clock_name,
-                                "current_ticks": clock.current,
-                                "maximum_ticks": clock.maximum,
-                                "description": clock.description,
-                                "removal_reason": "story_advancement",
-                                "expiration_type": None,
-                                "filled": clock.filled,
-                                "consequence_triggered": False
-                            },
-                            round_num=mechanics.current_round
-                        )
-                    mechanics.clock_history.append({
-                        'event_type': 'removed',
-                        'clock_name': clock_name,
-                        'round': mechanics.current_round,
-                        'current': clock.current,
-                        'max': clock.maximum,
-                        'description': clock.description,
-                        'removal_reason': 'story_advancement'
-                    })
+            # Selectively clear clocks named in clear_specific_clocks (empty = keep all)
+            if mechanics and mechanics.scene_clocks and adv.clear_specific_clocks:
+                for clock_name in adv.clear_specific_clocks:
+                    if clock_name in mechanics.scene_clocks:
+                        clock = mechanics.scene_clocks[clock_name]
 
-                archived_clocks = list(mechanics.scene_clocks.keys())
-                mechanics.scene_clocks.clear()
-                logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "story_advancement",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'story_advancement'
+                        })
+
+                        del mechanics.scene_clocks[clock_name]
+                        logger.info(f"Cleared clock: {clock_name}")
+                    else:
+                        logger.debug(f"Clock '{clock_name}' not found (already cleared or never existed)")
 
             # Update environmental void_level if specified
             if adv.new_void_level is not None:

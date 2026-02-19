@@ -252,6 +252,11 @@ Shorter descriptions feel rushed and unsatisfying. Longer descriptions create im
         description="New clocks to spawn with this story beat"
     )
 
+    clear_specific_clocks: List[str] = Field(
+        default_factory=list,
+        description="Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene."
+    )
+
     vendor_departures: List[str] = Field(
         default_factory=list,
         description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
