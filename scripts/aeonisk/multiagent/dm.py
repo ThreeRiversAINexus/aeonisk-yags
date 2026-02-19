@@ -340,8 +340,12 @@ def _process_structured_damage_effects(
             defeat_logged = False
             defeat_reason = None
             is_stun_only = (mechanical_type == "stun")
+            # Skip defeat processing if target already inactive (killed by earlier action this round)
+            already_defeated = hasattr(target_entity, 'is_active') and not target_entity.is_active
 
-            if is_stun_only and result.get('unconscious_check_needed'):
+            if already_defeated:
+                pass  # Don't log duplicate defeat
+            elif is_stun_only and result.get('unconscious_check_needed'):
                 # Stun KO — non-lethal incapacitation
                 logger_instance.info(f"{target_name} knocked unconscious by stun damage!")
                 messages.append(f"😵 **{target_name} is knocked unconscious!**")

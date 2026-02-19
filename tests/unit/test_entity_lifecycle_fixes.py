@@ -188,6 +188,81 @@ class TestClockPersistence:
 # Logging Deduplication Tests
 # ============================================================================
 
+class TestDuplicateDefeatPrevention:
+
+    def test_already_defeated_enemy_no_second_defeat_log(self):
+        """An enemy killed by PC #1 should not produce a second defeat event when PC #2 also hits it."""
+        from scripts.aeonisk.multiagent.dm import _process_structured_damage_effects
+        from scripts.aeonisk.multiagent.schemas.shared_types import DamageEffect
+
+        # Create a mock enemy at 5 HP (will die from first hit)
+        enemy = MagicMock()
+        enemy.agent_id = "enemy_drone_01"
+        enemy.name = "Drone #1"
+        enemy.health = 5
+        enemy.max_health = 20
+        enemy.wounds = 0
+        enemy.stuns = 0
+        enemy.soak = 0
+        enemy.is_active = True
+        enemy.spawned_round = 1
+        enemy.despawned_round = None
+        # Enemies don't have check_death_save — delete auto-created MagicMock attr
+        del enemy.check_death_save
+
+        # Make health decrease when damage applied (matches mechanics.apply_wound_damage return format)
+        def apply_wound(entity, dmg):
+            entity.health = max(0, entity.health - dmg)
+            wounds = dmg // 5
+            entity.wounds += wounds
+            return {
+                "wounds_dealt": wounds,
+                "old_wounds": entity.wounds - wounds,
+                "new_wounds": entity.wounds,
+                "hp_lost": dmg,
+                "effect": {"death_check": False, "penalty": 0, "description": ""},
+                "death_check_needed": False
+            }
+
+        # Set up shared_state with target mapper
+        shared_state = MagicMock()
+        mapper = MagicMock()
+        mapper.enabled = True
+        mapper.resolve_target.return_value = enemy
+        mapper.is_player.return_value = False
+        mapper.get_combatant_info.return_value = {"name": "Drone #1", "faction": "Unknown"}
+        shared_state.get_target_id_mapper.return_value = mapper
+
+        # Set up mechanics with jsonl_logger
+        mechanics = MagicMock()
+        mechanics.current_round = 3
+        logged_defeats = []
+        def capture_defeat(**kwargs):
+            logged_defeats.append(kwargs)
+        mechanics.jsonl_logger.log_enemy_defeat = capture_defeat
+        mechanics.jsonl_logger.log_combat_action = MagicMock()
+
+        # Two damage effects targeting the same enemy (two PCs both hit it)
+        damage_effects = [
+            DamageEffect(target="tgt_abc1", base_damage=10, dealt=10),
+            DamageEffect(target="tgt_abc1", base_damage=8, dealt=8),
+        ]
+
+        with patch("scripts.aeonisk.multiagent.mechanics.apply_wound_damage", side_effect=apply_wound):
+            _process_structured_damage_effects(
+                damage_effects=damage_effects,
+                shared_state=shared_state,
+                current_round=3,
+                mechanics=mechanics,
+                attacker_id="player_01",
+                attacker_name="Test Player",
+            )
+
+        # Should only have ONE defeat event, not two
+        assert len(logged_defeats) == 1, f"Expected 1 defeat event, got {len(logged_defeats)}: {logged_defeats}"
+        assert logged_defeats[0]["enemy_id"] == "enemy_drone_01"
+
+
 class TestLoggingDeduplication:
 
     def test_log_enemy_action_emits_deprecation_warning(self):
