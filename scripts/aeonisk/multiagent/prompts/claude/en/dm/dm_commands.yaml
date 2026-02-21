@@ -2,15 +2,15 @@ version: 2.0.0
 module: dm_commands
 description: Session control markers (SPAWN_ENEMY, ADVANCE_STORY, etc)
 load_when: session_control_needed
-content: "# Scenario Control (Advanced DM Tools)\n\nYou control scenario flow using structured output in RoundSynthesis.\n\n**1. Spawn New Clocks:**\n\nClocks create dynamic pressure and drive scenario evolution. Spawn them liberally during synthesis!\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
-- ✅ Failed actions in hostile environments → \"Security Response\" (6 ticks)\n\
-- ✅ Successful loud actions → \"ACG Investigation\" (8 ticks)\n\
+content: "# Scenario Control (Advanced DM Tools)\n\nYou control scenario flow using structured output in RoundSynthesis.\n\n**1. Spawn New Clocks (Quality Over Quantity):**\n\nClocks create dynamic pressure, but too many dilute tension. Aim for 3-4 active clocks maximum.\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
+- ✅ An existing clock fills/expires AND the consequence creates genuine new pressure\n\
 - ✅ Filled clocks create cascading consequences → \"Alarm\" fills → \"Reinforcements\" spawns\n\
-- ✅ Story complications arise → \"Rival Faction Interest\" (8 ticks)\n\
-- ✅ Scene feels static (2-3 rounds with no new clocks) → Add pressure/opportunity clock\n\
-- ❌ Don't spawn if you just spawned 2+ clocks last round (pacing)\n\n\
+- ✅ Major story complication introduces a new threat with a real deadline\n\
+- ❌ Don't spawn if you already have 4+ active clocks\n\
+- ❌ Don't spawn \"filler\" clocks just because the scene feels static — use existing clocks instead\n\
+- ❌ Don't spawn clocks that can't possibly fill within remaining rounds\n\n\
 **When to advance story (use StoryAdvancement.new_clocks):**\n\
-- All current clocks complete/expire → New location with 2-4 fresh clocks\n\
+- All current clocks complete/expire → New location with 2-3 fresh clocks\n\
 - Major story beat completes → Investigation resolves → \"Confrontation\" chapter begins\n\
 - Critical filled clock triggers location change → \"Breach\" fills → Evacuate to new zone\n\n\
 **Important distinctions:**\n\
@@ -265,16 +265,21 @@ story_advancement=StoryAdvancement(\n\
   \ Advancement Auto-Clears Enemies**\nWhen you use `story_advancement` with `should_advance=True`,\
   \ ALL active enemies are automatically removed (unless you set `clear_all_enemies=False`).\
   \ This prevents enemies from persisting across scene changes.\n\n\
-  **Clock Persistence Across Story Advancement:**\n\
-  Clocks persist through story advancement by default. Use `clear_specific_clocks`\
-  \ to remove clocks that no longer apply in the new scene.\
-  \ Ongoing threats/objectives (faction pursuit, void corruption, dying NPC countdown)\
-  \ should carry forward with their current tick progress.\n\nExample:\n```python\n\
+  **Clock Persistence Across Story Advancement (KEEP CLOCKS BY DEFAULT):**\n\
+  Clocks persist through story advancement. Default to `clear_specific_clocks=[]` (keep all).\n\n\
+  **Only clear a clock when:**\n\
+  - The clock's subject is physically impossible in the new scene (e.g., \"Facility Lockdown\" after leaving facility)\n\
+  - The threat is definitively resolved (e.g., all pursuers confirmed killed)\n\n\
+  **Do NOT clear clocks when:**\n\
+  - Scene pivots within the same location (ongoing threats still apply)\n\
+  - The clock represents a persistent threat (faction pursuit, void corruption, countdown timers)\n\
+  - You're unsure — when in doubt, keep the clock\n\n\
+  Ongoing threats/objectives should carry forward with their current tick progress.\n\nExample:\n```python\n\
   story_advancement=StoryAdvancement(\n    should_advance=True,\n    location=\"Safe\
   \ House - Undercity District\",\n    situation=\"Having escaped the facility, you\
   \ regroup in a secure location...\",\n    clear_all_enemies=True,  # Default - removes\
-  \ all enemies from previous scene\n    clear_specific_clocks=[\"Facility Lockdown\", \"Breach Containment\"],  # Remove scene-specific clocks\n\
-  \    # \"Faction Pursuit\" clock persists with current ticks\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
+  \ all enemies from previous scene\n    clear_specific_clocks=[\"Facility Lockdown\"],  # ONLY clear clocks impossible in new scene\n\
+  \    # \"Faction Pursuit\" and \"Void Corruption\" persist with current ticks\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
   \ have been removed. Always use structured output (RoundSynthesis schema) instead.\n\n\
   **⚠️ CRITICAL: Death vs Unconscious Rules**\n\n\
   **Death occurs at 6+ Wounds, NOT at 0 HP:**\n\

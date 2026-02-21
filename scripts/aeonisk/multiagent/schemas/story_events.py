@@ -616,11 +616,11 @@ class RoundSynthesis(BaseModel):
       - Update EXISTING clocks via ActionResolution.effects.clock_updates
       - Damage, void changes, other immediate mechanical effects
 
-    **Clock Spawning Guidance:**
-    Spawn 1-2 NEW clocks every 2-3 rounds via ScenePivot.new_clocks (same location) or
-    StoryAdvancement.new_clocks (new location). Clocks drive dynamic tension and prevent
-    static scenarios. Use liberally when justified by narrative consequences (failed actions,
-    filled clocks creating new pressures, environmental changes).
+    **Clock Spawning Guidance (Quality Over Quantity):**
+    Spawn NEW clocks only when an existing clock fills/expires AND the consequence creates
+    genuine new pressure. Aim for 3-4 active clocks maximum. Do not spawn clocks that
+    cannot possibly fill within remaining rounds. Prefer ticking existing clocks over
+    spawning new ones.
 
     Example (Scene Pivot):
     ```python

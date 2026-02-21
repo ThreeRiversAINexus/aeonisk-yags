@@ -3745,6 +3745,9 @@ Void Level: {self.current_scenario.void_level}/10"""
                     clock_lines.append(clock_info)
                 if clock_lines:
                     clock_state_text = "\n\n**Current Clock State:**\n" + "\n".join(clock_lines)
+                    # Add clock budget guidance
+                    budget_text = self._get_clock_budget_text(len(mechanics.scene_clocks))
+                    clock_state_text += f"\n\n{budget_text}"
 
                 # Check for newly filled clocks
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
@@ -6250,10 +6253,8 @@ For **other actions** (flee, hide, assist, attack):
                 )
                 narration_suffix = ""
 
-            # NOTE: Clock updates are now deferred until synthesis phase
-            # The DM will determine final clock/status changes after reviewing all actions
-            # This prevents immediate application and allows for holistic round resolution
-            # mechanics.update_clocks_from_action(resolution, action)  # DISABLED: see note above
+            # Clock updates are deferred to synthesis phase (DM structured output)
+            # to allow holistic round resolution
 
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
@@ -7066,15 +7067,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
             # Build clock context for prompt variable interpolation
-            clock_context = ""
-            if self.shared_state and self.shared_state.mechanics_engine:
-                mechanics = self.shared_state.mechanics_engine
-                if mechanics.scene_clocks:
-                    clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
-                    for clock_name, clock in mechanics.scene_clocks.items():
-                        clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
-                    clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
-                    clock_context = "\n".join(clock_lines)
+            clock_context = self._build_clock_context()
 
             # Load DM system prompt with conditional modules
             try:
@@ -7489,6 +7482,58 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             raise RuntimeError(f"Structured output generation failed: {e}") from e
 
+    def _build_clock_context(self) -> str:
+        """Build enriched clock context for action resolution prompts.
+
+        Returns a string showing each clock's progress, age, timeout remaining,
+        advance/regress meanings, and EXPIRING SOON warnings.
+        """
+        if not self.shared_state:
+            return ""
+
+        mechanics = None
+        if hasattr(self.shared_state, 'mechanics_engine') and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+        elif hasattr(self.shared_state, 'get_mechanics_engine'):
+            mechanics = self.shared_state.get_mechanics_engine()
+
+        if not mechanics or not mechanics.scene_clocks:
+            return ""
+
+        clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
+        for clock_name, clock in mechanics.scene_clocks.items():
+            # Progress and age
+            age = clock._rounds_alive
+            timeout = clock.timeout_rounds
+            line = f'  - "{clock_name}" ({clock.current}/{clock.maximum}, round {age}/{timeout}) - {clock.description}'
+
+            # Expiring soon warning
+            if age >= timeout - 2:
+                line += "  ⚠️ EXPIRING SOON"
+
+            # Advance/regress meanings
+            meanings = []
+            if clock.advance_meaning:
+                meanings.append(f"advance={clock.advance_meaning}")
+            if clock.regress_meaning:
+                meanings.append(f"regress={clock.regress_meaning}")
+            if meanings:
+                line += f"\n      {' | '.join(meanings)}"
+
+            clock_lines.append(line)
+
+        clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
+        return "\n".join(clock_lines)
+
+    def _get_clock_budget_text(self, active_count: int) -> str:
+        """Return clock budget guidance text based on number of active clocks."""
+        if active_count >= 4:
+            return f"Clock Budget: {active_count}/4 active — do NOT spawn new clocks unless one fills/expires first."
+        elif active_count >= 2:
+            return f"Clock Budget: {active_count} active — spawn only if a clock fills and creates genuine new pressure."
+        else:
+            return f"Clock Budget: {active_count} active — you may spawn 1-2 new clocks if the story demands it."
+
     def _build_narrative_digest(self, current_round: int, lookback: int = 3) -> str:
         """Build rolling narrative digest from recent round synthesis history.
 
@@ -7606,15 +7651,7 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_id = action['target']
 
         # Build clock context with exact clock names for structured output
-        clock_context = ""
-        if self.shared_state and self.shared_state.mechanics_engine:
-            mechanics = self.shared_state.mechanics_engine
-            if mechanics.scene_clocks:
-                clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
-                for clock_name, clock in mechanics.scene_clocks.items():
-                    clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
-                clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
-                clock_context = "\n".join(clock_lines)
+        clock_context = self._build_clock_context()
 
         # Build bond matrix showing active party bonds
         bond_matrix = ""
@@ -8041,16 +8078,9 @@ When adjudicating:
   * Must be at Far-PC or Extreme-PC to attempt (can't escape from melee)"""
 
         # Add clock context
-        clock_context = ""
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics and mechanics.scene_clocks:
-                clock_lines = []
-                for name, clock in mechanics.scene_clocks.items():
-                    status = "FILLED!" if clock.filled else f"{clock.current}/{clock.maximum}"
-                    clock_lines.append(f"  - {name}: {status}")
-                if clock_lines:
-                    clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
+        clock_context = self._build_clock_context()
+        if clock_context:
+            clock_context = "\n\n**Active Clocks:**\n" + clock_context
 
         # Build bond matrix showing active party bonds
         bond_matrix = ""

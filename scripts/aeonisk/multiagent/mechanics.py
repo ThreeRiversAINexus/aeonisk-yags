@@ -4759,46 +4759,6 @@ class MechanicsEngine:
 
         return expired_clocks
 
-    def update_clocks_from_action(self, resolution: ActionResolution, context: Dict[str, Any]):
-        """Update scene clocks based on action resolution."""
-        intent_lower = resolution.intent.lower()
-
-        # Sanctuary/Void Corruption - advances on failures, especially with void/ritual
-        if "Sanctuary Corruption" in self.scene_clocks:
-            if resolution.outcome_tier in [OutcomeTier.FAILURE, OutcomeTier.CRITICAL_FAILURE]:
-                # Any failed ritual or void manipulation risks corruption
-                if any(kw in intent_lower for kw in ['ritual', 'void', 'channel', 'attune', 'harmoniz', 'astral']):
-                    ticks = 2 if resolution.outcome_tier == OutcomeTier.CRITICAL_FAILURE else 1
-                    self.advance_clock("Sanctuary Corruption", ticks, f"Failed: {resolution.intent}")
-
-        # Saboteur Exposure - advances on successful investigation/detection
-        if "Saboteur Exposure" in self.scene_clocks:
-            if _resolution_success(resolution):
-                # Broad investigation keywords
-                investigation_keywords = [
-                    'investigate', 'analyze', 'trace', 'scan', 'search', 'examine',
-                    'detect', 'identify', 'track', 'follow', 'sense', 'perceive',
-                    'study', 'inspect', 'observe', 'scrutinize', 'signature',
-                    'pattern', 'resonance', 'echo', 'void resonance', 'sabotage'
-                ]
-                if any(kw in intent_lower for kw in investigation_keywords):
-                    # Better success = more progress
-                    ticks = 2 if resolution.margin >= 10 else 1
-                    self.advance_clock("Saboteur Exposure", ticks, f"Investigation: {resolution.intent}")
-
-        # Communal Stability - degrades on failures, improves on healing/stabilization successes
-        if "Communal Stability" in self.scene_clocks:
-            # Success at healing/stabilizing improves stability
-            healing_keywords = ['stabiliz', 'heal', 'mend', 'repair', 'bond', 'harmoniz', 'protective', 'barrier']
-            if _resolution_success(resolution) and any(kw in intent_lower for kw in healing_keywords):
-                # Stability clock tracks degradation, so successful healing REGRESSES it (improves stability)
-                self.scene_clocks["Communal Stability"].regress(1)
-            # Failures at healing or any critical failure degrades stability
-            elif resolution.outcome_tier in [OutcomeTier.FAILURE, OutcomeTier.CRITICAL_FAILURE]:
-                if any(kw in intent_lower for kw in healing_keywords + ['social', 'group', 'commune', 'meditat']):
-                    ticks = 2 if resolution.outcome_tier == OutcomeTier.CRITICAL_FAILURE else 1
-                    self.advance_clock("Communal Stability", ticks, f"Social/healing failure: {resolution.intent}")
-
     def calculate_initiative(self, agility: int) -> int:
         """Calculate initiative: Agility × 4 + d20."""
         return (agility * 4) + random.randint(1, 20)
