@@ -1617,7 +1617,11 @@ Generate narratives (numbered list only):"""
                             if combatant_info:
                                 target_display = f"{combatant_info['name']} ({target_id})"
 
-                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
+                        if action == 'Dialogue' and declaration.get('dialogue_content'):
+                            print(f"\n[{agent.name}] (Init {initiative_score}) DIALOGUE → {target_display} | {health_str} | {position_str}")
+                            print(f'         \U0001f4ac "{declaration["dialogue_content"]}"')
+                        else:
+                            print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -1625,7 +1629,7 @@ Generate narratives (numbered list only):"""
                             player_id=declaration['agent_id'],
                             character_name=declaration['character_name'],
                             initiative=declaration['initiative'],
-                            action={'major_action': declaration['major_action'], 'target': declaration.get('target')},
+                            action={'major_action': declaration['major_action'], 'target': declaration.get('target'), 'dialogue_content': declaration.get('dialogue_content')},
                             round_num=mechanics.current_round
                         )
 

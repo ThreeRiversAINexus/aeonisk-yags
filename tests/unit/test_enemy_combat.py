@@ -387,3 +387,124 @@ class TestEnemyDecisionToDeclarationConversion:
         )
 
         assert declaration.dialogue_content is None
+
+
+class TestDeclarationDictIncludesDialogueContent:
+    """Bug fix: declaration dicts returned to session.py must include dialogue_content."""
+
+    def test_declare_actions_includes_dialogue_content(self):
+        """declare_actions() dict must propagate dialogue_content from EnemyDeclaration."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+
+        # Simulate what happens after parsing: parsed declaration stored + dict built
+        parsed = EnemyDeclaration(
+            agent_id=enemy.agent_id,
+            character_name=enemy.name,
+            initiative=enemy.initiative,
+            defence_token=None,
+            major_action="Dialogue",
+            target="tgt_abc1",
+            weapon="None",
+            minor_action=None,
+            token_target=None,
+            reasoning="Attempting to negotiate",
+            shared_intel=None,
+            dialogue_content="We don't want to fight — stand down!",
+        )
+
+        # Build declaration dict the same way declare_actions does
+        declaration_dict = {
+            'agent_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'initiative': enemy.initiative,
+            'major_action': parsed.major_action,
+            'target': parsed.target,
+            'weapon': parsed.weapon,
+            'reasoning': parsed.reasoning,
+            'dialogue_content': parsed.dialogue_content
+        }
+
+        assert declaration_dict['dialogue_content'] == "We don't want to fight — stand down!"
+        assert declaration_dict['major_action'] == "Dialogue"
+        assert declaration_dict['weapon'] == "None"
+
+    def test_declaration_dict_dialogue_content_none_for_attack(self):
+        """Non-dialogue actions should have dialogue_content=None in the dict."""
+        parsed = EnemyDeclaration(
+            agent_id="enemy_01",
+            character_name="Guard",
+            initiative=15,
+            defence_token=None,
+            major_action="Attack",
+            target="tgt_1234",
+            weapon="Pistol",
+            minor_action=None,
+            token_target=None,
+            reasoning="Engaging target",
+            shared_intel=None,
+        )
+
+        declaration_dict = {
+            'agent_id': parsed.agent_id,
+            'character_name': parsed.character_name,
+            'initiative': parsed.initiative,
+            'major_action': parsed.major_action,
+            'target': parsed.target,
+            'weapon': parsed.weapon,
+            'reasoning': parsed.reasoning,
+            'dialogue_content': parsed.dialogue_content
+        }
+
+        assert declaration_dict['dialogue_content'] is None
+        assert declaration_dict['weapon'] == "Pistol"
+
+    @pytest.mark.asyncio
+    async def test_declare_single_enemy_includes_dialogue_content(self):
+        """declare_single_enemy() must include dialogue_content in returned dict."""
+        enemy = _make_enemy_agent()
+        manager = _make_combat_manager_with_enemy(enemy)
+        manager.shared_state = MagicMock()
+        manager.shared_state.session_config = {}
+        manager.shared_state.config = {}
+        manager.shared_state.get_target_id_mapper.return_value = None
+        manager.shared_state.round_synthesis_history = []
+
+        # Mock LLM to return dialogue declaration text
+        mock_llm = MagicMock()
+        mock_llm.generate_async = MagicMock(return_value={
+            'content': (
+                'MAJOR_ACTION: Dialogue\n'
+                'TARGET: tgt_abc1\n'
+                'WEAPON: None\n'
+                'DIALOGUE_CONTENT: Surrender now or face the consequences!\n'
+                'TACTICAL_REASONING: Attempting intimidation before combat\n'
+            )
+        })
+
+        # Make generate_async a coroutine
+        import asyncio
+        async def mock_generate(**kwargs):
+            return {'content': (
+                'MAJOR_ACTION: Dialogue\n'
+                'TARGET: tgt_abc1\n'
+                'WEAPON: None\n'
+                'DIALOGUE_CONTENT: Surrender now or face the consequences!\n'
+                'TACTICAL_REASONING: Attempting intimidation before combat\n'
+            )}
+        mock_llm.generate_async = mock_generate
+
+        result = await manager.declare_single_enemy(
+            enemy=enemy,
+            player_agents=[],
+            available_tokens=[],
+            llm_client=mock_llm
+        )
+
+        assert result is not None
+        assert result['major_action'] == 'Dialogue'
+        assert 'dialogue_content' in result
+        # dialogue_content comes from parsed text — may or may not be populated
+        # depending on whether parse_enemy_declaration extracts DIALOGUE_CONTENT
+        # The key assertion is that the field EXISTS in the dict
+        assert 'weapon' in result

@@ -550,7 +550,9 @@ class EnemyCombatManager:
                 'initiative': enemy.initiative,
                 'major_action': parsed.major_action,
                 'target': parsed.target,
-                'reasoning': parsed.reasoning
+                'weapon': parsed.weapon,
+                'reasoning': parsed.reasoning,
+                'dialogue_content': parsed.dialogue_content
             }
 
         active_enemies = get_active_enemies(self.enemy_agents)
@@ -638,7 +640,9 @@ class EnemyCombatManager:
                     'initiative': enemy.initiative,
                     'major_action': parsed.major_action,
                     'target': parsed.target,
-                    'reasoning': parsed.reasoning
+                    'weapon': parsed.weapon,
+                    'reasoning': parsed.reasoning,
+                    'dialogue_content': parsed.dialogue_content
                 }
             else:
                 logger.warning(f"{enemy.name}: Failed to parse declaration")
@@ -712,138 +716,6 @@ class EnemyCombatManager:
             logger.error(f"Enemy {enemy.name}: Structured output failed: {type(e).__name__}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
-
-    async def declare_actions(
-        self,
-        player_agents: List[Any],
-        available_tokens: List[str],
-        llm_client: Any
-    ) -> List[Dict[str, Any]]:
-        """
-        Generate enemy declarations during declaration phase.
-
-        Args:
-            player_agents: List of PC agents
-            available_tokens: Unclaimed tactical tokens
-            llm_client: LLM client for generating responses
-
-        Returns:
-            List of declaration dicts for logging
-        """
-        logger.debug(f"declare_actions called: enabled={self.enabled}, enemy_count={len(self.enemy_agents)}")
-
-        if not self.enabled:
-            return []
-
-        active_enemies = get_active_enemies(self.enemy_agents)
-        logger.debug(f"Active enemies count: {len(active_enemies)}")
-
-        if not active_enemies:
-            logger.warning("No active enemies found in declare_actions")
-            return []
-
-        declarations = []
-
-        for enemy in active_enemies:
-            logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
-
-            # Collect context once for all prompt variants
-            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-            free_targeting = self.shared_state.config.get('free_targeting_mode', True) if self.shared_state else True
-            recent_narrations = []
-            for player_agent in player_agents:
-                if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                    recent_narrations.extend(player_agent.recent_narrations)
-
-            # Try structured output first (Phase 4: Pydantic AI migration)
-            parsed = None
-            logger.debug(f"Enemy {enemy.name}: llm_provider check - hasattr={hasattr(self, 'llm_provider')}, value={getattr(self, 'llm_provider', 'NOT_SET')}, is_none={self.llm_provider is None if hasattr(self, 'llm_provider') else 'N/A'}")
-            if hasattr(self, 'llm_provider') and self.llm_provider is not None:
-                try:
-                    # Use structured-output-compatible prompt (no text format instructions)
-                    from .enemy_prompts import generate_tactical_prompt_structured
-
-                    structured_prompt = generate_tactical_prompt_structured(
-                        enemy=enemy,
-                        player_agents=player_agents,
-                        enemy_agents=active_enemies,
-                        shared_intel=self.shared_intel,
-                        available_tokens=available_tokens,
-                        current_round=self.current_round,
-                        target_id_mapper=target_id_mapper,
-                        free_targeting=free_targeting,
-                        recent_narrations=recent_narrations if recent_narrations else None
-                    )
-
-                    parsed = await self._generate_enemy_decision_structured(enemy, structured_prompt)
-                    if parsed:
-                        logger.debug(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
-                except Exception as e:
-                    logger.warning(f"Enemy {enemy.name}: Structured output failed ({e}), falling back to legacy")
-
-            # Legacy text parsing fallback
-            if not parsed:
-                try:
-                    # Generate legacy prompt with text format instructions
-                    from .enemy_prompts import generate_tactical_prompt
-
-                    legacy_prompt = generate_tactical_prompt(
-                        enemy=enemy,
-                        player_agents=player_agents,
-                        enemy_agents=active_enemies,
-                        shared_intel=self.shared_intel,
-                        available_tokens=available_tokens,
-                        current_round=self.current_round,
-                        target_id_mapper=target_id_mapper,
-                        free_targeting=free_targeting,
-                        recent_narrations=recent_narrations if recent_narrations else None
-                    )
-
-                    response = await llm_client.generate_async(
-                        prompt=legacy_prompt,
-                        temperature=1.0,
-                        max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
-                    )
-                    declaration_text = response.get('content', '')
-
-                    # Parse declaration
-                    parsed = parse_enemy_declaration(declaration_text, enemy)
-                except Exception as e:
-                    logger.error(f"{enemy.name}: Error generating declaration: {e}")
-
-            # Process the parsed declaration (whether from structured or legacy)
-            if parsed:
-                self.enemy_declarations[enemy.agent_id] = parsed
-
-                # Update enemy defence token
-                enemy.defence_token = parsed.defence_token
-
-                # Add to shared intel
-                if parsed.shared_intel:
-                    self.shared_intel.add_intel(
-                        enemy.name,
-                        parsed.shared_intel,
-                        self.current_round
-                    )
-
-                # Log declaration
-                declarations.append({
-                    'agent_id': enemy.agent_id,
-                    'character_name': enemy.name,
-                    'initiative': enemy.initiative,
-                    'major_action': parsed.major_action,
-                    'target': parsed.target,
-                    'reasoning': parsed.reasoning
-                })
-
-                logger.info(
-                    f"{enemy.name} declared: {parsed.major_action} "
-                    f"(target: {parsed.target}, reasoning: {parsed.reasoning[:50]}...)"
-                )
-            else:
-                logger.warning(f"{enemy.name}: Failed to parse declaration")
-
-        return declarations
 
     def execute_enemy_action(
         self,
