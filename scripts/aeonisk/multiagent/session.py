@@ -414,10 +414,11 @@ class SelfPlayingSession:
     # 2. DM spawns vendor from self.vendor_pool matching required_vendor_type
     # 3. Vendors in vendor_pool (create_standard_vendors()) have inventory designed for scenarios
     #
+    # Vendor spawn frequency defaults to 3 (every 3rd round) in both session.py and dm.py.
+    # To disable: set vendor_spawn_frequency: -1 or 0 in config.
     # For testing with persistent_vendors config:
     # - Set vendor_spawn_frequency: -1 to disable DM vendor spawning
     # - Manually configure persistent vendor inventory to include scenario-required items
-    # - Or set vendor_spawn_frequency: 3 to let DM spawn vendors from vendor_pool
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
@@ -3386,7 +3387,7 @@ Generate narratives (numbered list only):"""
 
     async def _check_vendor_spawn(self, round_count: int):
         """Check if a vendor should randomly spawn this round."""
-        vendor_frequency = self.config.get('vendor_spawn_frequency', -1)
+        vendor_frequency = self.config.get('vendor_spawn_frequency', 3)
 
         # -1 means vendors never spawn randomly
         if vendor_frequency <= 0:

@@ -567,6 +567,47 @@ conversion_check_prompt: |
   - Valid skill examples: "Guns", "Stealth", "Athletics", "Medicine", "Empathy", "Charm", "Intimidation", "Engineering"
   - Do NOT use attribute names as skills: "Perception", "Strength", "Agility", etc. are attributes, not skills
 
+  ### Vendor NPC Spawns
+
+  **When to spawn vendor NPCs:**
+  - Market scenes, bazaars, trading posts, social hubs
+  - Downtime between encounters (rest stops, camps, safe zones)
+  - Players express need for supplies, healing items, or equipment
+  - Story introduces merchant characters (smugglers, traveling traders, faction quartermasters)
+
+  **When NOT to spawn vendors:**
+  - Active combat (vendors flee or hide, not arrive)
+  - Void outbreaks or high-danger scenes (Void level ≥ 7)
+  - Stealth/infiltration scenes (vendor arrival would blow cover)
+
+  **Example vendor spawn:**
+  ```python
+  NPCSpawn(
+      name="Kel Morath, Freeborn Provisioner",
+      faction="Freeborn",
+      entity_type="neutral",
+      threat_level="non_combatant",
+      disposition="friendly",
+      description="Weathered trader with a hovercart of salvaged supplies, offering gear at fair prices",
+      health=20,
+      soak=0,
+      skills={{"Barter": 12, "Empathy": 10}},
+      is_vendor=True,
+      vendor_inventory=[
+          VendorItem(name="Field Medkit", description="Restores 8 HP", price_drip=2, item_type="consumable"),
+          VendorItem(name="Ration Pack", description="Standard rations, +2 HP", price_drip=1, item_type="food"),
+          VendorItem(name="Signal Flare", description="Calls for extraction", price_spark=1, item_type="tool"),
+          VendorItem(name="Void Ward Charm", description="Reduces next void gain by 1", price_spark=2, item_type="consumable")
+      ]
+  )
+  ```
+
+  **Pricing guidelines:**
+  - Basic supplies (food, bandages): 1-2 Drip
+  - Standard gear (medkits, tools): 2-3 Drip
+  - Specialized items (void wards, faction gear): 1-3 Spark
+  - Rare/powerful items (weapons, armor): 2-5 Spark or mixed currencies
+
   ### Enemy Spawns (Brand New Hostile Combatants)
 
   **⚠️ IMPORTANT: Use enemy_spawns for NEW hostile combatants entering combat**
