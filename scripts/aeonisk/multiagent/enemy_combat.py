@@ -172,6 +172,8 @@ class EnemyCombatManager:
 
         # LLM Provider for structured output - initialized later from session config
         self.llm_provider = None
+        # LLM Call Logger for JSONL token tracking - set by session.py after init
+        self.llm_logger = None
 
     def _get_agent_name(self, agent: Any, fallback_id: str) -> str:
         """
@@ -670,7 +672,9 @@ class EnemyCombatManager:
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,
                 max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                temperature=1.0
+                temperature=1.0,
+                llm_logger=self.llm_logger,
+                current_round=self.current_round
             )
 
             # Log the raw decision object for debugging

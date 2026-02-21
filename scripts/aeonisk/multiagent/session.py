@@ -582,6 +582,16 @@ class SelfPlayingSession:
             if self.agent_prompt_logger:
                 agent.agent_prompt_logger = self.agent_prompt_logger
 
+        # Attach LLM logger to enemy combat manager for token tracking
+        if self.enemy_combat.enabled:
+            enemy_llm_logger = LLMCallLogger(
+                agent_id='enemy_combat',
+                agent_type='enemy',
+                jsonl_logger=jsonl_logger,
+                session_id=self.session_id
+            )
+            self.enemy_combat.llm_logger = enemy_llm_logger
+
         print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
         # Wait for DM to generate initial scenario before starting gameplay
