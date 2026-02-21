@@ -577,7 +577,11 @@ class EnemyCombatManager:
         from .enemy_prompts import generate_tactical_prompt
 
         # Collect recent action narrations from player agents (filtered by awareness)
+        # Deduplicate: broadcast narrations are stored by every player agent,
+        # so the same text appears once per player. Track seen texts to avoid
+        # feeding the enemy prompt N copies of each narration.
         recent_narrations = []
+        seen_narration_texts = set()
         for player_agent in player_agents:
             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
                 # Filter narrations based on what this enemy can see
@@ -588,7 +592,40 @@ class EnemyCombatManager:
                 # Convert NarrationEntry to text for prompt
                 for narration in visible_narrations:
                     narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
-                    recent_narrations.append(narration_text)
+                    if narration_text not in seen_narration_texts:
+                        seen_narration_texts.add(narration_text)
+                        recent_narrations.append(narration_text)
+
+        # Enemy detection: attempt to spot hidden PCs before filtering
+        if self.shared_state:
+            hidden_pcs = self.shared_state.get_hidden_pcs()
+            for hidden_pc_id in hidden_pcs:
+                hidden_pc = self.shared_state.get_agent_by_id(hidden_pc_id)
+                if not hidden_pc:
+                    continue
+                # Enemy detection roll: Per × Awareness + d20
+                perception = enemy.attributes.get('Perception', 2)
+                awareness_skill = enemy.skills.get('Awareness', 0)
+                detection_roll = random.randint(1, 20)
+                if awareness_skill > 0:
+                    detection_total = (perception * awareness_skill) + detection_roll
+                else:
+                    detection_total = detection_roll // 2  # Unskilled penalty
+
+                # PC passive stealth DC: Agi × Stealth (or just Agi if unskilled)
+                pc_char = getattr(hidden_pc, 'character_state', None)
+                if pc_char:
+                    agi = pc_char.attributes.get('Agility', 3)
+                    stealth_skill = pc_char.skills.get('Stealth', 0)
+                    stealth_dc = (agi * stealth_skill) if stealth_skill > 0 else agi
+                else:
+                    stealth_dc = 15  # Fallback
+
+                if detection_total >= stealth_dc:
+                    logger.info(f"{enemy.name} detected {hidden_pc_id}! (roll {detection_total} vs DC {stealth_dc})")
+                    self.shared_state.reveal_agent(hidden_pc_id)  # Global reveal
+                else:
+                    logger.debug(f"{enemy.name} failed to detect {hidden_pc_id} (roll {detection_total} vs DC {stealth_dc})")
 
         # Filter out PCs hidden from this enemy (stealth target filtering)
         visible_players = player_agents
@@ -600,6 +637,19 @@ class EnemyCombatManager:
             hidden_count = len(player_agents) - len(visible_players)
             if hidden_count > 0:
                 logger.info(f"{enemy.name}: {hidden_count} PC(s) hidden from targeting")
+
+        # Build hidden presence hint for enemy tactical awareness
+        hidden_count = len(player_agents) - len(visible_players)
+        hidden_presence_hint = None
+        if hidden_count > 0:
+            hidden_presence_hint = (
+                f"HIDDEN PRESENCE: You sense {hidden_count} unidentified hostile(s) nearby "
+                f"but cannot locate them. You may use your action to Search (attempt detection) "
+                f"or proceed cautiously."
+            )
+            if recent_narrations is None:
+                recent_narrations = []
+            recent_narrations.append(hidden_presence_hint)
 
         prompt = generate_tactical_prompt(
             enemy=enemy,

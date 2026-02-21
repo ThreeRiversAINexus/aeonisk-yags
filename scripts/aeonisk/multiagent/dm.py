@@ -2963,7 +2963,13 @@ Apply this narrative style to:
                 combat_data = resolution.get('combat_data', {})
                 inventory_changes = resolution.get('inventory_changes', [])
 
-                if action_resolution:
+                # Skip logging for NPC actions — already logged in
+                # _resolve_action_mechanically with phase="adjudicate_npc".
+                # Logging again here would double-count NPC actions and
+                # inherit stale outcome_tiers from the previous PC action.
+                is_npc_action = action.get('is_npc', False)
+
+                if action_resolution and not is_npc_action:
                     # Build economy changes dict with void and soulcredit deltas
                     economy_changes = {
                         'void_delta': state_changes.get('void_change', 0),
@@ -3182,7 +3188,13 @@ Apply this narrative style to:
             aware_agents_for_stealth = res['resolution'].get('aware_agents', [])
             acting_pc_id = res['player_id']
             if self.shared_state and acting_pc_id.startswith('player_'):
-                self.shared_state.update_stealth(acting_pc_id, aware_agents_for_stealth)
+                # Extract margin from resolution for stealth duration
+                outcome_res = res['resolution'].get('outcome', {}).get('resolution', {})
+                stealth_margin = outcome_res.get('margin', 0) if isinstance(outcome_res, dict) else 0
+                self.shared_state.update_stealth(
+                    acting_pc_id, aware_agents_for_stealth,
+                    margin=stealth_margin, current_round=round_num
+                )
 
         # Only do synthesis if not skipping (for sequential resolution, synthesis comes later)
         if not skip_synthesis:
