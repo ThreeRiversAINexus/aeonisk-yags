@@ -690,7 +690,16 @@ def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]])
 
         success = "success" if isinstance(margin, (int, float)) and margin >= 0 else "failure"
         margin_str = f"{margin:+d}" if isinstance(margin, (int, float)) else str(margin)
-        items.append(f"{i}. {char_name}: {action_type} ({success}, {margin_str}) → {narration_brief} {sc_text}")
+
+        # Add prefix for skipped/invalidated actions
+        prefix = ""
+        if prev.get('action_skipped'):
+            skip_reason = prev.get('skip_reason', 'preempted')
+            prefix = f"[SKIPPED - {skip_reason}] "
+        elif prev.get('result') == 'invalidated':
+            prefix = "[INVALIDATED] "
+
+        items.append(f"{i}. {prefix}{char_name}: {action_type} ({success}, {margin_str}) → {narration_brief} {sc_text}")
 
     return (
         "\n**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**\n\n"
@@ -5371,6 +5380,18 @@ For **other actions** (flee, hide, assist, attack):
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
 
+                # Effect suppression: if action was skipped/preempted, zero out all effects
+                if getattr(self._last_structured_resolution, 'action_skipped', False):
+                    skip_reason = getattr(self._last_structured_resolution, 'skip_reason', 'preempted')
+                    logger.info(f"Action skipped (reason: {skip_reason}) — suppressing all mechanical effects")
+                    state_changes['void_change'] = 0
+                    state_changes['void_reasons'] = []
+                    state_changes['soulcredit_change'] = 0
+                    state_changes['soulcredit_reasons'] = []
+                    state_changes['clock_triggers'] = []
+                    state_changes['conditions'] = []
+                    state_changes['damage_effects'] = []
+
                 # Extract effects (purchase/crafting) from structured output
                 if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
                     effects_data = self._last_structured_resolution.effects
@@ -6113,8 +6134,17 @@ For **other actions** (flee, hide, assist, attack):
 
         # Extract aware_agents from structured resolution (for stealth/secrets visibility control)
         aware_agents = []
+        action_skipped = False
+        skip_reason = None
         if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
             aware_agents = getattr(self._last_structured_resolution, 'aware_agents', []) or []
+            action_skipped = getattr(self._last_structured_resolution, 'action_skipped', False)
+            skip_reason = getattr(self._last_structured_resolution, 'skip_reason', None)
+
+        # If action was skipped, suppress effects dict too (safety net for session.py processing)
+        if action_skipped and effects_dict:
+            logger.info(f"Suppressing effects dict for skipped action (reason: {skip_reason})")
+            effects_dict = None
 
         return {
             'resolution': resolution,
@@ -6124,6 +6154,8 @@ For **other actions** (flee, hide, assist, attack):
             'inventory_changes': inventory_changes,  # Include offering consumption tracking
             'effects': effects_dict,  # Include purchase/crafting effects from structured output
             'aware_agents': aware_agents,  # Visibility control: who knows about this action
+            'action_skipped': action_skipped,  # DM flagged action as preempted
+            'skip_reason': skip_reason,  # Why action was preempted
             'outcome': {
                 'dm_response': narration,
                 'success': getattr(resolution, 'success', True) if resolution else True,
@@ -6313,6 +6345,18 @@ For **other actions** (flee, hide, assist, attack):
 
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug("Using structured resolution for state changes extraction")
+
+                # Effect suppression: if action was skipped/preempted, zero out all effects
+                if getattr(self._last_structured_resolution, 'action_skipped', False):
+                    skip_reason = getattr(self._last_structured_resolution, 'skip_reason', 'preempted')
+                    logger.info(f"Action skipped (reason: {skip_reason}) — suppressing all mechanical effects")
+                    state_changes['void_change'] = 0
+                    state_changes['void_reasons'] = []
+                    state_changes['soulcredit_change'] = 0
+                    state_changes['soulcredit_reasons'] = []
+                    state_changes['clock_triggers'] = []
+                    state_changes['conditions'] = []
+                    state_changes['damage_effects'] = []
 
                 # Validate void changes were populated when narration contains void markers
                 has_void_in_narrative = '⚫ Void' in llm_narration or 'Void (' in llm_narration

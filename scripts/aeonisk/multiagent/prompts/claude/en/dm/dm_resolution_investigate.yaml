@@ -171,6 +171,12 @@ content: |-
   | 5-9 (solid) | 1-2 | 10-15 drip | 1 |
   | 10+ (excellent) | 2-3 | 15-25 drip | 1-2 |
 
+  ## ACTION PREEMPTION (action_skipped)
+
+  If the character CANNOT execute their investigation due to circumstances that arose
+  DURING this round, set `action_skipped=True` with a descriptive `skip_reason`.
+  The engine suppresses ALL effects when action_skipped=True — leave effects empty.
+
   ## NARRATION TIPS FOR INVESTIGATION
 
   - Describe the physical act of searching/examining

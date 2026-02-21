@@ -304,3 +304,97 @@ def test_agent_conversion_bidirectional():
 
     assert conv1.from_type == "enemy" and conv1.to_type == "npc"
     assert conv2.from_type == "npc" and conv2.to_type == "enemy"
+
+
+# ============================================================================
+# NPC Spawn PC Name Collision Guard
+# ============================================================================
+
+class TestNPCSpawnPCNameCollision:
+    """
+    Bug: DM spawned NPCs with exact same names as player characters.
+    Fix: session.py blocks NPC spawns whose names match existing PCs.
+    """
+
+    def test_npc_spawn_blocked_when_name_matches_pc(self):
+        """NPC spawn with a PC's exact name should be filtered out."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeCharState:
+            name: str
+
+        @dataclass
+        class FakePlayer:
+            agent_id: str
+            character_state: FakeCharState
+
+        pc_agents = [
+            FakePlayer("player_01", FakeCharState("Watcher Thane Vael")),
+            FakePlayer("player_02", FakeCharState("Observer Lyss Kain")),
+            FakePlayer("player_03", FakeCharState("Dorel Rift")),
+        ]
+        pc_names = {pa.character_state.name for pa in pc_agents}
+
+        npc_spawns = [
+            NPCSpawn(
+                name="Watcher Thane Vael",
+                faction="Pantheon Security",
+                entity_type="neutral",
+                threat_level="armed_neutral",
+                disposition="wary",
+                description="A Pantheon enforcer monitoring void corruption levels",
+                health=25,
+                soak=5,
+            ),
+            NPCSpawn(
+                name="Breach Technician",
+                faction="Independent",
+                entity_type="neutral",
+                threat_level="non_combatant",
+                disposition="neutral",
+                description="A technician maintaining monitoring equipment at the site",
+                health=15,
+                soak=1,
+            ),
+        ]
+
+        # Simulate the guard logic from session.py
+        allowed = [s for s in npc_spawns if s.name not in pc_names]
+
+        assert len(allowed) == 1
+        assert allowed[0].name == "Breach Technician"
+
+    def test_npc_spawn_allowed_when_no_name_collision(self):
+        """NPC spawns with unique names should proceed normally."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeCharState:
+            name: str
+
+        @dataclass
+        class FakePlayer:
+            agent_id: str
+            character_state: FakeCharState
+
+        pc_agents = [
+            FakePlayer("player_01", FakeCharState("Ash Vex")),
+        ]
+        pc_names = {pa.character_state.name for pa in pc_agents}
+
+        npc_spawns = [
+            NPCSpawn(
+                name="Freeborn Scavenger",
+                faction="Freeborn",
+                entity_type="neutral",
+                threat_level="non_combatant",
+                disposition="friendly",
+                description="A friendly scavenger offering trade goods at the outpost",
+                health=20,
+                soak=2,
+            ),
+        ]
+
+        allowed = [s for s in npc_spawns if s.name not in pc_names]
+        assert len(allowed) == 1

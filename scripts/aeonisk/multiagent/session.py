@@ -1421,9 +1421,15 @@ Generate narratives (numbered list only):"""
             if self.shared_state and hasattr(self.shared_state, 'current_vendors'):
                 current_vendors = self.shared_state.current_vendors or []
 
+            # Filter out dead PCs before assigning target IDs
+            active_players = [
+                p for p in self.shared_state.player_agents
+                if p.is_alive and not getattr(p, '_permanently_dead', False)
+            ]
+
             # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
             target_id_mapper.assign_ids(
-                player_agents=self.shared_state.player_agents,
+                player_agents=active_players,
                 enemy_agents=active_enemies,
                 npc_agents=active_npcs,
                 vendors=current_vendors
@@ -2075,6 +2081,57 @@ Generate narratives (numbered list only):"""
                             )
                     continue
 
+                # Skip defeated/incapacitated players (same checks as enemy invalidation)
+                # This prevents wasted LLM calls for mechanically impossible actions
+                player_skip_reason = None
+                if resolution_state.is_defeated(agent.agent_id):
+                    player_skip_reason = "attacker_defeated"
+                elif resolution_state.is_incapacitated(agent.agent_id):
+                    player_skip_reason = "attacker_incapacitated"
+
+                if player_skip_reason:
+                    from .tactical_resolution import generate_invalidation_message
+                    skip_narration = generate_invalidation_message(
+                        agent.character_state.name,
+                        "action",
+                        player_skip_reason
+                    )
+                    print(f"\n⚠️  {skip_narration}")
+                    logger.info(f"Player auto-skip: {agent.character_state.name} ({player_skip_reason})")
+
+                    # Build skip resolution for previous_context visibility
+                    skip_resolution = {
+                        'character_name': agent.character_state.name,
+                        'player_id': agent.agent_id,
+                        'action': {'action_type': 'skipped', 'intent': 'auto-skipped'},
+                        'narration': skip_narration,
+                        'action_skipped': True,
+                        'skip_reason': player_skip_reason,
+                        'effects': {},
+                        'resolution': {'margin': 0},
+                    }
+                    all_resolutions.append(skip_resolution)
+
+                    # Log to JSONL
+                    if mechanics and mechanics.jsonl_logger:
+                        declared = self._declared_actions.get(agent.agent_id, [])
+                        for idx, buffered_action in enumerate(declared):
+                            action_intent = buffered_action.get('action', {}).get('intent', 'unknown')
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=agent.agent_id,
+                                enemy_name=agent.character_state.name,
+                                action_type='skipped',
+                                result=player_skip_reason,
+                                narration=f"{agent.character_state.name}'s action ({action_intent}) auto-skipped: {player_skip_reason}",
+                                target_id=None,
+                                target_name=None,
+                                damage_dealt=None,
+                                roll_data=None,
+                                effects={'skip_reason': player_skip_reason, 'action_skipped': True}
+                            )
+                    continue
+
                 # PC action execution via DM adjudication
                 # Process ALL buffered actions for this agent (supports free action system)
                 if agent.agent_id in self._declared_actions:
@@ -2176,7 +2233,14 @@ Generate narratives (numbered list only):"""
                             _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
 
                             # Process purchase/crafting effects from structured output
-                            effects = resolution_data.get('effects') or {}
+                            # Guard: skip all effect processing if action was preempted
+                            action_was_skipped = resolution_data.get('action_skipped', False)
+                            if action_was_skipped:
+                                skip_reason = resolution_data.get('skip_reason', 'preempted')
+                                logger.info(f"Skipping effect processing for {agent.character_state.name}: action_skipped=True (reason: {skip_reason})")
+                                effects = {}
+                            else:
+                                effects = resolution_data.get('effects') or {}
 
                             # Handle purchases
                             purchase_effect = effects.get('purchase') if effects else None
@@ -2842,10 +2906,22 @@ Generate narratives (numbered list only):"""
                         from .schemas.story_events import NPCSpawn
                         from .npc_agent import NPCAgent
 
+                        # Collect PC names to prevent NPC spawns that duplicate player characters
+                        pc_names = set()
+                        for pa in self.shared_state.player_agents:
+                            if hasattr(pa, 'character_state') and hasattr(pa.character_state, 'name'):
+                                pc_names.add(pa.character_state.name)
+
                         for npc_spawn in conversion_decisions.npc_spawns:
                             # Reconstruct NPCSpawn if it's a dict
                             if isinstance(npc_spawn, dict):
                                 npc_spawn = NPCSpawn(**npc_spawn)
+
+                            # Block NPC spawns that duplicate player character names
+                            if npc_spawn.name in pc_names:
+                                logger.warning(f"🚫 NPC spawn blocked: '{npc_spawn.name}' is a player character")
+                                print(f"\n🚫 NPC spawn blocked: '{npc_spawn.name}' conflicts with player character name")
+                                continue
 
                             # Check if NPC with same name already exists (prevent duplicates)
                             existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
@@ -5570,7 +5646,19 @@ NO conversions/morale checks needed (scene just started).
                         from .npc_agent import NPCAgent
                         import uuid
 
+                        # Collect PC names to prevent NPC spawns that duplicate player characters
+                        pc_names = set()
+                        for pa in self.shared_state.player_agents:
+                            if hasattr(pa, 'character_state') and hasattr(pa.character_state, 'name'):
+                                pc_names.add(pa.character_state.name)
+
                         for npc_spawn in post_advancement_decisions.npc_spawns:
+                            # Block NPC spawns that duplicate player character names
+                            if npc_spawn.name in pc_names:
+                                logger.warning(f"🚫 NPC spawn blocked: '{npc_spawn.name}' is a player character")
+                                print(f"\n🚫 NPC spawn blocked: '{npc_spawn.name}' conflicts with player character name")
+                                continue
+
                             # Check if NPC with same name already exists (prevent duplicates)
                             existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
                             if existing_npc:
@@ -5611,6 +5699,25 @@ NO conversions/morale checks needed (scene just started).
         # Phase 1 (before synthesis): Conversions, spawns for current scene
         # Phase 2 (after story advancement): Initial spawns for new scene
         # RoundSynthesis schema has NO entity management fields.
+
+        # Dead PC cleanup: remove permanently dead PCs from player_agents and target maps
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            dead_pcs = [
+                a for a in self.shared_state.player_agents
+                if getattr(a, '_permanently_dead', False) or not a.is_alive
+            ]
+            for dead_pc in dead_pcs:
+                self.shared_state.player_agents.remove(dead_pc)
+                pc_name = dead_pc.character_state.name if hasattr(dead_pc, 'character_state') else dead_pc.agent_id
+                logger.info(f"💀 Dead PC removed from active players: {pc_name} ({dead_pc.agent_id})")
+
+                # Clean up target ID mapper
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper:
+                    tid = target_id_mapper.reverse_map.pop(dead_pc.agent_id, None)
+                    if tid and tid in target_id_mapper.target_id_map:
+                        del target_id_mapper.target_id_map[tid]
+                        logger.debug(f"Cleaned up target ID {tid} for dead PC {dead_pc.agent_id}")
 
         # 2. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:

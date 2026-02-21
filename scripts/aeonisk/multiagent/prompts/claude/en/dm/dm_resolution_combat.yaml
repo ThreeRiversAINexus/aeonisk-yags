@@ -172,6 +172,30 @@ content: |-
   - For STUN attacks: describe knockout, daze, or stagger — NOT bleeding/death
   - For WOUND attacks: describe lethality, blood, lasting injury
 
+  ## ACTION PREEMPTION (action_skipped)
+
+  If the character CANNOT execute their action due to circumstances that arose
+  DURING this round (not before declarations), set `action_skipped=True`:
+
+  - Character was stunned/incapacitated by an earlier action this round
+  - Environmental hazard prevented action (explosion, collapsing floor)
+  - Another actor's resolution made this action physically impossible
+
+  When using action_skipped:
+  ```python
+  ActionResolution(
+      narration="Kael raises his rifle but the stun grenade's aftershock slams through his nervous system. His arms go limp, weapon clattering to the deck as consciousness fades.",
+      success_tier=SuccessTier.FAILURE,
+      margin=0,
+      action_skipped=True,
+      skip_reason="Knocked unconscious by stun grenade before action could execute",
+      effects=MechanicalEffects()  # Empty — engine ignores effects when skipped
+  )
+  ```
+
+  **IMPORTANT:** The engine automatically suppresses ALL effects when action_skipped=True.
+  Leave effects empty. The narration should describe WHY the action was preempted.
+
   ## COMBAT FIDELITY REMINDER
 
   The universal mechanical fidelity rules (from dm_core) apply here:
