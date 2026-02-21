@@ -320,3 +320,70 @@ class TestExecuteWait:
         mock_logger.log_enemy_action.assert_called_once()
         call_kwargs = mock_logger.log_enemy_action.call_args
         assert call_kwargs[1]['action_type'] == 'wait' or call_kwargs[0][3] == 'wait'
+
+
+class TestEnemyDecisionToDeclarationConversion:
+    """Regression: EnemyDecision (Pydantic) → EnemyDeclaration (dataclass) must preserve all fields."""
+
+    def test_dialogue_content_preserved_in_conversion(self):
+        """Bug fix: dialogue_content was dropped during EnemyDecision → EnemyDeclaration conversion.
+
+        The LLM generates an EnemyDecision with dialogue_content, but the conversion
+        at enemy_combat.py:692 was not copying it to EnemyDeclaration, causing
+        'attempts to communicate' fallback instead of actual speech.
+        """
+        from scripts.aeonisk.multiagent.schemas.enemy_decision import EnemyDecision
+
+        # Simulate what the LLM returns via structured output
+        decision = EnemyDecision(
+            major_action="Dialogue",
+            dialogue_content="Hold your fire — we can negotiate!",
+            tactical_reasoning="PCs attempted diplomacy, responding with dialogue to de-escalate",
+        )
+
+        # Simulate the conversion that happens in _generate_enemy_decision_structured
+        declaration = EnemyDeclaration(
+            agent_id="enemy_enforcer_01",
+            character_name="Pantheon Security #1",
+            initiative=22,
+            major_action=decision.major_action,
+            minor_action=decision.minor_action or "None",
+            target=decision.target or "None",
+            weapon=decision.weapon or "None",
+            defence_token=decision.defence_token or "None",
+            token_target=decision.token_target or "None",
+            reasoning=decision.tactical_reasoning,
+            shared_intel=decision.shared_intel,
+            dialogue_content=decision.dialogue_content,
+        )
+
+        assert declaration.dialogue_content == "Hold your fire — we can negotiate!"
+        assert declaration.major_action == "Dialogue"
+
+    def test_dialogue_content_none_for_non_dialogue_actions(self):
+        """Non-dialogue actions should have dialogue_content=None after conversion."""
+        from scripts.aeonisk.multiagent.schemas.enemy_decision import EnemyDecision
+
+        decision = EnemyDecision(
+            major_action="Attack",
+            target="tgt_1234",
+            weapon="Pistol",
+            tactical_reasoning="Engaging primary target at close range with sidearm",
+        )
+
+        declaration = EnemyDeclaration(
+            agent_id="enemy_01",
+            character_name="Guard",
+            initiative=15,
+            major_action=decision.major_action,
+            minor_action=decision.minor_action or "None",
+            target=decision.target or "None",
+            weapon=decision.weapon or "None",
+            defence_token=decision.defence_token or "None",
+            token_target=decision.token_target or "None",
+            reasoning=decision.tactical_reasoning,
+            shared_intel=decision.shared_intel,
+            dialogue_content=decision.dialogue_content,
+        )
+
+        assert declaration.dialogue_content is None

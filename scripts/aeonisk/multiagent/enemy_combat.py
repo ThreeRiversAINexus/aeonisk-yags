@@ -700,7 +700,8 @@ class EnemyCombatManager:
                 defence_token=enemy_decision.defence_token or "None",
                 token_target=enemy_decision.token_target or "None",
                 reasoning=enemy_decision.tactical_reasoning,
-                shared_intel=enemy_decision.shared_intel
+                shared_intel=enemy_decision.shared_intel,
+                dialogue_content=enemy_decision.dialogue_content
             )
 
             logger.debug(f"✓ Enemy {enemy.name} converted to EnemyDeclaration: {enemy_declaration.major_action}")
