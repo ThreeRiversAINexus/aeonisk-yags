@@ -6,7 +6,7 @@ import logging
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +191,10 @@ class SharedState:
     # Format: {recipient_agent_id: {'bonus': +2, 'from': giver_name, 'reason': 'shared intel'}}
     coordination_bonuses: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
+    # Stealth target filtering: maps PC agent_id → set of agent_ids that can see them
+    # Not in dict = visible to all (public). Example: {"player_Shadow": {"dm", "player_Shadow"}}
+    stealth_state: Dict[str, Set[str]] = field(default_factory=dict)
+
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
         self.soulcredit_pool += delta
@@ -298,6 +302,25 @@ class SharedState:
             bonus = self.coordination_bonuses.pop(agent_id)
             return bonus
         return None
+
+    # Stealth visibility methods
+
+    def is_visible_to(self, pc_agent_id: str, observer_agent_id: str) -> bool:
+        """Check if a PC is visible to an observer."""
+        if pc_agent_id not in self.stealth_state:
+            return True  # Not stealthed = visible to all
+        return observer_agent_id in self.stealth_state[pc_agent_id]
+
+    def update_stealth(self, pc_agent_id: str, aware_agents: list) -> None:
+        """Update stealth state after action resolution."""
+        if aware_agents:  # Non-empty = restricted visibility
+            self.stealth_state[pc_agent_id] = set(aware_agents)
+        else:  # Empty = public action → visible to all
+            self.stealth_state.pop(pc_agent_id, None)
+
+    def reveal_agent(self, pc_agent_id: str) -> None:
+        """Remove an agent from stealth (e.g., after being hit)."""
+        self.stealth_state.pop(pc_agent_id, None)
 
     def add_scenario(self, theme: str, location: str) -> None:
         """Record a scenario for variety tracking."""

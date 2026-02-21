@@ -1832,6 +1832,11 @@ Generate narratives (numbered list only):"""
                                     if info.get('agent_id') == agent.agent_id:
                                         continue
 
+                                    # Skip PCs hidden from this NPC (stealth filtering)
+                                    if info.get('type') == 'player' and self.shared_state:
+                                        if not self.shared_state.is_visible_to(info['agent_id'], agent.agent_id):
+                                            continue
+
                                     death_state = info.get('death_state', 'alive')
                                     health = info.get('health', 0)
                                     max_health = info.get('max_health', 0)

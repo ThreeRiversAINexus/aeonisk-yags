@@ -590,9 +590,20 @@ class EnemyCombatManager:
                     narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
                     recent_narrations.append(narration_text)
 
+        # Filter out PCs hidden from this enemy (stealth target filtering)
+        visible_players = player_agents
+        if self.shared_state:
+            visible_players = [
+                pc for pc in player_agents
+                if self.shared_state.is_visible_to(getattr(pc, 'agent_id', ''), enemy.agent_id)
+            ]
+            hidden_count = len(player_agents) - len(visible_players)
+            if hidden_count > 0:
+                logger.info(f"{enemy.name}: {hidden_count} PC(s) hidden from targeting")
+
         prompt = generate_tactical_prompt(
             enemy=enemy,
-            player_agents=player_agents,
+            player_agents=visible_players,
             enemy_agents=active_enemies,
             shared_intel=self.shared_intel,
             available_tokens=available_tokens,
@@ -961,6 +972,11 @@ class EnemyCombatManager:
         }
 
         if hit:
+            # Enemy found the target — reveal them from stealth if hidden
+            target_agent_id = getattr(target, 'agent_id', None)
+            if target_agent_id and self.shared_state:
+                self.shared_state.reveal_agent(target_agent_id)
+
             # Roll damage
             strength = enemy.attributes.get('Strength', 3)
             damage_roll = random.randint(1, 20)

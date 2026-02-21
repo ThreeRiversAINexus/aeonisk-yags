@@ -3178,6 +3178,12 @@ Apply this narrative style to:
                 }
             )
 
+            # Update stealth state for target filtering (enemies/NPCs can't target hidden PCs)
+            aware_agents_for_stealth = res['resolution'].get('aware_agents', [])
+            acting_pc_id = res['player_id']
+            if self.shared_state and acting_pc_id.startswith('player_'):
+                self.shared_state.update_stealth(acting_pc_id, aware_agents_for_stealth)
+
         # Only do synthesis if not skipping (for sequential resolution, synthesis comes later)
         if not skip_synthesis:
             # Generate synthesis of what happened

@@ -248,6 +248,93 @@ class TestEnemyContextFiltering:
         assert len(filtered) == 1
 
 
+class TestPlayerToPlayerFiltering:
+    """Test that players don't see other players' stealth narrations."""
+
+    def test_player_does_not_see_other_player_stealth(self):
+        """Player B's filtered narrations exclude Player A's stealth entries."""
+        from scripts.aeonisk.multiagent.awareness import filter_narrations_for_agent, NarrationEntry
+
+        narrations = [
+            NarrationEntry(
+                text="[Echo] Echo slips past the guard undetected.",
+                aware_agents=["dm", "player_echo"]  # Only DM and Echo know
+            ),
+            NarrationEntry(
+                text="[Guard] The guard patrols the corridor.",
+                aware_agents=[]  # Public
+            ),
+        ]
+
+        # Player Ash should NOT see Echo's stealth action
+        filtered = filter_narrations_for_agent("player_ash", narrations)
+        assert len(filtered) == 1
+        assert "patrols the corridor" in filtered[0].text
+
+    def test_player_sees_own_stealth_narration(self):
+        """Player A still sees their own stealth narration."""
+        from scripts.aeonisk.multiagent.awareness import filter_narrations_for_agent, NarrationEntry
+
+        narrations = [
+            NarrationEntry(
+                text="[Echo] Echo slips past the guard undetected.",
+                aware_agents=["dm", "player_echo"]
+            ),
+            NarrationEntry(
+                text="[Guard] The guard patrols the corridor.",
+                aware_agents=[]
+            ),
+        ]
+
+        # Echo should see both their stealth action AND public narrations
+        filtered = filter_narrations_for_agent("player_echo", narrations)
+        assert len(filtered) == 2
+        texts = [n.text for n in filtered]
+        assert any("slips past" in t for t in texts)
+        assert any("patrols the corridor" in t for t in texts)
+
+    def test_player_sees_public_narrations(self):
+        """All players see narrations with empty aware_agents."""
+        from scripts.aeonisk.multiagent.awareness import filter_narrations_for_agent, NarrationEntry
+
+        narrations = [
+            NarrationEntry(text="[DM] A loud explosion rocks the building!", aware_agents=[]),
+            NarrationEntry(text="[Ash] Ash charges forward!", aware_agents=[]),
+        ]
+
+        # Every player should see all public narrations
+        for agent_id in ["player_echo", "player_ash", "player_ren"]:
+            filtered = filter_narrations_for_agent(agent_id, narrations)
+            assert len(filtered) == 2, f"{agent_id} should see all public narrations"
+
+    def test_narration_entry_str_returns_text(self):
+        """str(NarrationEntry(...)) should return just the text, not dataclass repr."""
+        from scripts.aeonisk.multiagent.awareness import NarrationEntry
+
+        entry = NarrationEntry(
+            text="[Echo] Echo slips past the guard undetected.",
+            aware_agents=["dm", "player_echo"]
+        )
+
+        result = str(entry)
+        assert result == "[Echo] Echo slips past the guard undetected."
+        assert "NarrationEntry" not in result
+        assert "aware_agents" not in result
+
+    def test_narration_entry_fstring_returns_text(self):
+        """f-string formatting of NarrationEntry should return just the text."""
+        from scripts.aeonisk.multiagent.awareness import NarrationEntry
+
+        entry = NarrationEntry(
+            text="[Echo] Echo hacks the terminal quietly.",
+            aware_agents=["dm", "player_echo"]
+        )
+
+        result = f"1. {entry}"
+        assert result == "1. [Echo] Echo hacks the terminal quietly."
+        assert "NarrationEntry" not in result
+
+
 class TestBackwardsCompatibility:
     """Test that existing sessions without aware_agents still work."""
 
@@ -277,3 +364,193 @@ class TestBackwardsCompatibility:
         # Old string should be visible (public), new entry should not (NPC not in aware_agents)
         assert len(filtered) == 1
         assert "Old string format" in filtered[0] if isinstance(filtered[0], str) else filtered[0].text
+
+
+# =============================================================================
+# STEALTH TARGET FILTERING TESTS (TDD — written before implementation)
+# =============================================================================
+
+
+class TestSharedStateStealthTracking:
+    """Test SharedState stealth_state dict and visibility methods."""
+
+    def test_stealth_state_default_visible(self):
+        """PC not in stealth_state → is_visible_to returns True for any observer."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        # No stealth state set at all — everyone is visible
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is True
+        assert state.is_visible_to("player_Shadow", "npc_guard") is True
+        assert state.is_visible_to("player_Shadow", "dm") is True
+
+    def test_stealth_state_hidden_pc(self):
+        """PC with restricted stealth_state → hidden from non-listed observers."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.stealth_state["player_Shadow"] = {"dm", "player_Shadow"}
+
+        # Observers in the set can see
+        assert state.is_visible_to("player_Shadow", "dm") is True
+        assert state.is_visible_to("player_Shadow", "player_Shadow") is True
+
+        # Observers NOT in the set cannot see
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is False
+        assert state.is_visible_to("player_Shadow", "npc_guard") is False
+        assert state.is_visible_to("player_Shadow", "player_Ash") is False
+
+    def test_update_stealth_hides_pc(self):
+        """update_stealth with non-empty aware_agents hides PC from non-listed agents."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow"])
+
+        assert "player_Shadow" in state.stealth_state
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is False
+        assert state.is_visible_to("player_Shadow", "dm") is True
+
+    def test_update_stealth_public_reveals(self):
+        """update_stealth with empty aware_agents removes PC from stealth_state."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        # First hide the PC
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow"])
+        assert "player_Shadow" in state.stealth_state
+
+        # Then make action public — should remove from stealth
+        state.update_stealth("player_Shadow", [])
+        assert "player_Shadow" not in state.stealth_state
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is True
+
+    def test_reveal_agent(self):
+        """reveal_agent removes PC from stealth_state entirely."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.stealth_state["player_Shadow"] = {"dm", "player_Shadow"}
+
+        state.reveal_agent("player_Shadow")
+        assert "player_Shadow" not in state.stealth_state
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is True
+
+    def test_reveal_agent_noop_for_visible(self):
+        """reveal_agent on already-visible PC is a safe no-op."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        # PC is not in stealth state — reveal should not crash
+        state.reveal_agent("player_Shadow")
+        assert "player_Shadow" not in state.stealth_state
+
+
+class TestEnemyTargetFiltering:
+    """Test that hidden PCs are excluded from enemy target lists."""
+
+    def test_hidden_pc_excluded_from_enemy_target_list(self):
+        """Hidden PC should not appear in visible_players after filtering."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow"])
+
+        # Simulate player_agents list
+        player_shadow = MagicMock()
+        player_shadow.agent_id = "player_Shadow"
+        player_ash = MagicMock()
+        player_ash.agent_id = "player_Ash"
+
+        enemy_id = "enemy_grunt_1"
+        visible_players = [
+            pc for pc in [player_shadow, player_ash]
+            if state.is_visible_to(pc.agent_id, enemy_id)
+        ]
+
+        assert len(visible_players) == 1
+        assert visible_players[0].agent_id == "player_Ash"
+
+    def test_visible_pc_included_in_enemy_target_list(self):
+        """Public PC still appears in visible_players."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        # No stealth — both visible
+
+        player_shadow = MagicMock()
+        player_shadow.agent_id = "player_Shadow"
+        player_ash = MagicMock()
+        player_ash.agent_id = "player_Ash"
+
+        enemy_id = "enemy_grunt_1"
+        visible_players = [
+            pc for pc in [player_shadow, player_ash]
+            if state.is_visible_to(pc.agent_id, enemy_id)
+        ]
+
+        assert len(visible_players) == 2
+
+    def test_specific_enemy_in_aware_agents_can_target(self):
+        """Enemy explicitly listed in aware_agents CAN see the PC."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        # Shadow is detected by grunt_1 but not grunt_2
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow", "enemy_grunt_1"])
+
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is True
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_2") is False
+
+
+class TestNPCTargetFiltering:
+    """Test that hidden PCs are excluded from NPC target lists."""
+
+    def test_hidden_pc_excluded_from_npc_target_list(self):
+        """Hidden PC should be skipped in NPC combatant list."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow"])
+
+        # Simulate combatant info entries
+        combatants = [
+            {'agent_id': 'player_Shadow', 'type': 'player', 'name': 'Shadow'},
+            {'agent_id': 'player_Ash', 'type': 'player', 'name': 'Ash'},
+            {'agent_id': 'enemy_grunt_1', 'type': 'enemy', 'name': 'Grunt'},
+        ]
+
+        npc_agent_id = "npc_civilian_1"
+        visible = [
+            c for c in combatants
+            if not (c['type'] == 'player' and not state.is_visible_to(c['agent_id'], npc_agent_id))
+        ]
+
+        # Shadow hidden, Ash visible, Grunt visible (not a player, no stealth check)
+        assert len(visible) == 2
+        names = [c['name'] for c in visible]
+        assert 'Shadow' not in names
+        assert 'Ash' in names
+        assert 'Grunt' in names
+
+
+class TestRevealMechanics:
+    """Test that enemy hits reveal hidden PCs."""
+
+    def test_enemy_hit_reveals_hidden_pc(self):
+        """After enemy hits a hidden PC, that PC becomes visible to all."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+
+        state = SharedState()
+        state.update_stealth("player_Shadow", ["dm", "player_Shadow"])
+
+        # Verify hidden before hit
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is False
+
+        # Simulate enemy hit — reveal target
+        state.reveal_agent("player_Shadow")
+
+        # Now visible to all
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_1") is True
+        assert state.is_visible_to("player_Shadow", "enemy_grunt_2") is True
+        assert state.is_visible_to("player_Shadow", "npc_guard") is True
