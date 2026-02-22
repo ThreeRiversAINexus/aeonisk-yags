@@ -330,6 +330,14 @@ class TargetIDMapper:
             info['max_health'] = getattr(agent, 'max_health', 0)
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
 
+        # Faction (for IFF — visible to all agents)
+        if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'faction'):
+            info['faction'] = agent.character_state.faction
+        elif hasattr(agent, 'faction'):
+            info['faction'] = agent.faction
+        else:
+            info['faction'] = 'Unknown'
+
         # Wounds, stuns, and death state (available for all combatant types)
         info['wounds'] = getattr(agent, 'wounds', 0)
         info['stuns'] = getattr(agent, 'stuns', 0)
