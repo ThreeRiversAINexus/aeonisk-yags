@@ -19,8 +19,13 @@
   },
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Illegal Research Zone) ===",
   "vendor_spawn_frequency": 0,
-  "_comment_scenario": "=== SCENARIO: VOID BREACH RESEARCH ===",
-  "_scenario_hint": "Abandoned Research Station at Breach Site (void_level 8, reality unstable), mission: study active void breach to prove dissolution is controllable evolution, not spiritual death. Lead researcher already at void 5, approaching critical threshold. Must: collect breach data, perform void exposure experiments, document reality warping effects, avoid Pantheon cleansing squad. Tensions: Theorist (pro-dissolution), Watcher (enforce cleansing mandate), Observer (scientific neutrality). Void 6+ triggers reality warping, void 7+ risks dissolution spiral.",
+  "_comment_scenario": "=== SCENARIO: VOID BREACH RESEARCH (pre-defined, no LLM generation) ===",
+  "scenario": {
+    "theme": "void_research_forbidden_knowledge",
+    "location": "Nimbus - Abandoned Research Station, Breach Site Theta-9",
+    "situation": "The research station clings to the edge of an active void breach, its walls flickering between solid matter and translucent unreality. Dissolution Theorist Dorel Rift has been camped here for three days, instruments humming, collecting data that could rewrite everything the Covenant teaches about void exposure. Their void score sits at 5 — one threshold away from reality warping, two from dissolution spiral. They are not afraid. Watcher Thane Vael arrived this morning on Pantheon orders, tasked with monitoring the theorist and enforcing cleansing protocols if void accumulation crosses 7. He has an emergency beacon that can summon a full cleansing squad within minutes. He has not activated it yet. Observer Lyss Kain of the Fractal Praxis set up her pattern recorders at dawn, determined to document whatever happens next with scientific neutrality — though the fractal resonances she is detecting in the breach suggest something far stranger than either faction's doctrine can explain. The breach pulses. The instruments spike. Dorel's void scanner reads 8 for the local environment. The next experiment could prove their thesis — or trigger exactly the dissolution event the Pantheon fears. All three know: once the data starts flowing, there is no neutral ground.",
+    "void_level": 8
+  },
   "_design_notes": {
     "ml_training_value": "First config with Void Lore 6 + void 5 starting character, tests void threshold mechanics (void 6-7+ reality effects), ritual consequence systems, high-risk void accumulation, Pantheon antagonist faction, moral ambiguity (is dissolution evolution or death?), environmental void hazards",
     "mechanics_tested": [
@@ -82,7 +87,7 @@
     },
     "players": [
       {
-        "name": "Dissolution Theorist Kael Rift",
+        "name": "Dissolution Theorist Dorel Rift",
         "pronouns": "they/them",
         "faction": "Tempest Industries",
         "llm": {

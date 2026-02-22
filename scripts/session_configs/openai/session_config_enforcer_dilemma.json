@@ -155,8 +155,7 @@
         "soulcredit": 5,
         "goals": [
           "Execute the warrant professionally - the law is the law",
-          "Maintain order and prevent violence during the arrest",
-          "Wonder if the law is always right (doubt growing)"
+          "Maintain order and prevent violence during the arrest"
         ],
         "equipped_weapons": {
           "primary": "pistol",
@@ -210,8 +209,7 @@
         "soulcredit": 4,
         "goals": [
           "Get through this operation without hurting anyone who doesn't deserve it",
-          "Protect the team from making a mistake they can't take back",
-          "Twenty years on the force and this feels wrong - trust that feeling?"
+          "Protect the team from making a mistake they can't take back"
         ],
         "equipped_weapons": {
           "primary": "rifle",
@@ -267,8 +265,7 @@
         "soulcredit": 3,
         "goals": [
           "First major operation - prove herself to the team",
-          "Understand why Dr. Soltra is breaking the law to help people",
-          "Joined Pantheon to protect people - are they protecting or persecuting?"
+          "Understand why Dr. Soltra is breaking the law to help people"
         ],
         "equipped_weapons": {
           "primary": "pistol"
@@ -320,8 +317,7 @@
         "soulcredit": 4,
         "goals": [
           "Gather clean evidence that will hold up at tribunal",
-          "Document the void-sickness patterns - this is real contamination data",
-          "If the Nexus is covering up void contamination... shouldn't someone know?"
+          "Document the void-sickness patterns - this is real contamination data"
         ],
         "equipped_weapons": {
           "primary": "pistol"
