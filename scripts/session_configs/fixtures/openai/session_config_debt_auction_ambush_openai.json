@@ -168,7 +168,7 @@
     "situation": "You came to the debt auction to contest an illegal seizure. But the Astral Commerce Group anticipated this - their collector was waiting. Now you're fighting for your freedom in the grand hall of the Mercantile Basilica. The auction deadline clock is ticking, and the collector is calling for backup.",
     "void_level": 3
   },
-  "_scenario_hint": "Environmental void level 3 - some void effects in the area. Player Ash has void 4, may use void abilities. Collector should be aggressive. Clocks should advance each round. Tests: enemy AI targeting, void changes (environmental and character), state persistence across rounds, combat mechanics, structured output validation.",
+  "scenario_hint": "Environmental void level 3 - some void effects in the area. Player Ash has void 4, may use void abilities. Collector should be aggressive. Clocks should advance each round. Tests: enemy AI targeting, void changes (environmental and character), state persistence across rounds, combat mechanics, structured output validation.",
   "mission_objectives": [
     {
       "description": "Survive the ambush and escape the Basilica",

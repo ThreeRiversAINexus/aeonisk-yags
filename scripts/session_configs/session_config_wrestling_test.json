@@ -6,7 +6,7 @@
   "force_combat": true,
   "combat_scenario_index": 0,
   "_design_notes": "CONTRIVED TEST CONFIG: Forces Brawl/unarmed combat to verify unarmed weapon mapping. WWE-style void wrestling championship. No ranged weapons, no melee weapons — only fists and shock batons. Characters have high Brawl, low/no Guns.",
-  "_scenario_hint": "Underground void wrestling championship in a converted cargo hold. Two tag-team wrestlers face off against rival tag team. Rules: no weapons, no guns, no blades — bare knuckles and body slams only. The ring is surrounded by howling Freeborn spectators betting soulcredit. Announcer hypes every move. Wrestling moves encouraged: suplexes, piledrivers, clotheslines, submission holds, top-rope dives. This is entertainment, not a deathmatch — STUN damage only.",
+  "scenario_hint": "Underground void wrestling championship in a converted cargo hold. Two tag-team wrestlers face off against rival tag team. Rules: no weapons, no guns, no blades — bare knuckles and body slams only. The ring is surrounded by howling Freeborn spectators betting soulcredit. Announcer hypes every move. Wrestling moves encouraged: suplexes, piledrivers, clotheslines, submission holds, top-rope dives. This is entertainment, not a deathmatch — STUN damage only.",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
   "vendor_spawn_frequency": -1,

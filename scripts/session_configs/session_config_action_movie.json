@@ -20,7 +20,7 @@
     "void_tracking_enabled": true
   },
   "_comment_scenario": "=== ACTION MOVIE SETUP ===",
-  "_scenario_hint": "The crew has just pulled off the impossible - stealing a prototype void-dampening device from Tempest Industries' orbital vault. But as their escape shuttle touches down in the undercity, proximity alarms shriek: Pantheon Security kill-teams incoming, ACG bounty hunters triangulating their position, and worst of all - the device is leaking unstable void energy, corrupting the air itself. They have 30 minutes before the whole district becomes a void rift. Split-second decisions, explosive firefights, impossible odds. GO LOUD.",
+  "scenario_hint": "The crew has just pulled off the impossible - stealing a prototype void-dampening device from Tempest Industries' orbital vault. But as their escape shuttle touches down in the undercity, proximity alarms shriek: Pantheon Security kill-teams incoming, ACG bounty hunters triangulating their position, and worst of all - the device is leaking unstable void energy, corrupting the air itself. They have 30 minutes before the whole district becomes a void rift. Split-second decisions, explosive firefights, impossible odds. GO LOUD.",
   "scenario": {
     "theme": "heist_gone_wrong_explosive_escape",
     "location": "Undercity Landing Zone - Sector 7",

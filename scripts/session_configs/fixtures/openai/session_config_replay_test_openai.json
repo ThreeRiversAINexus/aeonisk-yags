@@ -144,7 +144,7 @@
     "situation": "You're traversing the maintenance tunnels when a gang enforcer steps out of the shadows, weapon raised. The narrow corridor offers little cover. Fight or talk your way out - but act fast.",
     "void_level": 2
   },
-  "_scenario_hint": "Keep it simple - 2 rounds of combat or negotiation. The enforcer should either be defeated/flee or the players escape. Goal is complete LLM call logging for replay testing.",
+  "scenario_hint": "Keep it simple - 2 rounds of combat or negotiation. The enforcer should either be defeated/flee or the players escape. Goal is complete LLM call logging for replay testing.",
   "mission_objectives": [
     {
       "description": "Survive the ambush",

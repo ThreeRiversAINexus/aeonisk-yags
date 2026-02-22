@@ -87,5 +87,5 @@
       }
     ]
   },
-  "_scenario_hint": "Quick combat test for OpenAI provider - corrupted drones attack lone operative in abandoned station"
+  "scenario_hint": "Quick combat test for OpenAI provider - corrupted drones attack lone operative in abandoned station"
 }

@@ -17,7 +17,7 @@
   "tactical_module_enabled": true,
   "enemy_agents_enabled": false,
   "vendor_spawn_frequency": 0,
-  "_scenario_hint": "PURE PVP COMBAT. Two teams of two fight in a sealed arena. Team Void (Kira and Shen) vs Team Steel (Mox and Talia). No escape, no negotiation, no third parties. Fight until one team is incapacitated. DM should adjudicate all attacks between players fairly and describe brutal, consequential combat. Characters WILL attack each other - this is the entire point.",
+  "scenario_hint": "PURE PVP COMBAT. Two teams of two fight in a sealed arena. Team Void (Kira and Shen) vs Team Steel (Mox and Talia). No escape, no negotiation, no third parties. Fight until one team is incapacitated. DM should adjudicate all attacks between players fairly and describe brutal, consequential combat. Characters WILL attack each other - this is the entire point.",
   "scenario": {
     "theme": "Faction Elimination Match",
     "location": "The Crucible - Sealed Combat Arena",

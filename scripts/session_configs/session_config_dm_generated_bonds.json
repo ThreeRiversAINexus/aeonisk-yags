@@ -13,7 +13,7 @@
     "max_bonds": 4,
     "use_scenario_context": true
   },
-  "_scenario_hint": "Quick void investigation scenario (1 turn). Characters are a mixed team.",
+  "scenario_hint": "Quick void investigation scenario (1 turn). Characters are a mixed team.",
   "agents": {
     "dm": {
       "llm": {

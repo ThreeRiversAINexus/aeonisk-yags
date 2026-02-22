@@ -7,7 +7,7 @@
     "location": "Safe House (Freeborn Settlement)",
     "situation": "You and your companion are in a safe room preparing for a dangerous void purification ritual. You've agreed to pool your resources - Ash is handing over ritual components (Incense and Crystals) to Kress, while Kress is giving energy currency (Drip) to Ash. This is a simple resource exchange between trusted allies - hand over what you agreed to share, acknowledge receipt, then prepare for the ritual.",
     "void_level": 2,
-    "_scenario_hint": "This is a simple resource pooling scenario. Players should transfer items and currency to each other. No combat, no vendors, just transfers between PCs.",
+    "scenario_hint": "This is a simple resource pooling scenario. Players should transfer items and currency to each other. No combat, no vendors, just transfers between PCs.",
     "_design_notes": "Tests item transfer system. Both characters at Near-PC range. Ash should transfer items to Kress, Kress should transfer currency to Ash, then possibly combined transfers."
   },
   "agents": {

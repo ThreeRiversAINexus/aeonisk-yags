@@ -11,7 +11,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - LIMITED (Resource Scarcity) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: PLAGUE OUTBREAK ===",
-  "_scenario_hint": "Terminus Outpost (void_level 6, remote mining station) - mysterious void-tainted illness spreading through workers. 12 sick NPCs need stabilization, limited medical supplies, void contamination making traditional healing dangerous. Tensions: Healer wants to save everyone, Enforcer wants quarantine/cleanup, Researcher wants to study the contagion. Clock pressure: illness spreading, supply depletion, potential evacuation order.",
+  "scenario_hint": "Terminus Outpost (void_level 6, remote mining station) - mysterious void-tainted illness spreading through workers. 12 sick NPCs need stabilization, limited medical supplies, void contamination making traditional healing dangerous. Tensions: Healer wants to save everyone, Enforcer wants quarantine/cleanup, Researcher wants to study the contagion. Clock pressure: illness spreading, supply depletion, potential evacuation order.",
   "_design_notes": {
     "ml_training_value": "Underrepresented healer archetype, Medicine skill testing, NPC interaction depth, non-combat crisis resolution, resource management, moral dilemma (save lives vs. contain threat vs. scientific study), void environmental hazard",
     "mechanics_tested": [

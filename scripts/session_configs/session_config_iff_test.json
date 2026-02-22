@@ -19,14 +19,14 @@
     "free_targeting_mode": true
   },
   "_comment_scenario": "Force multi-faction combat scenario - PCs + allied NPCs vs hostile NPCs",
+  "scenario_hint": "Generate three-way battle with Tempest vs Nexus factions. Include combatants from both factions.",
   "agents": {
     "dm": {
       "llm": {
         "provider": "anthropic",
         "model": "claude-sonnet-4-5",
         "temperature": 0.7
-      },
-      "_scenario_hint": "Generate three-way battle with Tempest vs Nexus factions. Include combatants from both factions."
+      }
     },
     "players": [
       {

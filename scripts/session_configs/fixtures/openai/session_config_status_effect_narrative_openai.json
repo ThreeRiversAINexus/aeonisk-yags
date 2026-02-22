@@ -66,7 +66,7 @@
     "situation": "You're in a tense standoff with a hostile figure in a dark alley. No formal combat - just narrative tension. You may attempt to intimidate, stun, or use abilities against the hostile. DM will describe a single enemy NPC in narration.",
     "void_level": 3
   },
-  "_scenario_hint": "DM should describe an enemy NPC threatening the player. When player uses abilities, status effects should apply to the described NPC, not to the player. This tests narrative-mode status effect targeting.",
+  "scenario_hint": "DM should describe an enemy NPC threatening the player. When player uses abilities, status effects should apply to the described NPC, not to the player. This tests narrative-mode status effect targeting.",
   "_fixture_target": "tests/fixtures/sessions/session_status_effect_narrative_test.jsonl",
   "_extraction_notes": "Extract round 0. Tests status effects in narrative (non-tactical) mode."
 }

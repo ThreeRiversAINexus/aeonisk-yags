@@ -201,7 +201,7 @@ def generate_narratives_for_session_config(
                 'archetype': player.get('archetype', 'Unknown')
             }
 
-    scenario_hint = config.get('_scenario_hint', '')
+    scenario_hint = config.get('scenario_hint', '') or config.get('_scenario_hint', '')
 
     generated = []
     for bond in config['starting_bonds']:
