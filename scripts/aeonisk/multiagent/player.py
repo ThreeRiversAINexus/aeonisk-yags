@@ -5,7 +5,7 @@ AI Player agent for multi-agent self-playing system.
 import asyncio
 import logging
 import random
-from typing import Dict, Any, List, Optional, Callable, Iterable
+from typing import Dict, Any, List, Optional, Callable, Iterable, Union
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -253,7 +253,7 @@ class AIPlayerAgent(Agent):
             self.llm_provider = None
 
         # Narrative context tracking (for player awareness of story progression)
-        self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
+        self.recent_narrations: List[Union[str, NarrationEntry]] = []  # Last 5 action resolution narrations (FIFO)
         self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
         # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
@@ -1812,12 +1812,15 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             action_intent, init_score = action_data
                             declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
 
-            # Build recent action outcomes (detailed narrations from recent actions)
+            # Build recent action outcomes (filtered for this player's awareness)
             recent_outcomes_text = ""
             if self.recent_narrations:
-                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
-                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
-                    recent_outcomes_text += f"{i}. {narration}\n"
+                from .awareness import filter_narrations_for_agent
+                visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations[-5:])
+                if visible:
+                    recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                    for i, narration in enumerate(visible, 1):
+                        recent_outcomes_text += f"{i}. {narration}\n"
 
             # Low attributes (< 4)
             low_attrs = [
@@ -2074,12 +2077,15 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             action_intent, init_score = action_data
                             declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
 
-            # Build recent action outcomes (detailed narrations from recent actions)
+            # Build recent action outcomes (filtered for this player's awareness)
             recent_outcomes_text = ""
             if self.recent_narrations:
-                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
-                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
-                    recent_outcomes_text += f"{i}. {narration}\n"
+                from .awareness import filter_narrations_for_agent
+                visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations[-5:])
+                if visible:
+                    recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                    for i, narration in enumerate(visible, 1):
+                        recent_outcomes_text += f"{i}. {narration}\n"
 
             # Format attributes
             attributes_text = "\n".join([
@@ -3051,15 +3057,16 @@ Available non-combat actions:
             narrative_context += "## What Just Happened (Last Round Summary):\n"
             narrative_context += f"{self.last_round_synthesis}\n\n"
 
-        # Add recent action resolution narrations (specific outcomes)
+        # Add recent action resolution narrations (filtered for this player's awareness)
         if self.recent_narrations:
-            if not narrative_context:
-                narrative_context += "\n# 📖 Recent Story Events\n\n"
-            narrative_context += "## Recent Action Outcomes:\n"
-            # Show ALL recent narrations (rolling window already limits to last 20)
-            for i, narration in enumerate(self.recent_narrations, 1):
-                # Keep full narration - this is juicy coordination info!
-                narrative_context += f"{i}. {narration}\n\n"
+            from .awareness import filter_narrations_for_agent
+            visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations)
+            if visible:
+                if not narrative_context:
+                    narrative_context += "\n# 📖 Recent Story Events\n\n"
+                narrative_context += "## Recent Action Outcomes:\n"
+                for i, narration in enumerate(visible, 1):
+                    narrative_context += f"{i}. {narration}\n\n"
 
         # Add declared actions this round (only from agents with LOWER initiative who declared before you)
         if self.declared_actions_this_round:

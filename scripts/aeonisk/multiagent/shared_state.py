@@ -42,6 +42,13 @@ def generate_env_object_id() -> str:
     return f"env_{suffix}"
 
 
+@dataclass
+class StealthEntry:
+    """Tracks a PC's stealth state with duration."""
+    observers: Set[str]       # Who can see this PC (from aware_agents)
+    expires_at_round: int     # Round number when stealth expires (inclusive — still hidden on this round)
+
+
 class AltarType(Enum):
     """Types of ritual altars in Aeonisk."""
     RITUAL_ALTAR = "ritual_altar"  # Generic ritual space
@@ -191,9 +198,9 @@ class SharedState:
     # Format: {recipient_agent_id: {'bonus': +2, 'from': giver_name, 'reason': 'shared intel'}}
     coordination_bonuses: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
-    # Stealth target filtering: maps PC agent_id → set of agent_ids that can see them
-    # Not in dict = visible to all (public). Example: {"player_Shadow": {"dm", "player_Shadow"}}
-    stealth_state: Dict[str, Set[str]] = field(default_factory=dict)
+    # Stealth target filtering: maps PC agent_id → StealthEntry with observers + expiry
+    # Not in dict = visible to all (public). Example: {"player_Shadow": StealthEntry(...)}
+    stealth_state: Dict[str, StealthEntry] = field(default_factory=dict)
 
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
@@ -309,18 +316,61 @@ class SharedState:
         """Check if a PC is visible to an observer."""
         if pc_agent_id not in self.stealth_state:
             return True  # Not stealthed = visible to all
-        return observer_agent_id in self.stealth_state[pc_agent_id]
+        return observer_agent_id in self.stealth_state[pc_agent_id].observers
 
-    def update_stealth(self, pc_agent_id: str, aware_agents: list) -> None:
-        """Update stealth state after action resolution."""
-        if aware_agents:  # Non-empty = restricted visibility
-            self.stealth_state[pc_agent_id] = set(aware_agents)
-        else:  # Empty = public action → visible to all
+    def update_stealth(self, pc_agent_id: str, aware_agents: list,
+                       margin: int = 0, current_round: int = 0) -> None:
+        """Update stealth state after action resolution.
+
+        Empty aware_agents = public = remove stealth.
+        Positive margin required for stealth to take effect.
+        Duration scales with margin of success.
+        """
+        if aware_agents and margin > 0:
+            duration = self._stealth_duration_from_margin(margin)
+            self.stealth_state[pc_agent_id] = StealthEntry(
+                observers=set(aware_agents),
+                expires_at_round=current_round + duration
+            )
+        else:  # Empty aware_agents or margin ≤ 0 → visible to all
             self.stealth_state.pop(pc_agent_id, None)
 
     def reveal_agent(self, pc_agent_id: str) -> None:
-        """Remove an agent from stealth (e.g., after being hit)."""
+        """Remove an agent from stealth (e.g., after being hit or detected)."""
         self.stealth_state.pop(pc_agent_id, None)
+
+    def expire_stealth(self, current_round: int) -> None:
+        """Remove expired stealth entries. Called at round start."""
+        expired = [k for k, v in self.stealth_state.items() if current_round > v.expires_at_round]
+        for k in expired:
+            logger.info(f"Stealth expired for {k} (round {current_round})")
+            self.stealth_state.pop(k)
+
+    def get_hidden_pcs(self) -> List[str]:
+        """Get list of currently hidden PC agent_ids."""
+        return list(self.stealth_state.keys())
+
+    @staticmethod
+    def _stealth_duration_from_margin(margin: int) -> int:
+        """Convert roll margin to stealth duration in rounds.
+
+        | Margin | Duration |
+        |--------|----------|
+        | 1–5    | 1 round  |
+        | 6–10   | 2 rounds |
+        | 11–15  | 3 rounds |
+        | 16+    | 4 rounds |
+        """
+        if margin <= 0:
+            return 0
+        elif margin <= 5:
+            return 1
+        elif margin <= 10:
+            return 2
+        elif margin <= 15:
+            return 3
+        else:
+            return 4
 
     def add_scenario(self, theme: str, location: str) -> None:
         """Record a scenario for variety tracking."""

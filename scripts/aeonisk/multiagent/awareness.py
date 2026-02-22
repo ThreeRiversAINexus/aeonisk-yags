@@ -27,6 +27,9 @@ class NarrationEntry:
     text: str
     aware_agents: List[str] = field(default_factory=list)
 
+    def __str__(self) -> str:
+        return self.text
+
 
 def filter_narrations_for_agent(
     agent_id: str,
