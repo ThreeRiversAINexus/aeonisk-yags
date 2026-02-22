@@ -664,12 +664,25 @@ def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]])
     for i, prev in enumerate(previous_resolutions[-3:], 1):
         char_name = prev.get('character_name', 'Unknown')
         # Guard: action/resolution/effects may be None, a string, or a dict
+        # Handle both PC format (action is dict) and enemy format (action is string)
         raw_action = prev.get('action')
-        action_dict = raw_action if isinstance(raw_action, dict) else {}
-        action_type = action_dict.get('action_type', 'unknown').upper()
+        if isinstance(raw_action, dict):
+            action_type = raw_action.get('action_type', 'unknown').upper()
+        elif isinstance(raw_action, str):
+            action_type = raw_action.upper()
+        else:
+            action_type = 'UNKNOWN'
+
+        # Extract margin from nested resolution (PC), roll dict (enemy), or top-level
         raw_resolution = prev.get('resolution')
         resolution_dict = raw_resolution if isinstance(raw_resolution, dict) else {}
-        margin = resolution_dict.get('margin', prev.get('margin', '?'))
+        margin = resolution_dict.get('margin', '?')
+        if margin == '?':
+            roll = prev.get('roll')
+            if isinstance(roll, dict):
+                margin = roll.get('margin', '?')
+        if margin == '?':
+            margin = prev.get('margin', '?')
         narration = prev.get('narration', '')
         # Truncate narration for recap
         narration_brief = narration[:120] + '...' if len(narration) > 120 else narration
@@ -688,7 +701,15 @@ def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]])
         else:
             sc_text = "[SC: +0]"
 
-        success = "success" if isinstance(margin, (int, float)) and margin >= 0 else "failure"
+        # Detect success: check resolution dict, hit field, result field, then margin
+        if isinstance(raw_resolution, dict) and 'success' in resolution_dict:
+            success = "success" if resolution_dict['success'] else "failure"
+        elif prev.get('hit') is not None:
+            success = "success" if prev['hit'] else "failure"
+        elif prev.get('result') in ('success', 'failure', 'invalidated'):
+            success = prev['result']
+        else:
+            success = "success" if isinstance(margin, (int, float)) and margin >= 0 else "failure"
         margin_str = f"{margin:+d}" if isinstance(margin, (int, float)) else str(margin)
 
         # Add prefix for skipped/invalidated actions
@@ -4851,6 +4872,9 @@ Read the action intent to understand WHY this transfer is happening:
             from .schemas.action_resolution import SuccessTier, MechanicalEffects
             from .schemas.shared_types import Condition
 
+            # Default for pass actions (template narration, not a fallback)
+            is_fallback = False
+
             # Special case: "pass" actions use template narration (no LLM call)
             if npc_action_type == 'pass':
                 narration = f"{character_name} passes because the situation doesn't involve them and they don't want to do anything."
@@ -5348,6 +5372,12 @@ For **other actions** (flee, hide, assist, attack):
                 narration = f"{mechanical_text}\n\n{llm_narration}"
             else:
                 narration = f"{mechanical_text}\n\n{resolution.narrative}"
+
+            # Clean up transient context data from action dict to prevent recursive
+            # nesting when action is included in resolution_data/previous_resolutions.
+            # These were only needed for the LLM call above.
+            action.pop('_previous_resolutions', None)
+            action.pop('previous_context', None)
 
             # Parse narration for clock triggers and state changes
             from .outcome_parser import (

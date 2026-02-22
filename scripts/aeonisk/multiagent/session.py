@@ -179,6 +179,43 @@ def _get_inventory(agent):
     return agent.inventory
 
 
+def _normalize_enemy_result(result: dict) -> dict:
+    """Normalize enemy combat result for compatibility with PC resolution format.
+
+    Enemy results have inconsistent field names (hit vs success, roll.margin vs
+    flat margin, action string vs dict). This normalizes them so downstream code
+    (e.g. _build_enhanced_previous_context) can handle both uniformly.
+    """
+    normalized = dict(result)
+
+    # Normalize action to dict format
+    raw_action = result.get('action', 'unknown')
+    if isinstance(raw_action, str):
+        normalized['action'] = {
+            'action_type': raw_action,
+            'character_name': result.get('character_name', ''),
+        }
+
+    # Ensure top-level success field
+    if 'success' not in normalized:
+        if result.get('hit') is not None:
+            normalized['success'] = result['hit']
+        elif result.get('result') in ('success', 'failure', 'invalidated'):
+            normalized['success'] = result['result'] == 'success'
+        else:
+            normalized['success'] = True
+
+    # Ensure top-level margin field
+    if 'margin' not in normalized:
+        roll = result.get('roll')
+        if isinstance(roll, dict) and 'margin' in roll:
+            normalized['margin'] = roll['margin']
+        else:
+            normalized['margin'] = 0
+
+    return normalized
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -1279,6 +1316,15 @@ Generate narratives (numbered list only):"""
 
                 for agent_id, void_state in mechanics.void_states.items():
                     void_state.reset_round_void()
+
+                # Tick condition durations at round start
+                if hasattr(mechanics, 'conditions'):
+                    for agent_id in list(mechanics.conditions.keys()):
+                        mechanics.tick_conditions(agent_id)
+
+            # Expire stealth at round start
+            if self.shared_state:
+                self.shared_state.expire_stealth(round_count)
 
             # Clear declared actions from previous round (for all player agents)
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
@@ -2399,10 +2445,8 @@ Generate narratives (numbered list only):"""
                                 )
                                 await self.coordinator.message_bus._route_message(broadcast_message)
 
-                        # Add enemy result to synthesis input
-                        # Enemy actions use a simplified result dict compared to ActionResolution schema
-                        # but DM needs to see enemy actions to synthesize round accurately
-                        all_resolutions.append(result)
+                        # Add enemy result to synthesis input (normalized for schema consistency)
+                        all_resolutions.append(_normalize_enemy_result(result))
 
                         # Combat logging handled in enemy_combat.py via log_combat_action()
 
@@ -2436,7 +2480,8 @@ Generate narratives (numbered list only):"""
                             'description': npc_description,
                             'action_type': npc_action_type,
                             'target': npc_action.get('target'),  # Include target for assist/heal/dialogue/attack actions
-                            'is_npc': True  # Flag for DM to use lightweight adjudication
+                            'is_npc': True,  # Flag for DM to use lightweight adjudication
+                            'dialogue_content': npc_action.get('dialogue_content'),  # Preserve for DM prompt + JSONL
                         }
                     }
 
@@ -2610,6 +2655,12 @@ Generate narratives (numbered list only):"""
                     # Clean up pending resolution (must match key format used above)
                     if f"{agent.agent_id}_0" in self._pending_resolutions:
                         del self._pending_resolutions[f"{agent.agent_id}_0"]
+
+        # Warn about active NPCs with no declaration this round (potential ghost agents)
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.is_active and npc.agent_id not in self._declared_actions:
+                    logger.warning(f"Active NPC {npc.name} ({npc.agent_id}) had no declaration this round — may be a ghost agent")
 
         # Convert surrendered enemies to NPCs after all actions resolve
         # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
