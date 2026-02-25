@@ -94,6 +94,318 @@ def _resolve_weapon_and_damage_type(
     return ("Unknown Weapon", "wound", None)
 
 
+def _get_combatant_state_tag(
+    info: Dict[str, Any],
+    target_id: str,
+    shared_state: Any
+) -> str:
+    """
+    Generate a state tag for a combatant in the DM target list.
+
+    Returns a bracketed tag like [ACTIVE], [PRISONER], [WOUNDED], etc.
+    that helps the DM distinguish targetable entities from non-combatants.
+
+    Args:
+        info: Combatant info dict from TargetIDMapper.get_combatant_info()
+        target_id: The tgt_xxxx ID
+        shared_state: SharedState instance for entity lookups
+
+    Returns:
+        State tag string, e.g. "[ACTIVE]", "[PRISONER]", "[UNCONSCIOUS]"
+    """
+    entity_type = info.get('type', 'unknown')
+
+    # Check death state first (applies to all entity types)
+    death_state = info.get('death_state', 'alive')
+    if death_state == 'dead':
+        return "[DEAD]"
+    if death_state == 'unconscious':
+        return "[UNCONSCIOUS]"
+
+    # Player-specific states
+    if entity_type == 'player':
+        health = info.get('health', 0)
+        max_health = info.get('max_health', 1)
+        wounds = info.get('wounds', 0)
+        if wounds >= 4:
+            return "[CRITICAL]"
+        elif health <= max_health * 0.25 and max_health > 0:
+            return "[WOUNDED]"
+        return "[ACTIVE]"
+
+    # NPC-specific states
+    if entity_type == 'npc':
+        # Look up NPC agent for disposition and entity_type
+        if shared_state and hasattr(shared_state, 'npc_agents') and shared_state.npc_agents:
+            agent_id = info.get('agent_id')
+            for npc in shared_state.npc_agents:
+                if hasattr(npc, 'agent_id') and npc.agent_id == agent_id:
+                    if getattr(npc, 'disposition', None) == 'prisoner' or getattr(npc, 'entity_type', None) == 'prisoner':
+                        return "[PRISONER]"
+                    if not getattr(npc, 'is_active', True):
+                        return "[INACTIVE]"
+                    # Check if NPC is fleeing (has flee action in recent memory)
+                    if (hasattr(npc, 'memory') and npc.memory and
+                            hasattr(npc.memory, 'own_actions') and npc.memory.own_actions):
+                        last_action = npc.memory.own_actions[-1]
+                        if last_action.get('action_type') == 'flee':
+                            return "[FLEEING]"
+                    return "[NON-COMBATANT]"
+        return "[NON-COMBATANT]"
+
+    # Enemy-specific states
+    if entity_type == 'enemy':
+        # Look up enemy agent for state flags
+        agent = None
+        if shared_state and hasattr(shared_state, 'enemy_combat') and shared_state.enemy_combat:
+            agent_id = info.get('agent_id')
+            enemy_agents = getattr(shared_state.enemy_combat, 'enemy_agents', [])
+            for enemy in enemy_agents:
+                if getattr(enemy, 'agent_id', None) == agent_id:
+                    agent = enemy
+                    break
+
+        if agent:
+            if agent.is_prisoner:
+                return "[PRISONER]"
+            if not agent.is_active:
+                return "[DEFEATED]"
+            if agent.is_panicked:
+                return "[PANICKED/FLEEING]"
+            # Wounded check
+            health = info.get('health', 0)
+            max_health = info.get('max_health', 1)
+            if max_health > 0 and health <= max_health * 0.25:
+                return "[WOUNDED]"
+            return "[ACTIVE]"
+        return "[ACTIVE]"
+
+    # Vendor
+    if entity_type == 'vendor':
+        return "[VENDOR/NON-COMBATANT]"
+
+    return "[UNKNOWN]"
+
+
+def _get_attacker_strength(action: Optional[Dict[str, Any]], shared_state) -> int:
+    """
+    Get attacker's Strength attribute for damage calculation guidance.
+
+    Used by _build_weapon_context to provide base_damage formula to the DM.
+
+    Args:
+        action: Player action dict (must have 'agent_id')
+        shared_state: SharedState instance for player lookup
+
+    Returns:
+        Strength attribute value (default 3 if not found)
+    """
+    if not action or not shared_state:
+        return 3
+
+    agent_id = action.get('agent_id')
+    if not agent_id:
+        return 3
+
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == agent_id:
+            if hasattr(player, 'character_state') and player.character_state:
+                return player.character_state.attributes.get('Strength', 3)
+    return 3
+
+
+def _build_weapon_context(action: Optional[Dict[str, Any]], shared_state) -> str:
+    """
+    Build expanded weapon context block for DM resolution prompt.
+
+    Includes weapon stats (damage bonus, attack bonus) and base_damage guidance
+    anchored to the weapon's mechanical values, so the DM LLM generates
+    consistent base_damage instead of arbitrary values.
+
+    Args:
+        action: Player action dict
+        shared_state: SharedState instance
+
+    Returns:
+        Formatted weapon context string, or empty string if no weapon found
+    """
+    if not action or not shared_state:
+        return ""
+
+    if action.get('action_type') not in ('attack', 'combat', 'brawl'):
+        return ""
+
+    weapon_name, weapon_damage_type, weapon_obj = _resolve_weapon_and_damage_type(action, shared_state)
+
+    if weapon_name == "Unknown Weapon":
+        return ""
+
+    weapon_damage = weapon_obj.damage if weapon_obj else 0
+    weapon_attack = weapon_obj.attack if weapon_obj else 0
+    attacker_strength = _get_attacker_strength(action, shared_state)
+
+    context = (
+        f"\n\n**WEAPON CONTEXT (MECHANICAL):**\n"
+        f"Weapon: {weapon_name}\n"
+        f"Damage Type: {weapon_damage_type.upper()}\n"
+        f"Weapon Damage Bonus: {weapon_damage}\n"
+        f"Attack Bonus: {weapon_attack}\n"
+    )
+
+    # Include base_damage guidance with tier breakdown
+    base = attacker_strength + weapon_damage
+    context += (
+        f"\n**base_damage GUIDANCE:**\n"
+        f"Formula: Strength({attacker_strength}) + Weapon Damage({weapon_damage}) + margin_modifier\n"
+        f"- Marginal success (margin 0-4): base_damage = {base} (weapon + strength, no bonus)\n"
+        f"- Moderate success (margin 5-9): base_damage = {base + 3} (add partial margin)\n"
+        f"- Good success (margin 10-14): base_damage = {base + 6}\n"
+        f"- Excellent+ (margin 15+): base_damage = {base + 10}\n"
+        f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
+    )
+
+    return context
+
+
+def _execute_item_transfer(
+    source_agent_id: str,
+    target_agent_id: str,
+    currency_amounts: Optional[Dict[str, int]],
+    item_amounts: Optional[Dict[str, int]],
+    shared_state,
+) -> Dict[str, Any]:
+    """
+    Execute inter-agent transfer (any agent type to any agent type).
+
+    Supports: PC->PC, PC->NPC, NPC->PC, NPC->NPC currency and item transfers.
+
+    Args:
+        source_agent_id: Agent ID of the source (sender)
+        target_agent_id: Agent ID of the target (receiver)
+        currency_amounts: Dict of currency type -> amount (e.g. {"drip": 10})
+        item_amounts: Dict of inventory key -> count (e.g. {"med_kit": 1})
+        shared_state: SharedState instance for agent lookup
+
+    Returns:
+        Dict with "success" bool and details about what transferred
+    """
+    if not shared_state:
+        return {"success": False, "reason": "no shared state"}
+
+    # Find source and target agents
+    source = _find_agent_by_id(source_agent_id, shared_state)
+    target = _find_agent_by_id(target_agent_id, shared_state)
+
+    if not source:
+        return {"success": False, "reason": f"source agent '{source_agent_id}' not found"}
+    if not target:
+        return {"success": False, "reason": f"target agent '{target_agent_id}' not found"}
+
+    source_purse = _get_agent_purse(source)
+    target_purse = _get_agent_purse(target)
+    source_inv = _get_agent_inventory(source)
+    target_inv = _get_agent_inventory(target)
+
+    results = {"success": True, "currency": {}, "items": {}}
+
+    # Currency transfer
+    if currency_amounts:
+        if not source_purse or not target_purse:
+            return {"success": False, "reason": "source or target lacks energy purse"}
+
+        # Pre-validate all amounts
+        for currency_type, amount in currency_amounts.items():
+            current = getattr(source_purse, currency_type, 0)
+            if current < amount:
+                return {"success": False, "reason": f"insufficient {currency_type} (have {current}, need {amount})"}
+
+        # Execute transfers
+        success = source_purse.transfer_currencies_to(target_purse, currency_amounts)
+        if not success:
+            return {"success": False, "reason": "currency transfer failed"}
+        results["currency"] = currency_amounts
+
+    # Item transfer
+    if item_amounts:
+        if source_inv is None:
+            return {"success": False, "reason": "source has no inventory"}
+
+        # Pre-validate all items
+        for item_key, count in item_amounts.items():
+            if source_inv.get(item_key, 0) < count:
+                return {"success": False, "reason": f"insufficient {item_key} (have {source_inv.get(item_key, 0)}, need {count})"}
+
+        # Execute transfers
+        if target_inv is None:
+            # Create inventory for target if it doesn't have one
+            target_inv = {}
+            _set_agent_inventory(target, target_inv)
+
+        for item_key, count in item_amounts.items():
+            source_inv[item_key] -= count
+            target_inv[item_key] = target_inv.get(item_key, 0) + count
+            results["items"][item_key] = {"success": True, "count": count}
+
+    return results
+
+
+def _find_agent_by_id(agent_id: str, shared_state) -> Optional[Any]:
+    """Find any agent (player, NPC, or enemy) by agent_id."""
+    # Check players
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == agent_id:
+            return player
+
+    # Check NPCs
+    for npc in getattr(shared_state, 'npc_agents', []):
+        if hasattr(npc, 'agent_id') and npc.agent_id == agent_id:
+            return npc
+
+    # Check enemies
+    enemy_combat = getattr(shared_state, 'enemy_combat', None)
+    if enemy_combat:
+        for enemy in getattr(enemy_combat, 'enemy_agents', []):
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                return enemy
+
+    return None
+
+
+def _get_agent_purse(agent) -> Optional['EnergyPurse']:
+    """Get energy purse from any agent type."""
+    # Player agents have character_state.energy_purse
+    if hasattr(agent, 'character_state') and agent.character_state:
+        return getattr(agent.character_state, 'energy_purse', None)
+
+    # NPCs have energy_purse directly
+    if hasattr(agent, 'energy_purse'):
+        return agent.energy_purse
+
+    return None
+
+
+def _get_agent_inventory(agent) -> Optional[Dict[str, int]]:
+    """Get inventory dict from any agent type."""
+    # Player agents have character_state.inventory
+    if hasattr(agent, 'character_state') and agent.character_state:
+        return getattr(agent.character_state, 'inventory', None)
+
+    # NPCs don't have a general inventory dict by default,
+    # but we can create one on the fly for item transfers
+    if hasattr(agent, '_inventory'):
+        return agent._inventory
+
+    return None
+
+
+def _set_agent_inventory(agent, inventory: Dict[str, int]):
+    """Set inventory dict on an agent (for NPCs that lack one)."""
+    if hasattr(agent, 'character_state') and agent.character_state:
+        agent.character_state.inventory = inventory
+    else:
+        agent._inventory = inventory
+
+
 def _get_active_protections(entity) -> List['Condition']:
     """
     Get active protection barriers/shields for an entity.
@@ -175,6 +487,110 @@ def _intercept_damage_with_barriers(damage_amount: int, entity, logger_instance=
             logger_instance.info(f"🛡️ {entity_name}'s {barrier.name} absorbed {absorbed} damage ({barrier.protection_amount} left)")
 
     return remaining_damage, messages
+
+
+# ============================================================================
+# Stealth State Processing (Spec 05)
+# ============================================================================
+
+def _process_stealth_changes(
+    stealth_changes: List,
+    shared_state: 'SharedState'
+) -> None:
+    """
+    Process StealthChange entries from ActionResolution.effects.stealth_changes.
+
+    Updates agent stealth flags (is_hidden, stealth_dc, last_known_position)
+    and syncs TargetIDMapper hidden state for target filtering.
+
+    Args:
+        stealth_changes: List of StealthChange objects from structured output
+        shared_state: SharedState for agent/mapper access
+    """
+    if not stealth_changes or not shared_state:
+        return
+
+    target_id_mapper = shared_state.get_target_id_mapper()
+
+    for change in stealth_changes:
+        agent_id = change.agent_id
+        agent = shared_state.get_agent_by_id(agent_id)
+
+        if not agent:
+            logger.warning(f"Stealth change for unknown agent: {agent_id}")
+            continue
+
+        if change.is_hidden:
+            # Agent is hiding
+            agent.is_hidden = True
+            agent.stealth_dc = change.stealth_dc
+            # Store last known position for enemy AI reference
+            if hasattr(agent, 'position'):
+                agent.last_known_position = str(agent.position)
+            logger.info(
+                f"Stealth: {agent_id} is now HIDDEN (DC {change.stealth_dc}): "
+                f"{change.reason}"
+            )
+        else:
+            # Agent is revealed
+            agent.is_hidden = False
+            agent.stealth_dc = None
+            agent.last_known_position = None
+            logger.info(
+                f"Stealth: {agent_id} is now REVEALED: {change.reason}"
+            )
+
+        # Sync target ID mapper
+        if target_id_mapper:
+            target_id_mapper.update_hidden_state(agent_id, change.is_hidden)
+
+
+def _auto_break_stealth_on_combat(
+    action: Dict[str, Any],
+    shared_state: 'SharedState'
+) -> bool:
+    """
+    Automatically break stealth when a hidden agent performs a combat action.
+
+    Per Spec 05 Phase 4: attacking from hidden auto-breaks concealment.
+    Combat action types: 'combat', 'attack', 'brawl'.
+
+    Args:
+        action: Action dict with 'action_type' and 'agent_id'
+        shared_state: SharedState for agent/mapper access
+
+    Returns:
+        True if stealth was broken, False otherwise
+    """
+    if not action or not shared_state:
+        return False
+
+    action_type = action.get('action_type', '')
+    agent_id = action.get('agent_id', '')
+
+    if not agent_id:
+        return False
+
+    # Only break stealth for combat action types
+    combat_types = ('combat', 'attack', 'brawl')
+    if action_type not in combat_types:
+        return False
+
+    agent = shared_state.get_agent_by_id(agent_id)
+    if not agent or not getattr(agent, 'is_hidden', False):
+        return False
+
+    # Break stealth
+    agent.is_hidden = False
+    agent.stealth_dc = None
+    logger.info(f"Stealth auto-broken: {agent_id} attacked from hidden")
+
+    # Update target ID mapper
+    target_id_mapper = shared_state.get_target_id_mapper()
+    if target_id_mapper:
+        target_id_mapper.update_hidden_state(agent_id, False)
+
+    return True
 
 
 def _process_structured_damage_effects(
@@ -274,6 +690,46 @@ def _process_structured_damage_effects(
             logger_instance.warning(f"⚠️ Could not resolve damage target: {target_identifier}")
             messages.append(f"⚠️ **Target '{target_identifier}' not found for damage**")
             continue
+
+        # === ENVIRONMENTAL OBJECT DAMAGE ===
+        # Env objects use simple HP reduction (no barrier interception, no wound/stun)
+        from .shared_state import EnvironmentalObject as _EnvObj
+        if isinstance(target_entity, _EnvObj):
+            actual_damage = target_entity.apply_damage(damage_amount)
+            if actual_damage > 0:
+                health_before = target_entity.health + actual_damage
+                messages.append(
+                    f"** {target_entity.name} takes {actual_damage} damage! "
+                    f"({health_before} -> {target_entity.health} HP)"
+                )
+                if target_entity.is_destroyed:
+                    messages.append(f"** {target_entity.name} is DESTROYED!")
+                    logger_instance.info(f"Environmental object destroyed: {target_entity.name} ({target_entity.object_id})")
+
+                    # Log destruction event
+                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        try:
+                            mechanics.jsonl_logger.log_env_object_damage(
+                                round_num=current_round,
+                                object_id=target_entity.object_id,
+                                object_name=target_entity.name,
+                                damage_dealt=actual_damage,
+                                health_before=health_before,
+                                health_after=0,
+                                destroyed=True,
+                                attacker_id=attacker_id
+                            )
+                        except (AttributeError, TypeError):
+                            pass  # Logger may not have this method yet
+                else:
+                    logger_instance.info(
+                        f"Environmental object damaged: {target_entity.name} "
+                        f"({target_entity.health}/{target_entity.max_health} HP)"
+                    )
+            elif not target_entity.is_destructible:
+                messages.append(f"** {target_entity.name} is impervious to damage!")
+                logger_instance.info(f"Damage blocked: {target_entity.name} is non-destructible")
+            continue  # Skip combatant damage logic
 
         # === BARRIER INTERCEPTION ===
         damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
@@ -5074,7 +5530,7 @@ For **other actions** (flee, hide, assist, attack):
                             narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
                             logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
 
-                # Handle attack actions: simplified YAGS combat
+                # Handle attack actions: route through enemy_combat.py YAGS formula
                 elif npc_action_type == 'attack' and target:
                     # Look up NPC entity to get skills and weapons
                     npc_entity = None
@@ -5085,113 +5541,57 @@ For **other actions** (flee, hide, assist, attack):
                                 npc_entity = npc
                                 break
 
-                    # Find weapon
-                    weapon = None
-                    if npc_entity and hasattr(npc_entity, 'weapons') and npc_entity.weapons:
-                        weapon = npc_entity.weapons[0]
+                    if npc_entity:
+                        # Route NPC attacks through enemy_combat.py's full YAGS combat path.
+                        # This gives NPCs: proper attribute*skill formula, range penalties,
+                        # defence tokens, death saves, defeat tracking, and combat_action JSONL logging.
+                        from .enemy_combat import execute_npc_attack
+                        from .tactical_resolution import ResolutionState
 
-                    if not weapon:
-                        # No weapon - attack fails
-                        narration += f"\n\n[{character_name} attempts to attack but has no weapon.]"
-                        success_tier = SuccessTier.FAILURE
-                        margin = -10
-                        logger.info(f"NPC {character_name} attack failed: no weapon")
-                    else:
-                        # Resolve target entity
-                        target_entity = None
-                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-                        if target and target.startswith('tgt_') and target_id_mapper:
-                            target_entity = target_id_mapper.resolve_target(target)
-                        elif target and self.shared_state:
-                            # Try direct agent_id lookup: PCs, NPCs, then enemies
-                            for player in getattr(self.shared_state, 'player_agents', []):
-                                if hasattr(player, 'agent_id') and player.agent_id == target:
-                                    target_entity = player
-                                    break
-                            if not target_entity:
-                                for npc in getattr(self.shared_state, 'npc_agents', []):
-                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
-                                        target_entity = npc
-                                        break
-                            if not target_entity:
-                                for enemy_agent in getattr(self.shared_state, 'enemy_agents', []):
-                                    if hasattr(enemy_agent, 'agent_id') and enemy_agent.agent_id == target:
-                                        target_entity = enemy_agent
-                                        break
+                        # Get or create resolution state for this round
+                        resolution_state = getattr(self, '_current_resolution_state', None)
+                        if not resolution_state:
+                            resolution_state = ResolutionState()
 
-                        if not target_entity:
-                            narration += f"\n\n[{character_name} attacks but target has moved or is not found.]"
+                        player_agents = getattr(self.shared_state, 'player_agents', [])
+                        mechanics_engine = self.shared_state.mechanics_engine if self.shared_state else None
+
+                        combat_result = execute_npc_attack(
+                            npc=npc_entity,
+                            target_id=target,
+                            weapon_name=None,  # Use first available weapon
+                            shared_state=self.shared_state,
+                            mechanics_engine=mechanics_engine,
+                            resolution_state=resolution_state,
+                            player_agents=player_agents
+                        )
+
+                        # Map combat result to NPC resolution format
+                        hit = combat_result.get('hit', False)
+                        damage_dealt = combat_result.get('damage_dealt', 0)
+                        target_name = combat_result.get('target', 'unknown')
+
+                        if hit and damage_dealt > 0:
+                            success_tier = SuccessTier.MODERATE
+                            margin = combat_result.get('attack_roll', 0) - 15
+                            narration += f"\n\n{combat_result.get('narration', '')}"
+                        elif hit:
+                            success_tier = SuccessTier.MARGINAL
+                            margin = 0
+                            narration += f"\n\n{combat_result.get('narration', '')}"
+                        else:
                             success_tier = SuccessTier.FAILURE
                             margin = -5
-                        else:
-                            target_name = getattr(target_entity, 'name', str(target))
+                            narration += f"\n\n{combat_result.get('narration', '')}"
 
-                            # Determine attribute based on weapon skill
-                            if weapon.skill == "Guns":
-                                attr_value = 3  # Default NPC Perception
-                            elif weapon.skill == "Melee":
-                                attr_value = 3  # Default NPC Dexterity
-                            else:  # Brawl
-                                attr_value = 3  # Default NPC Agility
-
-                            # Get combat skill
-                            combat_skill = 0
-                            if npc_entity and hasattr(npc_entity, 'skills'):
-                                combat_skill = npc_entity.skills.get(weapon.skill, 0)
-
-                            # Attack roll: attr × skill + weapon.attack + d20 (with unskilled penalty)
-                            unskilled_penalty = -5 if combat_skill == 0 else 0
-                            skill_value = max(combat_skill, 1)
-                            base_attack = attr_value * skill_value + weapon.attack + unskilled_penalty
-                            d20 = random.randint(1, 20)
-                            attack_total = base_attack + d20
-                            dc = 15  # Passive defense
-
-                            if attack_total >= dc:
-                                # Hit! Roll damage
-                                strength = 3  # Default NPC Strength
-                                damage_d20 = random.randint(1, 20)
-                                base_damage = strength + weapon.damage + damage_d20
-                                total_damage = int(base_damage * 0.85)  # CBM reduction
-
-                                target_soak = getattr(target_entity, 'soak', 0)
-                                damage_dealt = max(0, total_damage - target_soak)
-
-                                success_tier = SuccessTier.MODERATE if (attack_total - dc) < 5 else SuccessTier.GOOD
-                                margin = attack_total - dc
-
-                                # Apply damage
-                                if damage_dealt > 0 and hasattr(target_entity, 'health'):
-                                    from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
-                                    damage_type = weapon.damage_type
-
-                                    if damage_type == "stun":
-                                        damage_result = apply_stun_damage(target_entity, damage_dealt)
-                                    elif damage_type == "wound":
-                                        damage_result = apply_wound_damage(target_entity, damage_dealt)
-                                    elif damage_type == "mixed":
-                                        damage_result = apply_mixed_damage(target_entity, damage_dealt)
-
-                                # Add DamageEffect for JSONL logging
-                                from .schemas.shared_types import DamageEffect
-                                effects.damage = [
-                                    DamageEffect(
-                                        target=target_name,
-                                        base_damage=total_damage,
-                                        soak=target_soak,
-                                        dealt=damage_dealt,
-                                        damage_type=weapon.damage_type
-                                    )
-                                ]
-
-                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — HIT! Damage: {total_damage} - {target_soak} soak = {damage_dealt} dealt to {target_name}.]"
-                                logger.info(f"NPC {character_name} hit {target_name}: attack {attack_total} vs DC {dc}, {damage_dealt} damage ({weapon.skill} {combat_skill}, {weapon.name})")
-                            else:
-                                # Miss
-                                success_tier = SuccessTier.FAILURE
-                                margin = attack_total - dc
-                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — MISS.]"
-                                logger.info(f"NPC {character_name} missed {target_name}: attack {attack_total} vs DC {dc} ({weapon.skill} {combat_skill}, {weapon.name})")
+                        # combat_action JSONL logging is handled inside _execute_attack()
+                        logger.info(f"NPC {character_name} attack via YAGS pipeline: hit={hit}, damage_dealt={damage_dealt}")
+                    else:
+                        # NPC entity not found — cannot attack
+                        narration += f"\n\n[{character_name} attempts to attack but entity data is unavailable.]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                        logger.warning(f"NPC {character_name} attack failed: entity not found for {npc_agent_id}")
 
                 # Step 3: Build resolution and process effects
                 npc_resolution = ActionResolution(
@@ -6085,8 +6485,9 @@ For **other actions** (flee, hide, assist, attack):
                     type=condition_data['type'],
                     penalty=condition_data['penalty'],
                     description=condition_data['description'],
-                    duration=3,  # Default duration
-                    affects=[]  # Affects all by default
+                    duration=condition_data.get('duration', 3),
+                    affects=[],  # Phase 3: populate from LLM output
+                    protection_amount=condition_data.get('protection_amount')
                 )
 
                 # Determine who receives the condition
@@ -6579,8 +6980,9 @@ For **other actions** (flee, hide, assist, attack):
                     type=condition_data['type'],
                     penalty=condition_data['penalty'],
                     description=condition_data['description'],
-                    duration=3,  # Default duration
-                    affects=[]  # Affects all by default
+                    duration=condition_data.get('duration', 3),
+                    affects=[],  # Phase 3: populate from LLM output
+                    protection_amount=condition_data.get('protection_amount')
                 )
 
                 # Determine who receives the condition
@@ -7498,6 +7900,17 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         resolution_obj.narration += additional_narration
                         logger.debug(f"Appended {len(healing_messages)} healing messages to narration")
 
+                # === PROCESS STEALTH CHANGES (Spec 05) ===
+                # Apply stealth state changes from DM structured output
+                if resolution_obj.effects and resolution_obj.effects.stealth_changes:
+                    logger.debug(f"Processing {len(resolution_obj.effects.stealth_changes)} stealth changes from structured output")
+                    _process_stealth_changes(resolution_obj.effects.stealth_changes, self.shared_state)
+
+                # === AUTO-BREAK STEALTH ON COMBAT (Spec 05 Phase 4) ===
+                # If a hidden agent attacks, automatically reveal them
+                if action:
+                    _auto_break_stealth_on_combat(action, self.shared_state)
+
                 return resolution_obj
             else:
                 error_msg = "DM: Structured output returned text instead of ActionResolution object"
@@ -7646,6 +8059,86 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
         return "\n".join(lines)
 
+    def _build_faction_context(self) -> str:
+        """Build faction relationship context for DM adjudication prompt.
+
+        Collects all combatants from the target_id_mapper, groups them by faction,
+        and produces a formatted block showing which factions are present on the
+        battlefield and what entity types belong to each.
+
+        This helps the DM reason about same-faction conflicts, cross-faction
+        alliances, and NPC neutrality without relying solely on faction labels.
+
+        Returns:
+            Formatted faction context string, or empty string if unavailable.
+        """
+        if not self.shared_state:
+            return ""
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper or not target_id_mapper.enabled:
+            return ""
+
+        all_target_ids = target_id_mapper.get_all_target_ids()
+        if not all_target_ids:
+            return ""
+
+        # Group entities by faction
+        # faction -> {type -> [entity_names]}
+        faction_groups: Dict[str, Dict[str, List[str]]] = {}
+
+        for tid in all_target_ids:
+            info = target_id_mapper.get_combatant_info(tid)
+            if not info:
+                continue
+
+            faction = info.get('faction', 'Unknown')
+            entity_type = info.get('type', 'unknown')
+            entity_name = info.get('name', 'Unknown')
+
+            if faction not in faction_groups:
+                faction_groups[faction] = {}
+            if entity_type not in faction_groups[faction]:
+                faction_groups[faction][entity_type] = []
+            faction_groups[faction][entity_type].append(entity_name)
+
+        if not faction_groups:
+            return ""
+
+        lines = ["FACTION CONTEXT (entities on battlefield by faction):"]
+
+        for faction in sorted(faction_groups.keys()):
+            type_groups = faction_groups[faction]
+            entity_parts = []
+
+            # Determine the relationship summary for this faction
+            has_party = 'player' in type_groups
+            has_enemy = 'enemy' in type_groups
+            has_npc = 'npc' in type_groups
+
+            for entity_type in sorted(type_groups.keys()):
+                names = type_groups[entity_type]
+                if len(names) == 1:
+                    entity_parts.append(f"{names[0]} ({entity_type})")
+                else:
+                    entity_parts.append(f"{', '.join(names)} ({entity_type}, {len(names)}x)")
+
+            # Build relationship note
+            if has_party and has_enemy:
+                relationship = " [INTERNAL CONFLICT — party member(s) and hostile(s) share this faction]"
+            elif has_party:
+                relationship = " [party faction]"
+            elif has_enemy:
+                relationship = " [hostile]"
+            elif has_npc:
+                relationship = " [neutral/non-combatant]"
+            else:
+                relationship = ""
+
+            lines.append(f"  {faction}{relationship}: {'; '.join(entity_parts)}")
+
+        return "\n".join(lines)
+
     def _build_session_context(
         self,
         agent_id: str,
@@ -7659,6 +8152,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         1. Acting character's SC history
         2. In-round action recap (earlier actions this round)
         3. Prior round narration digest
+        4. Faction relationship context (Phase 3)
         """
         parts = []
 
@@ -7679,10 +8173,201 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         if digest:
             parts.append(digest)
 
+        # 4. Faction relationship context (Phase 3)
+        faction_ctx = self._build_faction_context()
+        if faction_ctx:
+            parts.append(faction_ctx)
+
         if not parts:
             return ""
 
         return "--- SESSION CONTEXT ---\n" + "\n\n".join(parts) + "\n--- END SESSION CONTEXT ---"
+
+    # =========================================================================
+    # IFF/ROE SUPPORT (Spec 06)
+    # =========================================================================
+
+    @staticmethod
+    def _get_intercepted_intel_for_pc(
+        pc_target_id: str,
+        shared_intel,
+        current_round: int,
+    ) -> str:
+        """
+        Get any intel that was addressed to this PC by enemy agents.
+
+        This happens when an enemy incorrectly identifies the PC as an ally
+        (IFF error) and shares tactical intel with them. The PC sees it as
+        intercepted/overheard communication.
+
+        Args:
+            pc_target_id: The tgt_xxxx ID of the PC
+            shared_intel: SharedIntel pool instance
+            current_round: Current combat round
+
+        Returns:
+            Formatted intercepted communications section, or "" if none
+        """
+        if shared_intel is None:
+            return ""
+        intel_items = shared_intel.get_recent_intel_for_target(
+            pc_target_id, current_round
+        )
+        if not intel_items:
+            return ""
+
+        lines = ["\n**INTERCEPTED COMMUNICATIONS:**"]
+        lines.append("(You overheard the following from nearby contacts)")
+        for item in intel_items:
+            lines.append(f"  {item}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _build_pc_party_context(
+        pc_target_id: str,
+        party_members: list,
+    ) -> str:
+        """
+        Build party context for a PC, listing other party member target IDs.
+
+        PCs know who their party members are (they traveled together). This is
+        not an IFF challenge -- it's common knowledge within the party.
+
+        Args:
+            pc_target_id: The tgt_xxxx ID of this PC
+            party_members: List of dicts with 'name' and 'target_id' keys
+
+        Returns:
+            Formatted party context section, or "" if no other party members
+        """
+        others = [
+            m for m in party_members
+            if m.get('target_id') != pc_target_id
+        ]
+        if not others:
+            return ""
+
+        lines = ["\n**YOUR PARTY:**"]
+        lines.append("You are traveling with the following party members:")
+        for m in others:
+            lines.append(f"  - [{m['target_id']}] {m['name']}")
+        lines.append("\nOther contacts on the DETECTED CONTACTS list are NOT party members.")
+        lines.append("Determine their allegiance from their faction and observed behavior.")
+        return "\n".join(lines)
+
+    def _build_combatant_list_with_range(self, acting_agent_id: str) -> str:
+        """
+        Build combatant list with range information for the acting agent.
+
+        Shows each combatant with:
+        - Target ID, name, faction, health
+        - Position (ring-side)
+        - Range from acting agent (Engaged/Near/Far/Extreme)
+        - Attack penalty at that range
+
+        Args:
+            acting_agent_id: The agent_id of the acting agent (perspective for range calc)
+
+        Returns:
+            Formatted combatant list string with range info.
+        """
+        if not self.shared_state:
+            return ""
+
+        from .enemy_agent import Position as TacticalPosition
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper or not target_id_mapper.enabled:
+            return ""
+
+        # Determine the acting agent's position
+        acting_position = None
+        acting_agent = self.shared_state.get_agent_by_id(acting_agent_id)
+        if acting_agent and hasattr(acting_agent, 'position'):
+            acting_position = acting_agent.position
+
+        if acting_position is None:
+            acting_position = TacticalPosition.from_string("Near-PC")
+
+        all_target_ids = target_id_mapper.get_all_target_ids()
+        if not all_target_ids:
+            return ""
+
+        combatant_lines = []
+        for tid in sorted(all_target_ids):
+            info = target_id_mapper.get_combatant_info(tid)
+            if not info:
+                continue
+
+            pronouns = info.get('pronouns', 'they/them')
+            faction = info.get('faction', 'Unknown')
+
+            # Determine state tag (Spec 03)
+            state_tag = _get_combatant_state_tag(info, tid, self.shared_state)
+
+            # Get target position and calculate range
+            target_position = None
+            target_agent = self.shared_state.get_agent_by_id(info.get('agent_id', ''))
+            if target_agent and hasattr(target_agent, 'position'):
+                target_position = target_agent.position
+
+            # Calculate range from acting agent to this target
+            range_str = ""
+            if target_position:
+                try:
+                    range_name, range_penalty = acting_position.calculate_range(target_position)
+                    if range_penalty == 0:
+                        penalty_str = "(no penalty)"
+                    else:
+                        penalty_str = f"({range_penalty:+d})"
+                    range_str = f" | Range: {range_name} {penalty_str}"
+                except Exception:
+                    range_str = " | Range: Unknown"
+
+            # Build health text
+            health_text = ""
+            if info['type'] == 'player' and target_agent and hasattr(target_agent, 'health'):
+                health_text = f"{target_agent.health}/{target_agent.max_health} HP"
+                wounds_text = f", {target_agent.wounds}w" if getattr(target_agent, 'wounds', 0) > 0 else ""
+                health_text = f"{health_text}{wounds_text}"
+            elif info['type'] == 'enemy' and target_agent:
+                hp = getattr(target_agent, 'health', '?')
+                max_hp = getattr(target_agent, 'max_health', '?')
+                health_text = f"{hp}/{max_hp} HP"
+
+            # Position text
+            position_text = str(target_position) if target_position else "Unknown"
+
+            combatant_lines.append(
+                f"  - [{tid}] {info['name']} "
+                f"({pronouns}, {faction}, {info['type']}) "
+                f"| Pos: {position_text}{range_str} "
+                f"| {health_text} "
+                f"{state_tag}"
+            )
+
+        if not combatant_lines:
+            return ""
+
+        result = "\n\n**VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+        result += "**MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+        result += "**DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+        result += "**DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+        result += "\n".join(combatant_lines)
+        result += "\n\n**CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) <- Uses exact ID from list\n"
+        result += "**WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) <- Character name - FAILS!\n"
+        result += "**WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) <- Invented ID - FAILS!\n"
+        result += "\n**TIP:** Character names go in NARRATION only, NOT in target= fields.\n"
+        # Anti-misbinding instruction (Spec 03 Layer 3)
+        result += "\n"
+        result += "**TARGETING RULE:** When a player declares an attack against "
+        result += "'enemies', 'threats', or 'hostiles', resolve the target to an "
+        result += "entity tagged [ACTIVE], NOT one tagged [PRISONER], [DEFEATED], "
+        result += "[UNCONSCIOUS], [FLEEING], or [NON-COMBATANT]. "
+        result += "Only resolve to non-active targets if the player EXPLICITLY "
+        result += "names or describes targeting that specific entity."
+
+        return result
 
     async def _build_resolution_prompt(
         self,
@@ -7800,14 +8485,31 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                             # Show health info for players (for injury-aware narration)
                             pronouns = info.get('pronouns', 'they/them')
                             faction = info.get('faction', 'Unknown')
+
+                            # Determine state tag for this entity (Spec 03 Layer 1)
+                            state_tag = _get_combatant_state_tag(
+                                info, tid, self.shared_state
+                            )
+
+                            # Stealth marker (Spec 05): DM sees all agents but hidden ones are marked
+                            agent_id_for_hidden = info.get('agent_id', '')
+                            is_agent_hidden = target_id_mapper.is_hidden(agent_id_for_hidden) if agent_id_for_hidden else False
+                            hidden_marker = " [HIDDEN]" if is_agent_hidden else ""
+
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {health_text}{wounds_text})")
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"({pronouns}, {faction}, {health_text}{wounds_text}) "
+                                        f"{state_tag}{hidden_marker}")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, player)")
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"({pronouns}, {faction}, player) "
+                                        f"{state_tag}{hidden_marker}")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -7816,33 +8518,51 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                         if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
                                             disposition = getattr(npc, 'disposition', 'neutral')
                                             break
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, npc, {disposition})")
+                                combatant_lines.append(
+                                    f"  - [{tid}] {info['name']} "
+                                    f"({pronouns}, {faction}, npc, {disposition}) "
+                                    f"{state_tag}{hidden_marker}")
+                            elif info['type'] == 'env_object':
+                                # Environmental object with health/destructibility
+                                if info.get('is_destructible') and info.get('health') is not None:
+                                    health_str = f"{info['health']}/{info['max_health']} HP"
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"(object, {health_str})"
+                                    )
+                                else:
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"(object, indestructible)"
+                                    )
                             else:
-                                # Format for enemies: [tgt_xxxx] Name (faction, enemy)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {info['type']})")
+                                # Format for enemies: [tgt_xxxx] Name (faction, enemy) [STATE]
+                                combatant_lines.append(
+                                    f"  - [{tid}] {info['name']} "
+                                    f"({pronouns}, {faction}, {info['type']}) "
+                                    f"{state_tag}{hidden_marker}")
 
                     if combatant_lines:
-                        combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
-                        combatant_list += "⚠️  **MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
-                        combatant_list += "⚠️  **DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
-                        combatant_list += "⚠️  **DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+                        combatant_list = "\n\n**VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+                        combatant_list += "**MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+                        combatant_list += "**DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+                        combatant_list += "**DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
                         combatant_list += "\n".join(combatant_lines)
-                        combatant_list += "\n\n✅ **CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) ← Uses exact ID from list\n"
-                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) ← Character name - FAILS!\n"
-                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
-                        combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
+                        combatant_list += "\n\n**CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) <- Uses exact ID from list\n"
+                        combatant_list += "**WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) <- Character name - FAILS!\n"
+                        combatant_list += "**WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) <- Invented ID - FAILS!\n"
+                        combatant_list += "\n**TIP:** Character names go in NARRATION only, NOT in target= fields.\n"
+                        # Anti-misbinding instruction (Spec 03 Layer 3)
+                        combatant_list += "\n"
+                        combatant_list += "**TARGETING RULE:** When a player declares an attack against "
+                        combatant_list += "'enemies', 'threats', or 'hostiles', resolve the target to an "
+                        combatant_list += "entity tagged [ACTIVE], NOT one tagged [PRISONER], [DEFEATED], "
+                        combatant_list += "[UNCONSCIOUS], [FLEEING], or [NON-COMBATANT]. "
+                        combatant_list += "Only resolve to non-active targets if the player EXPLICITLY "
+                        combatant_list += "names or describes targeting that specific entity."
 
-        # Build weapon context for combat actions
-        weapon_context = ""
-        if action and action.get('action_type') in ('attack', 'combat', 'brawl'):
-            weapon_name, weapon_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
-            if weapon_name != "Unknown Weapon":
-                weapon_context = (
-                    f"\n\n**WEAPON CONTEXT:**\n"
-                    f"Weapon: {weapon_name}\n"
-                    f"Damage Type: {weapon_damage_type.upper()}\n"
-                    f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
-                )
+        # Build weapon context for combat actions (includes mechanical stats + damage guidance)
+        weapon_context = _build_weapon_context(action, self.shared_state)
 
         # Build session context (SC history + in-round recap + narrative digest)
         mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None

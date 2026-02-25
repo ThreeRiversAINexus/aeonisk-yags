@@ -72,6 +72,53 @@ def format_story_beat(
     return beat
 
 
+def build_position_context(player) -> str:
+    """Build position context showing player's current location and ranges to targets.
+
+    Used by player prompts to show tactical positioning information.
+    Returns empty string if the player has no position attribute.
+
+    Args:
+        player: AIPlayerAgent (or mock with position, shared_state, character_state)
+
+    Returns:
+        String with position info and range penalties to all known targets.
+    """
+    if not hasattr(player, 'position') or not player.position:
+        return ""
+
+    from .enemy_agent import Position as TacticalPosition
+
+    lines = [f"**Your Position:** {player.position}"]
+
+    # Range penalty reference
+    lines.append("**Range Penalties:** Engaged/Melee +0 | Near -2 | Far -4 | Extreme -6")
+
+    # Calculate ranges to all known targets
+    target_ranges = []
+    shared = getattr(player, 'shared_state', None)
+    if shared:
+        # Enemies
+        enemies = getattr(shared, 'enemy_agents', [])
+        for enemy in enemies:
+            enemy_pos = getattr(enemy, 'position', None)
+            if enemy_pos:
+                try:
+                    range_name, penalty = player.position.calculate_range(enemy_pos)
+                    penalty_str = f"({penalty:+d})" if penalty != 0 else "(no penalty)"
+                    target_ranges.append(
+                        f"  - {enemy.name}: {range_name} {penalty_str}"
+                    )
+                except Exception:
+                    target_ranges.append(f"  - {enemy.name}: Unknown range")
+
+    if target_ranges:
+        lines.append("**Distances to Targets:**")
+        lines.extend(target_ranges)
+
+    return "\n".join(lines)
+
+
 def validate_player_skill(skill: Optional[str]) -> tuple:
     """Validate that a declared skill exists in SKILL_DATABASE.
 
@@ -97,6 +144,43 @@ def validate_player_skill(skill: Optional[str]) -> tuple:
         f"Use one of these or skill=None for a raw attribute check."
     )
     return False, feedback
+
+
+def build_bond_context(bonds: list) -> str:
+    """Build bond context string for player action prompts.
+
+    Shows the player's current bonds with status indicators and
+    mechanical benefits for active bonds.
+
+    Args:
+        bonds: List of Bond objects for the character
+
+    Returns:
+        Formatted string with bond information, or empty string if no bonds
+    """
+    if not bonds:
+        return ""
+
+    bond_lines = []
+    for bond in bonds:
+        status_value = bond.status.value if hasattr(bond.status, 'value') else str(bond.status)
+        status_icon = {
+            "active": "[ACTIVE]",
+            "dormant": "[DORMANT]",
+            "severed": "[SEVERED]",
+            "void_locked": "[VOID-LOCKED]",
+        }.get(status_value, "[?]")
+
+        benefits = ""
+        if status_value == "active":
+            benefits = " -- +2 ritual bonus, +1 soak defending them, sacrifice available"
+
+        bond_type_value = bond.bond_type.value if hasattr(bond.bond_type, 'value') else str(bond.bond_type)
+        bond_lines.append(
+            f"  - {bond.character_b} ({bond_type_value}) {status_icon}{benefits}"
+        )
+
+    return "Your Bonds:\n" + "\n".join(bond_lines)
 
 
 @dataclass
@@ -293,6 +377,14 @@ class AIPlayerAgent(Agent):
 
         # Free action tracking (one per round)
         self.free_action_used = False
+
+        # Tactical positioning (defence token - which combatant this PC is watching)
+        self.defence_token: Optional[str] = None
+
+        # Stealth state (Spec 05)
+        self.is_hidden: bool = False  # True if agent is currently concealed
+        self.stealth_dc: Optional[int] = None  # DC to detect this agent (set by stealth check result)
+        self.last_known_position: Optional[str] = None  # Where this agent was last seen before hiding
 
         # Buff tracking (positive effects from allies)
         self.buffs = []  # List of active buffs from ally support

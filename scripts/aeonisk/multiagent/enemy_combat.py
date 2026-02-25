@@ -167,6 +167,7 @@ class EnemyCombatManager:
         self.enemy_declarations: Dict[str, EnemyDeclaration] = {}
         self.current_round: int = 0
         self.enabled: bool = False
+        self.iff_enabled: bool = False  # Spec 06: IFF/ROE mode
         self.config: Dict[str, Any] = {}
         self.shared_state = shared_state  # Reference to shared state for logging
 
@@ -229,21 +230,32 @@ class EnemyCombatManager:
             session_config.get('enemy_agents_enabled', False)
         )
 
+        # Spec 06: IFF/ROE mode — gates selective intel, faction context, etc.
+        self.iff_enabled = session_config.get('iff_enabled', False)
+
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})
 
-            # Initialize LLM provider from DM config (enemies use same provider as DM)
+            # Initialize LLM provider: per-role enemy config with DM fallback (Spec 11)
+            # Resolution: structured output - enemies use Pydantic-based EnemyDecision schema
             from .llm_provider import create_provider
             try:
-                dm_config = session_config.get('agents', {}).get('dm', {})
-                llm_config = dm_config.get('llm', {})
+                # Per-role enemy LLM config (Spec 11: agents.enemies.llm)
+                enemy_llm_config = session_config.get('agents', {}).get('enemies', {}).get('llm')
+                enemy_specific = enemy_llm_config is not None
 
-                if llm_config:
+                # Fallback to DM config if no per-role enemy config (backward compat)
+                if not enemy_llm_config:
+                    dm_config = session_config.get('agents', {}).get('dm', {})
+                    enemy_llm_config = dm_config.get('llm', {})
+
+                if enemy_llm_config:
                     from .llm_provider import LLMConfig
 
-                    config = LLMConfig.from_dict(llm_config, max_tokens=4000)
+                    config = LLMConfig.from_dict(enemy_llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
-                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({config.provider}:{config.model})")
+                    config_source = "per-role enemy" if enemy_specific else "DM fallback"
+                    logger.debug(f"EnemyCombatManager: Using {config_source} LLM config ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
                     logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
@@ -993,14 +1005,14 @@ class EnemyCombatManager:
         attack_roll = random.randint(1, 20)
         attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
 
-        # Check if target has defence token on this enemy
-        target_defence_token = getattr(target, 'defence_token', None)
-        if target_defence_token == enemy.agent_id:
-            attack_total -= 2  # Target watching this enemy
-            defence_note = "(target watching -2)"
-        else:
-            attack_total += 2  # Flanking bonus
-            defence_note = "(flanking +2)"
+        # Check defence token modifier (shared utility handles all agent types)
+        from .mechanics import apply_defense_token_modifier
+        token_modifier, defence_note = apply_defense_token_modifier(
+            enemy.agent_id, target,
+            self.shared_state.get_target_id_mapper() if self.shared_state else None
+        )
+        attack_total += token_modifier
+        defence_note = f"({defence_note})"
 
         # Placeholder: Compare to target defence (would need target's defence roll)
         # For now, use passive defence of 15 (YAGS standard)
@@ -1312,8 +1324,8 @@ class EnemyCombatManager:
                 'narration': f"{enemy.name} has no weapon to suppress with"
             }
 
-        # Check if weapon has sufficient RoF (Rate of Fire ≥ 3)
-        weapon_rof = getattr(weapon, 'rate_of_fire', 0)
+        # Check if weapon has sufficient RoF (Rate of Fire >= 3)
+        weapon_rof = getattr(weapon, 'rof', 0) or getattr(weapon, 'rate_of_fire', 0)
         if weapon_rof < 3:
             return {
                 'enemy_id': enemy.agent_id,
@@ -1343,14 +1355,14 @@ class EnemyCombatManager:
 
         attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
 
-        # Check defence token
-        target_defence_token = getattr(target, 'defence_token', None)
-        if target_defence_token == enemy.agent_id:
-            attack_total -= 2  # Target watching this enemy
-            defence_note = "(target watching -2)"
-        else:
-            attack_total += 2  # Flanking bonus
-            defence_note = "(flanking +2)"
+        # Check defence token modifier (shared utility handles all agent types)
+        from .mechanics import apply_defense_token_modifier
+        token_modifier, defence_note = apply_defense_token_modifier(
+            enemy.agent_id, target,
+            self.shared_state.get_target_id_mapper() if self.shared_state else None
+        )
+        attack_total += token_modifier
+        defence_note = f"({defence_note})"
 
         # Check hit (simplified)
         target_defence = 15
@@ -1383,17 +1395,21 @@ class EnemyCombatManager:
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
 
-        # Log suppress action to JSONL
+        # Log suppress action to JSONL (field names match _execute_attack format)
         if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
             attack_roll_data = {
-                "attribute": attribute,
-                "skill": skill,
+                "attr": "Perception" if weapon.skill == "Guns" else (
+                    "Dexterity" if weapon.skill == "Melee" else "Agility"),
+                "attr_val": attribute,
+                "skill": weapon.skill,
+                "skill_val": skill,
                 "weapon_bonus": weapon.attack,
-                "d20": attack_roll,
                 "range_penalty": range_penalty,
+                "d20": attack_roll,
                 "total": attack_total,
-                "defence": target_defence,
-                "hit": hit
+                "dc": target_defence,
+                "hit": hit,
+                "margin": attack_total - target_defence
             }
             mechanics_engine.jsonl_logger.log_combat_action(
                 round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
@@ -2154,6 +2170,21 @@ class EnemyCombatManager:
         self.enemy_agents = surviving
         return len(pruned_ids)
 
+    def prune_inactive_enemies(self, min_rounds_inactive: int = 2) -> int:
+        """Alias for prune_defeated_enemies() matching Spec 02 naming.
+
+        Remove enemies that have been inactive for more than min_rounds_inactive.
+        Called at round boundaries to prevent unbounded list growth.
+
+        Args:
+            min_rounds_inactive: Minimum rounds since despawn before removal.
+                Default 2 (enemy defeated in round 3 is pruned at start of round 6).
+
+        Returns:
+            Number of enemies pruned.
+        """
+        return self.prune_defeated_enemies(grace_rounds=min_rounds_inactive)
+
     def get_active_enemy_count(self) -> int:
         """Get count of active enemy units."""
         return len(get_active_enemies(self.enemy_agents))
@@ -2164,11 +2195,144 @@ class EnemyCombatManager:
 
 
 # =============================================================================
+# NPC COMBAT ADAPTER
+# =============================================================================
+
+class NPCCombatProxy:
+    """
+    Lightweight proxy that makes NPCAgent look like EnemyAgent for combat.
+
+    _execute_attack() expects an enemy-like object with attributes, skills,
+    weapons, position, health, soak, etc. NPCAgent has all of these except
+    `attributes` (which are synthesized via estimate_attributes()) and
+    `defence_token`/`tactical_token` (which NPCs don't have).
+
+    This adapter bridges the gap without modifying NPCAgent's dataclass.
+    """
+
+    def __init__(self, npc_agent, attrs: Dict[str, int]):
+        """
+        Args:
+            npc_agent: NPCAgent instance with preserved combat stats
+            attrs: Synthesized attributes from estimate_attributes()
+        """
+        self.agent_id = npc_agent.agent_id
+        self.name = npc_agent.name
+        self.faction = npc_agent.faction
+        self.attributes = attrs
+        self.skills = npc_agent.skills
+        self.weapons = npc_agent.weapons
+        self.position = npc_agent.position
+        self.health = npc_agent.health
+        self.max_health = npc_agent.max_health
+        self.soak = npc_agent.soak
+        self.wounds = npc_agent.wounds
+        self.stuns = npc_agent.stuns
+        self.is_active = npc_agent.is_active
+        # Not used in combat math, but _execute_attack may access these:
+        self.defence_token = None
+        self.tactical_token = None
+
+
+def execute_npc_attack(
+    npc,  # NPCAgent
+    target_id: str,
+    weapon_name: Optional[str],
+    shared_state,
+    mechanics_engine: Any,
+    resolution_state: 'ResolutionState',
+    player_agents: List[Any]
+) -> Dict[str, Any]:
+    """
+    Execute NPC attack using the full YAGS combat formula from _execute_attack().
+
+    Creates a lightweight adapter (NPCCombatProxy) that wraps NPCAgent with the
+    fields _execute_attack() expects, then delegates to the enemy combat path.
+
+    This gives NPCs: proper attribute*skill formula, range penalties,
+    defence tokens, death saves, defeat tracking, and combat_action JSONL logging.
+
+    Args:
+        npc: NPCAgent with preserved combat stats (skills, weapons, health, soak)
+        target_id: Target identifier (tgt_xxxx or agent_id)
+        weapon_name: Weapon to use (or None for first available)
+        shared_state: Session shared state (for target resolution)
+        mechanics_engine: Mechanics engine (for JSONL logging)
+        resolution_state: Tactical resolution state (for defeat tracking)
+        player_agents: List of player agents (for target resolution)
+
+    Returns:
+        Combat result dict matching _execute_attack() output format:
+        {enemy_id, character_name, action, target, weapon, hit, attack_roll,
+         damage, damage_dealt, narration, target_defeated, ...}
+    """
+    from .agent_conversion import estimate_attributes
+
+    # Synthesize attributes from NPC skills
+    attributes = estimate_attributes(npc.skills)
+
+    # Build proxy
+    proxy = NPCCombatProxy(npc, attributes)
+
+    # Check for weapon availability first
+    if not npc.weapons:
+        return {
+            'enemy_id': npc.agent_id,
+            'character_name': npc.name,
+            'action': 'attack',
+            'result': 'no weapon',
+            'narration': f"{npc.name} has no weapon to attack with"
+        }
+
+    # Build EnemyDeclaration from NPC action
+    declaration = EnemyDeclaration(
+        agent_id=npc.agent_id,
+        character_name=npc.name,
+        initiative=0,  # NPCs don't roll initiative
+        defence_token=None,
+        major_action="Attack",
+        target=target_id,
+        weapon=weapon_name,
+        minor_action=None,
+        token_target=None,
+        reasoning="NPC attack action",
+        shared_intel=None
+    )
+
+    # Get the EnemyCombatManager instance for _execute_attack
+    combat_manager = None
+    if shared_state and hasattr(shared_state, 'session') and shared_state.session:
+        combat_manager = getattr(shared_state.session, 'enemy_combat', None)
+
+    if combat_manager:
+        result = combat_manager._execute_attack(
+            enemy=proxy,
+            declaration=declaration,
+            player_agents=player_agents,
+            mechanics_engine=mechanics_engine,
+            resolution_state=resolution_state
+        )
+    else:
+        # Fallback: no combat manager available
+        result = {
+            'enemy_id': npc.agent_id,
+            'character_name': npc.name,
+            'action': 'attack',
+            'result': 'no combat system',
+            'narration': f"{npc.name} attempts to attack but the combat system is unavailable."
+        }
+
+    return result
+
+
+# =============================================================================
 # MODULE EXPORTS
 # =============================================================================
 
 __all__ = [
     'EnemyCombatManager',
     'EnemyDeclaration',
+    'NPCCombatProxy',
+    'execute_npc_attack',
     'parse_enemy_declaration'
 ]

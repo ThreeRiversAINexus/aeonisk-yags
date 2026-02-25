@@ -158,7 +158,7 @@ content: |-
               name="Disarmed",
               penalty=-3,
               duration=1,
-              description="dropped weapon, -3 to attacks until retrieved",
+              description="dropped weapon, -3 to all rolls until retrieved",
               target="tgt_7a3f"
           )],
           soulcredit_changes=[SoulcreditChange(
@@ -284,7 +284,7 @@ content: |-
               name="Shaken",
               penalty=-2,
               duration=1,
-              description="-2 to Willpower checks, morale shaken",
+              description="-2 to all rolls, morale shaken",
               target="tgt_2k9m"
           )],
           soulcredit_changes=[SoulcreditChange(

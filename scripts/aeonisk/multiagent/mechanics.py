@@ -1658,6 +1658,7 @@ class Condition:
     description: str
     duration: int = -1  # -1 = until resolved, otherwise number of turns
     affects: List[str] = field(default_factory=list)  # which attributes/skills affected
+    protection_amount: Optional[int] = None  # Barrier damage absorption capacity (None = not a barrier)
 
     def applies_to(self, attribute: str, skill: Optional[str] = None) -> bool:
         """Check if this condition affects the given attribute/skill."""
@@ -1964,6 +1965,112 @@ class SoulcreditState:
             return "Disreputable"
         else:
             return "Pariah"
+
+
+def generate_default_bond_matrix(
+    character_names: List[str],
+    factions: Dict[str, str],
+    random_seed: Optional[int] = None,
+    min_bonds: int = 2,
+    max_bonds: int = 5,
+) -> List[Dict[str, Any]]:
+    """
+    Generate a default bond matrix for a party of characters.
+
+    Creates bond suggestions deterministically using the provided random seed.
+    Ensures every character has at least 1 bond (unless Freeborn-constrained).
+    Respects Freeborn bond limit (max 1).
+
+    Args:
+        character_names: List of character names in the party
+        factions: Dict mapping character name to faction string
+        random_seed: Random seed for deterministic generation
+        min_bonds: Minimum number of bonds to generate
+        max_bonds: Maximum number of bonds to generate
+
+    Returns:
+        List of bond suggestion dicts with character_a, character_b, bond_type
+    """
+    if len(character_names) < 2:
+        return []
+
+    if random_seed is not None:
+        random.seed(random_seed)
+
+    party_size = len(character_names)
+    bond_counts = {name: 0 for name in character_names}
+    num_bonds = min(max_bonds, max(min_bonds, party_size))
+
+    bonds = []
+    attempts = 0
+    max_attempts = 100
+
+    while len(bonds) < num_bonds and attempts < max_attempts:
+        attempts += 1
+        char_a, char_b = random.sample(character_names, 2)
+
+        # Check pair uniqueness
+        if (char_a, char_b) in bonds or (char_b, char_a) in bonds:
+            continue
+        # Check bond limits (max 3 per character)
+        if bond_counts[char_a] >= 3 or bond_counts[char_b] >= 3:
+            continue
+        # Freeborn max 1 bond
+        faction_a = factions.get(char_a, '').lower()
+        faction_b = factions.get(char_b, '').lower()
+        if 'freeborn' in faction_a and bond_counts[char_a] >= 1:
+            continue
+        if 'freeborn' in faction_b and bond_counts[char_b] >= 1:
+            continue
+
+        bonds.append((char_a, char_b))
+        bond_counts[char_a] += 1
+        bond_counts[char_b] += 1
+
+    # Ensure all characters have at least 1 bond (unless Freeborn-constrained)
+    unbonded = [name for name, count in bond_counts.items() if count == 0]
+    for char in unbonded:
+        faction_lower = factions.get(char, '').lower()
+        if 'freeborn' in faction_lower and bond_counts[char] >= 1:
+            continue
+        candidates = [
+            other for other in character_names
+            if other != char and bond_counts[other] < 3
+            and (char, other) not in bonds and (other, char) not in bonds
+        ]
+        if candidates:
+            partner = random.choice(candidates)
+            bonds.append((char, partner))
+            bond_counts[char] += 1
+            bond_counts[partner] += 1
+
+    # Assign bond types based on faction relationships
+    suggestions = []
+    for char_a, char_b in bonds:
+        bond_type = _suggest_bond_type_for_factions(
+            factions.get(char_a, ''), factions.get(char_b, '')
+        )
+        suggestions.append({
+            'character_a': char_a,
+            'character_b': char_b,
+            'bond_type': bond_type,
+        })
+
+    return suggestions
+
+
+def _suggest_bond_type_for_factions(faction_a: str, faction_b: str) -> str:
+    """Suggest bond type based on faction pairing."""
+    faction_a_lower = faction_a.lower()
+    faction_b_lower = faction_b.lower()
+    is_freeborn = ('freeborn' in faction_a_lower or 'freeborn' in faction_b_lower)
+    same_faction = (faction_a_lower == faction_b_lower)
+
+    if is_freeborn:
+        return random.choice(["kinship", "passion"])
+    if same_faction:
+        return random.choice(["kinship", "faction"])
+    return random.choice(["passion", "debt", "voidward"])
 
 
 class MechanicsEngine:
@@ -4790,20 +4897,27 @@ class MechanicsEngine:
         return self.conditions.get(agent_id, [])
 
     def tick_conditions(self, agent_id: str):
-        """Decrement duration on temporary conditions."""
-        if agent_id not in self.conditions:
-            return
+        """Decrement duration on temporary conditions.
 
+        Returns:
+            List of expired condition names, or empty list if none expired.
+        """
+        if agent_id not in self.conditions:
+            return []
+
+        expired = []
         for condition in self.conditions[agent_id]:
             if condition.duration > 0:
                 condition.duration -= 1
                 if condition.duration == 0:
                     logger.info(f"Condition expired: {condition.name} for {agent_id}")
+                    expired.append(condition.name)
 
-        # Remove expired conditions
+        # Remove expired conditions (duration == 0)
         self.conditions[agent_id] = [
             c for c in self.conditions[agent_id] if c.duration != 0
         ]
+        return expired
 
     def get_difficulty_recommendation(self, context: str) -> int:
         """Recommend a difficulty based on context description."""
@@ -5482,3 +5596,275 @@ def process_item_effect(item_effect, character_state, player_id) -> bool:
     shared_state = SharedState()
     mechanics = MechanicsEngine(shared_state=shared_state)
     return mechanics.process_item_effect(item_effect, character_state, player_id)
+
+
+# ==============================================================================
+# DEFENSE TOKEN MODIFIER (Spec 04 — Universal defence token mechanic)
+# ==============================================================================
+
+def apply_defense_token_modifier(
+    attacker_agent_id: str,
+    target,
+    target_id_mapper=None
+) -> Tuple[int, str]:
+    """
+    Calculate defense token attack modifier.
+
+    The target's defence_token determines the modifier:
+    - If target is watching the attacker: attacker gets -2
+    - If target is watching someone else or no one: attacker gets +2 (flanking)
+
+    Args:
+        attacker_agent_id: The agent_id of the attacker
+        target: The target entity (must have .defence_token attribute or lack thereof)
+        target_id_mapper: Optional mapper for resolving tgt_xxxx to agent_id
+
+    Returns:
+        (modifier, description) -- e.g., (-2, "target watching -2") or (+2, "flanking +2")
+    """
+    target_defense = getattr(target, 'defence_token', None)
+
+    if target_defense is None:
+        return (2, "flanking +2, target not watching anyone")
+
+    # Direct match on agent_id
+    if target_defense == attacker_agent_id:
+        return (-2, "target watching -2")
+
+    # Check if target's defence_token is the attacker's tgt_xxxx alias
+    if target_id_mapper:
+        attacker_tgt_id = target_id_mapper.get_target_id(attacker_agent_id)
+        if attacker_tgt_id and target_defense == attacker_tgt_id:
+            return (-2, "target watching -2")
+
+    return (2, "flanking +2")
+
+
+# =============================================================================
+# STEALTH MECHANICS (Spec 05)
+# =============================================================================
+
+def _get_attribute(agent, attr_name: str, default: int = 3) -> int:
+    """Get attribute value from any agent type.
+
+    Supports:
+    - EnemyAgent / NPCAgent: agent.attributes dict
+    - AIPlayerAgent: agent.character_state.attributes dict
+
+    Args:
+        agent: Any agent type
+        attr_name: Attribute name (e.g., 'Agility', 'Perception')
+        default: Default value if not found
+
+    Returns:
+        Attribute value as int
+    """
+    # EnemyAgent / NPCAgent: agent.attributes dict
+    if hasattr(agent, 'attributes') and isinstance(agent.attributes, dict):
+        return agent.attributes.get(attr_name, default)
+    # AIPlayerAgent: agent.character_state.attributes dict
+    if hasattr(agent, 'character_state'):
+        cs = agent.character_state
+        if hasattr(cs, 'attributes') and isinstance(cs.attributes, dict):
+            return cs.attributes.get(attr_name, default)
+    return default
+
+
+def _get_skill(agent, skill_name: str, default: int = 0) -> int:
+    """Get skill value from any agent type.
+
+    Supports:
+    - EnemyAgent / NPCAgent: agent.skills dict
+    - AIPlayerAgent: agent.character_state.skills dict
+
+    Args:
+        agent: Any agent type
+        skill_name: Skill name (e.g., 'Stealth', 'Awareness')
+        default: Default value if not found
+
+    Returns:
+        Skill value as int
+    """
+    if hasattr(agent, 'skills') and isinstance(agent.skills, dict):
+        return agent.skills.get(skill_name, default)
+    if hasattr(agent, 'character_state'):
+        cs = agent.character_state
+        if hasattr(cs, 'skills') and isinstance(cs.skills, dict):
+            return cs.skills.get(skill_name, default)
+    return default
+
+
+def resolve_stealth_check(
+    agent,
+    environment_dc: int = 15,
+    modifiers: int = 0
+) -> Dict[str, Any]:
+    """
+    Resolve a stealth check using YAGS formula.
+
+    Formula: Agility x Stealth + d20 + modifiers vs environment_dc
+
+    Void interaction:
+    - void_score == 10: automatic failure (stealth impossible)
+
+    Args:
+        agent: The agent attempting to hide (must have attributes and skills)
+        environment_dc: Base difficulty (10=dark alley, 15=normal, 20=open ground,
+                        25=well-lit, 30=actively searched area)
+        modifiers: Situational modifiers (+/- for cover, noise, distractions)
+
+    Returns:
+        Dict with:
+            success: bool
+            stealth_roll: int (total roll value, becomes detection DC if successful)
+            d20: int (raw die roll)
+            margin: int (roll - dc, negative = failure)
+            formula: str (human-readable breakdown)
+            agility: int
+            stealth_skill: int
+    """
+    # Void 10: stealth impossible
+    void_score = getattr(agent, 'void_score', 0)
+    if void_score == 10:
+        return {
+            'success': False,
+            'stealth_roll': 0,
+            'd20': 0,
+            'margin': -environment_dc,
+            'formula': f"VOID 10 - stealth impossible (void corruption visible)",
+            'agility': _get_attribute(agent, 'Agility', default=3),
+            'stealth_skill': _get_skill(agent, 'Stealth', default=0),
+        }
+
+    # Get stats
+    agility = _get_attribute(agent, 'Agility', default=3)
+    stealth_skill = _get_skill(agent, 'Stealth', default=0)
+
+    # YAGS unskilled penalty
+    unskilled_penalty = -5 if stealth_skill == 0 else 0
+
+    d20 = random.randint(1, 20)
+    roll_total = (agility * stealth_skill) + d20 + modifiers + unskilled_penalty
+
+    # Minimum roll of 1 (can't go negative)
+    roll_total = max(1, roll_total)
+
+    success = roll_total >= environment_dc
+    margin = roll_total - environment_dc
+
+    formula = (
+        f"Agility {agility} x Stealth {stealth_skill} + d20({d20})"
+        f"{f' + modifiers({modifiers})' if modifiers else ''}"
+        f"{f' + unskilled({unskilled_penalty})' if unskilled_penalty else ''}"
+        f" = {roll_total} vs DC {environment_dc}"
+    )
+
+    return {
+        'success': success,
+        'stealth_roll': roll_total,
+        'd20': d20,
+        'margin': margin,
+        'formula': formula,
+        'agility': agility,
+        'stealth_skill': stealth_skill,
+    }
+
+
+def resolve_detection_check(
+    observer,
+    stealth_dc: int,
+    modifiers: int = 0
+) -> Dict[str, Any]:
+    """
+    Resolve a detection check against a hidden target.
+
+    Formula: Perception x Awareness + d20 + modifiers vs stealth_dc
+
+    The stealth_dc is the total from the hider's stealth check (their roll becomes
+    the DC for detection).
+
+    Void interaction (caller responsibility):
+    - Target void_score >= 7: caller should pass modifiers=+5
+
+    Args:
+        observer: The agent attempting to detect (must have attributes and skills)
+        stealth_dc: DC to beat (from the hider's stealth check result)
+        modifiers: Situational modifiers (+5 void aura, +/- for noise, equipment)
+
+    Returns:
+        Dict with:
+            success: bool (True = detected the hidden agent)
+            detection_roll: int
+            d20: int
+            margin: int
+            formula: str
+            perception: int
+            awareness_skill: int
+    """
+    perception = _get_attribute(observer, 'Perception', default=3)
+    awareness_skill = _get_skill(observer, 'Awareness', default=0)
+
+    unskilled_penalty = -5 if awareness_skill == 0 else 0
+
+    d20 = random.randint(1, 20)
+    roll_total = (perception * awareness_skill) + d20 + modifiers + unskilled_penalty
+    roll_total = max(1, roll_total)
+
+    success = roll_total >= stealth_dc
+    margin = roll_total - stealth_dc
+
+    formula = (
+        f"Perception {perception} x Awareness {awareness_skill} + d20({d20})"
+        f"{f' + modifiers({modifiers})' if modifiers else ''}"
+        f"{f' + unskilled({unskilled_penalty})' if unskilled_penalty else ''}"
+        f" = {roll_total} vs DC {stealth_dc}"
+    )
+
+    return {
+        'success': success,
+        'detection_roll': roll_total,
+        'd20': d20,
+        'margin': margin,
+        'formula': formula,
+        'perception': perception,
+        'awareness_skill': awareness_skill,
+    }
+
+
+def break_stealth_on_attack(agent) -> bool:
+    """
+    Break stealth when an agent attacks from hidden.
+
+    Automatically sets is_hidden=False and clears stealth_dc.
+    Called after combat action resolution for hidden agents.
+
+    Args:
+        agent: The agent whose stealth should be broken
+
+    Returns:
+        True if stealth was broken (agent was hidden), False otherwise
+    """
+    if getattr(agent, 'is_hidden', False):
+        agent.is_hidden = False
+        agent.stealth_dc = None
+        logger.info(f"Stealth broken: {getattr(agent, 'agent_id', 'unknown')} attacked from hidden")
+        return True
+    return False
+
+
+def get_first_strike_bonus(agent) -> int:
+    """
+    Get First Strike damage bonus for attacking from hidden.
+
+    Returns +2 damage modifier if agent is currently hidden (attacking from stealth).
+    Returns 0 if agent is not hidden.
+
+    Args:
+        agent: The attacking agent
+
+    Returns:
+        Damage bonus (2 if hidden, 0 if not)
+    """
+    if getattr(agent, 'is_hidden', False):
+        return 2
+    return 0

@@ -28,6 +28,37 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# STEALTH CONTEXT FOR ENEMY PROMPTS (Spec 05)
+# =============================================================================
+
+def _format_hidden_targets(hidden_pcs: List[Dict[str, Any]]) -> str:
+    """
+    Format hidden PC information for enemy tactical prompts.
+
+    When PCs are hidden, enemies cannot directly target them but may know
+    their last known position. This section informs the enemy AI about
+    hidden targets and suggests using Scan to detect them.
+
+    Args:
+        hidden_pcs: List of dicts with 'name' and 'last_known_position' keys
+
+    Returns:
+        Formatted string section for enemy prompt, or empty string if no hidden PCs
+    """
+    if not hidden_pcs:
+        return ""
+
+    lines = ["\n**HIDDEN TARGETS (cannot be directly targeted):**"]
+    for pc in hidden_pcs:
+        name = pc.get('name', 'Unknown PC')
+        last_pos = pc.get('last_known_position', 'Unknown')
+        lines.append(f"- {name}: HIDDEN (last seen at {last_pos})")
+
+    lines.append("\nUse 'Scan' as your minor_action to attempt detection.")
+    return "\n".join(lines)
+
+
+# =============================================================================
 # PC ATTRIBUTE HELPERS — AIPlayerAgent stores name/faction on character_state
 # =============================================================================
 
@@ -476,12 +507,12 @@ def _format_battlefield(
 {"=" * 60}"""
 
     if free_targeting and target_id_mapper:
-        # FREE TARGETING MODE: Unified combatant list
+        # FREE TARGETING MODE: Unified combatant list with range info
         section += "\n\n### Combatants in Combat Zone:"
 
         combatants = []
 
-        # Add all PCs
+        # Add all PCs with range from this enemy
         for pc in player_agents:
             tgt_id = target_id_mapper.get_target_id(getattr(pc, 'agent_id', None))
             if tgt_id:
@@ -493,15 +524,39 @@ def _format_battlefield(
                 pc_health = getattr(pc, 'health', 0)
                 pc_max_health = getattr(pc, 'max_health', 0)
 
-                combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position} | {pc_health}/{pc_max_health} HP")
+                # Calculate range from this enemy to the PC (Spec 09)
+                range_str = ""
+                try:
+                    pc_tac_pos = Position.from_string(pc_position)
+                    range_name, range_penalty = enemy.position.calculate_range(pc_tac_pos)
+                    if range_penalty == 0:
+                        range_str = f" | Range: {range_name} (no penalty)"
+                    else:
+                        range_str = f" | Range: {range_name} ({range_penalty:+d})"
+                except Exception:
+                    range_str = " | Range: Unknown"
 
-        # Add all other active enemies (including self)
+                combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position}{range_str} | {pc_health}/{pc_max_health} HP")
+
+        # Add all other active enemies (including self) with range
         for other_enemy in enemy_agents:
             if other_enemy.is_active:
                 tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
                 if tgt_id:
                     enemy_faction = getattr(other_enemy, 'faction', 'Unknown')
-                    combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
+
+                    # Calculate range from this enemy to the other combatant (Spec 09)
+                    range_str = ""
+                    try:
+                        range_name, range_penalty = enemy.position.calculate_range(other_enemy.position)
+                        if range_penalty == 0:
+                            range_str = f" | Range: {range_name} (no penalty)"
+                        else:
+                            range_str = f" | Range: {range_name} ({range_penalty:+d})"
+                    except Exception:
+                        range_str = " | Range: Unknown"
+
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position}{range_str} | {other_enemy.health}/{other_enemy.max_health} HP")
 
         section += "\n" + "\n".join(combatants)
 
@@ -935,6 +990,35 @@ def _format_faction_context(enemy: EnemyAgent) -> str:
 Your Faction: {faction}
 Stance: {stance}
 About: {description}"""
+
+
+def _format_iff_context(faction_name: str) -> str:
+    """Format IFF (Identification Friend or Foe) reasoning context.
+
+    Tells the enemy its own faction and instructs it to reason about
+    allegiance from faction names rather than system-provided labels.
+
+    Args:
+        faction_name: The enemy's faction name (e.g. "ACG", "Freeborn")
+
+    Returns:
+        Formatted IFF context section for the enemy prompt
+    """
+    return f"""## IFF (IDENTIFICATION FRIEND OR FOE)
+{"=" * 60}
+Your Faction: {faction_name}
+You recognize fellow {faction_name} operatives as allies.
+
+## Allegiance
+The DETECTED CONTACTS list shows all visible contacts with their faction.
+You must determine who is hostile, neutral, or friendly based on faction.
+The system will NOT tell you who is an ally or enemy -- you must reason
+from your knowledge of faction relationships.
+
+## Communication
+Use shared_intel + intel_recipients to communicate with contacts you
+believe are allies. Specify their target IDs (tgt_xxxx) as recipients.
+WARNING: If you share intel with the wrong contact, they will receive it."""
 
 
 def _format_character(enemy: EnemyAgent) -> str:

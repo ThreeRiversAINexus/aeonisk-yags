@@ -2,7 +2,7 @@
 
 **Spec:** `../.claude/aeonisk_v2/06_IFF_ROE.md`
 **Started:** 2026-02-17
-**Branch:** `main` (pending branch creation)
+**Branch:** `faction-politics`
 
 ---
 
@@ -35,55 +35,55 @@
 - Reads from `character_state.faction` (players) or `agent.faction` (enemies/NPCs)
 - Enables faction-based labeling for any consumer
 
+### Step 5: Selective Intel Sharing with tgt_xxxx Recipients (2026-02-25)
+- **File:** `enemy_agent.py` — SharedIntel class + IntelItem dataclass
+- **Change:** Refactored IntelItem to support both legacy (`source_agent`) and IFF (`source_target_id` + `recipients: Set[str]`) modes
+- SharedIntel.add_intel() now accepts keyword args for both modes
+- Added `get_recent_intel_for_target(target_id)` for selective per-agent querying
+- Legacy `get_recent_intel()` preserved for backward compat (returns all intel)
+- Empty recipients set = intel not added (no broadcast without recipients)
+
+### Step 6: EnemyDecision intel_recipients Field (2026-02-25)
+- **File:** `schemas/enemy_decision.py`
+- **Change:** Added `intel_recipients: Optional[List[str]]` field to EnemyDecision
+- Default None = legacy broadcast behavior
+- Included in `to_legacy_dict()` output
+
+### Step 7: Intercepted Communications (2026-02-25)
+- **File:** `dm.py` — static method `_get_intercepted_intel_for_pc()`
+- **Change:** When enemy accidentally shares intel with a PC (IFF error), the PC sees it as "INTERCEPTED COMMUNICATIONS" in their prompt context
+- Returns empty string if no leaked intel exists
+
+### Step 8: Faction Context Prompts (2026-02-25)
+- **File:** `enemy_prompts.py` — `_format_iff_context(faction_name)`
+- **Change:** Added IFF reasoning context section for enemy prompts: tells enemy its faction, instructs it to reason about allegiance from faction names, warns about intel_recipients
+- **File:** `dm.py` — static method `_build_pc_party_context()`
+- **Change:** Builds party member list (name + tgt_xxxx) for PCs, excluding self. PCs know their party — not an IFF challenge.
+
+### Config Flag: iff_enabled (2026-02-25)
+- **File:** `session.py` — reads `iff_enabled` from config, stores on session and shared_state
+- **File:** `enemy_combat.py` — reads `iff_enabled` from session config in `initialize()`
+- Default: false (backward compat preserved)
+
 ---
 
-## Remaining Steps (from spec)
+## Test Coverage
 
-### Change 1: Strip Relationship Labels from DM Combatant List
-- **File:** `dm.py` lines 7536-7578
-- Replace `(player)`, `(enemy)`, `(npc, {disposition})` with faction names
-- Build `_build_iff_combatant_list()` — used when IFF mode enabled
-- DM list retains full info (DM always has full knowledge)
-- **Status:** Not started — requires `iff_enabled` config flag
-
-### Change 4: Selective Intel Sharing with tgt_xxxx Recipients
-- **File:** `enemy_agent.py` SharedIntel class
-- Refactor from global broadcast to explicit `recipients: Set[str]` (tgt_xxxx IDs)
-- `get_recent_intel()` → `get_recent_intel_for_target()` (per-target)
-- **Status:** Not started — requires EnemyDecision schema change
-
-### Change 5: EnemyDecision intel_recipients Field
-- **File:** `schemas/enemy_decision.py`
-- Add `intel_recipients: Optional[List[str]]` field
-- **Status:** Not started
-
-### Change 6: Inject Leaked Intel into PC Prompts
-- **File:** `dm.py`
-- `_get_intercepted_intel_for_pc()` — shows intel leaked via IFF errors
-- **Status:** Not started — depends on Change 4
-
-### Change 7: Enemy Faction Context in Prompts
-- **File:** `enemy_prompts.py`
-- Add IFF reasoning section: "You are {faction}. Determine allegiance from faction names."
-- **Status:** Not started
-
-### Change 8: PC Party Context
-- **File:** `prompts/.../player/` YAML
-- Tell PCs which tgt_xxxx IDs are their party members
-- **Status:** Not started
-
-### Config Flag: `iff_enabled`
-- **File:** `session.py`
-- Read from session config, propagate to subsystems
-- Default: false (backward compat)
-- **Status:** Not started
+**File:** `tests/unit/test_iff_roe.py` — 34 tests, all passing
+- TestSelectiveIntelSharing (10 tests): selective delivery, non-recipient exclusion, PC leaks, expiry, multiple recipients, legacy coexistence
+- TestEnemyDecisionIntelRecipients (5 tests): field acceptance, defaults, legacy dict inclusion
+- TestInterceptedIntel (3 tests): formatting, empty case, multiple items
+- TestEnemyFactionContext (3 tests): faction name, reasoning instruction, communication mention
+- TestPCPartyContext (3 tests): party member listing, self-exclusion, solo case
+- TestIFFConfigFlag (5 tests): defaults, config reading, EnemyCombatManager propagation
+- TestIFFBackwardCompat (5 tests): legacy add_intel, get_recent_intel, FROM prefix, IntelItem fields
 
 ---
 
 ## Notes
 
-- Steps 1-2 were done as direct removals (no config flag needed). These remove allegiance labels from enemy-facing prompts.
-- Step 3 (NPC labels) was reverted — NPC entity_type/disposition is self-knowledge, not inter-agent allegiance leakage. Defer to `iff_enabled` flag.
-- Steps 4-8 require the `iff_enabled` config flag and more substantial refactoring.
-- The DM combatant list change (Change 1) is agent-facing only — DM's own list keeps full info.
-- Test file: `tests/unit/test_iff_roe.py` (spec has full test plan)
+- Steps 1-4 were done as direct changes (before iff_enabled flag existed).
+- Steps 5-8 + config flag completed in TASK-013 (2026-02-25).
+- DM combatant list change (Change 1 from spec) deferred — the DM already has full knowledge, and agent-facing lists already use faction names (Steps 2-3).
+- The new SharedIntel API is backward compatible: legacy callers using `add_intel(source_agent=..., intel=..., round_num=...)` continue to work.
+- Enemy structured output path (`_generate_enemy_decision_structured`) can now read `intel_recipients` from EnemyDecision and pass to SharedIntel.add_intel() with recipients.

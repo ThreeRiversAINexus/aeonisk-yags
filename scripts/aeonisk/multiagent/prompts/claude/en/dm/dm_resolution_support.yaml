@@ -51,7 +51,7 @@ content: |-
       name="Jittery",
       penalty=-1,
       duration=1,
-      description="stimulant aftereffect, -1 Perception",
+      description="stimulant aftereffect, -1 to all rolls",
       target="tgt_ash"
   )]
   ```

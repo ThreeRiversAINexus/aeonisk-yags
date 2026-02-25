@@ -111,8 +111,9 @@ class EnvironmentalObject:
     """
     Represents an environmental object that exists in the scenario.
 
-    Environmental objects are non-targetable entities that provide narrative grounding.
-    They make clear what environmental features are "real" vs pure narrative flavor.
+    Environmental objects are targetable, destructible entities that provide
+    narrative grounding. They make clear what environmental features are "real"
+    vs pure narrative flavor. Objects with health can be damaged and destroyed.
 
     Examples:
         - Doors/hatches (locked, health, can be destroyed)
@@ -127,10 +128,77 @@ class EnvironmentalObject:
     state: Dict[str, Any] = field(default_factory=dict)  # e.g., {"locked": True, "health": 50}
     object_id: Optional[str] = None
 
+    # Destructibility fields
+    health: Optional[int] = None          # Current HP (None = non-destructible by default)
+    max_health: Optional[int] = None      # Maximum HP
+    is_destructible: bool = True          # False = ignore all damage
+
+    # Cover mechanics
+    cover_value: Optional[int] = None     # Cover bonus (None = no cover)
+
+    # Target integration (assigned by TargetIDMapper)
+    target_id: Optional[str] = None       # Assigned tgt_xxxx when registered
+
     def __post_init__(self):
         """Auto-generate object_id if not provided."""
         if self.object_id is None:
             self.object_id = generate_env_object_id()
+
+    @property
+    def is_destroyed(self) -> bool:
+        """Check if object has been destroyed (HP <= 0)."""
+        if self.health is None:
+            return False
+        return self.health <= 0
+
+    @property
+    def effective_cover_value(self) -> int:
+        """Get effective cover value, degraded proportionally to HP loss.
+
+        Returns 0 if no cover_value set, object is destroyed, or health is None.
+        """
+        if self.cover_value is None or self.health is None or self.max_health is None:
+            return 0
+        if self.max_health <= 0 or self.is_destroyed:
+            return 0
+        return int(self.cover_value * (self.health / self.max_health))
+
+    def apply_damage(self, amount: int) -> int:
+        """Apply damage to object. Returns actual damage dealt.
+
+        Returns 0 if non-destructible, health is None, or already destroyed.
+        """
+        if not self.is_destructible or self.health is None:
+            return 0
+        if self.health <= 0:
+            return 0  # Already destroyed
+
+        actual = min(amount, self.health)
+        self.health -= actual
+
+        # Trigger state change on destruction
+        if self.health <= 0:
+            self.health = 0
+            self._on_destroyed()
+
+        return actual
+
+    def _on_destroyed(self):
+        """Update state dict when object is destroyed."""
+        self.state['destroyed'] = True
+        self.state['functional'] = False
+
+        # Type-specific state changes
+        if self.object_type == EnvironmentalObjectType.DOOR:
+            self.state['locked'] = False
+            self.state['open'] = True
+        elif self.object_type == EnvironmentalObjectType.TERMINAL:
+            self.state['powered'] = False
+            self.state['hacked'] = False
+        elif self.object_type == EnvironmentalObjectType.BARRIER:
+            self.state['intact'] = False
+        elif self.object_type == EnvironmentalObjectType.VEHICLE:
+            self.state['operational'] = False
 
 
 @dataclass

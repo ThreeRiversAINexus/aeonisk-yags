@@ -147,6 +147,16 @@ class PlayerActionBase(BaseModel):
         description="Internal reasoning for this action choice (for ML training)"
     )
 
+    # Tactical positioning (defence token)
+    defence_token: Optional[str] = Field(
+        default=None,
+        description=(
+            "COMBAT ONLY: Target ID (tgt_xxxx) of the combatant you are watching. "
+            "That combatant gets -2 to attack you; all others get +2 flanking. "
+            "Choose the biggest threat. Leave null for non-combat situations."
+        )
+    )
+
     @field_validator('attribute')
     @classmethod
     def validate_attribute(cls, v: str) -> str:
@@ -436,6 +446,12 @@ class PerceptionAction(PlayerActionBase):
     """
 
     action_type: Literal[ActionType.PERCEPTION] = ActionType.PERCEPTION
+
+    search_for_hidden: bool = Field(
+        default=False,
+        description="True if actively searching for hidden agents (triggers opposed "
+                    "Perception x Awareness check vs hidden targets' stealth_dc)"
+    )
 
 
 class SupportAction(PlayerActionBase):
@@ -949,6 +965,15 @@ class PlayerAction(BaseModel):
         description="Internal reasoning for this action choice (for ML training)"
     )
 
+    # Tactical positioning (defence token)
+    defence_token: Optional[str] = Field(
+        default=None,
+        description=(
+            "Target ID (tgt_xxxx) of the combatant you are watching/covering. "
+            "That combatant gets -2 to attack you; others get +2 flanking."
+        )
+    )
+
     @field_validator('attribute')
     @classmethod
     def validate_attribute(cls, v: str) -> str:
@@ -1024,6 +1049,7 @@ class PlayerAction(BaseModel):
             'has_offering': self.has_offering,
             'ritual_components': self.ritual_components,
             'situational_modifiers': self.situational_modifiers,
+            'defence_token': self.defence_token,
         }
 
 

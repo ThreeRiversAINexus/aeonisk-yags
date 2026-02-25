@@ -15,7 +15,7 @@ Date: 2025-10-26
 import random
 import string
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ class TargetIDMapper:
         self.reverse_map: Dict[str, str] = {}     # agent_id -> tgt_7a3f
         self.enabled: bool = False
         self.npc_registry: Dict[str, Any] = {}    # agent_id -> NPC reference
+        self.hidden_agents: Set[str] = set()       # Set of agent_ids that are currently hidden (Spec 05)
         logger.debug("TargetIDMapper initialized")
 
     def enable(self):
@@ -70,27 +71,110 @@ class TargetIDMapper:
         """Clear all ID mappings."""
         self.target_id_map.clear()
         self.reverse_map.clear()
+        self.hidden_agents.clear()
         logger.debug("Target ID mappings cleared")
+
+    # =========================================================================
+    # STEALTH / HIDDEN STATE (Spec 05)
+    # =========================================================================
+
+    def update_hidden_state(self, agent_id: str, is_hidden: bool) -> None:
+        """Update hidden state for an agent.
+
+        Args:
+            agent_id: The agent's permanent ID (e.g., 'player_01', 'enemy_grunt_01')
+            is_hidden: True to hide the agent, False to reveal them
+        """
+        if is_hidden:
+            self.hidden_agents.add(agent_id)
+            logger.debug(f"Agent {agent_id} is now HIDDEN")
+        else:
+            self.hidden_agents.discard(agent_id)
+            logger.debug(f"Agent {agent_id} is now VISIBLE")
+
+    def is_hidden(self, agent_id: str) -> bool:
+        """Check if an agent is hidden.
+
+        Args:
+            agent_id: Agent's permanent ID
+
+        Returns:
+            True if the agent is currently hidden
+        """
+        return agent_id in self.hidden_agents
+
+    def get_visible_target_ids(self, observer_agent_id: str) -> List[str]:
+        """
+        Get target IDs visible to a specific observer.
+
+        Filters out hidden agents unless:
+        - The mapper is disabled (returns empty list)
+        - The hidden agent is on the same team as the observer
+          (PCs always see hidden PCs, enemies always see hidden enemies)
+
+        Args:
+            observer_agent_id: The agent requesting the target list
+
+        Returns:
+            List of visible target_ids
+        """
+        if not self.enabled:
+            return []
+
+        # If no one is hidden, return all targets (fast path)
+        if not self.hidden_agents:
+            return list(self.target_id_map.keys())
+
+        visible = []
+        observer_type = self.get_agent_type(observer_agent_id)
+
+        for target_id, agent in self.target_id_map.items():
+            agent_id = getattr(agent, 'agent_id', None) or \
+                       getattr(agent, 'vendor_id', None) or \
+                       getattr(agent, 'object_id', None)
+
+            if not agent_id:
+                visible.append(target_id)
+                continue
+
+            if agent_id not in self.hidden_agents:
+                # Not hidden, always visible
+                visible.append(target_id)
+                continue
+
+            # Hidden agent -- check if observer should see them
+            target_type = self.get_agent_type(agent_id)
+
+            # Same team always sees each other
+            if observer_type and target_type and observer_type == target_type:
+                visible.append(target_id)
+                continue
+
+            # Otherwise, hidden agent is NOT visible to this observer
+
+        return visible
 
     def assign_ids(
         self,
         player_agents: List[Any],
         enemy_agents: List[Any],
         npc_agents: Optional[List[Any]] = None,
-        vendors: Optional[List[Any]] = None
+        vendors: Optional[List[Any]] = None,
+        env_objects: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
-        Assign random IDs to all combatants and vendors at round start.
+        Assign random IDs to all combatants, vendors, and env objects at round start.
 
-        Combines PCs, enemies, NPCs, and vendors into single pool, shuffles to
-        randomize order (prevents pattern detection), then assigns
-        unique target IDs.
+        Combines PCs, enemies, NPCs, vendors, and environmental objects into
+        single pool, shuffles to randomize order (prevents pattern detection),
+        then assigns unique target IDs.
 
         Args:
             player_agents: List of PC agents
             enemy_agents: List of enemy agents (active only)
             npc_agents: List of NPC agents (active only)
             vendors: List of legacy Vendor objects (for transfers)
+            env_objects: List of EnvironmentalObject instances (destructible, not destroyed)
 
         Returns:
             Dict mapping target_id -> agent reference
@@ -131,7 +215,15 @@ class TargetIDMapper:
                     all_combatants.append(vendor)
                     vendor_count += 1
 
-        logger.info(f"Assigning target IDs to {len(all_combatants)} entities ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs, {vendor_count} vendors)")
+        # Add environmental objects (they have object_id instead of agent_id)
+        env_count = 0
+        if env_objects:
+            for env_obj in env_objects:
+                if hasattr(env_obj, 'object_id') and env_obj.object_id:
+                    all_combatants.append(env_obj)
+                    env_count += 1
+
+        logger.info(f"Assigning target IDs to {len(all_combatants)} entities ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs, {vendor_count} vendors, {env_count} env objects)")
 
         # Shuffle to randomize order (prevents position-based patterns)
         random.shuffle(all_combatants)
@@ -150,12 +242,14 @@ class TargetIDMapper:
                 logger.error(f"Failed to generate unique target ID after 10 attempts")
                 continue
 
-            # Get agent_id (vendors use vendor_id instead)
+            # Get agent_id (vendors use vendor_id, env objects use object_id)
             agent_id = getattr(agent, 'agent_id', None)
             if not agent_id:
                 agent_id = getattr(agent, 'vendor_id', None)
             if not agent_id:
-                logger.warning(f"Entity {agent} has no agent_id or vendor_id")
+                agent_id = getattr(agent, 'object_id', None)
+            if not agent_id:
+                logger.warning(f"Entity {agent} has no agent_id, vendor_id, or object_id")
                 continue
 
             # Get name: enemies have .name, players have .character_state.name
@@ -167,6 +261,10 @@ class TargetIDMapper:
 
             self.target_id_map[target_id] = agent
             self.reverse_map[agent_id] = target_id
+
+            # Store target_id on env objects for later resolution
+            if hasattr(agent, 'object_id') and hasattr(agent, 'target_id'):
+                agent.target_id = target_id
 
             assigned_count += 1
             logger.debug(f"  {target_id} -> {agent_name} ({agent_id})")
@@ -251,6 +349,23 @@ class TargetIDMapper:
         is_pc = hasattr(agent, 'character_state')
         return is_pc
 
+    def is_env_object(self, target_id: str) -> bool:
+        """
+        Check if target ID belongs to an environmental object.
+
+        Args:
+            target_id: Target ID to check
+
+        Returns:
+            True if env object, False otherwise
+        """
+        agent = self.resolve_target(target_id)
+        if not agent:
+            return False
+        # Use isinstance check to distinguish env objects from mocked agents
+        from .shared_state import EnvironmentalObject
+        return isinstance(agent, EnvironmentalObject)
+
     def is_enemy(self, target_id: str) -> bool:
         """
         Check if target ID belongs to an enemy.
@@ -291,6 +406,23 @@ class TargetIDMapper:
         agent = self.resolve_target(target_id)
         if not agent:
             return None
+
+        # Check if this is an environmental object
+        from .shared_state import EnvironmentalObject
+        if isinstance(agent, EnvironmentalObject):
+            info = {
+                'target_id': target_id,
+                'agent_id': getattr(agent, 'object_id', 'unknown'),
+                'type': 'env_object',
+                'name': agent.name,
+                'health': agent.health,
+                'max_health': agent.max_health,
+                'is_destructible': agent.is_destructible,
+                'destroyed': agent.is_destroyed,
+                'object_type': agent.object_type.value if hasattr(agent.object_type, 'value') else str(agent.object_type),
+                'cover_value': getattr(agent, 'cover_value', None),
+            }
+            return info
 
         # Get agent ID (vendors use vendor_id instead of agent_id)
         entity_id = getattr(agent, 'agent_id', None) or getattr(agent, 'vendor_id', 'unknown')
@@ -350,7 +482,70 @@ class TargetIDMapper:
         else:
             info['death_state'] = 'alive'
 
+        # State fields for semantic validation (Layer 4 — Spec 03)
+        info['is_active'] = getattr(agent, 'is_active', True)
+        info['is_prisoner'] = getattr(agent, 'is_prisoner', False)
+        info['is_panicked'] = getattr(agent, 'is_panicked', False)
+        info['disposition'] = getattr(agent, 'disposition', None)
+        info['entity_subtype'] = getattr(agent, 'entity_type', None)
+
         return info
+
+    def get_combatant_status(self, target_id: str) -> Optional[str]:
+        """
+        Get the combat status of a combatant as a single string.
+
+        Returns one of:
+            "active" - Can be targeted normally
+            "prisoner" - Surrendered/captured, targeting is ethically questionable
+            "defeated" - Removed from combat (is_active=False)
+            "unconscious" - Health <= 0 but not dead
+            "dead" - Permanently dead (wounds >= 6)
+            "fleeing" - Panicked/morale broken
+            "non_combatant" - NPC with non-hostile disposition
+            None - Target ID not found
+
+        Args:
+            target_id: The tgt_xxxx ID to check
+
+        Returns:
+            Status string or None
+        """
+        info = self.get_combatant_info(target_id)
+        if not info:
+            return None
+
+        # Death states take priority
+        death_state = info.get('death_state', 'alive')
+        if death_state == 'dead':
+            return 'dead'
+        if death_state == 'unconscious':
+            return 'unconscious'
+
+        # Prisoner state (enemy or NPC)
+        if info.get('is_prisoner', False):
+            return 'prisoner'
+        if info.get('disposition') == 'prisoner':
+            return 'prisoner'
+        if info.get('entity_subtype') == 'prisoner':
+            return 'prisoner'
+
+        # Defeated/inactive
+        if not info.get('is_active', True):
+            return 'defeated'
+
+        # Fleeing
+        if info.get('is_panicked', False):
+            return 'fleeing'
+
+        # NPC non-combatant check
+        if info.get('type') == 'npc':
+            disposition = info.get('disposition')
+            if disposition in ('friendly', 'neutral', 'wary'):
+                return 'non_combatant'
+
+        # Player or active enemy
+        return 'active'
 
     # NPC tracking methods (for de-escalation system)
 

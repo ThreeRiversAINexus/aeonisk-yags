@@ -16,6 +16,7 @@ import logging
 
 from .npc_agent import NPCAgent, ConversionRecord
 from .enemy_agent import EnemyAgent, Position
+from .energy_economy import EnergyPurse
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,9 @@ def deescalate_enemy_to_npc(
         # Equipment (preserve from enemy)
         weapons=list(getattr(enemy, 'weapons', [])),
 
+        # Economy (empty purse so NPC can receive currency transfers)
+        energy_purse=EnergyPurse(breath=0, drip=0, grain=0, spark=0, seeds=[]),
+
         # Conversion tracking (for reverse operation)
         converted_from_enemy=True,
         original_enemy_template=getattr(enemy, 'template', None),
@@ -156,6 +160,49 @@ def deescalate_enemy_to_npc(
 
     logger.debug(f"✅ De-escalated {enemy.agent_id}: {enemy.name} → NPC ({disposition})")
     return npc
+
+
+def estimate_attributes(skills: Dict[str, int]) -> Dict[str, int]:
+    """
+    Estimate YAGS attributes from NPC skills.
+
+    Used when converting NPC -> Enemy (escalation) and for NPC combat calculations.
+    NPCs only store skills, not attributes. This function derives reasonable
+    attribute values from skill levels.
+
+    Args:
+        skills: NPC's skill dict (e.g., {"Guns": 3, "Melee": 2, "Medicine": 1})
+
+    Returns:
+        Dict of YAGS attributes with estimated values (3 = average human default)
+    """
+    # Agility: Based on Athletics, Guns, or default 3
+    agility = max(
+        skills.get('Athletics', 0) // 2 + 2,
+        skills.get('Guns', 0) // 2 + 2,
+        3
+    )
+    # Strength: Based on Brawl, Melee, or default 3
+    strength = max(
+        skills.get('Brawl', 0) // 2 + 2,
+        skills.get('Melee', 0) // 2 + 2,
+        3
+    )
+    # Perception: Based on Awareness
+    perception = max(skills.get('Awareness', 0) // 2 + 2, 3)
+    # Dexterity: Based on Melee (needed for melee combat)
+    dexterity = max(skills.get('Melee', 0) // 2 + 2, 3)
+
+    return {
+        'Agility': min(agility, 5),  # Cap at 5 (human max)
+        'Strength': min(strength, 5),
+        'Perception': min(perception, 5),
+        'Dexterity': min(dexterity, 5),
+        'Intelligence': 3,
+        'Empathy': 2,
+        'Willpower': 3,
+        'Endurance': 3,
+    }
 
 
 def escalate_npc_to_enemy(
@@ -215,33 +262,7 @@ def escalate_npc_to_enemy(
         for condition in npc.conditions:
             status_effects.append(condition.name.lower())
 
-    # Synthesize attributes from skills (NPCs only have skills, not attributes)
-    # Estimate based on skill levels or use defaults
-    def estimate_attributes(skills: Dict[str, int]) -> Dict[str, int]:
-        """Estimate YAGS attributes from NPC skills."""
-        # Agility: Based on Athletics, Guns, or default 3
-        agility = max(
-            skills.get('Athletics', 0) // 2 + 2,
-            skills.get('Guns', 0) // 2 + 2,
-            3
-        )
-        # Strength: Based on Brawl, Melee, or default 3
-        strength = max(
-            skills.get('Brawl', 0) // 2 + 2,
-            skills.get('Melee', 0) // 2 + 2,
-            3
-        )
-        # Other attributes: defaults (3 = average human)
-        return {
-            'Agility': min(agility, 5),  # Cap at 5 (human max normally)
-            'Strength': min(strength, 5),
-            'Perception': skills.get('Awareness', 0) // 2 + 2,
-            'Intelligence': 3,
-            'Empathy': 2,
-            'Willpower': 3,
-            'Size': 5  # Average human
-        }
-
+    # Synthesize attributes from skills using module-level function
     attributes = estimate_attributes(npc.skills)
 
     # Create enemy with stable ID and preserved state

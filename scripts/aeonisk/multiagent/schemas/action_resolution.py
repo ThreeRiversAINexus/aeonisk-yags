@@ -24,6 +24,7 @@ from .shared_types import (
     Condition,
     DamageEffect,
     PositionChange,
+    StealthChange,
 )
 from .vendor_interaction import (
     PurchaseEffect,
@@ -161,6 +162,14 @@ class MechanicalEffects(BaseModel):
     stabilization: Optional['StabilizationEffect'] = Field(
         default=None,
         description="Ally stabilization result (if SUPPORT action targeted unconscious ally). Per YAGS: success stops death spiral but doesn't heal - ally is extracted by faction medevac."
+    )
+
+    # Stealth state changes (Spec 05)
+    stealth_changes: List[StealthChange] = Field(
+        default_factory=list,
+        description="Stealth state changes. Populated when agents hide or are detected. "
+                    "DM sets is_hidden=True with stealth_dc on successful hide; "
+                    "is_hidden=False on detection or stealth break."
     )
 
     # Additional metadata

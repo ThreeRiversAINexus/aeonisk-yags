@@ -31,6 +31,201 @@ from .awareness import filter_narrations_for_agent, NarrationEntry
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# DISPLAY CONSTANTS (Spec 12)
+# =============================================================================
+
+# Disposition -> emoji mapping for NPC display (deduplicated from inline dicts)
+NPC_DISPOSITION_EMOJI = {
+    "friendly": "\U0001f91d",  # handshake
+    "neutral": "\U0001f610",   # neutral face
+    "wary": "\U0001f61f",      # worried face
+    "prisoner": "\U0001f512",  # lock
+}
+
+NPC_DISPOSITION_DEFAULT_EMOJI = "\u2753"  # question mark
+
+
+def _format_enemy_declaration_details(reasoning: str, shared_intel: str = None) -> str:
+    """Format enemy declaration reasoning and shared intel for stdout display.
+
+    Returns formatted string with sub-lines for reasoning and shared intel.
+    The reasoning is shown in full (never truncated).
+    """
+    lines = []
+    if reasoning:
+        lines.append(f"         +-- Reasoning: {reasoning}")
+    if shared_intel:
+        lines.append(f"         +-- Shared Intel: {shared_intel}")
+    return "\n".join(lines)
+
+
+def _format_npc_declaration_reason(reason: str) -> str:
+    """Format NPC declaration reason for stdout display.
+
+    Returns the full reason text (never truncated).
+    """
+    return f"         \u2514\u2500 {reason}"
+
+
+def _format_clock_progress_bar(current: int, maximum: int, bar_width: int = 8) -> str:
+    """Format a visual progress bar for a scene clock.
+
+    Args:
+        current: Current clock value
+        maximum: Maximum clock value
+        bar_width: Width of the progress bar in characters
+
+    Returns:
+        Formatted string like [████░░░░]
+    """
+    if maximum <= 0:
+        return f"[{'░' * bar_width}]"
+    filled = int((current / maximum) * bar_width)
+    filled = min(filled, bar_width)  # Cap at bar_width
+    empty = bar_width - filled
+    return f"[{'█' * filled}{'░' * empty}]"
+
+
+# =============================================================================
+# RANGE & MOVEMENT UTILITIES (Spec 09)
+# =============================================================================
+
+# Keywords that indicate defensive/evasive intent (dodge-as-movement)
+_DODGE_KEYWORDS = frozenset({
+    'dodge', 'evade', 'take cover', 'duck', 'dive', 'roll away',
+    'seek cover', 'find cover', 'get behind cover', 'defensive stance',
+    'brace', 'hunker down',
+})
+
+
+def compute_dodge_defense_bonus(player, action: dict) -> int:
+    """Compute an agility-based defense bonus for dodge/cover declarations.
+
+    When a player declares an evasive action (dodge, take cover, etc.),
+    they receive a defense bonus equal to their Agility attribute value
+    divided by 2 (rounded down, minimum 1 if dodging).
+
+    Args:
+        player: AIPlayerAgent (or mock) with character_state.attributes
+        action: Action dict with 'intent' field
+
+    Returns:
+        Defense bonus (int). 0 if action is not a dodge/cover declaration.
+    """
+    intent = (action.get('intent') or '').lower()
+    if not intent:
+        return 0
+
+    # Check if intent contains any dodge keyword
+    is_dodge = any(keyword in intent for keyword in _DODGE_KEYWORDS)
+
+    if not is_dodge:
+        return 0
+
+    # Get agility attribute
+    agility = 3  # Default
+    char_state = getattr(player, 'character_state', None)
+    if char_state:
+        attrs = getattr(char_state, 'attributes', {})
+        if isinstance(attrs, dict):
+            agility = attrs.get('Agility', 3)
+        else:
+            agility = getattr(attrs, 'Agility', 3)
+
+    # Bonus = Agility // 2, minimum 1 for any dodge declaration
+    bonus = max(1, agility // 2)
+    return bonus
+
+
+def apply_intra_round_position_update(agent, new_position_str: str) -> None:
+    """Apply a position change to an agent immediately (intra-round update).
+
+    This function is called during the resolution loop to update an agent's
+    position so that subsequent resolutions within the same round use the
+    updated position for range calculations.
+
+    Args:
+        agent: Any agent with a position attribute (player, enemy, NPC)
+        new_position_str: Position string like "Far-PC", "Engaged", etc.
+    """
+    from .enemy_agent import Position as TacticalPosition
+
+    old_position = getattr(agent, 'position', None)
+    new_position = TacticalPosition.from_string(new_position_str)
+    agent.position = new_position
+
+    agent_name = ''
+    if hasattr(agent, 'character_state') and agent.character_state:
+        agent_name = getattr(agent.character_state, 'name', '')
+    elif hasattr(agent, 'name'):
+        agent_name = agent.name
+
+    logger.info(
+        f"Intra-round position update: {agent_name} "
+        f"{old_position} -> {new_position}"
+    )
+
+
+# =============================================================================
+# NPC LLM CONFIG HELPER (Spec 11: Per-Role Model Configuration)
+# =============================================================================
+
+def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Get NPC LLM config from session config with fallback chain.
+
+    NPC LLM fallback chain: npcs -> enemies -> dm.
+
+    1. agents.npcs.llm if present
+    2. agents.enemies.llm if present (enemies and NPCs share a tier)
+    3. agents.dm.llm as final fallback
+
+    Args:
+        session_config: Full session configuration dict.
+
+    Returns:
+        LLM config dict, or None if no config found at any level.
+    """
+    agents = session_config.get('agents', {})
+
+    # Try NPC-specific config first
+    npc_llm = agents.get('npcs', {}).get('llm')
+    if npc_llm:
+        return npc_llm
+
+    # Fall back to enemy config (enemies and NPCs share a tier)
+    enemy_llm = agents.get('enemies', {}).get('llm')
+    if enemy_llm:
+        return enemy_llm
+
+    # Final fallback to DM config
+    dm_llm = agents.get('dm', {}).get('llm')
+    if dm_llm:
+        return dm_llm
+
+    return None
+
+
+# Safe zone keywords for vendor spawning guidance
+_SAFE_ZONE_KEYWORDS = [
+    'market', 'social', 'gathering', 'festival', 'ceremony',
+    'negotiation', 'diplomatic', 'downtime', 'neutral zone',
+    'safe zone', 'trading post', 'settlement', 'trade route',
+]
+
+
+def is_safe_zone_scenario(scenario_description: str) -> bool:
+    """Check if a scenario description indicates a safe zone suitable for vendors.
+
+    Args:
+        scenario_description: Text description of the scenario
+
+    Returns:
+        True if scenario matches safe zone keywords
+    """
+    desc_lower = scenario_description.lower()
+    return any(kw in desc_lower for kw in _SAFE_ZONE_KEYWORDS)
+
 
 def _parse_surrender_from_resolution(
     resolution_data: Dict[str, Any],
@@ -141,6 +336,52 @@ def _mark_defeated_from_resolution(
         if isinstance(stuns, int) and stuns >= 6:
             resolution_state.mark_incapacitated(agent_id)
             logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
+
+
+def _check_condition_incapacitation(
+    agent_id: str,
+    mechanics,
+    resolution_state: ResolutionState
+) -> bool:
+    """
+    Check if an agent has incapacitating conditions and mark them in resolution_state.
+
+    Scans the agent's active conditions from mechanics.get_conditions(). If any
+    condition has abs(penalty) >= 6 (the Stunned/incapacitation threshold), marks
+    the agent as incapacitated in resolution_state.
+
+    This is additive to the existing ResolutionState.is_incapacitated() check --
+    it feeds into the same skip path but triggers from the condition pipeline
+    rather than the stun KO combat path.
+
+    Args:
+        agent_id: The agent's ID to check conditions for
+        mechanics: The mechanics engine (may be None)
+        resolution_state: Resolution state to update if incapacitated
+
+    Returns:
+        True if the agent was marked incapacitated (or already was), False otherwise
+    """
+    INCAPACITATION_THRESHOLD = 6  # abs(penalty) >= this means incapacitated
+
+    if not mechanics or not hasattr(mechanics, 'get_conditions'):
+        return False
+
+    conditions = mechanics.get_conditions(agent_id)
+    if not conditions:
+        return False
+
+    for condition in conditions:
+        # Only negative penalties indicate impairment; positive values are buffs
+        if condition.penalty < 0 and abs(condition.penalty) >= INCAPACITATION_THRESHOLD:
+            resolution_state.mark_incapacitated(agent_id)
+            logger.info(
+                f"Condition-based incapacitation: {agent_id} has '{condition.name}' "
+                f"(penalty={condition.penalty}, threshold={INCAPACITATION_THRESHOLD})"
+            )
+            return True
+
+    return False
 
 
 def _get_energy_purse(agent):
@@ -332,10 +573,42 @@ class SelfPlayingSession:
         else:
             print("  Enemy combat manager disabled")
 
+        # Spec 06: IFF/ROE mode flag — propagate to shared_state for subsystems
+        self.iff_enabled = self.config.get('iff_enabled', False)
+        self.shared_state.iff_enabled = self.iff_enabled
+        if self.iff_enabled:
+            print("✓ IFF/ROE mode ENABLED")
+
         # Load DM notes for scenario variety
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
         self.shared_state.load_dm_notes(str(dm_notes_path))
         self.dm_notes_path = dm_notes_path
+
+    def _get_npc_llm_provider(self):
+        """Get NPC LLM provider using the per-role fallback chain (Spec 11).
+
+        NPC LLM fallback chain: npcs -> enemies -> dm.
+        Falls back to self.enemy_combat.llm_provider for backward compat
+        if no NPC-specific config is found.
+
+        Returns:
+            LLM provider instance, or None if no config available.
+        """
+        npc_llm_config = get_npc_llm_config(self.config)
+        if npc_llm_config:
+            try:
+                from .llm_provider import LLMConfig, create_provider
+                config = LLMConfig.from_dict(npc_llm_config, max_tokens=2000)
+                provider = create_provider(config)
+                logger.debug(f"NPC LLM provider created from per-role config ({config.provider}:{config.model})")
+                return provider
+            except Exception as e:
+                logger.warning(f"Failed to create NPC LLM provider from config: {e}")
+
+        # Ultimate fallback: use enemy_combat's provider (backward compat)
+        if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'llm_provider'):
+            return self.enemy_combat.llm_provider
+        return None
 
     def _initialize_persistent_vendors(self):
         """
@@ -769,12 +1042,76 @@ class SelfPlayingSession:
 
         logger.debug(f"Created {len(self.agents)} agents")
 
+        # Ensure all characters have bonds=[] initialized
+        for agent in player_agents:
+            if hasattr(agent, 'character_state') and not hasattr(agent.character_state, 'bonds'):
+                agent.character_state.bonds = []
+
+        # Check bonds_enabled config flag (default: True)
+        bonds_enabled = self.config.get('bonds_enabled', True)
+
         # Auto-generate bonds if enabled (BEFORE loading explicit starting_bonds)
-        if 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
+        if bonds_enabled and 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
             try:
                 await self._generate_bonds_automatically(player_agents)
             except Exception as e:
                 logger.error(f"Failed to auto-generate bonds: {e}")
+        elif bonds_enabled and len(player_agents) >= 2 and 'starting_bonds' not in self.config:
+            # Generate default bond matrix when no explicit bonds configured
+            try:
+                from .mechanics import generate_default_bond_matrix
+                from .schemas.shared_types import Bond, BondType, BondStatus
+
+                character_names = []
+                factions = {}
+                for agent in player_agents:
+                    if hasattr(agent, 'character_state'):
+                        name = agent.character_state.name
+                        character_names.append(name)
+                        factions[name] = agent.character_state.faction
+
+                bond_suggestions = generate_default_bond_matrix(
+                    character_names=character_names,
+                    factions=factions,
+                    random_seed=self.random_seed,
+                )
+
+                bonds_created = 0
+                for idx, suggestion in enumerate(bond_suggestions):
+                    char_a_agent = None
+                    char_b_agent = None
+                    for agent in player_agents:
+                        if hasattr(agent, 'character_state'):
+                            if agent.character_state.name == suggestion['character_a']:
+                                char_a_agent = agent
+                            if agent.character_state.name == suggestion['character_b']:
+                                char_b_agent = agent
+
+                    if not char_a_agent or not char_b_agent:
+                        continue
+
+                    bond_type = BondType(suggestion['bond_type'])
+                    bond = Bond(
+                        bond_id=f"bond_default_{idx:03d}",
+                        character_a=suggestion['character_a'],
+                        character_b=suggestion['character_b'],
+                        bond_type=bond_type,
+                        status=BondStatus.ACTIVE,
+                        formed_round=0,
+                        witnessed_by=[],
+                        narrative_description="",
+                    )
+
+                    char_a_agent.character_state.bonds.append(bond)
+                    char_b_agent.character_state.bonds.append(bond)
+                    bonds_created += 1
+
+                if bonds_created > 0:
+                    logger.info(f"Generated {bonds_created} default bonds for party of {len(player_agents)}")
+            except Exception as e:
+                logger.error(f"Failed to generate default bond matrix: {e}")
+        elif not bonds_enabled:
+            logger.info("Bond generation skipped (bonds_enabled=False)")
 
         # Load starting_bonds from config (AFTER agents created)
         if 'starting_bonds' in self.config and self.config['starting_bonds']:
@@ -1326,12 +1663,21 @@ Generate narratives (numbered list only):"""
             if self.shared_state:
                 self.shared_state.expire_stealth(round_count)
 
-            # Clear declared actions from previous round (for all player agents)
+            # Clear declared actions and defence tokens from previous round
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
             for agent in player_agents:
                 if hasattr(agent, 'declared_actions_this_round'):
                     agent.declared_actions_this_round.clear()
                     logger.debug(f"Cleared declared actions for {agent.character_state.name}")
+                # Reset defence tokens at round start (must re-declare each round)
+                if hasattr(agent, 'defence_token'):
+                    agent.defence_token = None
+
+            # Reset NPC defence tokens at round start
+            if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                for npc in self.shared_state.npc_agents:
+                    if hasattr(npc, 'defence_token'):
+                        npc.defence_token = None
 
             # Run round with initiative-based turns
             combat_continues = await self._run_initiative_round()
@@ -1430,8 +1776,8 @@ Generate narratives (numbered list only):"""
                     initiative_order.append((npc_init, 'npc', npc))
                     self._current_initiative[npc.agent_id] = npc_init
 
-                    # Format disposition for display
-                    disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(npc.disposition, "❓")
+                    # Format disposition for display (use module-level constant)
+                    disp_emoji = NPC_DISPOSITION_EMOJI.get(npc.disposition, NPC_DISPOSITION_DEFAULT_EMOJI)
                     print(f"[{npc.name}] (NPC {disp_emoji}) Initiative: {npc_init}")
 
         # Sort by initiative (highest first)
@@ -1474,12 +1820,21 @@ Generate narratives (numbered list only):"""
                 if p.is_alive and not getattr(p, '_permanently_dead', False)
             ]
 
-            # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
+            # Get current destructible environmental objects (not yet destroyed)
+            current_env_objects = []
+            if self.shared_state and self.shared_state.current_env_objects:
+                current_env_objects = [
+                    obj for obj in self.shared_state.current_env_objects
+                    if obj.is_destructible and not obj.is_destroyed
+                ]
+
+            # Assign IDs to all combatants, vendors, AND env objects
             target_id_mapper.assign_ids(
                 player_agents=active_players,
                 enemy_agents=active_enemies,
                 npc_agents=active_npcs,
-                vendors=current_vendors
+                vendors=current_vendors,
+                env_objects=current_env_objects
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
@@ -1665,10 +2020,18 @@ Generate narratives (numbered list only):"""
                                 target_display = f"{combatant_info['name']} ({target_id})"
 
                         if action == 'Dialogue' and declaration.get('dialogue_content'):
-                            print(f"\n[{agent.name}] (Init {initiative_score}) DIALOGUE → {target_display} | {health_str} | {position_str}")
+                            print(f"\n[{agent.name}] (Init {initiative_score}) DIALOGUE \u2192 {target_display} | {health_str} | {position_str}")
                             print(f'         \U0001f4ac "{declaration["dialogue_content"]}"')
                         else:
-                            print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
+                            print(f"\n[{agent.name}] (Init {initiative_score}) {action} \u2192 {target_display} [{weapon}] | {health_str} | {position_str}")
+
+                        # Show full reasoning and shared intel (Spec 12)
+                        detail_lines = _format_enemy_declaration_details(
+                            reasoning=declaration.get('reasoning', ''),
+                            shared_intel=declaration.get('shared_intel')
+                        )
+                        if detail_lines:
+                            print(detail_lines)
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -1969,16 +2332,16 @@ Generate narratives (numbered list only):"""
 
                             # Print detailed NPC declaration info
                             health_str = f"{agent.health}/{agent.max_health} HP"
-                            disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
+                            disp_emoji = NPC_DISPOSITION_EMOJI.get(agent.disposition, NPC_DISPOSITION_DEFAULT_EMOJI)
 
                             # For dialogue actions, show the actual dialogue content
                             if npc_action.action_type == "dialogue" and npc_action.dialogue_content:
                                 print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
-                                print(f'         💬 "{npc_action.dialogue_content}"')
+                                print(f'         \U0001f4ac "{npc_action.dialogue_content}"')
                             else:
-                                reason_short = npc_action.reason[:60] + "..." if len(npc_action.reason) > 60 else npc_action.reason
+                                # Show full reason (Spec 12: no truncation)
                                 print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
-                                print(f"         └─ {reason_short}")
+                                print(_format_npc_declaration_reason(npc_action.reason))
 
                             # Check for self-escalation (NPC declares attack)
                             if _should_escalate_npc(agent.entity_type, npc_action.action_type):
@@ -2044,6 +2407,12 @@ Generate narratives (numbered list only):"""
                                 continue
 
                             # Normal NPC action processing
+                            # Store defence_token on NPC agent (Spec 04)
+                            if hasattr(npc_action, 'defence_token') and hasattr(agent, 'defence_token'):
+                                agent.defence_token = npc_action.defence_token
+                                if npc_action.defence_token:
+                                    logger.info(f"NPC {agent.name} watching {npc_action.defence_token}")
+
                             # Log NPC declaration
                             if mechanics and mechanics.jsonl_logger:
                                 mechanics.jsonl_logger.log_action_declaration(
@@ -2136,6 +2505,11 @@ Generate narratives (numbered list only):"""
                                 effects={'skip_reason': skip_reason}
                             )
                     continue
+
+                # Check conditions for incapacitation (Spec 15 extension)
+                # If any condition has abs(penalty) >= 6, mark as incapacitated
+                # This feeds into the existing is_incapacitated() check below
+                _check_condition_incapacitation(agent.agent_id, mechanics, resolution_state)
 
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
@@ -2673,12 +3047,12 @@ Generate narratives (numbered list only):"""
 
                 if enemy and enemy.is_active:
                     # Convert to NPC with "prisoner" disposition
-                    # NPCs use same LLM provider as enemies (if available)
+                    # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition="prisoner",
                         current_round=mechanics.current_round if mechanics else 0,
-                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                        llm_provider=self._get_npc_llm_provider()
                     )
 
                     # Add to shared state
@@ -2889,12 +3263,12 @@ Generate narratives (numbered list only):"""
                                                                      EnemyResolution.NEUTRALIZED,
                                                                      EnemyResolution.SUBDUED]:
                                     # Enemy becomes NPC
-                                    # NPCs use same LLM provider as enemies (if available)
+                                    # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                                     npc = deescalate_enemy_to_npc(
                                         enemy=enemy,
                                         disposition=enemy_conversion.resulting_disposition or "prisoner",
                                         current_round=mechanics.current_round if mechanics else 0,
-                                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                        llm_provider=self._get_npc_llm_provider()
                                     )
 
                                     # Add to shared state
@@ -3005,7 +3379,7 @@ Generate narratives (numbered list only):"""
                                 void_score=0,  # NPCs start with no void
                                 skills=npc_spawn.skills,
                                 description=npc_spawn.description,
-                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                llm_provider=self._get_npc_llm_provider()  # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                             )
 
                             # Add to shared state
@@ -3226,14 +3600,17 @@ Generate narratives (numbered list only):"""
                 for player in player_agents:
                     if hasattr(player, 'character_state'):
                         char_state = player.character_state
-                        # Health/wounds are stored on player agent, not CharacterState
-                        # Calculate death state based on wounds (6+ wounds = dead)
+                        # Health/wounds/stuns are stored on player agent, not CharacterState
+                        # Calculate death state based on wounds (6+ = dead), health (0 = unconscious), stuns (6+ = KO)
                         wounds = player.wounds if hasattr(player, 'wounds') else 0
                         health = player.health if hasattr(player, 'health') else 0
+                        stuns = player.stuns if hasattr(player, 'stuns') else 0
                         if wounds >= 6:
                             death_state = "dead"
                         elif health <= 0:
                             death_state = "unconscious"
+                        elif stuns >= 6:
+                            death_state = "unconscious"  # Stun KO: Beaten threshold per YAGS
                         else:
                             death_state = "alive"
 
@@ -3287,13 +3664,16 @@ Generate narratives (numbered list only):"""
                 if self.enemy_combat.enabled:
                     for enemy in self.enemy_combat.enemy_agents:
                         if enemy.is_active:  # Only log active enemies
-                            # Calculate death state for enemies too
+                            # Calculate death state for enemies (wounds, health, stuns)
                             enemy_wounds = enemy.wounds if hasattr(enemy, 'wounds') else 0
                             enemy_health = enemy.health if hasattr(enemy, 'health') else 0
+                            enemy_stuns = enemy.stuns if hasattr(enemy, 'stuns') else 0
                             if enemy_wounds >= 6:
                                 enemy_death_state = "dead"
                             elif enemy_health <= 0:
                                 enemy_death_state = "unconscious"
+                            elif enemy_stuns >= 6:
+                                enemy_death_state = "unconscious"  # Stun KO
                             else:
                                 enemy_death_state = "alive"
 
@@ -3383,6 +3763,15 @@ Generate narratives (numbered list only):"""
 
             # Check if all clocks are complete and trigger story advancement
             await self._check_and_trigger_story_advancement()
+
+        # Tick condition durations for all agents at end of round
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics:
+            all_agent_ids = list(mechanics.conditions.keys())
+            for agent_id in all_agent_ids:
+                expired = mechanics.tick_conditions(agent_id)
+                if expired:
+                    logger.info(f"Conditions expired for {agent_id}: {', '.join(expired)}")
 
         # Clear the action buffer for next round
         self._declared_actions.clear()
@@ -3671,7 +4060,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         print(f"{'='*60}\n")
 
     def _display_round_status(self, initiative_order: List[tuple], mechanics, player_agents: List):
-        """Display comprehensive round status with initiative, health, and position."""
+        """Display comprehensive round status with initiative, health, and position.
+
+        Spec 12: Enhanced display with conditions, wounds/stuns, environmental objects,
+        target ID mapping, range-band map, and clock progress bars.
+        """
         print("\n=== Round Status ===")
 
         # Group combatants by type
@@ -3683,7 +4076,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if pcs:
             print("\n  Player Characters:")
             for init, agent in pcs:
-                # Get health info from agent's combat attributes (initialized from Size × 2)
+                # Get health info from agent's combat attributes (initialized from Size x 2)
                 current_health = getattr(agent, 'health', 0)
                 max_health = getattr(agent, 'max_health', 0)
                 health_str = f"{current_health}/{max_health} HP"
@@ -3699,8 +4092,17 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 # Get faction
                 faction = getattr(agent.character_state, 'faction', 'Unknown')
 
-                print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s} | {position_str:15s} | {void_str}")
-                print(f"         └─ Faction: {faction}")
+                # Wounds and stuns (Spec 12)
+                wounds = getattr(agent, 'wounds', 0)
+                stuns = getattr(agent, 'stuns', 0)
+                wound_str = ""
+                if wounds > 0:
+                    wound_str += f" | {wounds} wound{'s' if wounds != 1 else ''}"
+                if stuns > 0:
+                    wound_str += f" | {stuns} stun{'s' if stuns != 1 else ''}"
+
+                print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s}{wound_str} | {position_str:15s} | {void_str}")
+                print(f"         \u2514\u2500 Faction: {faction}")
 
                 # Display equipped weapons (always show)
                 if hasattr(agent, 'equipped_weapons'):
@@ -3714,14 +4116,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                     if weapon_items:
                         weapon_str = " | ".join(weapon_items)
-                        print(f"         └─ Equipped: {weapon_str}")
+                        print(f"         \u2514\u2500 Equipped: {weapon_str}")
 
                     # Show carried weapons if any
                     if hasattr(agent, 'weapon_inventory') and agent.weapon_inventory:
                         carried_items = [f"{w.name} [{w.damage_type.upper()}]" for w in agent.weapon_inventory[:2]]  # Show first 2
                         if carried_items:
                             carried_str = " | ".join(carried_items)
-                            print(f"         └─ Carried: {carried_str}")
+                            print(f"         \u2514\u2500 Carried: {carried_str}")
 
                 # Display full inventory (all items)
                 inventory_items = []
@@ -3749,7 +4151,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     # Show all inventory items
                     if inventory_items:
                         inv_str = " | ".join(inventory_items)
-                        print(f"         └─ Inventory: {inv_str}")
+                        print(f"         \u2514\u2500 Inventory: {inv_str}")
 
                 # Display energy purse (currency and seeds)
                 if hasattr(agent.character_state, 'energy_purse') and agent.character_state.energy_purse:
@@ -3769,7 +4171,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                     if currency_parts:
                         currency_str = " | ".join(currency_parts)
-                        print(f"         └─ Energy: {currency_str}")
+                        print(f"         \u2514\u2500 Energy: {currency_str}")
 
                     # Display seeds (if any)
                     if energy_purse.seeds:
@@ -3800,7 +4202,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                         seed_parts = [f"{name}:{count}" for name, count in seed_counts.items()]
                         seed_str = " | ".join(seed_parts)
-                        print(f"         └─ Seeds: {seed_str}")
+                        print(f"         \u2514\u2500 Seeds: {seed_str}")
 
                 # Display Soulcredit
                 if hasattr(agent.character_state, 'soulcredit'):
@@ -3819,9 +4221,29 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     else:
                         sc_status = "Sanctioned"
 
-                    print(f"         └─ Soulcredit: {sc:+d}/10 ({sc_status})")
+                    print(f"         \u2514\u2500 Soulcredit: {sc:+d}/10 ({sc_status})")
 
-        # Display Enemies
+                # Display conditions from mechanics engine (Spec 12)
+                agent_id = getattr(agent, 'agent_id', None)
+                pc_conditions = []
+                if agent_id and mechanics and hasattr(mechanics, 'get_conditions'):
+                    pc_conditions = mechanics.get_conditions(agent_id)
+                if not pc_conditions:
+                    # Fallback: check agent directly
+                    pc_conditions = getattr(agent, 'conditions', [])
+                if pc_conditions:
+                    cond_strs = []
+                    for cond in pc_conditions[:5]:
+                        if hasattr(cond, 'name') and hasattr(cond, 'penalty'):
+                            penalty_str = f"{cond.penalty:+d}" if cond.penalty != 0 else ""
+                            duration_str = f" ({cond.duration}r)" if hasattr(cond, 'duration') and cond.duration > 0 else ""
+                            cond_strs.append(f"{cond.name}{penalty_str}{duration_str}")
+                        elif isinstance(cond, str):
+                            cond_strs.append(cond)
+                    if cond_strs:
+                        print(f"         \u2514\u2500 Conditions: {', '.join(cond_strs)}")
+
+        # Display Enemies (Spec 12: expanded detail display)
         if enemies:
             print("\n  Enemies:")
             for init, agent in enemies:
@@ -3834,7 +4256,57 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 position = getattr(agent, 'position', 'Unknown')
                 position_str = str(position) if position != 'Unknown' else 'Unknown'
 
-                print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
+                # Void score (enemies have void_score at enemy_agent.py:329)
+                void_score = getattr(agent, 'void_score', 0)
+                void_str = f"Void {void_score}/10" if void_score > 0 else ""
+
+                # Wounds and stuns (Spec 12)
+                wounds = getattr(agent, 'wounds', 0)
+                stuns = getattr(agent, 'stuns', 0)
+                damage_str = ""
+                if wounds > 0 or stuns > 0:
+                    parts = []
+                    if wounds > 0:
+                        parts.append(f"{wounds}w")
+                    if stuns > 0:
+                        parts.append(f"{stuns}s")
+                    damage_str = f" ({', '.join(parts)})"
+
+                # Main line
+                void_suffix = f" | {void_str}" if void_str else ""
+                print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s}{damage_str} | {position_str:15s}{void_suffix}")
+
+                # Faction
+                faction = getattr(agent, 'faction', 'Unknown')
+                if faction != "Unknown":
+                    print(f"         +-- Faction: {faction}")
+
+                # Weapons (enemies have weapons list at enemy_agent.py:335)
+                weapons = getattr(agent, 'weapons', [])
+                if weapons:
+                    weapon_strs = []
+                    for wpn in weapons[:3]:  # Show first 3 weapons
+                        dmg_type = getattr(wpn, 'damage_type', 'wound').upper()
+                        weapon_strs.append(f"{wpn.name} [{dmg_type}]")
+                    print(f"         +-- Weapons: {' | '.join(weapon_strs)}")
+
+                # Status effects (enemies have status_effects: List[str])
+                status_effects = getattr(agent, 'status_effects', [])
+                if status_effects:
+                    effects_str = ", ".join(status_effects[:5])  # Show first 5
+                    print(f"         +-- Status: {effects_str}")
+
+                # Conditions (Condition objects, if the enemy has them)
+                conditions = getattr(agent, 'conditions', [])
+                if conditions:
+                    cond_strs = []
+                    for cond in conditions[:3]:
+                        if hasattr(cond, 'name') and hasattr(cond, 'penalty'):
+                            penalty_str = f"{cond.penalty:+d}" if cond.penalty != 0 else ""
+                            duration_str = f" ({cond.duration}r)" if hasattr(cond, 'duration') and cond.duration > 0 else ""
+                            cond_strs.append(f"{cond.name}{penalty_str}{duration_str}")
+                    if cond_strs:
+                        print(f"         +-- Conditions: {', '.join(cond_strs)}")
 
         # Display NPCs (non-combatants in initiative order)
         if npcs:
@@ -3849,24 +4321,146 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 entity_type = getattr(npc, 'entity_type', 'neutral')
                 disposition = getattr(npc, 'disposition', 'neutral')
 
-                # Format disposition with emoji
-                disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(disposition, "❓")
+                # Format disposition with emoji (use module-level constant)
+                disp_emoji = NPC_DISPOSITION_EMOJI.get(disposition, NPC_DISPOSITION_DEFAULT_EMOJI)
                 status_str = f"{disp_emoji} {disposition}"
 
                 # Active status
                 is_active = getattr(npc, 'is_active', True)
                 active_indicator = "" if is_active else " [INACTIVE]"
 
-                print(f"    [--] {npc.name:20s} | {health_str:12s} | {status_str:15s}{active_indicator}")
-                print(f"         └─ Faction: {npc.faction} | Threat: {npc.threat_level}")
+                # Wounds and stuns (Spec 12)
+                wounds = getattr(npc, 'wounds', 0)
+                stuns = getattr(npc, 'stuns', 0)
+                damage_str = ""
+                if wounds > 0 or stuns > 0:
+                    parts = []
+                    if wounds > 0:
+                        parts.append(f"{wounds}w")
+                    if stuns > 0:
+                        parts.append(f"{stuns}s")
+                    damage_str = f" ({', '.join(parts)})"
 
-        # Display clock states if available
+                # Use actual initiative value (Spec 12: fix [--] -> actual value)
+                print(f"    [{init:2d}] {npc.name:20s} | {health_str:12s}{damage_str} | {status_str:15s}{active_indicator}")
+                print(f"         \u2514\u2500 Faction: {npc.faction} | Threat: {npc.threat_level}")
+
+                # Conditions (Spec 12)
+                conditions = getattr(npc, 'conditions', [])
+                if conditions:
+                    cond_strs = []
+                    for cond in conditions[:3]:
+                        if hasattr(cond, 'name') and hasattr(cond, 'penalty'):
+                            penalty_str = f"{cond.penalty:+d}" if cond.penalty != 0 else ""
+                            duration_str = f" ({cond.duration}r)" if hasattr(cond, 'duration') and cond.duration > 0 else ""
+                            cond_strs.append(f"{cond.name}{penalty_str}{duration_str}")
+                    if cond_strs:
+                        print(f"         \u2514\u2500 Conditions: {', '.join(cond_strs)}")
+
+        # Display clock states with progress bars (Spec 12)
         if mechanics and mechanics.scene_clocks:
             print("\n  Scene Clocks:")
             for name, clock in mechanics.scene_clocks.items():
                 status = f"{clock.current}/{clock.maximum}"
                 filled_str = " [FILLED]" if clock.filled else ""
-                print(f"    • {name}: {status}{filled_str}")
+                progress_bar = _format_clock_progress_bar(clock.current, clock.maximum)
+                print(f"    \u2022 {name}: {progress_bar} {status}{filled_str}")
+
+        # Display environmental objects if present (Spec 12)
+        if self.shared_state and self.shared_state.current_env_objects:
+            print("\n  Environmental Objects:")
+            for env_obj in self.shared_state.current_env_objects:
+                # Object type label
+                obj_type = getattr(env_obj, 'object_type', None)
+                type_label = obj_type.value.upper() if obj_type and hasattr(obj_type, 'value') else "OBJECT"
+
+                # Health (if destructible)
+                health_str = ""
+                if hasattr(env_obj, 'health') and env_obj.health is not None:
+                    max_hp = getattr(env_obj, 'max_health', env_obj.health)
+                    health_str = f" | {env_obj.health}/{max_hp} HP"
+                    if hasattr(env_obj, 'is_destroyed') and env_obj.is_destroyed:
+                        health_str += " [DESTROYED]"
+
+                # Target ID or object ID
+                id_str = ""
+                if hasattr(env_obj, 'target_id') and env_obj.target_id:
+                    id_str = f" [{env_obj.target_id}]"
+                elif hasattr(env_obj, 'object_id') and env_obj.object_id:
+                    id_str = f" [{env_obj.object_id}]"
+
+                # State summary (key state flags)
+                state_str = ""
+                obj_state = getattr(env_obj, 'state', None)
+                if obj_state:
+                    state_parts = []
+                    for key, value in obj_state.items():
+                        if key in ('destroyed', 'functional'):
+                            continue  # Skip meta-state, shown via [DESTROYED]
+                        if isinstance(value, bool):
+                            if value:
+                                state_parts.append(key)
+                        else:
+                            state_parts.append(f"{key}={value}")
+                    if state_parts:
+                        state_str = f" ({', '.join(state_parts)})"
+
+                print(f"    {type_label:10s}{id_str} {env_obj.name}{health_str}{state_str}")
+
+        # Display target ID mapping table (Spec 12: when free targeting is active)
+        if self.shared_state:
+            target_id_mapper = self.shared_state.get_target_id_mapper()
+            if target_id_mapper and target_id_mapper.enabled:
+                all_ids = target_id_mapper.get_all_target_ids()
+                if all_ids:
+                    print("\n  Target ID Reference:")
+                    for tid in sorted(all_ids):
+                        info = target_id_mapper.get_combatant_info(tid)
+                        if info:
+                            type_label = info.get('type', 'unknown')
+                            name = info.get('name', 'Unknown')
+                            # Type tag for quick scanning
+                            if type_label == 'player':
+                                type_tag = "PC"
+                            elif type_label == 'enemy':
+                                type_tag = "ENEMY"
+                            elif type_label == 'npc':
+                                type_tag = "NPC"
+                            elif type_label == 'vendor':
+                                type_tag = "VENDOR"
+                            elif type_label == 'env_object':
+                                type_tag = "OBJECT"
+                            else:
+                                type_tag = type_label.upper()
+
+                            print(f"    {tid} -> {name:25s} ({type_tag})")
+
+        # Display range-band map (Spec 12)
+        all_combatants = list(initiative_order)
+        if all_combatants:
+            # Group combatants by position
+            position_groups = {}
+            for init, agent_type, agent in all_combatants:
+                pos = getattr(agent, 'position', None)
+                if pos is None:
+                    pos_str = "Unknown"
+                else:
+                    pos_str = str(pos)
+                if pos_str not in position_groups:
+                    position_groups[pos_str] = []
+                # Get display name
+                if agent_type == 'player' and hasattr(agent, 'character_state'):
+                    display_name = agent.character_state.name
+                else:
+                    display_name = getattr(agent, 'name', 'Unknown')
+                type_tag = {"player": "PC", "enemy": "E", "npc": "NPC"}.get(agent_type, "?")
+                position_groups[pos_str].append(f"{display_name} [{type_tag}]")
+
+            if position_groups:
+                print("\n  Range-Band Map:")
+                for pos_name, agents_at_pos in position_groups.items():
+                    agents_str = ", ".join(agents_at_pos)
+                    print(f"    {pos_name:15s} : {agents_str}")
 
         print()
 
@@ -4989,6 +5583,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         is_free = message.payload.get('is_free_action', False)
         logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
 
+        # Store defence_token on agent from player declaration (Spec 04)
+        defence_token = message.payload.get('defence_token')
+        if defence_token:
+            player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+            if player_agent and hasattr(player_agent, 'defence_token'):
+                player_agent.defence_token = defence_token
+                logger.info(f"{agent_id} watching {defence_token}")
+
         # PRE-VALIDATE AND EXECUTE PURCHASE ACTIONS (before DM sees them)
         # This prevents phantom purchases where DM narrates success but mechanics fail
         action_payload = message.payload
@@ -5457,41 +6059,76 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             adv = synthesis.story_advancement
             logger.info(f"Story advancement: {adv.location} - {adv.situation}")
 
-            # Selectively clear clocks named in clear_specific_clocks (empty = keep all)
-            if mechanics and mechanics.scene_clocks and adv.clear_specific_clocks:
-                for clock_name in adv.clear_specific_clocks:
+            # Clock persistence: keep_clocks names clocks to preserve across story advancement.
+            # Default (empty keep_clocks) = clear ALL clocks (major transition behavior).
+            # Non-empty keep_clocks = clear everything NOT in the list.
+            if mechanics and mechanics.scene_clocks:
+                keep_set = set(getattr(adv, 'keep_clocks', []) or [])
+
+                clocks_to_remove = [
+                    name for name in mechanics.scene_clocks
+                    if name not in keep_set
+                ]
+
+                for clock_name in clocks_to_remove:
+                    clock = mechanics.scene_clocks[clock_name]
+
+                    if mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+                    mechanics.clock_history.append({
+                        'event_type': 'removed',
+                        'clock_name': clock_name,
+                        'round': mechanics.current_round,
+                        'current': clock.current,
+                        'max': clock.maximum,
+                        'description': clock.description,
+                        'removal_reason': 'story_advancement'
+                    })
+
+                # Remove non-kept clocks
+                for clock_name in clocks_to_remove:
+                    del mechanics.scene_clocks[clock_name]
+
+                # Log kept clocks as persisted through story advancement
+                for clock_name in keep_set:
                     if clock_name in mechanics.scene_clocks:
                         clock = mechanics.scene_clocks[clock_name]
-
                         if mechanics.jsonl_logger:
                             mechanics.jsonl_logger.log_event(
-                                event_type="clock_removal",
+                                event_type="clock_update",
                                 data={
                                     "clock_name": clock_name,
                                     "current_ticks": clock.current,
                                     "maximum_ticks": clock.maximum,
                                     "description": clock.description,
-                                    "removal_reason": "story_advancement",
-                                    "expiration_type": None,
-                                    "filled": clock.filled,
-                                    "consequence_triggered": False
+                                    "update_reason": "persisted_through_story_advancement"
                                 },
                                 round_num=mechanics.current_round
                             )
-                        mechanics.clock_history.append({
-                            'event_type': 'removed',
-                            'clock_name': clock_name,
-                            'round': mechanics.current_round,
-                            'current': clock.current,
-                            'max': clock.maximum,
-                            'description': clock.description,
-                            'removal_reason': 'story_advancement'
-                        })
 
-                        del mechanics.scene_clocks[clock_name]
-                        logger.info(f"Cleared clock: {clock_name}")
-                    else:
-                        logger.debug(f"Clock '{clock_name}' not found (already cleared or never existed)")
+                kept_count = len(keep_set & set(mechanics.scene_clocks.keys()))
+                removed_count = len(clocks_to_remove)
+                if kept_count > 0:
+                    kept_names = list(mechanics.scene_clocks.keys())
+                    logger.info(
+                        f"Cleared {removed_count} clocks for story advancement, "
+                        f"kept {kept_count}: {kept_names}"
+                    )
+                else:
+                    logger.info(f"Cleared {removed_count} clocks for story advancement")
 
             # Update environmental void_level if specified
             if adv.new_void_level is not None:
@@ -5741,7 +6378,7 @@ NO conversions/morale checks needed (scene just started).
                                 void_score=0,
                                 skills=npc_spawn.skills or {},
                                 agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None,
-                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                llm_provider=self._get_npc_llm_provider()  # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                             )
 
                             self.shared_state.npc_agents.append(npc)
