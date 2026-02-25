@@ -31,6 +31,85 @@ from .awareness import filter_narrations_for_agent, NarrationEntry
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# RANGE & MOVEMENT UTILITIES (Spec 09)
+# =============================================================================
+
+# Keywords that indicate defensive/evasive intent (dodge-as-movement)
+_DODGE_KEYWORDS = frozenset({
+    'dodge', 'evade', 'take cover', 'duck', 'dive', 'roll away',
+    'seek cover', 'find cover', 'get behind cover', 'defensive stance',
+    'brace', 'hunker down',
+})
+
+
+def compute_dodge_defense_bonus(player, action: dict) -> int:
+    """Compute an agility-based defense bonus for dodge/cover declarations.
+
+    When a player declares an evasive action (dodge, take cover, etc.),
+    they receive a defense bonus equal to their Agility attribute value
+    divided by 2 (rounded down, minimum 1 if dodging).
+
+    Args:
+        player: AIPlayerAgent (or mock) with character_state.attributes
+        action: Action dict with 'intent' field
+
+    Returns:
+        Defense bonus (int). 0 if action is not a dodge/cover declaration.
+    """
+    intent = (action.get('intent') or '').lower()
+    if not intent:
+        return 0
+
+    # Check if intent contains any dodge keyword
+    is_dodge = any(keyword in intent for keyword in _DODGE_KEYWORDS)
+
+    if not is_dodge:
+        return 0
+
+    # Get agility attribute
+    agility = 3  # Default
+    char_state = getattr(player, 'character_state', None)
+    if char_state:
+        attrs = getattr(char_state, 'attributes', {})
+        if isinstance(attrs, dict):
+            agility = attrs.get('Agility', 3)
+        else:
+            agility = getattr(attrs, 'Agility', 3)
+
+    # Bonus = Agility // 2, minimum 1 for any dodge declaration
+    bonus = max(1, agility // 2)
+    return bonus
+
+
+def apply_intra_round_position_update(agent, new_position_str: str) -> None:
+    """Apply a position change to an agent immediately (intra-round update).
+
+    This function is called during the resolution loop to update an agent's
+    position so that subsequent resolutions within the same round use the
+    updated position for range calculations.
+
+    Args:
+        agent: Any agent with a position attribute (player, enemy, NPC)
+        new_position_str: Position string like "Far-PC", "Engaged", etc.
+    """
+    from .enemy_agent import Position as TacticalPosition
+
+    old_position = getattr(agent, 'position', None)
+    new_position = TacticalPosition.from_string(new_position_str)
+    agent.position = new_position
+
+    agent_name = ''
+    if hasattr(agent, 'character_state') and agent.character_state:
+        agent_name = getattr(agent.character_state, 'name', '')
+    elif hasattr(agent, 'name'):
+        agent_name = agent.name
+
+    logger.info(
+        f"Intra-round position update: {agent_name} "
+        f"{old_position} -> {new_position}"
+    )
+
 
 def _parse_surrender_from_resolution(
     resolution_data: Dict[str, Any],

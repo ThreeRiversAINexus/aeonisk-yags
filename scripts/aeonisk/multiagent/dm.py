@@ -7809,6 +7809,120 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
         return "--- SESSION CONTEXT ---\n" + "\n\n".join(parts) + "\n--- END SESSION CONTEXT ---"
 
+    def _build_combatant_list_with_range(self, acting_agent_id: str) -> str:
+        """
+        Build combatant list with range information for the acting agent.
+
+        Shows each combatant with:
+        - Target ID, name, faction, health
+        - Position (ring-side)
+        - Range from acting agent (Engaged/Near/Far/Extreme)
+        - Attack penalty at that range
+
+        Args:
+            acting_agent_id: The agent_id of the acting agent (perspective for range calc)
+
+        Returns:
+            Formatted combatant list string with range info.
+        """
+        if not self.shared_state:
+            return ""
+
+        from .enemy_agent import Position as TacticalPosition
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper or not target_id_mapper.enabled:
+            return ""
+
+        # Determine the acting agent's position
+        acting_position = None
+        acting_agent = self.shared_state.get_agent_by_id(acting_agent_id)
+        if acting_agent and hasattr(acting_agent, 'position'):
+            acting_position = acting_agent.position
+
+        if acting_position is None:
+            acting_position = TacticalPosition.from_string("Near-PC")
+
+        all_target_ids = target_id_mapper.get_all_target_ids()
+        if not all_target_ids:
+            return ""
+
+        combatant_lines = []
+        for tid in sorted(all_target_ids):
+            info = target_id_mapper.get_combatant_info(tid)
+            if not info:
+                continue
+
+            pronouns = info.get('pronouns', 'they/them')
+            faction = info.get('faction', 'Unknown')
+
+            # Determine state tag (Spec 03)
+            state_tag = _get_combatant_state_tag(info, tid, self.shared_state)
+
+            # Get target position and calculate range
+            target_position = None
+            target_agent = self.shared_state.get_agent_by_id(info.get('agent_id', ''))
+            if target_agent and hasattr(target_agent, 'position'):
+                target_position = target_agent.position
+
+            # Calculate range from acting agent to this target
+            range_str = ""
+            if target_position:
+                try:
+                    range_name, range_penalty = acting_position.calculate_range(target_position)
+                    if range_penalty == 0:
+                        penalty_str = "(no penalty)"
+                    else:
+                        penalty_str = f"({range_penalty:+d})"
+                    range_str = f" | Range: {range_name} {penalty_str}"
+                except Exception:
+                    range_str = " | Range: Unknown"
+
+            # Build health text
+            health_text = ""
+            if info['type'] == 'player' and target_agent and hasattr(target_agent, 'health'):
+                health_text = f"{target_agent.health}/{target_agent.max_health} HP"
+                wounds_text = f", {target_agent.wounds}w" if getattr(target_agent, 'wounds', 0) > 0 else ""
+                health_text = f"{health_text}{wounds_text}"
+            elif info['type'] == 'enemy' and target_agent:
+                hp = getattr(target_agent, 'health', '?')
+                max_hp = getattr(target_agent, 'max_health', '?')
+                health_text = f"{hp}/{max_hp} HP"
+
+            # Position text
+            position_text = str(target_position) if target_position else "Unknown"
+
+            combatant_lines.append(
+                f"  - [{tid}] {info['name']} "
+                f"({pronouns}, {faction}, {info['type']}) "
+                f"| Pos: {position_text}{range_str} "
+                f"| {health_text} "
+                f"{state_tag}"
+            )
+
+        if not combatant_lines:
+            return ""
+
+        result = "\n\n**VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+        result += "**MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+        result += "**DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+        result += "**DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+        result += "\n".join(combatant_lines)
+        result += "\n\n**CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) <- Uses exact ID from list\n"
+        result += "**WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) <- Character name - FAILS!\n"
+        result += "**WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) <- Invented ID - FAILS!\n"
+        result += "\n**TIP:** Character names go in NARRATION only, NOT in target= fields.\n"
+        # Anti-misbinding instruction (Spec 03 Layer 3)
+        result += "\n"
+        result += "**TARGETING RULE:** When a player declares an attack against "
+        result += "'enemies', 'threats', or 'hostiles', resolve the target to an "
+        result += "entity tagged [ACTIVE], NOT one tagged [PRISONER], [DEFEATED], "
+        result += "[UNCONSCIOUS], [FLEEING], or [NON-COMBATANT]. "
+        result += "Only resolve to non-active targets if the player EXPLICITLY "
+        result += "names or describes targeting that specific entity."
+
+        return result
+
     async def _build_resolution_prompt(
         self,
         player_id: str,

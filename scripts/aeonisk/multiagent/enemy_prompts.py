@@ -476,12 +476,12 @@ def _format_battlefield(
 {"=" * 60}"""
 
     if free_targeting and target_id_mapper:
-        # FREE TARGETING MODE: Unified combatant list
+        # FREE TARGETING MODE: Unified combatant list with range info
         section += "\n\n### Combatants in Combat Zone:"
 
         combatants = []
 
-        # Add all PCs
+        # Add all PCs with range from this enemy
         for pc in player_agents:
             tgt_id = target_id_mapper.get_target_id(getattr(pc, 'agent_id', None))
             if tgt_id:
@@ -493,15 +493,39 @@ def _format_battlefield(
                 pc_health = getattr(pc, 'health', 0)
                 pc_max_health = getattr(pc, 'max_health', 0)
 
-                combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position} | {pc_health}/{pc_max_health} HP")
+                # Calculate range from this enemy to the PC (Spec 09)
+                range_str = ""
+                try:
+                    pc_tac_pos = Position.from_string(pc_position)
+                    range_name, range_penalty = enemy.position.calculate_range(pc_tac_pos)
+                    if range_penalty == 0:
+                        range_str = f" | Range: {range_name} (no penalty)"
+                    else:
+                        range_str = f" | Range: {range_name} ({range_penalty:+d})"
+                except Exception:
+                    range_str = " | Range: Unknown"
 
-        # Add all other active enemies (including self)
+                combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position}{range_str} | {pc_health}/{pc_max_health} HP")
+
+        # Add all other active enemies (including self) with range
         for other_enemy in enemy_agents:
             if other_enemy.is_active:
                 tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
                 if tgt_id:
                     enemy_faction = getattr(other_enemy, 'faction', 'Unknown')
-                    combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
+
+                    # Calculate range from this enemy to the other combatant (Spec 09)
+                    range_str = ""
+                    try:
+                        range_name, range_penalty = enemy.position.calculate_range(other_enemy.position)
+                        if range_penalty == 0:
+                            range_str = f" | Range: {range_name} (no penalty)"
+                        else:
+                            range_str = f" | Range: {range_name} ({range_penalty:+d})"
+                    except Exception:
+                        range_str = " | Range: Unknown"
+
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position}{range_str} | {other_enemy.health}/{other_enemy.max_health} HP")
 
         section += "\n" + "\n".join(combatants)
 

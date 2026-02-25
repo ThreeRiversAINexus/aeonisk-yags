@@ -72,6 +72,53 @@ def format_story_beat(
     return beat
 
 
+def build_position_context(player) -> str:
+    """Build position context showing player's current location and ranges to targets.
+
+    Used by player prompts to show tactical positioning information.
+    Returns empty string if the player has no position attribute.
+
+    Args:
+        player: AIPlayerAgent (or mock with position, shared_state, character_state)
+
+    Returns:
+        String with position info and range penalties to all known targets.
+    """
+    if not hasattr(player, 'position') or not player.position:
+        return ""
+
+    from .enemy_agent import Position as TacticalPosition
+
+    lines = [f"**Your Position:** {player.position}"]
+
+    # Range penalty reference
+    lines.append("**Range Penalties:** Engaged/Melee +0 | Near -2 | Far -4 | Extreme -6")
+
+    # Calculate ranges to all known targets
+    target_ranges = []
+    shared = getattr(player, 'shared_state', None)
+    if shared:
+        # Enemies
+        enemies = getattr(shared, 'enemy_agents', [])
+        for enemy in enemies:
+            enemy_pos = getattr(enemy, 'position', None)
+            if enemy_pos:
+                try:
+                    range_name, penalty = player.position.calculate_range(enemy_pos)
+                    penalty_str = f"({penalty:+d})" if penalty != 0 else "(no penalty)"
+                    target_ranges.append(
+                        f"  - {enemy.name}: {range_name} {penalty_str}"
+                    )
+                except Exception:
+                    target_ranges.append(f"  - {enemy.name}: Unknown range")
+
+    if target_ranges:
+        lines.append("**Distances to Targets:**")
+        lines.extend(target_ranges)
+
+    return "\n".join(lines)
+
+
 def validate_player_skill(skill: Optional[str]) -> tuple:
     """Validate that a declared skill exists in SKILL_DATABASE.
 
