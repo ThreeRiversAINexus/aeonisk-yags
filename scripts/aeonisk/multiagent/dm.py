@@ -187,6 +187,225 @@ def _get_combatant_state_tag(
     return "[UNKNOWN]"
 
 
+def _get_attacker_strength(action: Optional[Dict[str, Any]], shared_state) -> int:
+    """
+    Get attacker's Strength attribute for damage calculation guidance.
+
+    Used by _build_weapon_context to provide base_damage formula to the DM.
+
+    Args:
+        action: Player action dict (must have 'agent_id')
+        shared_state: SharedState instance for player lookup
+
+    Returns:
+        Strength attribute value (default 3 if not found)
+    """
+    if not action or not shared_state:
+        return 3
+
+    agent_id = action.get('agent_id')
+    if not agent_id:
+        return 3
+
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == agent_id:
+            if hasattr(player, 'character_state') and player.character_state:
+                return player.character_state.attributes.get('Strength', 3)
+    return 3
+
+
+def _build_weapon_context(action: Optional[Dict[str, Any]], shared_state) -> str:
+    """
+    Build expanded weapon context block for DM resolution prompt.
+
+    Includes weapon stats (damage bonus, attack bonus) and base_damage guidance
+    anchored to the weapon's mechanical values, so the DM LLM generates
+    consistent base_damage instead of arbitrary values.
+
+    Args:
+        action: Player action dict
+        shared_state: SharedState instance
+
+    Returns:
+        Formatted weapon context string, or empty string if no weapon found
+    """
+    if not action or not shared_state:
+        return ""
+
+    if action.get('action_type') not in ('attack', 'combat', 'brawl'):
+        return ""
+
+    weapon_name, weapon_damage_type, weapon_obj = _resolve_weapon_and_damage_type(action, shared_state)
+
+    if weapon_name == "Unknown Weapon":
+        return ""
+
+    weapon_damage = weapon_obj.damage if weapon_obj else 0
+    weapon_attack = weapon_obj.attack if weapon_obj else 0
+    attacker_strength = _get_attacker_strength(action, shared_state)
+
+    context = (
+        f"\n\n**WEAPON CONTEXT (MECHANICAL):**\n"
+        f"Weapon: {weapon_name}\n"
+        f"Damage Type: {weapon_damage_type.upper()}\n"
+        f"Weapon Damage Bonus: {weapon_damage}\n"
+        f"Attack Bonus: {weapon_attack}\n"
+    )
+
+    # Include base_damage guidance with tier breakdown
+    base = attacker_strength + weapon_damage
+    context += (
+        f"\n**base_damage GUIDANCE:**\n"
+        f"Formula: Strength({attacker_strength}) + Weapon Damage({weapon_damage}) + margin_modifier\n"
+        f"- Marginal success (margin 0-4): base_damage = {base} (weapon + strength, no bonus)\n"
+        f"- Moderate success (margin 5-9): base_damage = {base + 3} (add partial margin)\n"
+        f"- Good success (margin 10-14): base_damage = {base + 6}\n"
+        f"- Excellent+ (margin 15+): base_damage = {base + 10}\n"
+        f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
+    )
+
+    return context
+
+
+def _execute_item_transfer(
+    source_agent_id: str,
+    target_agent_id: str,
+    currency_amounts: Optional[Dict[str, int]],
+    item_amounts: Optional[Dict[str, int]],
+    shared_state,
+) -> Dict[str, Any]:
+    """
+    Execute inter-agent transfer (any agent type to any agent type).
+
+    Supports: PC->PC, PC->NPC, NPC->PC, NPC->NPC currency and item transfers.
+
+    Args:
+        source_agent_id: Agent ID of the source (sender)
+        target_agent_id: Agent ID of the target (receiver)
+        currency_amounts: Dict of currency type -> amount (e.g. {"drip": 10})
+        item_amounts: Dict of inventory key -> count (e.g. {"med_kit": 1})
+        shared_state: SharedState instance for agent lookup
+
+    Returns:
+        Dict with "success" bool and details about what transferred
+    """
+    if not shared_state:
+        return {"success": False, "reason": "no shared state"}
+
+    # Find source and target agents
+    source = _find_agent_by_id(source_agent_id, shared_state)
+    target = _find_agent_by_id(target_agent_id, shared_state)
+
+    if not source:
+        return {"success": False, "reason": f"source agent '{source_agent_id}' not found"}
+    if not target:
+        return {"success": False, "reason": f"target agent '{target_agent_id}' not found"}
+
+    source_purse = _get_agent_purse(source)
+    target_purse = _get_agent_purse(target)
+    source_inv = _get_agent_inventory(source)
+    target_inv = _get_agent_inventory(target)
+
+    results = {"success": True, "currency": {}, "items": {}}
+
+    # Currency transfer
+    if currency_amounts:
+        if not source_purse or not target_purse:
+            return {"success": False, "reason": "source or target lacks energy purse"}
+
+        # Pre-validate all amounts
+        for currency_type, amount in currency_amounts.items():
+            current = getattr(source_purse, currency_type, 0)
+            if current < amount:
+                return {"success": False, "reason": f"insufficient {currency_type} (have {current}, need {amount})"}
+
+        # Execute transfers
+        success = source_purse.transfer_currencies_to(target_purse, currency_amounts)
+        if not success:
+            return {"success": False, "reason": "currency transfer failed"}
+        results["currency"] = currency_amounts
+
+    # Item transfer
+    if item_amounts:
+        if source_inv is None:
+            return {"success": False, "reason": "source has no inventory"}
+
+        # Pre-validate all items
+        for item_key, count in item_amounts.items():
+            if source_inv.get(item_key, 0) < count:
+                return {"success": False, "reason": f"insufficient {item_key} (have {source_inv.get(item_key, 0)}, need {count})"}
+
+        # Execute transfers
+        if target_inv is None:
+            # Create inventory for target if it doesn't have one
+            target_inv = {}
+            _set_agent_inventory(target, target_inv)
+
+        for item_key, count in item_amounts.items():
+            source_inv[item_key] -= count
+            target_inv[item_key] = target_inv.get(item_key, 0) + count
+            results["items"][item_key] = {"success": True, "count": count}
+
+    return results
+
+
+def _find_agent_by_id(agent_id: str, shared_state) -> Optional[Any]:
+    """Find any agent (player, NPC, or enemy) by agent_id."""
+    # Check players
+    for player in getattr(shared_state, 'player_agents', []):
+        if hasattr(player, 'agent_id') and player.agent_id == agent_id:
+            return player
+
+    # Check NPCs
+    for npc in getattr(shared_state, 'npc_agents', []):
+        if hasattr(npc, 'agent_id') and npc.agent_id == agent_id:
+            return npc
+
+    # Check enemies
+    enemy_combat = getattr(shared_state, 'enemy_combat', None)
+    if enemy_combat:
+        for enemy in getattr(enemy_combat, 'enemy_agents', []):
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                return enemy
+
+    return None
+
+
+def _get_agent_purse(agent) -> Optional['EnergyPurse']:
+    """Get energy purse from any agent type."""
+    # Player agents have character_state.energy_purse
+    if hasattr(agent, 'character_state') and agent.character_state:
+        return getattr(agent.character_state, 'energy_purse', None)
+
+    # NPCs have energy_purse directly
+    if hasattr(agent, 'energy_purse'):
+        return agent.energy_purse
+
+    return None
+
+
+def _get_agent_inventory(agent) -> Optional[Dict[str, int]]:
+    """Get inventory dict from any agent type."""
+    # Player agents have character_state.inventory
+    if hasattr(agent, 'character_state') and agent.character_state:
+        return getattr(agent.character_state, 'inventory', None)
+
+    # NPCs don't have a general inventory dict by default,
+    # but we can create one on the fly for item transfers
+    if hasattr(agent, '_inventory'):
+        return agent._inventory
+
+    return None
+
+
+def _set_agent_inventory(agent, inventory: Dict[str, int]):
+    """Set inventory dict on an agent (for NPCs that lack one)."""
+    if hasattr(agent, 'character_state') and agent.character_state:
+        agent.character_state.inventory = inventory
+    else:
+        agent._inventory = inventory
+
+
 def _get_active_protections(entity) -> List['Condition']:
     """
     Get active protection barriers/shields for an entity.
@@ -8342,17 +8561,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         combatant_list += "Only resolve to non-active targets if the player EXPLICITLY "
                         combatant_list += "names or describes targeting that specific entity."
 
-        # Build weapon context for combat actions
-        weapon_context = ""
-        if action and action.get('action_type') in ('attack', 'combat', 'brawl'):
-            weapon_name, weapon_damage_type, _ = _resolve_weapon_and_damage_type(action, self.shared_state)
-            if weapon_name != "Unknown Weapon":
-                weapon_context = (
-                    f"\n\n**WEAPON CONTEXT:**\n"
-                    f"Weapon: {weapon_name}\n"
-                    f"Damage Type: {weapon_damage_type.upper()}\n"
-                    f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
-                )
+        # Build weapon context for combat actions (includes mechanical stats + damage guidance)
+        weapon_context = _build_weapon_context(action, self.shared_state)
 
         # Build session context (SC history + in-round recap + narrative digest)
         mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None

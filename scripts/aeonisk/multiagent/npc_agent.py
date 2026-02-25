@@ -326,7 +326,18 @@ class NPCAgent:
     memory: 'NPCMemory' = field(default_factory=lambda: NPCMemory())
 
     def __post_init__(self):
-        """Initialize LLM client if not provided."""
+        """Initialize LLM client and energy purse if not provided."""
+        # Initialize energy purse if not provided (so NPCs can receive currency)
+        if self.energy_purse is None:
+            from .energy_economy import EnergyPurse
+            self.energy_purse = EnergyPurse(
+                breath=0,
+                drip=0,
+                grain=0,
+                spark=0,
+                seeds=[]
+            )
+
         if self.llm_client is None and self.can_act:
             try:
                 self.llm_client = NPCLLMClient(

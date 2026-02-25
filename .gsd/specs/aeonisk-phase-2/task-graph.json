@@ -1,0 +1,467 @@
+{
+  "feature": "aeonisk-phase-2",
+  "version": "2.0",
+  "generated": "2026-02-25T06:00:00-03:00",
+  "total_tasks": 17,
+  "estimated_duration_minutes": 2220,
+  "max_parallelization": 7,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Spec 14: Fix Conditions Pipeline",
+      "description": "Fix 6 bugs in the condition/modifier pipeline: (1) Extract target and protection_amount in structured_output_helpers.py:322-328, (2) Use LLM duration instead of hardcoded 3 in dm.py:5952,6424, (3) Add protection_amount to mechanics.py Condition dataclass, (4) Call tick_conditions() in session.py round cleanup, (5) Fix misleading prompt descriptions in 5 YAML files, (6) Return expired names from tick_conditions(). TDD: write test_condition_extraction.py, test_condition_duration.py, test_condition_ticking.py FIRST.",
+      "phase": "wave1_correctness",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_condition_extraction.py", "tests/unit/test_condition_duration.py", "tests/unit/test_condition_ticking.py"],
+        "modify": ["scripts/aeonisk/multiagent/structured_output_helpers.py", "scripts/aeonisk/multiagent/mechanics.py", "scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/session.py", "scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat.yaml", "scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_combat_with_suppression.yaml", "scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_resolution_support.yaml", "scripts/aeonisk/multiagent/schemas/shared_types.py"],
+        "read": [".claude/aeonisk_v2/14_CONDITIONS_MODIFIERS.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_condition_extraction.py tests/unit/test_condition_duration.py tests/unit/test_condition_ticking.py tests/unit/test_mechanics.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/unit/test_condition_ticking.py"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Spec 01: Fix NPC Combat & Logging",
+      "description": "Fix 3 bugs: (1) NPC double-logging — add is_npc guard in dm.py:_handle_adjudication_inner() ~2883 to skip generic logging for NPCs, (2) NPC 0-damage — create execute_npc_attack() in enemy_combat.py using NPCCombatProxy adapter that routes through _execute_attack(), extract estimate_attributes() to module level in agent_conversion.py, replace NPC attack block in dm.py:4942-5058, (3) Death state — add stun KO check (stuns>=6) to session.py:3062-3070 for both player and enemy snapshots. TDD: write test_npc_combat_logging.py FIRST.",
+      "phase": "wave1_correctness",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_npc_combat_logging.py"],
+        "modify": ["scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/enemy_combat.py", "scripts/aeonisk/multiagent/agent_conversion.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/01_NPC_COMBAT_AND_LOGGING.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_npc_combat_logging.py tests/unit/test_npc_agent.py tests/unit/test_agent_conversion.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 150,
+      "skills_required": ["python", "testing"],
+      "consumers": ["TASK-012"],
+      "integration_test": "tests/unit/test_npc_combat_logging.py"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Spec 02: Fix Enemy Lifecycle & Cleanup",
+      "description": "Fix enemy logging and lifecycle: (1) Remove redundant log_enemy_action() call in session.py:2292-2306, (2) Add log_combat_action() to _execute_suppress() in enemy_combat.py, (3) Deprecate log_enemy_action() in mechanics.py:542 with warnings.warn, (4) Add prune_inactive_enemies() method to EnemyCombatManager, (5) Call pruning at round boundaries in session.py. TDD: write test_enemy_lifecycle.py FIRST.",
+      "phase": "wave1_correctness",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_enemy_lifecycle.py"],
+        "modify": ["scripts/aeonisk/multiagent/session.py", "scripts/aeonisk/multiagent/enemy_combat.py", "scripts/aeonisk/multiagent/mechanics.py"],
+        "read": [".claude/aeonisk_v2/02_ENEMY_LIFECYCLE.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_enemy_lifecycle.py tests/unit/test_enemy_combat.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 90,
+      "skills_required": ["python", "testing"],
+      "consumers": ["TASK-015"],
+      "integration_test": "tests/unit/test_enemy_lifecycle.py"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Spec 03: Fix Target Validation & Free-Target Binding",
+      "description": "Fix DM free-target misbinding: (1) Add _get_combatant_state_tag() helper to dm.py, annotate combatant list with [ACTIVE]/[PRISONER]/[FLEEING] tags in dm.py:7535-7578, (2) Add semantic validation (STEP 5.5) in targeting_validation.py — warn on prisoner/unconscious targeting, (3) Add anti-misbinding DM prompt instruction, (4) Enrich get_combatant_info() in target_ids.py with is_active/is_prisoner/is_panicked/disposition fields, (5) Add get_combatant_status() method. TDD: write/extend test_target_validation.py FIRST.",
+      "phase": "wave1_correctness",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/target_ids.py", "scripts/aeonisk/multiagent/targeting_validation.py", "tests/unit/test_target_validation.py"],
+        "read": [".claude/aeonisk_v2/03_TARGET_VALIDATION.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_target_validation.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python", "testing"],
+      "consumers": ["TASK-012"],
+      "integration_test": "tests/unit/test_target_validation.py"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Spec 17: Clock Persistence Across Story Advancement",
+      "description": "Add keep_clocks field to StoryAdvancement schema: (1) Add keep_clocks: List[str] = Field(default_factory=list) to StoryAdvancement in schemas/story_events.py, (2) Replace blanket mechanics.scene_clocks.clear() in session.py:5209 with selective clearing that preserves clocks named in keep_clocks, (3) Log kept vs cleared clocks in JSONL. Small scope — schema change + ~20 lines of session logic. TDD: write test_clock_persistence.py FIRST.",
+      "phase": "wave2_independents",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_clock_persistence.py"],
+        "modify": ["scripts/aeonisk/multiagent/schemas/story_events.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/17_CLOCK_PERSISTENCE.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_clock_persistence.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python", "pydantic"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-006",
+      "title": "Spec 16: Adjudication Context Phase 3",
+      "description": "Complete adjudication context — Phase 3: faction relationships. Phases 0-2 already implemented (commit ee3305c8). Remaining work: inject faction relationship context into adjudication prompt when iff_enabled=true (benefits from Spec 06 but can use simple faction tracker independently). Add faction context section to DM resolution prompt in dm.py:7019-7615. TDD: write test_adjudication_context.py FIRST.",
+      "phase": "wave2_independents",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_adjudication_context.py"],
+        "modify": ["scripts/aeonisk/multiagent/dm.py"],
+        "read": [".claude/aeonisk_v2/16_ADJUDICATION_CONTEXT.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_adjudication_context.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 90,
+      "skills_required": ["python", "prompt-engineering"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-007",
+      "title": "Spec 15: Resolution Skip — Condition-Based Triggers",
+      "description": "Extend resolution skip with condition-based auto-skip: Phase 1 (hard auto-skip) and Phase 2 (DM narrative skip) already implemented. NEW: After Spec 14 conditions work, add auto-skip for agents with incapacitating conditions. In session.py:2140-2189, check mechanics.conditions[agent_id] for conditions with penalty >= -6 (Stunned threshold). If found, mark incapacitated in resolution_state and auto-skip. TDD: write test_resolution_skip_conditions.py FIRST.",
+      "phase": "wave2_independents",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["tests/unit/test_resolution_skip_conditions.py"],
+        "modify": ["scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/15_RESOLUTION_PHASE_SKIP.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_resolution_skip_conditions.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 60,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-008",
+      "title": "Spec 04: Defense Token Implementation",
+      "description": "Implement universal defense tokens for all agent types: (1) Add defense_token: Optional[str] to PlayerActionBase in schemas/player_action.py, (2) Add defense_token attribute to AIPlayerAgent in player.py, (3) Store player defense_token during declaration processing in session.py, (4) Check PC defense tokens in enemy_combat.py _execute_attack() (currently getattr returns None for PCs), (5) Add defense_token to NPCAction in npc_agent.py, (6) Add +1 Soak when defending partner in mechanics.py, (7) Update player combat prompts to encourage token usage. TDD: write test_defense_tokens.py FIRST.",
+      "phase": "wave3_tactical",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_defense_tokens.py"],
+        "modify": ["scripts/aeonisk/multiagent/schemas/player_action.py", "scripts/aeonisk/multiagent/player.py", "scripts/aeonisk/multiagent/npc_agent.py", "scripts/aeonisk/multiagent/enemy_combat.py", "scripts/aeonisk/multiagent/mechanics.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/04_DEFENSE_TOKENS.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_defense_tokens.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["TASK-015"],
+      "integration_test": "tests/unit/test_defense_tokens.py"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Spec 09: Range Bands & Movement Awareness",
+      "description": "Improve range band awareness and add dodge-as-movement: (1) Add range penalty info to player combat prompts, (2) Add range context to DM resolution prompts, (3) Add position/range info to enemy prompts (partially done), (4) Add dodge-as-movement option — agility check to avoid incoming damage, (5) Update intra-round position tracking so movement affects later resolutions. TDD: write test_range_awareness.py FIRST.",
+      "phase": "wave3_tactical",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_range_awareness.py"],
+        "modify": ["scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/player.py", "scripts/aeonisk/multiagent/enemy_agent.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/09_RANGE_MOVEMENT.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_range_awareness.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python", "prompt-engineering"],
+      "consumers": ["TASK-015"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-010",
+      "title": "Spec 10: Environmental Objects & Destructibles",
+      "description": "Make environmental objects mechanically targetable and destructible: (1) Add health, max_health, is_destructible, cover_value fields to EnvironmentalObject in shared_state.py, (2) Register env objects in TargetIDMapper (assign tgt_xxxx IDs), (3) Allow DamageEffect to target env objects, (4) Add HP reduction and destruction logic in session.py, (5) Cover degradation — reduce cover_value as HP decreases, (6) Show env object HP in DM combatant list. TDD: write test_env_objects.py FIRST.",
+      "phase": "wave3_tactical",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_env_objects.py"],
+        "modify": ["scripts/aeonisk/multiagent/shared_state.py", "scripts/aeonisk/multiagent/target_ids.py", "scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/10_ENVIRONMENTAL_OBJECTS.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_env_objects.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["TASK-015"],
+      "integration_test": "tests/unit/test_env_objects.py"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Spec 11: Experiment Infrastructure",
+      "description": "Per-role model config and legacy path audit: (1) Add agents.enemies.llm and agents.npcs.llm sections to session config schema, (2) Update generate_multi_llm_configs.py to support per-role model variation (--dm-model, --player-model, --enemy-model flags), (3) Update EnemyCombatManager to read enemy-specific LLM config instead of inheriting from DM, (4) Document which code paths use structured vs legacy resolution, (5) Add code path routing comments/markers. TDD: write test_experiment_infra.py FIRST.",
+      "phase": "wave3_tactical",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_experiment_infra.py"],
+        "modify": ["scripts/generate_multi_llm_configs.py", "scripts/aeonisk/multiagent/enemy_combat.py", "scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/11_EXPERIMENT_INFRA.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_experiment_infra.py tests/unit/test_session_config_validation.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 150,
+      "skills_required": ["python", "config-management"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-012",
+      "title": "Spec 05: Stealth System",
+      "description": "Full 7-phase stealth implementation: (1) Add is_hidden, stealth_dc, last_known_position to AIPlayerAgent, EnemyAgent, NPCAgent, (2) Implement hide check: Agility x Stealth + d20 vs Environment DC, (3) Implement detect check: Perception x Awareness + d20 vs stealth_dc, (4) Filter hidden agents from opposing target lists (allies still see each other), (5) Auto-break stealth on attack, (6) Add Scan minor action for active detection, (7) Add last_known_position tracking, (8) Add StealthChange to MechanicalEffects schema, (9) DM sets is_hidden via structured output, (10) First Strike: +2 damage from hidden, (11) Void interaction: void>=7 gives +5 detect bonus, void=10 stealth impossible, (12) NPC hide action triggers stealth check. TDD: write test_stealth.py FIRST.",
+      "phase": "wave2_sequential",
+      "level": 3,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_stealth.py"],
+        "modify": ["scripts/aeonisk/multiagent/enemy_agent.py", "scripts/aeonisk/multiagent/player.py", "scripts/aeonisk/multiagent/npc_agent.py", "scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/session.py", "scripts/aeonisk/multiagent/target_ids.py", "scripts/aeonisk/multiagent/awareness.py", "scripts/aeonisk/multiagent/schemas/shared_types.py", "scripts/aeonisk/multiagent/schemas/action_resolution.py", "scripts/aeonisk/multiagent/enemy_prompts.py"],
+        "read": [".claude/aeonisk_v2/05_STEALTH.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_stealth.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 240,
+      "skills_required": ["python", "pydantic", "prompt-engineering"],
+      "consumers": ["TASK-013"],
+      "integration_test": "tests/unit/test_stealth.py"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Spec 06: IFF/ROE Steps 5-8",
+      "description": "Complete IFF/ROE (Steps 1-4 already done on faction-politics branch): (5) Refactor SharedIntel from global broadcast to explicit recipients: Set[str] with tgt_xxxx IDs, add get_recent_intel_for_target(), (6) Add intel_recipients: Optional[List[str]] to EnemyDecision schema, (7) Add _get_intercepted_intel_for_pc() to dm.py — enemy intel accidentally shared with PC appears as INTERCEPTED COMMUNICATIONS, (8) Add enemy faction context prompt — 'You are {faction}. Determine allegiance from faction names.', add PC party context (party member tgt_xxxx list). Add iff_enabled config flag (default false) gating all changes. TDD: write/extend test_iff_roe.py FIRST.",
+      "phase": "wave2_sequential",
+      "level": 4,
+      "dependencies": ["TASK-012"],
+      "files": {
+        "create": [],
+        "modify": ["scripts/aeonisk/multiagent/enemy_agent.py", "scripts/aeonisk/multiagent/enemy_prompts.py", "scripts/aeonisk/multiagent/schemas/enemy_decision.py", "scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/session.py", "scripts/aeonisk/multiagent/enemy_combat.py", "tests/unit/test_iff_roe.py"],
+        "read": [".claude/aeonisk_v2/06_IFF_ROE.md", ".claude/aeonisk_v2/in_progress/06_IFF_ROE.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_iff_roe.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 180,
+      "skills_required": ["python", "pydantic", "prompt-engineering"],
+      "consumers": ["TASK-014"],
+      "integration_test": "tests/unit/test_iff_roe.py"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Spec 07: Inventory & Equipment Overhaul",
+      "description": "Fix inventory/equipment gaps: (1) Initialize NPC with EnergyPurse in npc_agent.py __post_init__ and in deescalate_enemy_to_npc(), (2) Formalize enemy loot — convert suggest_loot() string output into actual inventory additions via new acquire_loot() function, (3) Add weapon stats to DM resolution prompt (weapon.damage, weapon.attack), (4) Implement PC-to-NPC and NPC-to-PC item transfer, (5) Add find/pickup item action support. TDD: write test_inventory_equipment.py FIRST.",
+      "phase": "wave2_sequential",
+      "level": 5,
+      "dependencies": ["TASK-013"],
+      "files": {
+        "create": ["tests/unit/test_inventory_equipment.py"],
+        "modify": ["scripts/aeonisk/multiagent/npc_agent.py", "scripts/aeonisk/multiagent/agent_conversion.py", "scripts/aeonisk/multiagent/energy_economy.py", "scripts/aeonisk/multiagent/dm.py", "scripts/aeonisk/multiagent/player.py"],
+        "read": [".claude/aeonisk_v2/07_INVENTORY_EQUIPMENT.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_inventory_equipment.py tests/unit/test_energy_economy.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 180,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": "tests/unit/test_inventory_equipment.py"
+    },
+    {
+      "id": "TASK-015",
+      "title": "Spec 12: Display & Observability",
+      "description": "Improve session output for human observers: (1) Show full enemy action declarations and intended targets in stdout, (2) Show NPC action declarations (not truncated), (3) Display conditions in normal output for all combatant types, (4) Show NPC initiative values (not hardcoded [--]), (5) Add target ID mapping table in round status (tgt_xxxx -> name), (6) Show environmental objects in round summary, (7) Formatted range-band map display, (8) Clock progress bars, (9) Show wounds/stuns for enemies. TDD: write test_display_improvements.py FIRST.",
+      "phase": "wave4_polish",
+      "level": 6,
+      "dependencies": ["TASK-014", "TASK-010"],
+      "files": {
+        "create": ["tests/unit/test_display_improvements.py"],
+        "modify": ["scripts/aeonisk/multiagent/session.py"],
+        "read": [".claude/aeonisk_v2/12_DISPLAY_IMPROVEMENTS.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_display_improvements.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 120,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-016",
+      "title": "Spec 13: Bonds & Vendor Spawning",
+      "description": "Complete bond system and vendor spawning: (1) Initialize bonds=[] by default on character creation even if empty, (2) Add bonds_enabled: bool config flag (default true, opt-out), (3) Generate bond matrix by default for party_size >= 2, (4) Add bond formation/breaking as explicit player actions via Intimacy Ritual skill, (5) Prompt agents with bond matrix context, (6) Add DM prompt guidance for vendor spawning in appropriate scenes, (7) Initialize NPC vendor inventory with faction-appropriate items, (8) Live bond transition testing wiring. TDD: write test_bonds_vendors.py FIRST.",
+      "phase": "wave4_polish",
+      "level": 6,
+      "dependencies": ["TASK-014"],
+      "files": {
+        "create": ["tests/unit/test_bonds_vendors.py"],
+        "modify": ["scripts/aeonisk/multiagent/session.py", "scripts/aeonisk/multiagent/mechanics.py", "scripts/aeonisk/multiagent/npc_agent.py", "scripts/aeonisk/multiagent/player.py"],
+        "read": [".claude/aeonisk_v2/13_BONDS_AND_VENDORS.md"]
+      },
+      "verification": {
+        "command": "cd /home/p/Coding/aeonisk-yags && source .venv/bin/activate && python -m pytest tests/unit/test_bonds_vendors.py tests/unit/test_bond_system.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 150,
+      "skills_required": ["python", "pydantic", "prompt-engineering"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-017",
+      "title": "Quality: CHANGELOG.md Update",
+      "description": "Update CHANGELOG.md [Unreleased] section with all changes from Phase 2. Categories: Added (stealth system, defense tokens, env objects, IFF selective intel, inventory overhaul, range awareness, experiment infra, display improvements, bonds/vendors, clock persistence, adjudication context), Changed (conditions pipeline, NPC combat routing, enemy lifecycle, target validation, resolution skip), Fixed (NPC 0-damage, double-logging, free-target misbinding, condition duration, stun KO death state, enemy list spam).",
+      "phase": "quality",
+      "level": 7,
+      "dependencies": ["TASK-015", "TASK-016"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "test -f CHANGELOG.md && grep -c 'Unreleased' CHANGELOG.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "wave1_correctness",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 150,
+      "description": "Wave 1 P0: Fix fundamental mechanical correctness bugs. All parallel."
+    },
+    "2": {
+      "name": "wave2_independents_and_wave3",
+      "tasks": ["TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "parallel": true,
+      "estimated_minutes": 150,
+      "depends_on_levels": [1],
+      "description": "Wave 2 independents (clocks, adjudication, skip) + Wave 3 (defense, range, env, experiment). All parallel after Wave 1 gate."
+    },
+    "3": {
+      "name": "stealth",
+      "tasks": ["TASK-012"],
+      "parallel": false,
+      "estimated_minutes": 240,
+      "depends_on_levels": [1],
+      "description": "Stealth system — largest single spec. Full 7-phase implementation."
+    },
+    "4": {
+      "name": "iff_roe",
+      "tasks": ["TASK-013"],
+      "parallel": false,
+      "estimated_minutes": 180,
+      "depends_on_levels": [3],
+      "description": "IFF/ROE Steps 5-8. Depends on stealth (hidden agents bypass IFF)."
+    },
+    "5": {
+      "name": "inventory",
+      "tasks": ["TASK-014"],
+      "parallel": false,
+      "estimated_minutes": 180,
+      "depends_on_levels": [4],
+      "description": "Inventory & Equipment. Depends on IFF (faction determines vendor access)."
+    },
+    "6": {
+      "name": "wave4_polish",
+      "tasks": ["TASK-015", "TASK-016"],
+      "parallel": true,
+      "estimated_minutes": 150,
+      "depends_on_levels": [5],
+      "description": "Wave 4: Display improvements and bonds/vendor spawning."
+    },
+    "7": {
+      "name": "quality",
+      "tasks": ["TASK-017"],
+      "parallel": false,
+      "estimated_minutes": 30,
+      "depends_on_levels": [6],
+      "description": "CHANGELOG.md update."
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that modify the same files. Conflicts are managed by non-overlapping line ranges and sequential level execution.",
+    "conflicts": [
+      {
+        "tasks": ["TASK-001", "TASK-002"],
+        "file": "dm.py",
+        "regions": {"TASK-001": "~5952, ~6424", "TASK-002": "~2883, ~4942-5058"},
+        "risk": "low",
+        "resolution": "Non-overlapping line ranges, 2000+ lines apart"
+      },
+      {
+        "tasks": ["TASK-001", "TASK-002"],
+        "file": "session.py",
+        "regions": {"TASK-001": "~3219", "TASK-002": "~3062-3070"},
+        "risk": "low",
+        "resolution": "Non-overlapping line ranges, 150 lines apart"
+      },
+      {
+        "tasks": ["TASK-002", "TASK-003"],
+        "file": "enemy_combat.py",
+        "regions": {"TASK-002": "new execute_npc_attack()", "TASK-003": "new prune_inactive_enemies()"},
+        "risk": "low",
+        "resolution": "Both add new functions, non-overlapping"
+      },
+      {
+        "tasks": ["TASK-001", "TASK-003"],
+        "file": "mechanics.py",
+        "regions": {"TASK-001": "~1647 (Condition dataclass)", "TASK-003": "~542 (log_enemy_action)"},
+        "risk": "low",
+        "resolution": "Non-overlapping line ranges, 1100 lines apart"
+      },
+      {
+        "tasks": ["TASK-001", "TASK-004"],
+        "file": "dm.py",
+        "regions": {"TASK-001": "~5952, ~6424", "TASK-004": "~7535-7578"},
+        "risk": "low",
+        "resolution": "Non-overlapping line ranges, 1500+ lines apart"
+      }
+    ]
+  }
+}
