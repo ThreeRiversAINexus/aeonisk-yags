@@ -5472,41 +5472,76 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             adv = synthesis.story_advancement
             logger.info(f"Story advancement: {adv.location} - {adv.situation}")
 
-            # Selectively clear clocks named in clear_specific_clocks (empty = keep all)
-            if mechanics and mechanics.scene_clocks and adv.clear_specific_clocks:
-                for clock_name in adv.clear_specific_clocks:
+            # Clock persistence: keep_clocks names clocks to preserve across story advancement.
+            # Default (empty keep_clocks) = clear ALL clocks (major transition behavior).
+            # Non-empty keep_clocks = clear everything NOT in the list.
+            if mechanics and mechanics.scene_clocks:
+                keep_set = set(getattr(adv, 'keep_clocks', []) or [])
+
+                clocks_to_remove = [
+                    name for name in mechanics.scene_clocks
+                    if name not in keep_set
+                ]
+
+                for clock_name in clocks_to_remove:
+                    clock = mechanics.scene_clocks[clock_name]
+
+                    if mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+                    mechanics.clock_history.append({
+                        'event_type': 'removed',
+                        'clock_name': clock_name,
+                        'round': mechanics.current_round,
+                        'current': clock.current,
+                        'max': clock.maximum,
+                        'description': clock.description,
+                        'removal_reason': 'story_advancement'
+                    })
+
+                # Remove non-kept clocks
+                for clock_name in clocks_to_remove:
+                    del mechanics.scene_clocks[clock_name]
+
+                # Log kept clocks as persisted through story advancement
+                for clock_name in keep_set:
                     if clock_name in mechanics.scene_clocks:
                         clock = mechanics.scene_clocks[clock_name]
-
                         if mechanics.jsonl_logger:
                             mechanics.jsonl_logger.log_event(
-                                event_type="clock_removal",
+                                event_type="clock_update",
                                 data={
                                     "clock_name": clock_name,
                                     "current_ticks": clock.current,
                                     "maximum_ticks": clock.maximum,
                                     "description": clock.description,
-                                    "removal_reason": "story_advancement",
-                                    "expiration_type": None,
-                                    "filled": clock.filled,
-                                    "consequence_triggered": False
+                                    "update_reason": "persisted_through_story_advancement"
                                 },
                                 round_num=mechanics.current_round
                             )
-                        mechanics.clock_history.append({
-                            'event_type': 'removed',
-                            'clock_name': clock_name,
-                            'round': mechanics.current_round,
-                            'current': clock.current,
-                            'max': clock.maximum,
-                            'description': clock.description,
-                            'removal_reason': 'story_advancement'
-                        })
 
-                        del mechanics.scene_clocks[clock_name]
-                        logger.info(f"Cleared clock: {clock_name}")
-                    else:
-                        logger.debug(f"Clock '{clock_name}' not found (already cleared or never existed)")
+                kept_count = len(keep_set & set(mechanics.scene_clocks.keys()))
+                removed_count = len(clocks_to_remove)
+                if kept_count > 0:
+                    kept_names = list(mechanics.scene_clocks.keys())
+                    logger.info(
+                        f"Cleared {removed_count} clocks for story advancement, "
+                        f"kept {kept_count}: {kept_names}"
+                    )
+                else:
+                    logger.info(f"Cleared {removed_count} clocks for story advancement")
 
             # Update environmental void_level if specified
             if adv.new_void_level is not None:

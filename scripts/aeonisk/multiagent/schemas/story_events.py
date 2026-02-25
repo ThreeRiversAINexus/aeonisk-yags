@@ -252,6 +252,17 @@ Shorter descriptions feel rushed and unsatisfying. Longer descriptions create im
         description="New clocks to spawn with this story beat"
     )
 
+    keep_clocks: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Clock names to preserve across story advancement (e.g., "
+            "['Corporate Pursuit', 'Void Storm Approaching']). "
+            "Clocks NOT in this list are cleared. Empty list = clear all clocks "
+            "(default behavior for major transitions). Preserved clocks retain "
+            "their current tick progress."
+        )
+    )
+
     clear_specific_clocks: List[str] = Field(
         default_factory=list,
         description="Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene."

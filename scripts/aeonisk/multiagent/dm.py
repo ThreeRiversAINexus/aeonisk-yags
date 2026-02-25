@@ -7685,6 +7685,86 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
         return "\n".join(lines)
 
+    def _build_faction_context(self) -> str:
+        """Build faction relationship context for DM adjudication prompt.
+
+        Collects all combatants from the target_id_mapper, groups them by faction,
+        and produces a formatted block showing which factions are present on the
+        battlefield and what entity types belong to each.
+
+        This helps the DM reason about same-faction conflicts, cross-faction
+        alliances, and NPC neutrality without relying solely on faction labels.
+
+        Returns:
+            Formatted faction context string, or empty string if unavailable.
+        """
+        if not self.shared_state:
+            return ""
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper or not target_id_mapper.enabled:
+            return ""
+
+        all_target_ids = target_id_mapper.get_all_target_ids()
+        if not all_target_ids:
+            return ""
+
+        # Group entities by faction
+        # faction -> {type -> [entity_names]}
+        faction_groups: Dict[str, Dict[str, List[str]]] = {}
+
+        for tid in all_target_ids:
+            info = target_id_mapper.get_combatant_info(tid)
+            if not info:
+                continue
+
+            faction = info.get('faction', 'Unknown')
+            entity_type = info.get('type', 'unknown')
+            entity_name = info.get('name', 'Unknown')
+
+            if faction not in faction_groups:
+                faction_groups[faction] = {}
+            if entity_type not in faction_groups[faction]:
+                faction_groups[faction][entity_type] = []
+            faction_groups[faction][entity_type].append(entity_name)
+
+        if not faction_groups:
+            return ""
+
+        lines = ["FACTION CONTEXT (entities on battlefield by faction):"]
+
+        for faction in sorted(faction_groups.keys()):
+            type_groups = faction_groups[faction]
+            entity_parts = []
+
+            # Determine the relationship summary for this faction
+            has_party = 'player' in type_groups
+            has_enemy = 'enemy' in type_groups
+            has_npc = 'npc' in type_groups
+
+            for entity_type in sorted(type_groups.keys()):
+                names = type_groups[entity_type]
+                if len(names) == 1:
+                    entity_parts.append(f"{names[0]} ({entity_type})")
+                else:
+                    entity_parts.append(f"{', '.join(names)} ({entity_type}, {len(names)}x)")
+
+            # Build relationship note
+            if has_party and has_enemy:
+                relationship = " [INTERNAL CONFLICT — party member(s) and hostile(s) share this faction]"
+            elif has_party:
+                relationship = " [party faction]"
+            elif has_enemy:
+                relationship = " [hostile]"
+            elif has_npc:
+                relationship = " [neutral/non-combatant]"
+            else:
+                relationship = ""
+
+            lines.append(f"  {faction}{relationship}: {'; '.join(entity_parts)}")
+
+        return "\n".join(lines)
+
     def _build_session_context(
         self,
         agent_id: str,
@@ -7698,6 +7778,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         1. Acting character's SC history
         2. In-round action recap (earlier actions this round)
         3. Prior round narration digest
+        4. Faction relationship context (Phase 3)
         """
         parts = []
 
@@ -7717,6 +7798,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         digest = self._build_narrative_digest(current_round)
         if digest:
             parts.append(digest)
+
+        # 4. Faction relationship context (Phase 3)
+        faction_ctx = self._build_faction_context()
+        if faction_ctx:
+            parts.append(faction_ctx)
 
         if not parts:
             return ""

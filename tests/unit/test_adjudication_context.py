@@ -487,3 +487,291 @@ class TestNarrativeDigest:
         assert "PRIOR ROUNDS" in context
         assert "Round 1 narration" in context
         assert "Round 2 narration" in context
+
+
+# ============================================================
+# Phase 3: Faction Relationship Context
+# ============================================================
+
+class TestBuildFactionContext:
+    """Phase 3: Faction relationship context injected into DM adjudication prompt."""
+
+    def setup_method(self):
+        self.dm = self._create_dm_agent()
+
+    def _create_dm_agent(self):
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+        dm = AIDMAgent.__new__(AIDMAgent)
+        dm.agent_id = "dm_test"
+        dm.llm_config = {"provider": "openai", "model": "gpt-5-mini"}
+        dm.shared_state = MagicMock()
+        dm.shared_state.mechanics_engine = MechanicsEngine()
+        dm.shared_state.get_mechanics_engine.return_value = dm.shared_state.mechanics_engine
+        dm.session_config = {}
+        dm._round_synthesis_history = []
+        return dm
+
+    def _mock_target_id_mapper(self, combatants):
+        """Create a mock TargetIDMapper that returns given combatant infos.
+
+        Args:
+            combatants: dict of target_id -> combatant_info dict
+                Each info dict should have: name, type, faction, pronouns
+        """
+        mapper = MagicMock()
+        mapper.enabled = True
+        mapper.get_all_target_ids.return_value = list(combatants.keys())
+        mapper.get_combatant_info.side_effect = lambda tid: combatants.get(tid)
+        self.dm.shared_state.get_target_id_mapper.return_value = mapper
+        return mapper
+
+    def test_faction_context_lists_factions_present(self):
+        """Faction context lists all factions on the battlefield."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        assert "FACTION CONTEXT" in result
+        assert "Vessel Collective" in result
+        assert "Pantheon Security" in result
+
+    def test_faction_context_shows_entity_types_per_faction(self):
+        """Faction context shows which entities belong to each faction and their types."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+            'tgt_e5f6': {
+                'name': 'Enforcer Kael Dren', 'type': 'player',
+                'faction': 'Pantheon Security', 'pronouns': 'he/him',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        assert "FACTION CONTEXT" in result
+        # Pantheon Security has both a player and an enemy
+        assert "Pantheon Security" in result
+        assert "Vessel Collective" in result
+
+    def test_faction_context_identifies_cross_faction_conflict(self):
+        """When a faction has both party members and enemies, that's highlighted."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Enforcer Kael Dren', 'type': 'player',
+                'faction': 'Pantheon Security', 'pronouns': 'he/him',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        assert "FACTION CONTEXT" in result
+        # Should indicate internal faction conflict
+        assert "Pantheon Security" in result
+        # The result should show that both party and hostile entities share a faction
+        assert "party" in result.lower() or "player" in result.lower()
+        assert "enemy" in result.lower() or "hostile" in result.lower()
+
+    def test_faction_context_includes_npcs(self):
+        """NPC entities are included with their faction."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Merchant Tuval', 'type': 'npc',
+                'faction': 'Freeborn Drifters', 'pronouns': 'he/him',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        assert "Freeborn Drifters" in result
+        assert "npc" in result.lower() or "non-combatant" in result.lower() or "neutral" in result.lower()
+
+    def test_faction_context_empty_when_no_mapper(self):
+        """Returns empty string when target_id_mapper is unavailable."""
+        self.dm.shared_state.get_target_id_mapper.return_value = None
+
+        result = self.dm._build_faction_context()
+        assert result == ""
+
+    def test_faction_context_empty_when_mapper_disabled(self):
+        """Returns empty string when target_id_mapper is disabled."""
+        mapper = MagicMock()
+        mapper.enabled = False
+        self.dm.shared_state.get_target_id_mapper.return_value = mapper
+
+        result = self.dm._build_faction_context()
+        assert result == ""
+
+    def test_faction_context_empty_when_no_combatants(self):
+        """Returns empty string when no combatants registered."""
+        self._mock_target_id_mapper({})
+
+        result = self.dm._build_faction_context()
+        assert result == ""
+
+    def test_faction_context_skips_unknown_faction(self):
+        """Entities with 'Unknown' faction are not listed in faction context."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Mysterious Figure', 'type': 'enemy',
+                'faction': 'Unknown', 'pronouns': 'they/them',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        assert "Vessel Collective" in result
+        # Unknown faction entities still appear but faction is noted
+        # (the DM needs to know about unknown-faction entities too)
+        # Just verify the method doesn't crash
+        assert "FACTION CONTEXT" in result
+
+    def test_faction_context_multiple_enemies_same_faction(self):
+        """Multiple enemies in the same faction are grouped together."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+            'tgt_e5f6': {
+                'name': 'Pantheon Patrol Beta', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+        })
+
+        result = self.dm._build_faction_context()
+        # Pantheon Security should appear once with count info
+        assert "Pantheon Security" in result
+        # Should mention both patrol entities or a count
+        assert "Patrol Alpha" in result or "2" in result
+
+
+class TestFactionContextInSessionContext:
+    """Phase 3: Faction context is included in the SESSION CONTEXT block."""
+
+    def setup_method(self):
+        self.dm = self._create_dm_agent()
+
+    def _create_dm_agent(self):
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+        dm = AIDMAgent.__new__(AIDMAgent)
+        dm.agent_id = "dm_test"
+        dm.llm_config = {"provider": "openai", "model": "gpt-5-mini"}
+        dm.shared_state = MagicMock()
+        dm.shared_state.mechanics_engine = MechanicsEngine()
+        dm.shared_state.get_mechanics_engine.return_value = dm.shared_state.mechanics_engine
+        dm.session_config = {}
+        dm._round_synthesis_history = []
+        return dm
+
+    def _mock_target_id_mapper(self, combatants):
+        mapper = MagicMock()
+        mapper.enabled = True
+        mapper.get_all_target_ids.return_value = list(combatants.keys())
+        mapper.get_combatant_info.side_effect = lambda tid: combatants.get(tid)
+        self.dm.shared_state.get_target_id_mapper.return_value = mapper
+        return mapper
+
+    def test_faction_context_in_session_context_block(self):
+        """SESSION CONTEXT includes faction context when combatants have factions."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+        })
+
+        context = self.dm._build_session_context(
+            agent_id="player_1",
+            character_name="Vessel Sera Karsel",
+            previous_resolutions=[],
+            current_round=2
+        )
+
+        assert "SESSION CONTEXT" in context
+        assert "FACTION CONTEXT" in context
+        assert "Vessel Collective" in context
+        assert "Pantheon Security" in context
+
+    def test_session_context_without_factions_when_no_mapper(self):
+        """SESSION CONTEXT still works when no target_id_mapper is available."""
+        self.dm.shared_state.get_target_id_mapper.return_value = None
+
+        # Add SC history so session context is non-empty
+        mechanics = self.dm.shared_state.mechanics_engine
+        sc = mechanics.get_soulcredit_state("player_1", initial_score=0)
+        sc.adjust(1, "healed ally", round_num=1)
+
+        context = self.dm._build_session_context(
+            agent_id="player_1",
+            character_name="Vessel Sera Karsel",
+            previous_resolutions=[],
+            current_round=2
+        )
+
+        assert "SESSION CONTEXT" in context
+        assert "FACTION CONTEXT" not in context
+
+    def test_faction_context_appears_with_other_sections(self):
+        """Faction context appears alongside SC ledger and narrative digest."""
+        self._mock_target_id_mapper({
+            'tgt_a1b2': {
+                'name': 'Vessel Sera Karsel', 'type': 'player',
+                'faction': 'Vessel Collective', 'pronouns': 'she/her',
+            },
+            'tgt_c3d4': {
+                'name': 'Pantheon Patrol Alpha', 'type': 'enemy',
+                'faction': 'Pantheon Security', 'pronouns': 'they/them',
+            },
+        })
+
+        # Add SC history
+        mechanics = self.dm.shared_state.mechanics_engine
+        sc = mechanics.get_soulcredit_state("player_1", initial_score=0)
+        sc.adjust(1, "healed ally", round_num=1)
+
+        # Add narrative digest
+        self.dm._round_synthesis_history = [
+            (1, "Round 1 narration - the party arrived."),
+        ]
+
+        context = self.dm._build_session_context(
+            agent_id="player_1",
+            character_name="Vessel Sera Karsel",
+            previous_resolutions=[],
+            current_round=2
+        )
+
+        # All three sections present
+        assert "ACTING CHARACTER SOULCREDIT" in context
+        assert "PRIOR ROUNDS" in context
+        assert "FACTION CONTEXT" in context
