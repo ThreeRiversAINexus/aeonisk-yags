@@ -1474,12 +1474,21 @@ Generate narratives (numbered list only):"""
                 if p.is_alive and not getattr(p, '_permanently_dead', False)
             ]
 
-            # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
+            # Get current destructible environmental objects (not yet destroyed)
+            current_env_objects = []
+            if self.shared_state and self.shared_state.current_env_objects:
+                current_env_objects = [
+                    obj for obj in self.shared_state.current_env_objects
+                    if obj.is_destructible and not obj.is_destroyed
+                ]
+
+            # Assign IDs to all combatants, vendors, AND env objects
             target_id_mapper.assign_ids(
                 player_agents=active_players,
                 enemy_agents=active_enemies,
                 npc_agents=active_npcs,
-                vendors=current_vendors
+                vendors=current_vendors,
+                env_objects=current_env_objects
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
