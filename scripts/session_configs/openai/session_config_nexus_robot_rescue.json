@@ -1,15 +1,12 @@
 {
   "_role": "ml_training_scenario_openai",
   "_purpose": "All-robot Sovereign Nexus party searching for a missing Echo Child on Nimbus in high void territory. Tests mechanical-only roleplay, faction loyalty vs individual conscience, void exposure effects on machine consciousness. Party dynamics: comedy bot, protocol zealot, cynical veteran, naive newbie.",
-
   "session_name": "Lost Signal - Echo Child Recovery (Nexus Automatons)",
   "max_turns": 16,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM - SPARSE (Remote Location) ===",
   "vendor_spawn_frequency": 5,
-
   "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Void Creatures, Scavengers) ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== SCENARIO: ECHO CHILD RECOVERY IN VOID STORM ===",
-  "_scenario_hint": "A Sovereign Nexus automated rescue team has been dispatched to the Nimbus storm-city of Threshold's Edge after an Echo Child's tracking signal went dark in a high-void zone. The child, designation 'Wisp-7', was being escorted to a Codex compliance facility when the transport crashed. The robots must navigate collapsing infrastructure, void-warped terrain, reality stutters, and hostile scavengers. The void is affecting their systems - glitches, phantom signals, memories that shouldn't exist. They'll encounter void-touched creatures, desperate survivors, and possibly something that's been following Wisp-7. The child may not want to be 'rescued'. Let the robots question their programming as void exposure makes them... feel things.",
-
+  "scenario_hint": "A Sovereign Nexus automated rescue team has been dispatched to the Nimbus storm-city of Threshold's Edge after an Echo Child's tracking signal went dark in a high-void zone. The child, designation 'Wisp-7', was being escorted to a Codex compliance facility when the transport crashed. The robots must navigate collapsing infrastructure, void-warped terrain, reality stutters, and hostile scavengers. The void is affecting their systems - glitches, phantom signals, memories that shouldn't exist. They'll encounter void-touched creatures, desperate survivors, and possibly something that's been following Wisp-7. The child may not want to be 'rescued'. Let the robots question their programming as void exposure makes them... feel things.",
   "scenario": {
     "theme": "search_and_rescue_horror",
     "location": "Nimbus - Threshold's Edge (Abandoned Storm-City)",
     "situation": "Your dropship's landing struts crunch through debris as you touch down on Threshold's Edge - a storm-city that should have been evacuated three cycles ago. The eternal hurricane screams against the city's failing void-shields, and your sensors are already glitching from ambient void radiation. Mission parameters: locate Echo Child Wisp-7, secure for transport, return to Nexus custody. But your uplink to command is static. The child's beacon pulses weakly from somewhere in the collapsed residential sector. Something else is pinging on your frequencies - something that shouldn't be broadcasting at all. UNIT CHECK: All systems nominal? Because yours certainly don't feel nominal.",
     "void_level": 7
   },
-
   "_comment_clocks": "=== MISSION CLOCKS ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "scavengers lose interest, move to other prey"
     }
   ],
-
   "_comment_initial_npcs": "=== NIMBUS SURVIVORS ===",
   "initial_npcs": [
     {
@@ -80,7 +73,12 @@
       "description": "Leader of the Threshold's Edge survivors. Half her body is salvaged robot parts. Knows where Wisp-7 is but won't say - the child is 'protected' now.",
       "health": 16,
       "soak": 2,
-      "skills": {"Awareness": 5, "Guile": 4, "Engineering": 3, "Guns": 4}
+      "skills": {
+        "Awareness": 5,
+        "Guile": 4,
+        "Engineering": 3,
+        "Guns": 4
+      }
     },
     {
       "name": "Echo Child Wisp-7",
@@ -91,10 +89,13 @@
       "description": "Eight-year-old who can perceive void fluctuations. Terrified of being taken to a 'compliance facility'. Has bonded with the survivors. May have abilities the Nexus doesn't know about.",
       "health": 10,
       "soak": 0,
-      "skills": {"Astral Arts": 4, "Awareness": 6, "Stealth": 3}
+      "skills": {
+        "Astral Arts": 4,
+        "Awareness": 6,
+        "Stealth": 3
+      }
     }
   ],
-
   "_design_notes": {
     "ml_training_value": "All-robot party tests non-human roleplay, machine consciousness questions, faction loyalty vs emerging empathy. High void (7) forces system glitches and emotional bleed-through. Comedy/drama dynamic between robot archetypes. Moral complexity: is 'rescuing' the child actually helping them?",
     "mechanics_tested": [
@@ -108,7 +109,6 @@
     "character_innovation": "Four distinct robot personalities: comic relief maintenance bot, protocol-obsessed enforcer, cynical veteran, naive newbie. Tests whether LLMs can maintain consistent mechanical characterization while showing emergent emotion.",
     "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - cost efficient, temperature 1.0 for creativity."
   },
-
   "agents": {
     "dm": {
       "llm": {
@@ -145,12 +145,12 @@
           "Willpower": 2
         },
         "skills": {
-          "Engineering": 6,
           "Systems": 5,
-          "First Aid": 5,
           "Awareness": 3,
           "Charm": 4,
-          "Athletics": 3
+          "Athletics": 3,
+          "Medicine": 5,
+          "Tech/Craft": 6
         },
         "void": 1,
         "soulcredit": 2,
@@ -324,9 +324,8 @@
         "skills": {
           "Awareness": 6,
           "Investigation": 5,
-          "Navigation": 5,
           "Systems": 4,
-          "Pilot": 3,
+          "Pilot": 5,
           "Charm": 3
         },
         "void": 0,
@@ -355,7 +354,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== MISSION PROGRESSION ===",
   "_beats": [
     "Arrival - dropship lands in ruins, comms cut off, first void glitches",
@@ -367,7 +365,6 @@
     "Storm Approaches - extraction window closing, final decisions",
     "Resolution - mission success/failure, who they've become"
   ],
-
   "mission_objectives": [
     {
       "description": "Locate Echo Child Wisp-7 and confirm status",
@@ -390,6 +387,5 @@
       "required": false
     }
   ],
-
   "notes": "ALL-ROBOT NEXUS RESCUE TEAM - Four distinct machine personalities searching for a missing Echo Child in high void territory. Tests non-human roleplay, machine consciousness emergence, faction loyalty vs individual morality. Comic relief (Fixit) balances protocol zealot (Arbiter), cynical veteran (Forty), and naive newbie (NU-8). High void (7) causes system glitches that force emotional processing. The child doesn't want to be 'rescued'. Let the robots grow beyond their programming. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

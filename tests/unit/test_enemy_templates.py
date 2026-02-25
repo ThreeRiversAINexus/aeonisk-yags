@@ -148,3 +148,84 @@ class TestEnemyTemplateStructure:
             health = template_data.get("health", 0)
             assert 10 <= health <= 200, \
                    f"Template '{template_name}' health {health} out of reasonable range (10-200)"
+
+    def test_all_templates_have_engagement_stance(self):
+        """Every template must have an engagement_stance field."""
+        valid_stances = {"lethal", "capture", "adaptive"}
+        errors = []
+        for template_name, template_data in ENEMY_TEMPLATES.items():
+            if "engagement_stance" not in template_data:
+                errors.append(f"Template '{template_name}' missing 'engagement_stance'")
+            elif template_data["engagement_stance"] not in valid_stances:
+                errors.append(
+                    f"Template '{template_name}' has invalid stance "
+                    f"'{template_data['engagement_stance']}' (must be one of {valid_stances})"
+                )
+        assert not errors, "\n".join(errors)
+
+
+class TestCaptureTeamTemplate:
+    """Tests for the capture_team enemy template."""
+
+    def test_capture_team_template_exists(self):
+        """capture_team template should be available for spawning."""
+        assert "capture_team" in ENEMY_TEMPLATES
+
+    def test_capture_team_has_stun_weapons(self):
+        """All capture_team weapons should be non-lethal (stun damage type)."""
+        template = ENEMY_TEMPLATES["capture_team"]
+        weapons = template["weapons"]
+        assert len(weapons) > 0, "capture_team should have weapons"
+
+        for weapon_id in weapons:
+            weapon = WEAPON_LIBRARY[weapon_id]
+            assert weapon.damage_type == "stun", \
+                   f"capture_team weapon '{weapon_id}' has damage_type '{weapon.damage_type}', expected 'stun'"
+
+    def test_capture_team_engagement_stance(self):
+        """capture_team should have 'capture' engagement stance."""
+        assert ENEMY_TEMPLATES["capture_team"]["engagement_stance"] == "capture"
+
+    def test_capture_team_has_required_fields(self):
+        """capture_team should have all required template fields."""
+        required = ["description", "attributes", "skills", "health", "weapons", "armor"]
+        template = ENEMY_TEMPLATES["capture_team"]
+        for field in required:
+            assert field in template, f"capture_team missing '{field}'"
+
+
+class TestEnforcerTemplate:
+    """Tests for enforcer template updates."""
+
+    def test_enforcer_has_shock_baton(self):
+        """Enforcer should have shock_baton for non-lethal option."""
+        weapons = ENEMY_TEMPLATES["enforcer"]["weapons"]
+        assert "shock_baton" in weapons, \
+               f"Enforcer weapons {weapons} should include 'shock_baton'"
+
+    def test_enforcer_engagement_stance_adaptive(self):
+        """Enforcer should have 'adaptive' engagement stance."""
+        assert ENEMY_TEMPLATES["enforcer"]["engagement_stance"] == "adaptive"
+
+
+class TestEngagementStanceValues:
+    """Test specific engagement stance assignments."""
+
+    def test_grunt_is_lethal(self):
+        assert ENEMY_TEMPLATES["grunt"]["engagement_stance"] == "lethal"
+
+    def test_elite_is_lethal(self):
+        assert ENEMY_TEMPLATES["elite"]["engagement_stance"] == "lethal"
+
+    def test_sniper_is_lethal(self):
+        assert ENEMY_TEMPLATES["sniper"]["engagement_stance"] == "lethal"
+
+    def test_boss_is_lethal(self):
+        assert ENEMY_TEMPLATES["boss"]["engagement_stance"] == "lethal"
+
+    def test_security_drone_is_adaptive(self):
+        """Security drone has stun_gun already — should be adaptive."""
+        assert ENEMY_TEMPLATES["security_drone"]["engagement_stance"] == "adaptive"
+
+    def test_void_cultist_is_lethal(self):
+        assert ENEMY_TEMPLATES["void_cultist"]["engagement_stance"] == "lethal"

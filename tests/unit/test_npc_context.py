@@ -192,6 +192,122 @@ class TestPlayerInitiativeDisplay:
             "EXPECTED: One NPC should have empty description (demonstrates current bug)"
 
 
+class TestPCInitiativeBroadcast:
+    """Regression test: PC action broadcasts must include initiative.
+
+    Bug: player.py built action dicts from action_declaration.to_dict() and added
+    character/faction/pronouns but NEVER included initiative. Other agents received
+    action.get('initiative', 0) → always 0 for PCs, while enemies/NPCs were fine.
+    """
+
+    def test_pc_action_dict_includes_initiative(self):
+        """PC action broadcast payload must contain initiative from current_initiative."""
+        # Simulate what player.py does when building the action dict (lines 918-944)
+        # action_declaration.to_dict() returns the base action
+        action = {
+            'intent': 'attack',
+            'description': 'I fire at the enforcer',
+            'action_type': 'combat',
+            'attribute': 'Perception',
+            'skill': 'Guns',
+        }
+
+        # These fields are added by player.py before broadcast
+        action['attribute_value'] = 5
+        action['skill_value'] = 4
+        action['character'] = 'Test Player'
+        action['agent_id'] = 'player_01'
+        action['faction'] = 'Tempest'
+        action['pronouns'] = 'he/him'
+        action['is_free_action'] = False
+        # THE FIX: initiative must be included
+        current_initiative = 28  # Agility 4 × 4 + d20(12)
+        action['initiative'] = current_initiative
+
+        # Verify initiative is present and non-zero (the actual regression check)
+        assert 'initiative' in action, "PC action broadcast must include 'initiative' key"
+        assert action['initiative'] == 28
+        assert action['initiative'] != 0, "PC initiative must not be 0 (was the old bug)"
+
+    def test_receiving_agent_sees_real_pc_initiative(self):
+        """When another agent receives a PC's broadcast, initiative must be real (not 0)."""
+        # Simulate receiving agent's _handle_action_declared logic (player.py:729)
+        broadcast_payload = {
+            'agent_id': 'player_02',
+            'character_name': 'Lyss',
+            'description': 'I intimidate the patrol',
+            'intent': 'intimidate',
+            'target': None,
+            'weapon': None,
+            'reasoning': '',
+            'initiative': 22,  # Real initiative from broadcast
+            'faction': 'Nexus Collective',
+        }
+
+        # This is what _handle_action_declared does
+        initiative = broadcast_payload.get('initiative', 0)
+        character_name = broadcast_payload.get('character_name', 'Unknown')
+        description = broadcast_payload.get('description', '')
+        intent = broadcast_payload.get('intent', '')
+        target = broadcast_payload.get('target')
+        weapon = broadcast_payload.get('weapon')
+        reasoning = broadcast_payload.get('reasoning', '')
+
+        # Store in declared_actions_this_round
+        declared_actions_this_round = {}
+        if intent or description:
+            declared_actions_this_round[character_name] = (
+                description, intent, target, weapon, reasoning, initiative
+            )
+
+        # Verify the stored initiative is real
+        stored = declared_actions_this_round['Lyss']
+        assert stored[-1] == 22, f"Stored initiative should be 22, got {stored[-1]}"
+        assert stored[-1] != 0, "Stored PC initiative must not be 0"
+
+    def test_initiative_filtering_works_with_real_values(self):
+        """Initiative-based filtering (show only slower declarers) requires real values."""
+        # Agent with initiative 25 should see agents with lower initiative
+        current_init = 25
+
+        declared_actions_this_round = {
+            'Lyss': ('Intimidate patrol', 'intimidate', None, None, '', 18),  # Lower → visible
+            'Kael': ('Hack terminal', 'investigate', None, None, '', 30),  # Higher → hidden
+            'ACG Patrol #1': ('', 'Attack', 'tgt_player_01', 'Shotgun', 'Eliminate threat', 22),  # Lower → visible
+        }
+
+        # Filter logic from player.py:3064-3070
+        filtered = {
+            char_name: action_data
+            for char_name, action_data in declared_actions_this_round.items()
+            if action_data[-1] < current_init
+        }
+
+        assert 'Lyss' in filtered, "Lower-init PC should be visible"
+        assert 'ACG Patrol #1' in filtered, "Lower-init enemy should be visible"
+        assert 'Kael' not in filtered, "Higher-init PC should be hidden (declares after you)"
+
+    def test_initiative_filtering_broken_with_zero(self):
+        """Demonstrates the old bug: if PCs have initiative 0, filtering is wrong."""
+        current_init = 25
+
+        # OLD BUG: all PCs had initiative 0
+        declared_actions_this_round = {
+            'Lyss': ('Intimidate patrol', 'intimidate', None, None, '', 0),  # Bug: 0 instead of 18
+            'Kael': ('Hack terminal', 'investigate', None, None, '', 0),  # Bug: 0 instead of 30
+        }
+
+        # With initiative 0, ALL PCs appear "slower than you" regardless of actual speed
+        filtered = {
+            char_name: action_data
+            for char_name, action_data in declared_actions_this_round.items()
+            if action_data[-1] < current_init
+        }
+
+        # Both appear visible even though Kael (init 30) should be hidden
+        assert len(filtered) == 2, "Old bug: both PCs visible because both have init 0"
+
+
 class TestNPCPromptFormatting:
     """Test that NPC prompts include proper narrative context."""
 

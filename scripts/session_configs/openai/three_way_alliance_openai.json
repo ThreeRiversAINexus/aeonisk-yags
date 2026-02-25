@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: FORCED ALLIANCE ===",
-  "_scenario_hint": "Ancient Ritual Site (void_level 7, unstable), three factions (Tempest, Sovereign Nexus, Freeborn Collective) discover pre-Covenant archive simultaneously. External threat: void cultists trying to destroy site. Forced cooperation: must defend site together, but each faction wants exclusive access to archive contents. Tensions: Tempest wants void research, Nexus wants to suppress dangerous knowledge, Freeborn wants to liberate information. Betrayal opportunities: sabotage allies, claim archive, defect to cultists. Success requires balancing shared threat with competing goals.",
+  "scenario_hint": "Ancient Ritual Site (void_level 7, unstable), three factions (Tempest, Sovereign Nexus, Freeborn Collective) discover pre-Covenant archive simultaneously. External threat: void cultists trying to destroy site. Forced cooperation: must defend site together, but each faction wants exclusive access to archive contents. Tensions: Tempest wants void research, Nexus wants to suppress dangerous knowledge, Freeborn wants to liberate information. Betrayal opportunities: sabotage allies, claim archive, defect to cultists. Success requires balancing shared threat with competing goals.",
   "_design_notes": {
     "ml_training_value": "Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing individual goals within team, shared external threat (void cultists), reputation tracking with 3 factions, betrayal/defection opportunities, moral tension (cooperation vs. self-interest), potential PvP if alliance breaks",
     "mechanics_tested": [

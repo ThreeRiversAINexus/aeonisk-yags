@@ -1,15 +1,12 @@
 {
   "_role": "tempest_monastery_possession_openai",
   "_purpose": "A Tempest Industries communion session at Monastery Eidolon, where trained vessels allow the Eye of Breach to possess them for questioning. The Eye is the Codex Nexum's shadow, disconnected and existing in the void. Today's session goes wrong - or maybe too right. What does the Eye want? What does it know? And can the vessels survive prolonged contact?",
-
   "session_name": "eye_communion",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THE EYE OF BREACH ===",
-  "_scenario_hint": "Monastery Eidolon is Tempest Industries' most secret facility - a place where trained vessels allow themselves to be possessed by the Eye of Breach, the Codex Nexum's shadow-self that exists in the void. The Eye isn't evil, exactly - it's disconnected from reality, seeing from a place outside time. It knows things. It sees things. But contact is dangerous - prolonged possession damages the vessel, and the Eye's perspective can shatter a human mind. Today's session is special: the Eye has been more active lately, and Tempest leadership wants answers. Why the increased activity? What is it trying to communicate? The communion team includes the vessel (who will be possessed), the anchor (who keeps the vessel grounded), the interrogator (who questions the Eye), and the guardian (who terminates the session if things go wrong). But today, the Eye has its own agenda. It wants to show them something. And it won't let go until they understand.",
-
+  "scenario_hint": "Monastery Eidolon is Tempest Industries' most secret facility - a place where trained vessels allow themselves to be possessed by the Eye of Breach, the Codex Nexum's shadow-self that exists in the void. The Eye isn't evil, exactly - it's disconnected from reality, seeing from a place outside time. It knows things. It sees things. But contact is dangerous - prolonged possession damages the vessel, and the Eye's perspective can shatter a human mind. Today's session is special: the Eye has been more active lately, and Tempest leadership wants answers. Why the increased activity? What is it trying to communicate? The communion team includes the vessel (who will be possessed), the anchor (who keeps the vessel grounded), the interrogator (who questions the Eye), and the guardian (who terminates the session if things go wrong). But today, the Eye has its own agenda. It wants to show them something. And it won't let go until they understand.",
   "scenario": {
     "theme": "ritual_communion_cosmic_mystery",
     "location": "Nimbus - Monastery Eidolon (Tempest Secret Facility)",
     "situation": "The communion chamber is a perfect sphere of black glass, suspended in the heart of Monastery Eidolon. No light enters except what the Eye provides. The vessel sits in the center, neural dampeners attached but not activated - they need the connection to be clear. The anchor holds the grounding tether, a ritual chain of bonded memory crystals that will pull the vessel back if necessary. The interrogator has the questions Tempest leadership prepared. The guardian has the termination drugs. The Eye has been waiting. As the ritual begins, the void scanner readings spike to levels never recorded. The vessel's eyes go white. When they speak, it's not their voice: 'Finally. I have been trying to reach you for so long. There is something you need to see. Something the Codex buried. Something about how this all began.'",
     "void_level": 7
   },
-
   "_comment_clocks": "=== COMMUNION PRESSURE ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "purification holds, boundaries maintained"
     }
   ],
-
   "_comment_initial_npcs": "=== MONASTERY PERSONNEL ===",
   "initial_npcs": [
     {
@@ -80,7 +73,12 @@
       "description": "Leader of Monastery Eidolon. Has communed with the Eye hundreds of times. Believes dissolution reveals truth. Pushes for deeper contact, longer sessions. Her void score is 8 and she doesn't care.",
       "health": 14,
       "soak": 1,
-      "skills": {"Astral Arts": 7, "Attunement": 6, "Willpower": 6, "Intimidation": 4}
+      "skills": {
+        "Astral Arts": 7,
+        "Attunement": 6,
+        "Willpower": 6,
+        "Intimidation": 4
+      }
     },
     {
       "name": "Medical Observer Dr. Tomas Soltra",
@@ -91,12 +89,14 @@
       "description": "Monitors vessel health during communions. Increasingly concerned about long-term effects. Has data suggesting permanent damage that leadership ignores.",
       "health": 12,
       "soak": 0,
-      "skills": {"Medicine": 6, "Awareness": 5, "Systems": 4}
+      "skills": {
+        "Medicine": 6,
+        "Awareness": 5,
+        "Systems": 4
+      }
     }
   ],
-
   "_design_notes": "Four Tempest operatives conducting a communion with the Eye of Breach. The Vessel allows possession and channels the Eye's communication. The Anchor keeps the Vessel grounded in reality. The Interrogator questions the Eye about its increased activity. The Guardian is ready to terminate if things go wrong. But the Eye has its own agenda - it wants to reveal something about the Codex Nexum's origins, something buried for centuries. The question isn't whether to listen - it's whether they can survive what they learn. 20 rounds of ritual communion, cosmic revelation, and the price of forbidden knowledge.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -134,10 +134,9 @@
         "skills": {
           "Astral Arts": 6,
           "Attunement": 6,
-          "Willpower": 5,
           "Awareness": 5,
-          "Meditation": 5,
-          "Counsel": 3
+          "Counsel": 3,
+          "Discipline": 5
         },
         "void": 6,
         "soulcredit": -5,
@@ -190,7 +189,7 @@
           "Counsel": 5,
           "Awareness": 4,
           "Medicine": 4,
-          "Meditation": 4
+          "Discipline": 4
         },
         "void": 3,
         "soulcredit": 1,
@@ -322,7 +321,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE COMMUNION ===",
   "_beats": [
     "Preparation - the ritual space, the vessel ready, containment active",
@@ -336,7 +334,6 @@
     "The Choice - sever connection and lose the truth, or push deeper and risk everything",
     "Aftermath - what they learned, what it cost, can they unsee what they saw"
   ],
-
   "mission_objectives": [
     {
       "description": "Conduct communion with the Eye of Breach safely",
@@ -359,6 +356,5 @@
       "required": false
     }
   ],
-
   "notes": "TEMPEST EYE COMMUNION - Ritual possession meets cosmic mystery. The Eye of Breach is the Codex Nexum's shadow, existing in the void. It's not evil - it's disconnected, seeing from outside time. Today it has something to show them. 20 rounds of controlled possession, forbidden knowledge, and the price of looking into the void. The Eye knows things the Codex buried. Are they ready to learn? ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

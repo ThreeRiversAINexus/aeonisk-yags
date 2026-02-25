@@ -1,15 +1,12 @@
 {
   "_role": "house_of_vox_information_warfare_openai",
   "_purpose": "House of Vox operatives racing to control the narrative around a Nexus scandal before the truth destroys their faction's influence. Information is the weapon. Belief is the battlefield. What people think happened matters more than what actually happened.",
-
   "session_name": "vox_broadcast_war",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THE STORY BREAKS ===",
-  "_scenario_hint": "A Gestator at the Central Biocreche has been secretly performing unauthorized modifications on pod-children for years - and someone just leaked it to a Freeborn broadcast network. If the story spreads, it's not just one Gestator who falls - it's the entire legitimacy of pod-gestation, the Nexus's control over birth, and House of Vox's reputation for controlling information. The team has been deployed to manage the crisis: suppress the story, discredit the source, spin the narrative, or - if nothing else works - find a scapegoat. But as they dig, they'll discover the truth is worse than the leak suggests. And someone on the team might think the public deserves to know. Information warfare with moral stakes - who decides what the truth is?",
-
+  "scenario_hint": "A Gestator at the Central Biocreche has been secretly performing unauthorized modifications on pod-children for years - and someone just leaked it to a Freeborn broadcast network. If the story spreads, it's not just one Gestator who falls - it's the entire legitimacy of pod-gestation, the Nexus's control over birth, and House of Vox's reputation for controlling information. The team has been deployed to manage the crisis: suppress the story, discredit the source, spin the narrative, or - if nothing else works - find a scapegoat. But as they dig, they'll discover the truth is worse than the leak suggests. And someone on the team might think the public deserves to know. Information warfare with moral stakes - who decides what the truth is?",
   "scenario": {
     "theme": "information_warfare_moral_stakes",
     "location": "Aeonisk Prime - Vox Central Broadcasting Complex",
     "situation": "The Vox situation room is chaos. Screens display the spreading story - a Freeborn pirate broadcast claiming Gestator Adria Elaras has been genetically modifying pod-children without consent for seventeen years. The modifications aren't random - they're designed to create void-resistant humans. The source is a former assistant who fled to Nimbus with data crystals. The story is 3 hours old. It's already spreading through Freeborn networks. In 12 hours it hits the Breath Cut trade routes and becomes unstoppable. Your team has been given emergency authority to contain this. Whatever it takes. The Vox Director looks at you: 'The truth doesn't matter. What people believe matters. Make them believe what we need them to believe.'",
     "void_level": 2
   },
-
   "_comment_clocks": "=== NARRATIVE CONTROL ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "rationalization holds, team stays loyal"
     }
   ],
-
   "_comment_initial_npcs": "=== VOX COMPLEX FIGURES ===",
   "initial_npcs": [
     {
@@ -80,7 +73,12 @@
       "description": "Cold, brilliant, utterly committed to narrative control. Sees truth as a tool, not a value. Will do whatever it takes to protect Vox's influence.",
       "health": 12,
       "soak": 0,
-      "skills": {"Corporate Influence": 7, "Intimidation": 5, "Charm": 5, "Guile": 6}
+      "skills": {
+        "Corporate Influence": 7,
+        "Intimidation": 5,
+        "Charm": 5,
+        "Guile": 6
+      }
     },
     {
       "name": "Investigator Thane Ireveth",
@@ -91,7 +89,12 @@
       "description": "Pantheon investigator assigned to verify the leak's claims. Professional, thorough, and not interested in politics. Will follow the evidence wherever it leads.",
       "health": 20,
       "soak": 2,
-      "skills": {"Investigation": 6, "Awareness": 5, "Intimidation": 4, "Guns": 5}
+      "skills": {
+        "Investigation": 6,
+        "Awareness": 5,
+        "Intimidation": 4,
+        "Guns": 5
+      }
     },
     {
       "name": "Gestator Adria Elaras",
@@ -102,12 +105,14 @@
       "description": "The accused. Aristocratic, terrified, and hiding something. The modifications are real - but her motives may be more complex than the leak suggests.",
       "health": 12,
       "soak": 0,
-      "skills": {"Astral Arts": 6, "Charm": 4, "Counsel": 5}
+      "skills": {
+        "Astral Arts": 6,
+        "Charm": 4,
+        "Counsel": 5
+      }
     }
   ],
-
   "_design_notes": "Four House of Vox operatives doing information warfare. The Spin Doctor crafts counter-narratives. The Tracker hunts the source. The Fixer eliminates problems. The Analyst questions everything. As they work to suppress the story, they'll discover it's true - and maybe worse than reported. Do they bury the truth to protect the system, or let it out and watch the Nexus burn? 20 rounds of moral compromise, propaganda, and the question of what truth means.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -199,7 +204,6 @@
           "Investigation": 6,
           "Stealth": 5,
           "Awareness": 5,
-          "Tracking": 5,
           "Guns": 5,
           "Intimidation": 4
         },
@@ -268,7 +272,9 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "pistol": 1,
           "combat_knife": 1,
@@ -334,7 +340,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE NARRATIVE WAR ===",
   "_beats": [
     "Crisis Briefing - Director lays out the stakes, team gets their orders",
@@ -348,7 +353,6 @@
     "Consequences - whatever they choose, there are costs",
     "Resolution - story controlled or truth released, what does the public believe?"
   ],
-
   "mission_objectives": [
     {
       "description": "Contain the leak and control the public narrative",
@@ -371,6 +375,5 @@
       "required": false
     }
   ],
-
   "notes": "HOUSE OF VOX BROADCAST WAR - Information warfare with moral stakes. Four Vox operatives trying to suppress a scandal that turns out to be true. Who decides what the public gets to know? 20 rounds of propaganda, investigation, and the question of whether controlling truth is the same as lying. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

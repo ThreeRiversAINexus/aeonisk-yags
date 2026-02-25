@@ -209,8 +209,11 @@ def escalate_npc_to_enemy(
         }
     )
 
-    # Note: conditions are NOT copied to EnemyAgent (EnemyAgent uses status_effects instead)
-    # If NPC has conditions, they should be converted to enemy status_effects separately
+    # Convert NPC conditions (List[Condition]) to enemy status_effects (List[str])
+    status_effects = []
+    if hasattr(npc, 'conditions') and npc.conditions:
+        for condition in npc.conditions:
+            status_effects.append(condition.name.lower())
 
     # Synthesize attributes from skills (NPCs only have skills, not attributes)
     # Estimate based on skill levels or use defaults
@@ -256,6 +259,7 @@ def escalate_npc_to_enemy(
         attributes=attributes,  # Synthesized from skills
         stuns=npc.stuns,
         wounds=npc.wounds,
+        status_effects=status_effects,  # Converted from NPC conditions
 
         # Equipment (preserve from NPC)
         weapons=list(npc.weapons) if hasattr(npc, 'weapons') and npc.weapons else [],

@@ -23,7 +23,7 @@
         "model": "gpt-5-mini",
         "temperature": 1.0
       },
-      "_scenario_hint": "Dark comedy mercenary scenario - extraction job gone sideways. Employer (ACG shadow broker) hired team to 'extract' Tempest Industries whistleblower scientist. TWIST: scientist wants to expose ACG biocreche atrocities, employer wants them silenced. Moral dilemma: complete contract vs help whistleblower. Complications: Rax Kellor (Dr. Sotal's bodyguard, starts as NPC with deadpan quips - treats mercenaries like inconvenient customers, makes sarcastic observations like 'You're the third extraction team this week'), corporate security, rival mercenary team (comedically incompetent). Rax only escalates to combat if team directly threatens Dr. Sotal. Tone: gallows humor, absurd mishaps, incompetent professionals trying to maintain facade. void_level 4 adds supernatural dread."
+      "scenario_hint": "Dark comedy mercenary scenario - extraction job gone sideways. Employer (ACG shadow broker) hired team to 'extract' Tempest Industries whistleblower scientist. TWIST: scientist wants to expose ACG biocreche atrocities, employer wants them silenced. Moral dilemma: complete contract vs help whistleblower. Complications: Rax Kellor (Dr. Sotal's bodyguard, starts as NPC with deadpan quips - treats mercenaries like inconvenient customers, makes sarcastic observations like 'You're the third extraction team this week'), corporate security, rival mercenary team (comedically incompetent). Rax only escalates to combat if team directly threatens Dr. Sotal. Tone: gallows humor, absurd mishaps, incompetent professionals trying to maintain facade. void_level 4 adds supernatural dread."
     },
     "players": [
       {
@@ -55,14 +55,12 @@
           "Dexterity": 3
         },
         "skills": {
-          "Persuasion": 5,
-          "Deception": 5,
           "Intimidation": 4,
-          "Charm": 4,
-          "Guile": 4,
+          "Charm": 5,
+          "Guile": 5,
           "Guns": 3,
           "Awareness": 3,
-          "Corporate Politics": 3
+          "Corporate Influence": 3
         },
         "equipped_weapons": {
           "primary": "pistol"
@@ -128,7 +126,7 @@
           "Stealth": 3,
           "Awareness": 4,
           "Guns": 3,
-          "Void Theory": 3
+          "Void Lore": 3
         },
         "equipped_weapons": {
           "primary": "pistol"
@@ -193,8 +191,7 @@
           "Intimidation": 4,
           "Awareness": 3,
           "Melee": 3,
-          "Biology": 3,
-          "Surgery": 3
+          "Science": 3
         },
         "equipped_weapons": {
           "primary": "shotgun",

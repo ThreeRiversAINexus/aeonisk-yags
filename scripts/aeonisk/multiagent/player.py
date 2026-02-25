@@ -5,7 +5,7 @@ AI Player agent for multi-agent self-playing system.
 import asyncio
 import logging
 import random
-from typing import Dict, Any, List, Optional, Callable, Iterable
+from typing import Dict, Any, List, Optional, Callable, Iterable, Union
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -70,6 +70,33 @@ def format_story_beat(
             beat += f" [{', '.join(conditions)}]"
 
     return beat
+
+
+def validate_player_skill(skill: Optional[str]) -> tuple:
+    """Validate that a declared skill exists in SKILL_DATABASE.
+
+    Args:
+        skill: The skill name declared by the player LLM, or None.
+
+    Returns:
+        (is_valid, feedback): is_valid is True if skill is None or in SKILL_DATABASE.
+            feedback is None when valid, or a rejection message string when invalid.
+    """
+    if skill is None:
+        return True, None
+
+    from .skill_descriptions import SKILL_DATABASE
+
+    if skill in SKILL_DATABASE:
+        return True, None
+
+    valid_skills = sorted(SKILL_DATABASE.keys())
+    feedback = (
+        f"REJECTED: skill='{skill}' does not exist in SKILL_DATABASE. "
+        f"Valid skills: {valid_skills}. "
+        f"Use one of these or skill=None for a raw attribute check."
+    )
+    return False, feedback
 
 
 @dataclass
@@ -226,7 +253,7 @@ class AIPlayerAgent(Agent):
             self.llm_provider = None
 
         # Narrative context tracking (for player awareness of story progression)
-        self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
+        self.recent_narrations: List[Union[str, NarrationEntry]] = []  # Last 5 action resolution narrations (FIFO)
         self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
         # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
@@ -899,7 +926,9 @@ class AIPlayerAgent(Agent):
         action['character'] = self.character_state.name
         action['agent_id'] = self.agent_id
         action['faction'] = self.character_state.faction  # Track faction affiliation
+        action['pronouns'] = self.character_state.pronouns  # For DM narration context
         action['is_free_action'] = is_free_action  # Mark free inter-party dialogue
+        action['initiative'] = self.current_initiative  # Include initiative so other agents see real values
 
         # Add inventory info for rituals
         if action_declaration.is_ritual or action_declaration.action_type == 'ritual':
@@ -964,6 +993,7 @@ class AIPlayerAgent(Agent):
             main_action_dict['agent_id'] = self.agent_id
             main_action_dict['faction'] = self.character_state.faction
             main_action_dict['is_free_action'] = False
+            main_action_dict['initiative'] = self.current_initiative
 
             if main_action.is_ritual or main_action.action_type == 'ritual':
                 main_action_dict['has_offering'] = self.character_state.has_offering()
@@ -1252,12 +1282,28 @@ class AIPlayerAgent(Agent):
         """Handle session start messages (no-op for players - handled via SCENARIO_SETUP)."""
         pass
 
+    def _get_soulcredit_display(self) -> str:
+        """Get soulcredit display string with history trail if available."""
+        if hasattr(self, 'shared_state') and self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                return mechanics.format_player_soulcredit(self.agent_id)
+        return str(self.character_state.soulcredit)
+
     def _show_character_status(self):
         """Show current character status."""
         print(f"\n=== {self.character_state.name} Status ===")
         print(f"Faction: {self.character_state.faction}")
         print(f"Void Score: {self.character_state.void_score}/10")
-        print(f"Soulcredit: {self.character_state.soulcredit}")
+        # Show SC with history trail if mechanics engine available
+        if hasattr(self, 'shared_state') and self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                print(mechanics.format_player_soulcredit(self.agent_id))
+            else:
+                print(f"Soulcredit: {self.character_state.soulcredit}")
+        else:
+            print(f"Soulcredit: {self.character_state.soulcredit}")
         print(f"Goals: {', '.join(self.character_state.goals)}")
         if self.character_state.bonds:
             bond_names = [f"{bond.character_b} ({bond.bond_type.value}, {bond.status.value})" for bond in self.character_state.bonds]
@@ -1576,7 +1622,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             "wound_status": wound_status,
             "stuns": str(self.stuns),
             "void_score": str(self.character_state.void_score),
-            "soulcredit": str(self.character_state.soulcredit),
+            "soulcredit": self._get_soulcredit_display(),
             "void_warning": void_warning,
             "currency_display": currency_display,
             "seeds_display": seeds_display,
@@ -1766,12 +1812,15 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             action_intent, init_score = action_data
                             declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
 
-            # Build recent action outcomes (detailed narrations from recent actions)
+            # Build recent action outcomes (filtered for this player's awareness)
             recent_outcomes_text = ""
             if self.recent_narrations:
-                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
-                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
-                    recent_outcomes_text += f"{i}. {narration}\n"
+                from .awareness import filter_narrations_for_agent
+                visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations[-5:])
+                if visible:
+                    recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                    for i, narration in enumerate(visible, 1):
+                        recent_outcomes_text += f"{i}. {narration}\n"
 
             # Low attributes (< 4)
             low_attrs = [
@@ -1862,7 +1911,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "stuns": str(self.stuns),
                 "void_score": str(self.character_state.void_score),
                 "void_warning": void_warning,
-                "soulcredit": str(self.character_state.soulcredit),
+                "soulcredit": self._get_soulcredit_display(),
                 "position": str(self.position) if hasattr(self, 'position') else "Unknown",
                 # Scenario context (current location and situation)
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
@@ -2028,12 +2077,15 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             action_intent, init_score = action_data
                             declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
 
-            # Build recent action outcomes (detailed narrations from recent actions)
+            # Build recent action outcomes (filtered for this player's awareness)
             recent_outcomes_text = ""
             if self.recent_narrations:
-                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
-                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
-                    recent_outcomes_text += f"{i}. {narration}\n"
+                from .awareness import filter_narrations_for_agent
+                visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations[-5:])
+                if visible:
+                    recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                    for i, narration in enumerate(visible, 1):
+                        recent_outcomes_text += f"{i}. {narration}\n"
 
             # Format attributes
             attributes_text = "\n".join([
@@ -2123,7 +2175,6 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Social-specific context (if applicable)
                 "empathy": str(self.character_state.attributes.get('Empathy', 0)),
                 "charm_skill": str(self.character_state.skills.get('Charm', 0)),
-                "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
                 # Attunement-specific context (if applicable)
                 "willpower": str(self.character_state.attributes.get('Willpower', 0)),
                 "attunement_skill": str(self.character_state.skills.get('Attunement', 0)),
@@ -2146,8 +2197,13 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
                 "direction": f"**Direction:** {self.direction}" if self.direction else "",
                 # Player-only message (hidden from DM, per-player instruction)
-                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else ""
+                "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else "",
+                # Skill rejection feedback (populated on retry after invalid skill)
+                "skill_rejection_feedback": f"\n⚠️ **SKILL REJECTION:** {self._skill_rejection_feedback}\n" if getattr(self, '_skill_rejection_feedback', None) else "",
             }
+
+            # Clear skill rejection feedback after building prompt (don't persist across action types)
+            self._skill_rejection_feedback = None
 
             # Load Phase 2 action-specific prompt from player/ subdirectory
             from .prompt_loader import load_modular_prompt
@@ -2448,6 +2504,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         max_retries = 3
         base_delay = 0.5  # Exponential backoff: 0.5s, 1s, 2s
+        self._skill_rejection_feedback = None
 
         logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
 
@@ -2480,6 +2537,44 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
                     )
                     return None
+
+                # ===== Skill Validation: Reject hallucinated skill names =====
+                if action_details and action_details.skill is not None:
+                    is_valid, feedback = validate_player_skill(action_details.skill)
+                    if not is_valid:
+                        logger.warning(
+                            f"Player {self.character_state.name}: Invalid skill '{action_details.skill}' "
+                            f"(attempt {attempt + 1}/{max_retries})"
+                        )
+                        # Log JSONL failure for ML training
+                        if self.shared_state:
+                            mechanics = self.shared_state.get_mechanics_engine()
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_pydantic_validation_failure(
+                                    round_num=getattr(self, 'current_round', 0) or 0,
+                                    agent_type='player',
+                                    agent_id=self.agent_id,
+                                    schema_name='invalid_skill_name',
+                                    exception_type='SkillValidationError',
+                                    error_message=feedback,
+                                    attempt_number=attempt + 1,
+                                    max_attempts=max_retries,
+                                    action_context={
+                                        'declared_skill': action_details.skill,
+                                        'character_skills': dict(self.character_state.skills),
+                                        'action_type': action_details.action_type.value if hasattr(action_details.action_type, 'value') else str(action_details.action_type),
+                                        'intent': action_details.intent,
+                                    }
+                                )
+                        # Store feedback for retry prompt
+                        self._skill_rejection_feedback = feedback
+                        action_details = None
+                        if attempt < max_retries - 1:
+                            delay = base_delay * (2 ** attempt)
+                            await asyncio.sleep(delay)
+                            continue
+                        logger.error(f"Player {self.character_state.name}: Invalid skill after {max_retries} attempts")
+                        return None
 
                 # Success - break out of retry loop
                 break
@@ -2962,15 +3057,16 @@ Available non-combat actions:
             narrative_context += "## What Just Happened (Last Round Summary):\n"
             narrative_context += f"{self.last_round_synthesis}\n\n"
 
-        # Add recent action resolution narrations (specific outcomes)
+        # Add recent action resolution narrations (filtered for this player's awareness)
         if self.recent_narrations:
-            if not narrative_context:
-                narrative_context += "\n# 📖 Recent Story Events\n\n"
-            narrative_context += "## Recent Action Outcomes:\n"
-            # Show ALL recent narrations (rolling window already limits to last 20)
-            for i, narration in enumerate(self.recent_narrations, 1):
-                # Keep full narration - this is juicy coordination info!
-                narrative_context += f"{i}. {narration}\n\n"
+            from .awareness import filter_narrations_for_agent
+            visible = filter_narrations_for_agent(self.agent_id, self.recent_narrations)
+            if visible:
+                if not narrative_context:
+                    narrative_context += "\n# 📖 Recent Story Events\n\n"
+                narrative_context += "## Recent Action Outcomes:\n"
+                for i, narration in enumerate(visible, 1):
+                    narrative_context += f"{i}. {narration}\n\n"
 
         # Add declared actions this round (only from agents with LOWER initiative who declared before you)
         if self.declared_actions_this_round:

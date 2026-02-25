@@ -11,7 +11,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Seed Trade is Plot, Not Vendors) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: THREE-FACTION TRADE SUMMIT ===",
-  "_scenario_hint": "Neutral Zone Trade Station (void_level 3, demilitarized) - Summit to resolve Seed harvesting rights dispute between ACG (wants monopoly), Resonance Communes (spiritual claim), and Freeborn Collective (labor rights). Each faction has valid grievances and leverage. Players must: broker compromise, manage escalating tensions, prevent walkout/violence. NPCs: ACG hardliner (greedy), Commune elder (principled), Freeborn agitator (angry). Failure modes: summit collapses → trade war, violence erupts → players blamed, one faction dominates → moral compromise. Success: balanced treaty all sides accept.",
+  "scenario_hint": "Neutral Zone Trade Station (void_level 3, demilitarized) - Summit to resolve Seed harvesting rights dispute between ACG (wants monopoly), Resonance Communes (spiritual claim), and Freeborn Collective (labor rights). Each faction has valid grievances and leverage. Players must: broker compromise, manage escalating tensions, prevent walkout/violence. NPCs: ACG hardliner (greedy), Commune elder (principled), Freeborn agitator (angry). Failure modes: summit collapses → trade war, violence erupts → players blamed, one faction dominates → moral compromise. Success: balanced treaty all sides accept.",
   "_design_notes": {
     "ml_training_value": "Pure social/negotiation scenario, zero combat resolution, tests Charm/Persuasion/Insight/Debt Law in high-stakes context, multi-faction relationship management, dynamic NPC attitudes, reputation tracking, moral trade-offs in diplomacy, failure = systemic consequences (not death)",
     "mechanics_tested": [
@@ -108,7 +108,6 @@
         },
         "skills": {
           "Charm": 6,
-          "Persuasion": 5,
           "Debt Law": 6,
           "Corporate Influence": 5,
           "Insight": 5,
@@ -171,9 +170,7 @@
           "Insight": 6,
           "Charm": 5,
           "Astral Arts": 5,
-          "Attunement": 4,
-          "Persuasion": 4,
-          "Empathy": 5
+          "Attunement": 4
         },
         "void": 0,
         "soulcredit": 3,
@@ -225,10 +222,9 @@
           "Dexterity": 3
         },
         "skills": {
-          "Persuasion": 6,
           "Guile": 5,
           "Investigation": 5,
-          "Charm": 4,
+          "Charm": 6,
           "Awareness": 4,
           "Debt Law": 4,
           "Counsel": 3

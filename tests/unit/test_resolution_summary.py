@@ -16,9 +16,8 @@ class TestBuildResolutionSummary:
     def build_resolution_summary(self):
         """Get the _build_resolution_summary method for direct testing."""
         # Test the method directly without full session initialization
-        # This is valid since _build_resolution_summary is a pure function that only
-        # processes the input list without accessing session state
         session = object.__new__(SelfPlayingSession)
+        session.shared_state = None  # No target resolution in these tests
         return session._build_resolution_summary
 
     def test_empty_resolutions(self, build_resolution_summary):

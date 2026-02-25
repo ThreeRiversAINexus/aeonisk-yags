@@ -24,7 +24,7 @@
   },
 
   "_comment_scenario": "=== THE GRID IS DYING ===",
-  "_scenario_hint": "Ley-node Sigma-7 went dark six hours ago. Then Sigma-4. Then the backup at Tau-9. The cascade is spreading through Arcadia's agricultural heartland - biocreches are losing power, food production is failing, and the spiritual infrastructure that keeps millions alive is collapsing node by node. Aether Dynamics has sent their best Ossai Line specialists to stop it, but they're walking into something worse than equipment failure. Someone is doing this on purpose. The question is who - Tempest sabotage? ACG debt enforcement gone nuclear? A Freeborn uprising? Or is the ley-grid itself rejecting something? Combat should emerge from confronting saboteurs, desperate locals, or the ley-energy itself becoming hostile. Let the team discover the truth while racing to prevent catastrophe.",
+  "scenario_hint": "Ley-node Sigma-7 went dark six hours ago. Then Sigma-4. Then the backup at Tau-9. The cascade is spreading through Arcadia's agricultural heartland - biocreches are losing power, food production is failing, and the spiritual infrastructure that keeps millions alive is collapsing node by node. Aether Dynamics has sent their best Ossai Line specialists to stop it, but they're walking into something worse than equipment failure. Someone is doing this on purpose. The question is who - Tempest sabotage? ACG debt enforcement gone nuclear? A Freeborn uprising? Or is the ley-grid itself rejecting something? Combat should emerge from confronting saboteurs, desperate locals, or the ley-energy itself becoming hostile. Let the team discover the truth while racing to prevent catastrophe.",
 
   "scenario": {
     "theme": "infrastructure_crisis_sabotage_mystery",

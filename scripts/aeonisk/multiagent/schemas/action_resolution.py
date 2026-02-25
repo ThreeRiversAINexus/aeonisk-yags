@@ -11,9 +11,11 @@ This eliminates keyword detection (e.g., parsing "⚫ Void: +1" markers from tex
 while preserving narrative quality.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any
 import json
+import logging
+import warnings
 from .shared_types import (
     SuccessTier,
     VoidChange,
@@ -373,6 +375,34 @@ class ActionResolution(BaseModel):
         description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
     )
 
+    # ========== Action Preemption ==========
+
+    action_skipped: bool = Field(
+        default=False,
+        description="""Set to True when this action was preempted and should have NO mechanical effect.
+
+        Use when:
+        - Character was stunned/incapacitated before their turn
+        - Environmental hazard prevented action (collapsing floor, explosion)
+        - Another actor's resolution made this action impossible
+        - Character was restrained/grappled and couldn't execute
+
+        When True:
+        - narration should describe WHY the action was preempted
+        - skip_reason should explain the mechanical cause
+        - effects will be IGNORED by the engine (safety net)
+        - Action still appears in previous_context with [SKIPPED] prefix
+        """
+    )
+
+    skip_reason: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=300,
+        description="Why the action was preempted (required when action_skipped=True). "
+        "Example: 'Character was knocked unconscious by stun grenade before their turn'"
+    )
+
     # ========== Awareness Control ==========
 
     aware_agents: List[str] = Field(
@@ -392,6 +422,34 @@ class ActionResolution(BaseModel):
         Agent ID formats: "dm", "player_<name>", "npc_<name>", "enemy_<template>_<id>"
         """
     )
+
+    @model_validator(mode='after')
+    def validate_skip_fields(self):
+        """Warn on inconsistencies between action_skipped and skip_reason."""
+        logger = logging.getLogger(__name__)
+
+        if self.action_skipped and not self.skip_reason:
+            msg = "action_skipped=True but skip_reason is missing — provide a reason for ML training"
+            logger.warning(msg)
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
+        if not self.action_skipped and self.skip_reason:
+            msg = f"skip_reason provided but action_skipped=False — inconsistent (reason: {self.skip_reason!r})"
+            logger.warning(msg)
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
+        if self.action_skipped and self.effects:
+            has_effects = (
+                self.effects.damage or self.effects.void_changes
+                or self.effects.soulcredit_changes or self.effects.conditions
+                or self.effects.clock_updates or self.effects.healing
+            )
+            if has_effects:
+                msg = "action_skipped=True but effects are populated — engine will suppress all effects"
+                logger.warning(msg)
+                warnings.warn(msg, UserWarning, stacklevel=2)
+
+        return self
 
     @field_validator('outcome_tiers', mode='before')
     @classmethod

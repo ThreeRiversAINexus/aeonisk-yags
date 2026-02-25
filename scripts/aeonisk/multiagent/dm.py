@@ -340,8 +340,12 @@ def _process_structured_damage_effects(
             defeat_logged = False
             defeat_reason = None
             is_stun_only = (mechanical_type == "stun")
+            # Skip defeat processing if target already inactive (killed by earlier action this round)
+            already_defeated = hasattr(target_entity, 'is_active') and not target_entity.is_active
 
-            if is_stun_only and result.get('unconscious_check_needed'):
+            if already_defeated:
+                pass  # Don't log duplicate defeat
+            elif is_stun_only and result.get('unconscious_check_needed'):
                 # Stun KO — non-lethal incapacitation
                 logger_instance.info(f"{target_name} knocked unconscious by stun damage!")
                 messages.append(f"😵 **{target_name} is knocked unconscious!**")
@@ -644,6 +648,91 @@ def _process_structured_healing_effects(
     return messages
 
 
+def _build_enhanced_previous_context(previous_resolutions: List[Dict[str, Any]]) -> str:
+    """Build enhanced in-round context showing SC changes for each prior action.
+
+    Args:
+        previous_resolutions: List of earlier resolved actions this round.
+
+    Returns:
+        Formatted context string, or empty string if no resolutions.
+    """
+    if not previous_resolutions:
+        return ""
+
+    items = []
+    for i, prev in enumerate(previous_resolutions[-3:], 1):
+        char_name = prev.get('character_name', 'Unknown')
+        # Guard: action/resolution/effects may be None, a string, or a dict
+        # Handle both PC format (action is dict) and enemy format (action is string)
+        raw_action = prev.get('action')
+        if isinstance(raw_action, dict):
+            action_type = raw_action.get('action_type', 'unknown').upper()
+        elif isinstance(raw_action, str):
+            action_type = raw_action.upper()
+        else:
+            action_type = 'UNKNOWN'
+
+        # Extract margin from nested resolution (PC), roll dict (enemy), or top-level
+        raw_resolution = prev.get('resolution')
+        resolution_dict = raw_resolution if isinstance(raw_resolution, dict) else {}
+        margin = resolution_dict.get('margin', '?')
+        if margin == '?':
+            roll = prev.get('roll')
+            if isinstance(roll, dict):
+                margin = roll.get('margin', '?')
+        if margin == '?':
+            margin = prev.get('margin', '?')
+        narration = prev.get('narration', '')
+        # Truncate narration for recap
+        narration_brief = narration[:120] + '...' if len(narration) > 120 else narration
+
+        # Extract SC changes
+        raw_effects = prev.get('effects')
+        effects_dict = raw_effects if isinstance(raw_effects, dict) else {}
+        sc_changes = effects_dict.get('soulcredit_changes', [])
+        if sc_changes:
+            sc_parts = []
+            for sc in sc_changes:
+                amt = sc.get('amount', 0)
+                reason = sc.get('reason', '')
+                sc_parts.append(f"{amt:+d} {reason}" if reason else f"{amt:+d}")
+            sc_text = f"[SC: {', '.join(sc_parts)}]"
+        else:
+            sc_text = "[SC: +0]"
+
+        # Detect success: check resolution dict, hit field, result field, then margin
+        if isinstance(raw_resolution, dict) and 'success' in resolution_dict:
+            success = "success" if resolution_dict['success'] else "failure"
+        elif prev.get('hit') is not None:
+            success = "success" if prev['hit'] else "failure"
+        elif prev.get('result') in ('success', 'failure', 'invalidated'):
+            success = prev['result']
+        else:
+            success = "success" if isinstance(margin, (int, float)) and margin >= 0 else "failure"
+        margin_str = f"{margin:+d}" if isinstance(margin, (int, float)) else str(margin)
+
+        # Add prefix for skipped/invalidated actions
+        prefix = ""
+        if prev.get('action_skipped'):
+            skip_reason = prev.get('skip_reason', 'preempted')
+            prefix = f"[SKIPPED - {skip_reason}] "
+        elif prev.get('result') == 'invalidated':
+            prefix = "[INVALIDATED] "
+
+        items.append(f"{i}. {prefix}{char_name}: {action_type} ({success}, {margin_str}) → {narration_brief} {sc_text}")
+
+    return (
+        "\n**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**\n\n"
+        + "\n".join(items)
+        + "\n\n**CONSISTENCY REQUIREMENTS:**\n"
+        "- Your narration MUST acknowledge these established facts\n"
+        "- DO NOT contradict details from earlier resolutions\n"
+        "- Build on the tactical/narrative situation they created\n"
+        "- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT\n"
+    )
+
+
 @dataclass
 class Scenario:
     """Current game scenario state."""
@@ -719,6 +808,9 @@ class AIDMAgent(Agent):
 
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
+
+        # Rolling narrative digest for adjudication context (mirrors session._round_synthesis_history)
+        self._round_synthesis_history: List[tuple] = []
 
         # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
@@ -953,9 +1045,8 @@ class AIDMAgent(Agent):
             logger.debug("Force combat enabled - using combat scenario template")
             scenario_data = self._create_combat_scenario(config)
         else:
-            # Check for scenario constraints/hints in DM config
-            dm_config = config.get('agents', {}).get('dm', {})
-            scenario_hint = dm_config.get('_scenario_hint', '')
+            # Check for scenario constraints/hints (top-level config, with legacy fallback)
+            scenario_hint = config.get('scenario_hint', '') or config.get('_scenario_hint', '')
 
             scenario_constraints = ""
             if scenario_hint:
@@ -2574,6 +2665,10 @@ Apply this narrative style to:
         print(narration_text)
         print("=" * 40)
 
+        # Store synthesis for narrative digest (adjudication context in future rounds)
+        if narration_text and round_num is not None:
+            self._round_synthesis_history.append((round_num, narration_text))
+
         # Broadcast the round synthesis to all players
         # If structured, include the full object; otherwise just text
         payload_data = {
@@ -2799,8 +2894,10 @@ Apply this narrative style to:
             )
         except Exception as e:
             # Fatal error during adjudication - log and signal error
+            import traceback
+            tb = traceback.format_exc()
             error_msg = f"Fatal adjudication error: {type(e).__name__}: {e}"
-            logger.error(f"❌ DM {self.agent_id}: {error_msg}")
+            logger.error(f"❌ DM {self.agent_id}: {error_msg}\n{tb}")
 
             # Log to JSONL if possible
             if self.shared_state and self.shared_state.mechanics_engine:
@@ -2889,7 +2986,13 @@ Apply this narrative style to:
                 combat_data = resolution.get('combat_data', {})
                 inventory_changes = resolution.get('inventory_changes', [])
 
-                if action_resolution:
+                # Skip logging for NPC actions — already logged in
+                # _resolve_action_mechanically with phase="adjudicate_npc".
+                # Logging again here would double-count NPC actions and
+                # inherit stale outcome_tiers from the previous PC action.
+                is_npc_action = action.get('is_npc', False)
+
+                if action_resolution and not is_npc_action:
                     # Build economy changes dict with void and soulcredit deltas
                     economy_changes = {
                         'void_delta': state_changes.get('void_change', 0),
@@ -3104,6 +3207,18 @@ Apply this narrative style to:
                 }
             )
 
+            # Update stealth state for target filtering (enemies/NPCs can't target hidden PCs)
+            aware_agents_for_stealth = res['resolution'].get('aware_agents', [])
+            acting_pc_id = res['player_id']
+            if self.shared_state and acting_pc_id.startswith('player_'):
+                # Extract margin from resolution for stealth duration
+                outcome_res = res['resolution'].get('outcome', {}).get('resolution', {})
+                stealth_margin = outcome_res.get('margin', 0) if isinstance(outcome_res, dict) else 0
+                self.shared_state.update_stealth(
+                    acting_pc_id, aware_agents_for_stealth,
+                    margin=stealth_margin, current_round=round_num
+                )
+
         # Only do synthesis if not skipping (for sequential resolution, synthesis comes later)
         if not skip_synthesis:
             # Generate synthesis of what happened
@@ -3231,7 +3346,7 @@ Apply this narrative style to:
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None):
+    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None, social_target_ids: set = None):
         """
         Separate conversion check phase - determine which enemies/NPCs should convert.
 
@@ -3295,9 +3410,13 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                     if enemy.is_active:  # Only active enemies (not defeated/retreated)
                         health_pct = int((enemy.health / enemy.max_health) * 100) if enemy.max_health > 0 else 0
 
-                        # Flag low HP enemies as conversion candidates
-                        is_candidate = health_pct < 30
-                        marker = "🎯 CANDIDATE" if is_candidate else ""
+                        # Flag conversion candidates (HP-based or social target)
+                        markers = []
+                        if health_pct < 30:
+                            markers.append("🎯 CANDIDATE")
+                        if social_target_ids and enemy.agent_id in social_target_ids:
+                            markers.append("🎯 SOCIAL TARGET")
+                        marker = " ".join(markers)
 
                         morale = getattr(enemy, 'morale_behavior', 'flee_when_broken')
                         faction = getattr(enemy, 'faction', 'Unknown')
@@ -3317,8 +3436,9 @@ Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
                 took_damage = health_pct < 100
                 marker = "⚠️ TOOK DAMAGE" if took_damage else ""
 
+                npc_faction = getattr(npc, 'faction', 'Unknown')
                 available_npcs.append(
-                    f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
+                    f"{npc.agent_id} ({npc.name}, {npc_faction}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
                 )
 
         # 3. Build player character names list
@@ -3513,6 +3633,11 @@ Void Level: {self.current_scenario.void_level}/10"""
                     intent = f"attacked {resolved_target}"
                 elif intent == 'hold':
                     intent = "held position"
+                elif intent == 'dialogue':
+                    dialogue = res.get('dialogue_content', '')
+                    intent = f'spoke aloud: "{dialogue}"' if dialogue else "attempted to communicate"
+                elif intent == 'wait':
+                    intent = "held position, observing"
 
             # Check if action was invalidated
             if res.get('result') == 'invalidated':
@@ -3555,6 +3680,10 @@ Void Level: {self.current_scenario.void_level}/10"""
                 dmg_target = resolve_target_name(res.get('target', 'unknown'))
                 dmg_dealt = res.get('damage_dealt', 0)
                 effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+            # Include enemy dialogue_content for DM narration (like NPC dialogue)
+            if res.get('dialogue_content'):
+                effects_info += f'\n  💬 **Enemy\'s Actual Words:** "{res["dialogue_content"]}" — Include this dialogue in your narration.'
 
             # CRITICAL: Include full narration from individual resolution so DM can maintain consistency
             narration = res.get('narration', '')
@@ -3666,6 +3795,9 @@ Void Level: {self.current_scenario.void_level}/10"""
                     clock_lines.append(clock_info)
                 if clock_lines:
                     clock_state_text = "\n\n**Current Clock State:**\n" + "\n".join(clock_lines)
+                    # Add clock budget guidance
+                    budget_text = self._get_clock_budget_text(len(mechanics.scene_clocks))
+                    clock_state_text += f"\n\n{budget_text}"
 
                 # Check for newly filled clocks
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
@@ -4742,6 +4874,9 @@ Read the action intent to understand WHY this transfer is happening:
             from .schemas.action_resolution import SuccessTier, MechanicalEffects
             from .schemas.shared_types import Condition
 
+            # Default for pass actions (template narration, not a fallback)
+            is_fallback = False
+
             # Special case: "pass" actions use template narration (no LLM call)
             if npc_action_type == 'pass':
                 narration = f"{character_name} passes because the situation doesn't involve them and they don't want to do anything."
@@ -5225,29 +5360,11 @@ For **other actions** (flee, hide, assist, attack):
             mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)
 
             # Build context from previous resolutions this round (for narrative consistency)
-            if previous_resolutions:
-                previous_items = []
-                for prev in previous_resolutions[-3:]:  # Last 3 to keep prompt manageable
-                    char_name = prev.get('character_name', 'Unknown')
-                    narration = prev.get('narration', '')
-                    if narration:
-                        # NO TRUNCATION - ML training needs complete data
-                        previous_items.append(f"- {char_name}: {narration}")
-
-                if previous_items:
-                    action['previous_context'] = f"""
-
-**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**
-
-The following actions ALREADY resolved (faster initiative):
-{chr(10).join(previous_items)}
-
-**CONSISTENCY REQUIREMENTS:**
-- Your narration MUST acknowledge these established facts
-- DO NOT contradict details from earlier resolutions
-- Build on the tactical/narrative situation they created
-- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT
-"""
+            enhanced_context = _build_enhanced_previous_context(previous_resolutions or [])
+            if enhanced_context:
+                action['previous_context'] = enhanced_context
+            # Stash raw resolutions for session_context builder in _build_resolution_prompt
+            action['_previous_resolutions'] = previous_resolutions or []
 
             # Generate narrative description using LLM
             if self.llm_config:
@@ -5257,6 +5374,12 @@ The following actions ALREADY resolved (faster initiative):
                 narration = f"{mechanical_text}\n\n{llm_narration}"
             else:
                 narration = f"{mechanical_text}\n\n{resolution.narrative}"
+
+            # Clean up transient context data from action dict to prevent recursive
+            # nesting when action is included in resolution_data/previous_resolutions.
+            # These were only needed for the LLM call above.
+            action.pop('_previous_resolutions', None)
+            action.pop('previous_context', None)
 
             # Parse narration for clock triggers and state changes
             from .outcome_parser import (
@@ -5306,6 +5429,18 @@ The following actions ALREADY resolved (faster initiative):
 
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Effect suppression: if action was skipped/preempted, zero out all effects
+                if getattr(self._last_structured_resolution, 'action_skipped', False):
+                    skip_reason = getattr(self._last_structured_resolution, 'skip_reason', 'preempted')
+                    logger.info(f"Action skipped (reason: {skip_reason}) — suppressing all mechanical effects")
+                    state_changes['void_change'] = 0
+                    state_changes['void_reasons'] = []
+                    state_changes['soulcredit_change'] = 0
+                    state_changes['soulcredit_reasons'] = []
+                    state_changes['clock_triggers'] = []
+                    state_changes['conditions'] = []
+                    state_changes['damage_effects'] = []
 
                 # Extract effects (purchase/crafting) from structured output
                 if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
@@ -5936,7 +6071,8 @@ The following actions ALREADY resolved (faster initiative):
             sc_source = state_changes.get('soulcredit_source', '')
 
             if sc_change != 0:
-                sc_state.adjust(sc_change, reasons_text)
+                current_round = mechanics.current_round if mechanics else None
+                sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
             # SC is applied mechanically above - no need to inject into narration
             # Players see their soulcredit via game UI, not narrative text
@@ -6048,8 +6184,17 @@ The following actions ALREADY resolved (faster initiative):
 
         # Extract aware_agents from structured resolution (for stealth/secrets visibility control)
         aware_agents = []
+        action_skipped = False
+        skip_reason = None
         if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
             aware_agents = getattr(self._last_structured_resolution, 'aware_agents', []) or []
+            action_skipped = getattr(self._last_structured_resolution, 'action_skipped', False)
+            skip_reason = getattr(self._last_structured_resolution, 'skip_reason', None)
+
+        # If action was skipped, suppress effects dict too (safety net for session.py processing)
+        if action_skipped and effects_dict:
+            logger.info(f"Suppressing effects dict for skipped action (reason: {skip_reason})")
+            effects_dict = None
 
         return {
             'resolution': resolution,
@@ -6059,6 +6204,8 @@ The following actions ALREADY resolved (faster initiative):
             'inventory_changes': inventory_changes,  # Include offering consumption tracking
             'effects': effects_dict,  # Include purchase/crafting effects from structured output
             'aware_agents': aware_agents,  # Visibility control: who knows about this action
+            'action_skipped': action_skipped,  # DM flagged action as preempted
+            'skip_reason': skip_reason,  # Why action was preempted
             'outcome': {
                 'dm_response': narration,
                 'success': getattr(resolution, 'success', True) if resolution else True,
@@ -6188,10 +6335,8 @@ The following actions ALREADY resolved (faster initiative):
                 )
                 narration_suffix = ""
 
-            # NOTE: Clock updates are now deferred until synthesis phase
-            # The DM will determine final clock/status changes after reviewing all actions
-            # This prevents immediate application and allows for holistic round resolution
-            # mechanics.update_clocks_from_action(resolution, action)  # DISABLED: see note above
+            # Clock updates are deferred to synthesis phase (DM structured output)
+            # to allow holistic round resolution
 
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
@@ -6250,6 +6395,18 @@ The following actions ALREADY resolved (faster initiative):
 
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug("Using structured resolution for state changes extraction")
+
+                # Effect suppression: if action was skipped/preempted, zero out all effects
+                if getattr(self._last_structured_resolution, 'action_skipped', False):
+                    skip_reason = getattr(self._last_structured_resolution, 'skip_reason', 'preempted')
+                    logger.info(f"Action skipped (reason: {skip_reason}) — suppressing all mechanical effects")
+                    state_changes['void_change'] = 0
+                    state_changes['void_reasons'] = []
+                    state_changes['soulcredit_change'] = 0
+                    state_changes['soulcredit_reasons'] = []
+                    state_changes['clock_triggers'] = []
+                    state_changes['conditions'] = []
+                    state_changes['damage_effects'] = []
 
                 # Validate void changes were populated when narration contains void markers
                 has_void_in_narrative = '⚫ Void' in llm_narration or 'Void (' in llm_narration
@@ -6408,7 +6565,8 @@ The following actions ALREADY resolved (faster initiative):
             sc_source = state_changes.get('soulcredit_source', '')
 
             if sc_change != 0:
-                sc_state.adjust(sc_change, reasons_text)
+                current_round = mechanics.current_round if mechanics else None
+                sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
             # SC is applied mechanically above - no need to inject into narration
             # Players see their soulcredit via game UI, not narrative text
@@ -6745,7 +6903,8 @@ The following actions ALREADY resolved (faster initiative):
         target_character: str = "",
         target_id: str = "",
         previous_context: str = "",
-        combatant_list: str = ""
+        combatant_list: str = "",
+        session_context: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -6845,6 +7004,8 @@ The following actions ALREADY resolved (faster initiative):
                 prompt_parts.append(bond_matrix)
             if combatant_list:
                 prompt_parts.append(combatant_list)
+            if session_context:
+                prompt_parts.append(session_context)
 
             # Add narration task template with outcome guidance
             variables = {
@@ -7000,15 +7161,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
             # Build clock context for prompt variable interpolation
-            clock_context = ""
-            if self.shared_state and self.shared_state.mechanics_engine:
-                mechanics = self.shared_state.mechanics_engine
-                if mechanics.scene_clocks:
-                    clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
-                    for clock_name, clock in mechanics.scene_clocks.items():
-                        clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
-                    clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
-                    clock_context = "\n".join(clock_lines)
+            clock_context = self._build_clock_context()
 
             # Load DM system prompt with conditional modules
             try:
@@ -7423,6 +7576,114 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             raise RuntimeError(f"Structured output generation failed: {e}") from e
 
+    def _build_clock_context(self) -> str:
+        """Build enriched clock context for action resolution prompts.
+
+        Returns a string showing each clock's progress, age, timeout remaining,
+        advance/regress meanings, and EXPIRING SOON warnings.
+        """
+        if not self.shared_state:
+            return ""
+
+        mechanics = None
+        if hasattr(self.shared_state, 'mechanics_engine') and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+        elif hasattr(self.shared_state, 'get_mechanics_engine'):
+            mechanics = self.shared_state.get_mechanics_engine()
+
+        if not mechanics or not mechanics.scene_clocks:
+            return ""
+
+        clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
+        for clock_name, clock in mechanics.scene_clocks.items():
+            # Progress and age
+            age = clock._rounds_alive
+            timeout = clock.timeout_rounds
+            line = f'  - "{clock_name}" ({clock.current}/{clock.maximum}, round {age}/{timeout}) - {clock.description}'
+
+            # Expiring soon warning
+            if age >= timeout - 2:
+                line += "  ⚠️ EXPIRING SOON"
+
+            # Advance/regress meanings
+            meanings = []
+            if clock.advance_meaning:
+                meanings.append(f"advance={clock.advance_meaning}")
+            if clock.regress_meaning:
+                meanings.append(f"regress={clock.regress_meaning}")
+            if meanings:
+                line += f"\n      {' | '.join(meanings)}"
+
+            clock_lines.append(line)
+
+        clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
+        return "\n".join(clock_lines)
+
+    def _get_clock_budget_text(self, active_count: int) -> str:
+        """Return clock budget guidance text based on number of active clocks."""
+        if active_count >= 4:
+            return f"Clock Budget: {active_count}/4 active — do NOT spawn new clocks unless one fills/expires first."
+        elif active_count >= 2:
+            return f"Clock Budget: {active_count} active — spawn only if a clock fills and creates genuine new pressure."
+        else:
+            return f"Clock Budget: {active_count} active — you may spawn 1-2 new clocks if the story demands it."
+
+    def _build_narrative_digest(self, current_round: int, lookback: int = 3) -> str:
+        """Build rolling narrative digest from recent round synthesis history.
+
+        Returns full untruncated narration for the last `lookback` rounds.
+        Returns empty string for round 1 or when no history exists.
+        """
+        if not self._round_synthesis_history:
+            return ""
+
+        # Take last `lookback` entries
+        recent = self._round_synthesis_history[-lookback:]
+
+        lines = ["PRIOR ROUNDS:"]
+        for round_num, narration in recent:
+            lines.append(f"  R{round_num}: {narration}")
+
+        return "\n".join(lines)
+
+    def _build_session_context(
+        self,
+        agent_id: str,
+        character_name: str,
+        previous_resolutions: List[Dict[str, Any]],
+        current_round: int,
+    ) -> str:
+        """Assemble SESSION CONTEXT block for DM adjudication prompt.
+
+        Combines:
+        1. Acting character's SC history
+        2. In-round action recap (earlier actions this round)
+        3. Prior round narration digest
+        """
+        parts = []
+
+        # 1. Acting character's SC history
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        if mechanics and hasattr(mechanics, 'format_character_soulcredit'):
+            sc_text = mechanics.format_character_soulcredit(agent_id, character_name)
+            if sc_text and isinstance(sc_text, str):
+                parts.append(sc_text)
+
+        # 2. In-round action recap
+        recap = _build_enhanced_previous_context(previous_resolutions or [])
+        if recap:
+            parts.append(recap)
+
+        # 3. Prior round narration digest
+        digest = self._build_narrative_digest(current_round)
+        if digest:
+            parts.append(digest)
+
+        if not parts:
+            return ""
+
+        return "--- SESSION CONTEXT ---\n" + "\n\n".join(parts) + "\n--- END SESSION CONTEXT ---"
+
     async def _build_resolution_prompt(
         self,
         player_id: str,
@@ -7451,10 +7712,11 @@ Void Level: {self.current_scenario.void_level}/10
         character_context = ""
         if action:
             character_name = action.get('character', 'Unknown')
+            pronouns = action.get('pronouns', 'they/them')
             faction = action.get('faction', 'Unaffiliated')
             party_personalities = self._get_party_personalities()
             character_context = f"""
-Character: {character_name} ({faction})
+Character: {character_name} ({pronouns}, {faction})
 Note: NPCs and other characters are aware of this affiliation.
 {party_personalities}
 """
@@ -7483,15 +7745,7 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_id = action['target']
 
         # Build clock context with exact clock names for structured output
-        clock_context = ""
-        if self.shared_state and self.shared_state.mechanics_engine:
-            mechanics = self.shared_state.mechanics_engine
-            if mechanics.scene_clocks:
-                clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
-                for clock_name, clock in mechanics.scene_clocks.items():
-                    clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
-                clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
-                clock_context = "\n".join(clock_lines)
+        clock_context = self._build_clock_context()
 
         # Build bond matrix showing active party bonds
         bond_matrix = ""
@@ -7545,14 +7799,15 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         if info:
                             # Show health info for players (for injury-aware narration)
                             pronouns = info.get('pronouns', 'they/them')
+                            faction = info.get('faction', 'Unknown')
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {health_text}{wounds_text})")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {health_text}{wounds_text})")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, player)")
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, player)")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -7561,10 +7816,10 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                         if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
                                             disposition = getattr(npc, 'disposition', 'neutral')
                                             break
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, npc, {disposition})")
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, npc, {disposition})")
                             else:
-                                # Format for enemies: [tgt_xxxx] Name (enemy)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {info['type']})")
+                                # Format for enemies: [tgt_xxxx] Name (faction, enemy)
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {info['type']})")
 
                     if combatant_lines:
                         combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
@@ -7589,6 +7844,16 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                     f"Set damage_type=\"{weapon_damage_type}\" in all DamageEffect fields.\n"
                 )
 
+        # Build session context (SC history + in-round recap + narrative digest)
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        current_round = mechanics.current_round if mechanics else 0
+        session_context = self._build_session_context(
+            agent_id=player_id,
+            character_name=action.get('character', 'The character') if action else "The character",
+            previous_resolutions=action.get('_previous_resolutions', []) if action else [],
+            current_round=current_round,
+        )
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -7609,7 +7874,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_character="",
             target_id=target_id,
             previous_context=previous_context,
-            combatant_list=combatant_list
+            combatant_list=combatant_list,
+            session_context=session_context
         )
 
         return prompt
@@ -7906,16 +8172,9 @@ When adjudicating:
   * Must be at Far-PC or Extreme-PC to attempt (can't escape from melee)"""
 
         # Add clock context
-        clock_context = ""
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics and mechanics.scene_clocks:
-                clock_lines = []
-                for name, clock in mechanics.scene_clocks.items():
-                    status = "FILLED!" if clock.filled else f"{clock.current}/{clock.maximum}"
-                    clock_lines.append(f"  - {name}: {status}")
-                if clock_lines:
-                    clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
+        clock_context = self._build_clock_context()
+        if clock_context:
+            clock_context = "\n\n**Active Clocks:**\n" + clock_context
 
         # Build bond matrix showing active party bonds
         bond_matrix = ""
@@ -8062,6 +8321,43 @@ When adjudicating:
                         )
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+                return narration
+
+            else:
+                # All other providers (deepinfra, xai, gemini, grok, etc.)
+                # Use UnifiedAIClient which supports OpenAI-compatible APIs
+                from .unified_llm_client import UnifiedAIClient
+                import asyncio
+
+                # Map provider names to UnifiedAIClient conventions
+                provider_map = {'xai': 'grok'}
+                unified_provider = provider_map.get(provider, provider)
+
+                client = UnifiedAIClient(provider=unified_provider)
+                narration = await asyncio.to_thread(
+                    client.chat_completion,
+                    messages=[
+                        {"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=400
+                )
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=narration,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': 0, 'output': 0},  # Token counts not available from UnifiedAIClient
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+                    self.llm_logger.call_count += 1
 
                 return narration
 

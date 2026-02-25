@@ -168,6 +168,12 @@ content: |-
   ```
   Note: Example 4 doesn't include position_changes because the character didn't change tactical distance - they were just exposed in place.
 
+  ## ACTION PREEMPTION (action_skipped)
+
+  If the character CANNOT execute their movement due to circumstances that arose
+  DURING this round, set `action_skipped=True` with a descriptive `skip_reason`.
+  The engine suppresses ALL effects when action_skipped=True — leave effects empty.
+
   ## NARRATION TIPS FOR EXPLORATION
 
   - Describe the environment being traversed

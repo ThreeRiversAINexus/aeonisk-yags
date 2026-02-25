@@ -1,11 +1,11 @@
 {
   "_role": "ml_training_scenario",
-  "_purpose": "Test multi-faction dynamics, competing goals within party, uneasy alliance against external threat, betrayal opportunities, reputation with multiple factions, shared vs. individual objectives",
+  "_purpose": "Test multi-faction dynamics, competing goals within party, uneasy alliance, betrayal opportunities, reputation with multiple factions, shared vs. individual objectives",
   "session_name": "The Breach Site Alliance",
   "max_turns": 18,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (External Threat + Potential PvP) ===",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Potential PvP + Faction Conflict) ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
   "enemy_agent_config": {
@@ -17,16 +17,21 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
-  "vendor_spawn_frequency": 0,
-  "_comment_scenario": "=== SCENARIO: FORCED ALLIANCE ===",
-  "_scenario_hint": "Ancient Ritual Site (void_level 7, unstable), three factions (Tempest, Sovereign Nexus, Freeborn Collective) discover pre-Covenant archive simultaneously. External threat: void cultists trying to destroy site. Forced cooperation: must defend site together, but each faction wants exclusive access to archive contents. Tensions: Tempest wants void research, Nexus wants to suppress dangerous knowledge, Freeborn wants to liberate information. Betrayal opportunities: sabotage allies, claim archive, defect to cultists. Success requires balancing shared threat with competing goals.",
+  "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (spawn every 3 rounds) ===",
+  "vendor_spawn_frequency": 3,
+  "_comment_scenario": "=== SCENARIO: THREE-WAY STANDOFF (pre-defined, no LLM generation) ===",
+  "scenario": {
+    "theme": "faction_standoff_competing_claims",
+    "location": "Aeonisk Prime - Ancient Ritual Site, Pre-Covenant Archive Chamber",
+    "situation": "The void-scarred ruins of a pre-Covenant archive site pulse with unstable energy. Void Researcher Arden (Tempest Industries), Codex Enforcer Lyss (Sovereign Nexus), and Liberator Kael (Freeborn Collective) have each arrived independently, drawn by separate intelligence about the archive's contents. They notice each other almost simultaneously across the crumbling atrium. The ancient data vaults are intact but sealed behind void-resonant locks that will take time to crack. Nobody planned to share this discovery. Arden is already scanning the vault seals. Lyss has her hand on her weapon, calculating. Kael is eyeing the exits and the data ports. Three factions. One archive. Each wants something different from whatever is locked inside \u2014 and none of them are sure yet whether the others are obstacles, threats, or reluctant partners. There are no other operatives present \u2014 each came alone.",
+    "void_level": 7
+  },
   "_design_notes": {
-    "ml_training_value": "Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing individual goals within team, shared external threat (void cultists), reputation tracking with 3 factions, betrayal/defection opportunities, moral tension (cooperation vs. self-interest), potential PvP if alliance breaks",
+    "ml_training_value": "Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing individual goals within team, reputation tracking with 3 factions, betrayal/defection opportunities, moral tension (cooperation vs. self-interest), potential PvP if alliance breaks",
     "mechanics_tested": [
       "Multi-faction reputation",
       "Competing PC goals",
-      "Shared threat cooperation",
+      "Faction negotiation and diplomacy",
       "Betrayal mechanics",
       "Factional equipment differences",
       "Trust/suspicion clocks"
@@ -34,15 +39,6 @@
     "character_innovation": "Three characters from antagonistic factions, faction-specific gear (Nexus seal, Tempest void scanner, Freeborn counterfeit IDs), explicit goal conflicts"
   },
   "starting_clocks": [
-    {
-      "name": "Void Cultist Assault",
-      "current_ticks": 4,
-      "max_ticks": 10,
-      "direction": "progress",
-      "description": "Cultist attack waves. At 7 ticks: heavy assault. At 10 ticks: site destroyed unless defended.",
-      "advance_meaning": "void cultist assault progresses",
-      "regress_meaning": "void cultist assault setback or reversal"
-    },
     {
       "name": "Archive Access Progress",
       "current_ticks": 0,
@@ -102,7 +98,8 @@
           "Systems": 5,
           "Investigation": 5,
           "Magick Theory": 5,
-          "Guns": 3
+          "Guns": 3,
+          "Medicine": 4
         },
         "void": 4,
         "soulcredit": -2,
@@ -247,5 +244,5 @@
       }
     ]
   },
-  "notes": "ML Training Focus: Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing PC goals (research vs. suppression vs. liberation), shared external threat (void cultists), uneasy alliance mechanics, betrayal opportunities, faction reputation tracking, potential PvP if cooperation fails. Tests underrepresented factional conflict within party, moral tension between cooperation and self-interest, trust/suspicion dynamics. Long campaign (18 turns) allows alliance to form, strain, potentially break. Features exotic weapons: Hollowed Repeater (Void, scales with void score), Shrike Cannon (Glyph-Encoded, +6 DMG)."
+  "notes": "ML Training Focus: Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing PC goals (research vs. suppression vs. liberation), uneasy alliance mechanics, betrayal opportunities, faction reputation tracking, potential PvP if cooperation fails. Tests underrepresented factional conflict within party, moral tension between cooperation and self-interest, trust/suspicion dynamics. Long campaign (18 turns) allows alliance to form, strain, potentially break. Features exotic weapons: Hollowed Repeater (Void, scales with void score), Shrike Cannon (Glyph-Encoded, +6 DMG)."
 }

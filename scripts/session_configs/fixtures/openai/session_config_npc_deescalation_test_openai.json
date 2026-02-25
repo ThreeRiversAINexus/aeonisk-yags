@@ -84,7 +84,6 @@
           "Dexterity": 3
         },
         "skills": {
-          "Empathy": 4,
           "Charm": 5,
           "Awareness": 4,
           "Investigation": 3,
@@ -169,7 +168,7 @@
     "situation": "You've cornered a group of Freeborn raiders who were smuggling contraband. They're outgunned but not yet defeated. They might surrender if given the chance - or fight desperately if they feel trapped with no options. A civilian dock worker is hiding nearby, terrified of the crossfire.",
     "void_level": 3
   },
-  "_scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
+  "scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
   "mission_objectives": [
     {
       "description": "Resolve situation with minimal casualties",

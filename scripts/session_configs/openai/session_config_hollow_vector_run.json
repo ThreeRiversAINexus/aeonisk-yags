@@ -1,15 +1,12 @@
 {
   "_role": "hollow_vector_smugglers_openai",
   "_purpose": "Freeborn smugglers running the illegal Hollow Vector route between Arcadia and Nimbus. Void corruption, temporal anomalies, cargo that shouldn't exist, and the question of whether the Eye of Breach is guiding them or hunting them. Pilots return older than they left. Some don't return at all.",
-
   "session_name": "hollow_vector_run",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THE UNREGULATED ROUTE ===",
-  "_scenario_hint": "The Hollow Vector is the route that doesn't exist - an uncharted ley-path between Arcadia and Nimbus that the Codex doesn't track because it can't. Resonance storms every 11 days. Pilots return older than their departure clocks. Some come back speaking languages they never learned. Some don't come back at all. But for Freeborn smugglers with illegal cargo, it's the only way to move product without House of Vox surveillance. This crew has done it before. They know the signs. They know when to hide. But this time, the cargo is different - sealed containers that hum with void-resonance, payment from a client who didn't give a name. And the Eye of Breach seems very interested in where they're going. Let the weirdness build slowly. Time should become unreliable. The ship should feel wrong. The cargo may not be what they think.",
-
+  "scenario_hint": "The Hollow Vector is the route that doesn't exist - an uncharted ley-path between Arcadia and Nimbus that the Codex doesn't track because it can't. Resonance storms every 11 days. Pilots return older than their departure clocks. Some come back speaking languages they never learned. Some don't come back at all. But for Freeborn smugglers with illegal cargo, it's the only way to move product without House of Vox surveillance. This crew has done it before. They know the signs. They know when to hide. But this time, the cargo is different - sealed containers that hum with void-resonance, payment from a client who didn't give a name. And the Eye of Breach seems very interested in where they're going. Let the weirdness build slowly. Time should become unreliable. The ship should feel wrong. The cargo may not be what they think.",
   "scenario": {
     "theme": "cosmic_smuggling_survival_horror",
     "location": "The Hollow Vector - Unregulated Ley-Space",
     "situation": "Your ship, the Discordant Wake, slips through the blind spot in Arcadia's orbital beacon network and enters the Hollow Vector. Behind you, regulated space fades to nothing. Ahead, the ley-corridor stretches into darkness that isn't quite dark - it pulses, slowly, like something breathing. The cargo hold contains twelve sealed containers from a client who paid in Hollow currency and didn't ask questions. Your navigator has done this run six times. She says the trip takes 4 days. Your ship's chronometer is already 3 hours behind Arcadian standard. The first resonance storm isn't due for another 8 days. You hope.",
     "void_level": 5
   },
-
   "_comment_clocks": "=== THE JOURNEY ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "went unnoticed, Eye looks elsewhere"
     }
   ],
-
   "_comment_initial_npcs": "=== SHIP CREW (NON-PLAYER) ===",
   "initial_npcs": [
     {
@@ -80,7 +73,11 @@
       "description": "Young Freeborn kid on his first Hollow Vector run. Eager to prove himself. Doesn't know what he signed up for.",
       "health": 16,
       "soak": 1,
-      "skills": {"Athletics": 3, "Awareness": 2, "Systems": 2}
+      "skills": {
+        "Athletics": 3,
+        "Awareness": 2,
+        "Systems": 2
+      }
     },
     {
       "name": "The Passenger",
@@ -91,12 +88,14 @@
       "description": "Hooded figure who booked passage at the last minute, paying in Hollow. Stays in their cabin. Might be connected to the cargo. Might be the client. Might be something else.",
       "health": 20,
       "soak": 2,
-      "skills": {"Astral Arts": 5, "Stealth": 4, "Awareness": 5}
+      "skills": {
+        "Astral Arts": 5,
+        "Stealth": 4,
+        "Awareness": 5
+      }
     }
   ],
-
   "_design_notes": "Four Freeborn smugglers on an illegal run through void-corrupted space. The Captain holds them together. The Navigator knows the route but is hiding something. The Engineer keeps the ship alive. The Muscle protects them from what comes through. Slow-burn horror as time becomes unreliable and the cargo reveals its nature. The Passenger is a mystery. The Eye of Breach is watching. Let paranoia build. 20 rounds for a full journey with escalating weirdness.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -132,12 +131,11 @@
           "Willpower": 5
         },
         "skills": {
-          "Leadership": 5,
           "Pilot": 5,
           "Charm": 4,
           "Awareness": 4,
           "Guns": 4,
-          "Navigation": 3
+          "Intimidation": 5
         },
         "void": 3,
         "soulcredit": -3,
@@ -188,8 +186,7 @@
           "Willpower": 4
         },
         "skills": {
-          "Navigation": 6,
-          "Pilot": 5,
+          "Pilot": 6,
           "Astral Arts": 4,
           "Awareness": 5,
           "Systems": 4,
@@ -244,11 +241,11 @@
         },
         "skills": {
           "Systems": 6,
-          "Engineering": 6,
           "Awareness": 4,
           "Investigation": 3,
           "Athletics": 3,
-          "Guns": 2
+          "Guns": 2,
+          "Tech/Craft": 6
         },
         "void": 2,
         "soulcredit": 0,
@@ -260,7 +257,9 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["tool_club"],
+        "carried_weapons": [
+          "tool_club"
+        ],
         "inventory": {
           "pistol": 1,
           "tool_club": 1,
@@ -316,7 +315,10 @@
           "primary": "rifle",
           "sidearm": "combat_knife"
         },
-        "carried_weapons": ["pistol", "shotgun"],
+        "carried_weapons": [
+          "pistol",
+          "shotgun"
+        ],
         "inventory": {
           "rifle": 1,
           "shotgun": 1,
@@ -330,7 +332,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE RUN ===",
   "_beats": [
     "Departure - leaving regulated space, clocks already wrong",
@@ -344,7 +345,6 @@
     "Mutiny or Unity - crew fractures or comes together under pressure",
     "Arrival - Nimbus in sight, but what's left of them? What's left of the cargo?"
   ],
-
   "mission_objectives": [
     {
       "description": "Survive the Hollow Vector transit to Nimbus",
@@ -367,6 +367,5 @@
       "required": false
     }
   ],
-
   "notes": "HOLLOW VECTOR RUN - Freeborn smugglers on an illegal void-route. Survival horror in space. Time becomes unreliable, the cargo is wrong, The Passenger is a mystery, the Eye is watching. Let weirdness build slowly - clocks drift, memories conflict, reality stutters. The crew is family, but void exposure strains even family. 20 rounds for a full journey with escalating horror. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

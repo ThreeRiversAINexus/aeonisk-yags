@@ -554,10 +554,10 @@ class JSONLLogger:
         effects: Dict[str, Any] = None
     ):
         """
-        Log an enemy action resolution event.
+        DEPRECATED: Use log_combat_action() instead.
 
-        Enemy actions are executed locally (not via DM adjudication) so they use
-        a simplified format compared to player action_resolution events.
+        This method produces action_resolution events with null skill data,
+        duplicating the combat_action events logged by enemy_combat.py.
 
         Args:
             round_num: Current round number
@@ -572,6 +572,12 @@ class JSONLLogger:
             roll_data: Roll details if available (d20, total, dc, etc.)
             effects: Additional effects (status changes, positioning, etc.)
         """
+        import warnings
+        warnings.warn(
+            "log_enemy_action() is deprecated. Use log_combat_action() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         event = {
             "event_type": "action_resolution",
             "ts": datetime.now().isoformat(),
@@ -1914,13 +1920,14 @@ class SoulcreditState:
     score: int = 0  # -10 to +10
     history: List[Dict[str, Any]] = field(default_factory=list)
 
-    def adjust(self, amount: int, reason: str) -> int:
+    def adjust(self, amount: int, reason: str, round_num: Optional[int] = None) -> int:
         """
         Adjust soulcredit and clamp to [-10, +10] range.
 
         Args:
             amount: Soulcredit delta (can be positive or negative)
             reason: Why soulcredit is changing
+            round_num: Which round this change occurred in (for history tracking)
 
         Returns:
             New soulcredit score
@@ -1933,7 +1940,8 @@ class SoulcreditState:
                 'change': self.score - old_score,
                 'reason': reason,
                 'old_score': old_score,
-                'new_score': self.score
+                'new_score': self.score,
+                'round': round_num
             })
             logger.info(f"Soulcredit: {old_score} → {self.score} ({reason})")
 
@@ -2512,6 +2520,69 @@ class MechanicsEngine:
             state = SoulcreditState(score=initial_score)
             self.soulcredit_states[agent_id] = state
         return self.soulcredit_states[agent_id]
+
+    def format_character_soulcredit(self, agent_id: str, character_name: str) -> str:
+        """Format soulcredit history for the acting character (DM-facing context).
+
+        Returns empty string if no SC history exists or agent is unknown.
+        """
+        if agent_id not in self.soulcredit_states:
+            return ""
+        sc_state = self.soulcredit_states[agent_id]
+        if not sc_state.history:
+            return ""
+
+        # Group history entries by round
+        from collections import defaultdict
+        by_round = defaultdict(list)
+        for entry in sc_state.history:
+            r = entry.get('round')
+            by_round[r].append(entry)
+
+        # Build per-round summary
+        round_parts = []
+        for r in sorted(by_round.keys(), key=lambda x: (x is None, x)):
+            entries = by_round[r]
+            descs = [f"{e['change']:+d} {e['reason']}" for e in entries]
+            label = f"R{r}" if r is not None else "R?"
+            round_parts.append(f"{label}: {', '.join(descs)}")
+
+        score_str = f"{sc_state.score:+d}" if sc_state.score != 0 else "0"
+        return (
+            f"ACTING CHARACTER SOULCREDIT:\n"
+            f"  {character_name}: {score_str} [{sc_state.reputation_level}] "
+            f"({'; '.join(round_parts)})"
+        )
+
+    def format_player_soulcredit(self, agent_id: str) -> str:
+        """Format soulcredit for player-facing display (Codex kiosk query).
+
+        Shows score, reputation, and per-round history trail.
+        """
+        if agent_id not in self.soulcredit_states:
+            return "Soulcredit: 0 [Neutral]"
+        sc_state = self.soulcredit_states[agent_id]
+
+        score_str = f"{sc_state.score:+d}" if sc_state.score != 0 else "0"
+        result = f"Soulcredit: {score_str} [{sc_state.reputation_level}]"
+
+        if sc_state.history:
+            from collections import defaultdict
+            by_round = defaultdict(list)
+            for entry in sc_state.history:
+                r = entry.get('round')
+                by_round[r].append(entry)
+
+            round_parts = []
+            for r in sorted(by_round.keys(), key=lambda x: (x is None, x)):
+                entries = by_round[r]
+                descs = [f"{e['change']:+d} ({e['reason']})" for e in entries]
+                label = f"R{r}" if r is not None else "R?"
+                round_parts.append(f"{label}: {', '.join(descs)}")
+
+            result += f"\n  {' | '.join(round_parts)}"
+
+        return result
 
     def has_offering(self, character_state: Any) -> tuple[bool, Optional[str], int]:
         """
@@ -4687,46 +4758,6 @@ class MechanicsEngine:
             logger.info(f"Removed clock: {clock_name}")
 
         return expired_clocks
-
-    def update_clocks_from_action(self, resolution: ActionResolution, context: Dict[str, Any]):
-        """Update scene clocks based on action resolution."""
-        intent_lower = resolution.intent.lower()
-
-        # Sanctuary/Void Corruption - advances on failures, especially with void/ritual
-        if "Sanctuary Corruption" in self.scene_clocks:
-            if resolution.outcome_tier in [OutcomeTier.FAILURE, OutcomeTier.CRITICAL_FAILURE]:
-                # Any failed ritual or void manipulation risks corruption
-                if any(kw in intent_lower for kw in ['ritual', 'void', 'channel', 'attune', 'harmoniz', 'astral']):
-                    ticks = 2 if resolution.outcome_tier == OutcomeTier.CRITICAL_FAILURE else 1
-                    self.advance_clock("Sanctuary Corruption", ticks, f"Failed: {resolution.intent}")
-
-        # Saboteur Exposure - advances on successful investigation/detection
-        if "Saboteur Exposure" in self.scene_clocks:
-            if _resolution_success(resolution):
-                # Broad investigation keywords
-                investigation_keywords = [
-                    'investigate', 'analyze', 'trace', 'scan', 'search', 'examine',
-                    'detect', 'identify', 'track', 'follow', 'sense', 'perceive',
-                    'study', 'inspect', 'observe', 'scrutinize', 'signature',
-                    'pattern', 'resonance', 'echo', 'void resonance', 'sabotage'
-                ]
-                if any(kw in intent_lower for kw in investigation_keywords):
-                    # Better success = more progress
-                    ticks = 2 if resolution.margin >= 10 else 1
-                    self.advance_clock("Saboteur Exposure", ticks, f"Investigation: {resolution.intent}")
-
-        # Communal Stability - degrades on failures, improves on healing/stabilization successes
-        if "Communal Stability" in self.scene_clocks:
-            # Success at healing/stabilizing improves stability
-            healing_keywords = ['stabiliz', 'heal', 'mend', 'repair', 'bond', 'harmoniz', 'protective', 'barrier']
-            if _resolution_success(resolution) and any(kw in intent_lower for kw in healing_keywords):
-                # Stability clock tracks degradation, so successful healing REGRESSES it (improves stability)
-                self.scene_clocks["Communal Stability"].regress(1)
-            # Failures at healing or any critical failure degrades stability
-            elif resolution.outcome_tier in [OutcomeTier.FAILURE, OutcomeTier.CRITICAL_FAILURE]:
-                if any(kw in intent_lower for kw in healing_keywords + ['social', 'group', 'commune', 'meditat']):
-                    ticks = 2 if resolution.outcome_tier == OutcomeTier.CRITICAL_FAILURE else 1
-                    self.advance_clock("Communal Stability", ticks, f"Social/healing failure: {resolution.intent}")
 
     def calculate_initiative(self, agility: int) -> int:
         """Calculate initiative: Agility × 4 + d20."""

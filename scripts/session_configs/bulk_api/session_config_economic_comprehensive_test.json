@@ -273,10 +273,10 @@
         },
         "skills": {
           "Attunement": 3,
-          "Trade": 3,
           "Charm": 3,
           "Awareness": 2,
-          "Systems": 2
+          "Systems": 2,
+          "Corporate Influence": 3
         },
         "equipped_weapons": {},
         "carried_weapons": [],
@@ -343,9 +343,9 @@
         "skills": {
           "Attunement": 3,
           "Magick Theory": 3,
-          "Research": 3,
           "Medicine": 2,
-          "Astral Arts": 2
+          "Astral Arts": 2,
+          "Investigation": 3
         },
         "equipped_weapons": {},
         "carried_weapons": [],
@@ -416,11 +416,11 @@
           "Dexterity": 3
         },
         "skills": {
-          "Trade": 3,
           "Charm": 3,
-          "Brawling": 2,
           "Awareness": 2,
-          "Attunement": 2
+          "Attunement": 2,
+          "Brawl": 2,
+          "Corporate Influence": 3
         },
         "equipped_weapons": {},
         "carried_weapons": [],
@@ -488,8 +488,8 @@
           "Attunement": 3,
           "Astral Arts": 3,
           "Systems": 3,
-          "Engineering": 2,
-          "Medicine": 2
+          "Medicine": 2,
+          "Tech/Craft": 2
         },
         "equipped_weapons": {},
         "carried_weapons": [],

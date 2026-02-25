@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: INTENTIONAL VOID THRESHOLD BREACH ===",
-  "_scenario_hint": "Isolated Research Dome (void_level 6, shielded), Void Theorist at void 4 intentionally pushes to void 6+ to access forbidden pre-Covenant knowledge only visible at threshold. Experiment: controlled dissolution with medical monitor (void 0) and paranoid observer (void 1) standing by. Reality warps at void 6 (walls phase, echoes of dissolved souls, time distortion), void 7 triggers dissolution spiral risk, void 8 = point of no return. Must: extract knowledge before spiral, stabilize researcher with cleansing rituals, document effects for science. Time-limited recovery: 6 rounds after hitting void 7 before permanent transformation. Pantheon cleansing squad inbound (8 rounds ETA). Moral tension: knowledge worth the risk? Abort vs. continue?",
+  "scenario_hint": "Isolated Research Dome (void_level 6, shielded), Void Theorist at void 4 intentionally pushes to void 6+ to access forbidden pre-Covenant knowledge only visible at threshold. Experiment: controlled dissolution with medical monitor (void 0) and paranoid observer (void 1) standing by. Reality warps at void 6 (walls phase, echoes of dissolved souls, time distortion), void 7 triggers dissolution spiral risk, void 8 = point of no return. Must: extract knowledge before spiral, stabilize researcher with cleansing rituals, document effects for science. Time-limited recovery: 6 rounds after hitting void 7 before permanent transformation. Pantheon cleansing squad inbound (8 rounds ETA). Moral tension: knowledge worth the risk? Abort vs. continue?",
   "_design_notes": {
     "ml_training_value": "Void threshold mechanics (void 6 reality warping, void 7 dissolution spiral, void 8 transformation), intentional void accumulation for research, reality instability effects, cleansing ritual mechanics under pressure, time-limited recovery window, PC transformation as consequence, medical stabilization attempts, moral choice (knowledge vs. survival)",
     "mechanics_tested": [
@@ -114,7 +114,7 @@
           "Magick Theory": 6,
           "Science": 5,
           "Investigation": 5,
-          "Willpower": 5
+          "Discipline": 5
         },
         "void": 4,
         "soulcredit": -5,

@@ -179,6 +179,43 @@ def _get_inventory(agent):
     return agent.inventory
 
 
+def _normalize_enemy_result(result: dict) -> dict:
+    """Normalize enemy combat result for compatibility with PC resolution format.
+
+    Enemy results have inconsistent field names (hit vs success, roll.margin vs
+    flat margin, action string vs dict). This normalizes them so downstream code
+    (e.g. _build_enhanced_previous_context) can handle both uniformly.
+    """
+    normalized = dict(result)
+
+    # Normalize action to dict format
+    raw_action = result.get('action', 'unknown')
+    if isinstance(raw_action, str):
+        normalized['action'] = {
+            'action_type': raw_action,
+            'character_name': result.get('character_name', ''),
+        }
+
+    # Ensure top-level success field
+    if 'success' not in normalized:
+        if result.get('hit') is not None:
+            normalized['success'] = result['hit']
+        elif result.get('result') in ('success', 'failure', 'invalidated'):
+            normalized['success'] = result['result'] == 'success'
+        else:
+            normalized['success'] = True
+
+    # Ensure top-level margin field
+    if 'margin' not in normalized:
+        roll = result.get('roll')
+        if isinstance(roll, dict) and 'margin' in roll:
+            normalized['margin'] = roll['margin']
+        else:
+            normalized['margin'] = 0
+
+    return normalized
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -414,10 +451,11 @@ class SelfPlayingSession:
     # 2. DM spawns vendor from self.vendor_pool matching required_vendor_type
     # 3. Vendors in vendor_pool (create_standard_vendors()) have inventory designed for scenarios
     #
+    # Vendor spawn frequency defaults to 3 (every 3rd round) in both session.py and dm.py.
+    # To disable: set vendor_spawn_frequency: -1 or 0 in config.
     # For testing with persistent_vendors config:
     # - Set vendor_spawn_frequency: -1 to disable DM vendor spawning
     # - Manually configure persistent vendor inventory to include scenario-required items
-    # - Or set vendor_spawn_frequency: 3 to let DM spawn vendors from vendor_pool
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
@@ -581,6 +619,16 @@ class SelfPlayingSession:
             # Also attach agent prompt logger if enabled
             if self.agent_prompt_logger:
                 agent.agent_prompt_logger = self.agent_prompt_logger
+
+        # Attach LLM logger to enemy combat manager for token tracking
+        if self.enemy_combat.enabled:
+            enemy_llm_logger = LLMCallLogger(
+                agent_id='enemy_combat',
+                agent_type='enemy',
+                jsonl_logger=jsonl_logger,
+                session_id=self.session_id
+            )
+            self.enemy_combat.llm_logger = enemy_llm_logger
 
         print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
@@ -867,7 +915,7 @@ class SelfPlayingSession:
         print()
 
         # Generate narratives via LLM
-        scenario_context = self.config.get('_scenario_hint', '') if use_scenario_context else None
+        scenario_context = (self.config.get('scenario_hint', '') or self.config.get('_scenario_hint', '')) if use_scenario_context else None
         bond_suggestions = await self._generate_bond_narratives(
             bond_suggestions=bond_suggestions,
             character_names=character_names,
@@ -1269,6 +1317,15 @@ Generate narratives (numbered list only):"""
                 for agent_id, void_state in mechanics.void_states.items():
                     void_state.reset_round_void()
 
+                # Tick condition durations at round start
+                if hasattr(mechanics, 'conditions'):
+                    for agent_id in list(mechanics.conditions.keys()):
+                        mechanics.tick_conditions(agent_id)
+
+            # Expire stealth at round start
+            if self.shared_state:
+                self.shared_state.expire_stealth(round_count)
+
             # Clear declared actions from previous round (for all player agents)
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
             for agent in player_agents:
@@ -1411,9 +1468,15 @@ Generate narratives (numbered list only):"""
             if self.shared_state and hasattr(self.shared_state, 'current_vendors'):
                 current_vendors = self.shared_state.current_vendors or []
 
+            # Filter out dead PCs before assigning target IDs
+            active_players = [
+                p for p in self.shared_state.player_agents
+                if p.is_alive and not getattr(p, '_permanently_dead', False)
+            ]
+
             # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
             target_id_mapper.assign_ids(
-                player_agents=self.shared_state.player_agents,
+                player_agents=active_players,
                 enemy_agents=active_enemies,
                 npc_agents=active_npcs,
                 vendors=current_vendors
@@ -1601,7 +1664,11 @@ Generate narratives (numbered list only):"""
                             if combatant_info:
                                 target_display = f"{combatant_info['name']} ({target_id})"
 
-                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
+                        if action == 'Dialogue' and declaration.get('dialogue_content'):
+                            print(f"\n[{agent.name}] (Init {initiative_score}) DIALOGUE → {target_display} | {health_str} | {position_str}")
+                            print(f'         \U0001f4ac "{declaration["dialogue_content"]}"')
+                        else:
+                            print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -1609,28 +1676,34 @@ Generate narratives (numbered list only):"""
                             player_id=declaration['agent_id'],
                             character_name=declaration['character_name'],
                             initiative=declaration['initiative'],
-                            action={'major_action': declaration['major_action'], 'target': declaration.get('target')},
+                            action={'major_action': declaration['major_action'], 'target': declaration.get('target'), 'dialogue_content': declaration.get('dialogue_content')},
                             round_num=mechanics.current_round
                         )
 
                     # Broadcast enemy declaration to all players (for tactical awareness)
                     # Note: sender must be agent_id for proper buffering in _handle_action_declared
                     if declaration:
+                        broadcast_payload = {
+                            'agent_id': declaration['agent_id'],
+                            'character_name': declaration['character_name'],
+                            'intent': declaration.get('major_action', 'Unknown action'),
+                            'target': declaration.get('target'),  # NEW: targeting info
+                            'weapon': declaration.get('weapon'),  # NEW: weapon info
+                            'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
+                            'initiative': declaration['initiative'],
+                            'agent_type': 'enemy'
+                        }
+                        # Include dialogue_content so players/NPCs see enemy speech
+                        if declaration.get('dialogue_content'):
+                            broadcast_payload['dialogue_content'] = declaration['dialogue_content']
+                            broadcast_payload['description'] = f'speaks: "{declaration["dialogue_content"]}"'
+
                         broadcast_message = Message(
                             id=f"enemy_declared_{datetime.now().isoformat()}_{agent.agent_id}",
                             type=MessageType.ACTION_DECLARED,
                             sender=declaration['agent_id'],  # Use enemy agent_id, not 'coordinator'
                             recipient=None,  # Broadcast to all
-                            payload={
-                                'agent_id': declaration['agent_id'],
-                                'character_name': declaration['character_name'],
-                                'intent': declaration.get('major_action', 'Unknown action'),
-                                'target': declaration.get('target'),  # NEW: targeting info
-                                'weapon': declaration.get('weapon'),  # NEW: weapon info
-                                'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
-                                'initiative': declaration['initiative'],
-                                'agent_type': 'enemy'
-                            },
+                            payload=broadcast_payload,
                             timestamp=datetime.now()
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
@@ -1806,6 +1879,11 @@ Generate narratives (numbered list only):"""
                                     if info.get('agent_id') == agent.agent_id:
                                         continue
 
+                                    # Skip PCs hidden from this NPC (stealth filtering)
+                                    if info.get('type') == 'player' and self.shared_state:
+                                        if not self.shared_state.is_visible_to(info['agent_id'], agent.agent_id):
+                                            continue
+
                                     death_state = info.get('death_state', 'alive')
                                     health = info.get('health', 0)
                                     max_health = info.get('max_health', 0)
@@ -1821,10 +1899,9 @@ Generate narratives (numbered list only):"""
                                     else:
                                         status = ""
 
-                                    entity_type = info.get('type', 'unknown')
-                                    type_label = {'player': 'ally', 'npc': 'npc', 'enemy': 'hostile'}.get(entity_type, entity_type)
+                                    faction = info.get('faction', 'Unknown')
 
-                                    entry = f"{info['name']} ({target_id}, {type_label}) — {health}/{max_health} HP, wounds: {wounds}{status}"
+                                    entry = f"{info['name']} ({target_id}, {faction}) — {health}/{max_health} HP, wounds: {wounds}{status}"
 
                                     if death_state in ('dead', 'unconscious'):
                                         down_combatants.append(entry)
@@ -2060,6 +2137,57 @@ Generate narratives (numbered list only):"""
                             )
                     continue
 
+                # Skip defeated/incapacitated players (same checks as enemy invalidation)
+                # This prevents wasted LLM calls for mechanically impossible actions
+                player_skip_reason = None
+                if resolution_state.is_defeated(agent.agent_id):
+                    player_skip_reason = "attacker_defeated"
+                elif resolution_state.is_incapacitated(agent.agent_id):
+                    player_skip_reason = "attacker_incapacitated"
+
+                if player_skip_reason:
+                    from .tactical_resolution import generate_invalidation_message
+                    skip_narration = generate_invalidation_message(
+                        agent.character_state.name,
+                        "action",
+                        player_skip_reason
+                    )
+                    print(f"\n⚠️  {skip_narration}")
+                    logger.info(f"Player auto-skip: {agent.character_state.name} ({player_skip_reason})")
+
+                    # Build skip resolution for previous_context visibility
+                    skip_resolution = {
+                        'character_name': agent.character_state.name,
+                        'player_id': agent.agent_id,
+                        'action': {'action_type': 'skipped', 'intent': 'auto-skipped'},
+                        'narration': skip_narration,
+                        'action_skipped': True,
+                        'skip_reason': player_skip_reason,
+                        'effects': {},
+                        'resolution': {'margin': 0},
+                    }
+                    all_resolutions.append(skip_resolution)
+
+                    # Log to JSONL
+                    if mechanics and mechanics.jsonl_logger:
+                        declared = self._declared_actions.get(agent.agent_id, [])
+                        for idx, buffered_action in enumerate(declared):
+                            action_intent = buffered_action.get('action', {}).get('intent', 'unknown')
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=agent.agent_id,
+                                enemy_name=agent.character_state.name,
+                                action_type='skipped',
+                                result=player_skip_reason,
+                                narration=f"{agent.character_state.name}'s action ({action_intent}) auto-skipped: {player_skip_reason}",
+                                target_id=None,
+                                target_name=None,
+                                damage_dealt=None,
+                                roll_data=None,
+                                effects={'skip_reason': player_skip_reason, 'action_skipped': True}
+                            )
+                    continue
+
                 # PC action execution via DM adjudication
                 # Process ALL buffered actions for this agent (supports free action system)
                 if agent.agent_id in self._declared_actions:
@@ -2161,7 +2289,14 @@ Generate narratives (numbered list only):"""
                             _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
 
                             # Process purchase/crafting effects from structured output
-                            effects = resolution_data.get('effects') or {}
+                            # Guard: skip all effect processing if action was preempted
+                            action_was_skipped = resolution_data.get('action_skipped', False)
+                            if action_was_skipped:
+                                skip_reason = resolution_data.get('skip_reason', 'preempted')
+                                logger.info(f"Skipping effect processing for {agent.character_state.name}: action_skipped=True (reason: {skip_reason})")
+                                effects = {}
+                            else:
+                                effects = resolution_data.get('effects') or {}
 
                             # Handle purchases
                             purchase_effect = effects.get('purchase') if effects else None
@@ -2271,8 +2406,11 @@ Generate narratives (numbered list only):"""
                                 # Resolve target IDs in narration for readability
                                 narration = self._resolve_target_ids_in_text(result['narration'])
                                 print(f"\n[{result['character_name']}] {narration}")
+                                # Show dialogue content prominently (like NPC dialogue)
+                                if result.get('dialogue_content'):
+                                    print(f'         💬 "{result["dialogue_content"]}"')
                                 # Show additional details on second line if combat action with damage
-                                if result.get('damage_dealt') is not None:
+                                elif result.get('damage_dealt') is not None:
                                     damage_str = f"Damage: {result.get('damage_dealt')}"
                                     range_str = f"Range: {result.get('range', 'N/A')}"
                                     print(f"         └─ {damage_str} | {range_str} | {health_str} | {position_str}")
@@ -2284,26 +2422,33 @@ Generate narratives (numbered list only):"""
                                 narration = self._resolve_target_ids_in_text(result['narration'])
                                 print(f"\n[{result['character_name']}] {narration}")
 
-                        # Add enemy result to synthesis input
-                        # Enemy actions use a simplified result dict compared to ActionResolution schema
-                        # but DM needs to see enemy actions to synthesize round accurately
-                        all_resolutions.append(result)
+                            # Broadcast enemy dialogue/wait results as ACTION_RESOLVED
+                            # so they appear in players' recent_narrations (like NPC/PC actions)
+                            if result.get('action') in ('dialogue', 'wait'):
+                                resolved_narration = self._resolve_target_ids_in_text(result.get('narration', ''))
+                                broadcast_message = Message(
+                                    id=f"enemy_resolved_{datetime.now().isoformat()}_{agent.agent_id}",
+                                    type=MessageType.ACTION_RESOLVED,
+                                    sender=agent.agent_id,
+                                    recipient=None,  # Broadcast to all
+                                    payload={
+                                        'agent_id': agent.agent_id,
+                                        'original_action': {
+                                            'character_name': result.get('character_name', agent.name),
+                                            'intent': result.get('action', 'dialogue'),
+                                        },
+                                        'narration': resolved_narration,
+                                        'aware_agents': [],  # Public — everyone hears it
+                                        'resolution_data': result
+                                    },
+                                    timestamp=datetime.now()
+                                )
+                                await self.coordinator.message_bus._route_message(broadcast_message)
 
-                        # Log enemy action to JSONL (uses dedicated method for simplified format)
-                        if mechanics and mechanics.jsonl_logger:
-                            mechanics.jsonl_logger.log_enemy_action(
-                                round_num=mechanics.current_round,
-                                enemy_id=result.get('enemy_id', agent.agent_id),
-                                enemy_name=result.get('character_name', 'Unknown Enemy'),
-                                action_type=result.get('action', 'unknown'),
-                                result=result.get('result', 'unknown'),
-                                narration=result.get('narration', ''),
-                                target_id=result.get('target'),
-                                target_name=result.get('target_name'),
-                                damage_dealt=result.get('damage_dealt'),
-                                roll_data=result.get('roll'),
-                                effects=result.get('effects')
-                            )
+                        # Add enemy result to synthesis input (normalized for schema consistency)
+                        all_resolutions.append(_normalize_enemy_result(result))
+
+                        # Combat logging handled in enemy_combat.py via log_combat_action()
 
             elif agent_type == 'npc':
                 # NPC action execution - route through DM adjudication like players
@@ -2335,7 +2480,8 @@ Generate narratives (numbered list only):"""
                             'description': npc_description,
                             'action_type': npc_action_type,
                             'target': npc_action.get('target'),  # Include target for assist/heal/dialogue/attack actions
-                            'is_npc': True  # Flag for DM to use lightweight adjudication
+                            'is_npc': True,  # Flag for DM to use lightweight adjudication
+                            'dialogue_content': npc_action.get('dialogue_content'),  # Preserve for DM prompt + JSONL
                         }
                     }
 
@@ -2510,6 +2656,12 @@ Generate narratives (numbered list only):"""
                     if f"{agent.agent_id}_0" in self._pending_resolutions:
                         del self._pending_resolutions[f"{agent.agent_id}_0"]
 
+        # Warn about active NPCs with no declaration this round (potential ghost agents)
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.is_active and npc.agent_id not in self._declared_actions:
+                    logger.warning(f"Active NPC {npc.name} ({npc.agent_id}) had no declaration this round — may be a ghost agent")
+
         # Convert surrendered enemies to NPCs after all actions resolve
         # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
         if resolution_state.surrendered and self.enemy_combat.enabled:
@@ -2617,6 +2769,9 @@ Generate narratives (numbered list only):"""
             # Step 2: Build resolution summary for DM context (include morale results)
             resolution_summary = self._build_resolution_summary(all_resolutions)
 
+            # Extract social target IDs (enemies targeted by successful non-damage PC actions)
+            social_target_ids = self._extract_social_target_ids(all_resolutions)
+
             # Add morale events to resolution summary for DM context
             if entity_lifecycle_result.morale_events:
                 morale_summary = "\n\nMORALE EVENTS THIS ROUND:\n"
@@ -2636,7 +2791,8 @@ Generate narratives (numbered list only):"""
                 try:
                     conversion_decisions = await dm_agent.check_conversions(
                         round_number=mechanics.current_round if mechanics else 0,
-                        resolution_summary=resolution_summary
+                        resolution_summary=resolution_summary,
+                        social_target_ids=social_target_ids if social_target_ids else None
                     )
                     entity_lifecycle_result.conversion_decisions = conversion_decisions
 
@@ -2811,10 +2967,22 @@ Generate narratives (numbered list only):"""
                         from .schemas.story_events import NPCSpawn
                         from .npc_agent import NPCAgent
 
+                        # Collect PC names to prevent NPC spawns that duplicate player characters
+                        pc_names = set()
+                        for pa in self.shared_state.player_agents:
+                            if hasattr(pa, 'character_state') and hasattr(pa.character_state, 'name'):
+                                pc_names.add(pa.character_state.name)
+
                         for npc_spawn in conversion_decisions.npc_spawns:
                             # Reconstruct NPCSpawn if it's a dict
                             if isinstance(npc_spawn, dict):
                                 npc_spawn = NPCSpawn(**npc_spawn)
+
+                            # Block NPC spawns that duplicate player character names
+                            if npc_spawn.name in pc_names:
+                                logger.warning(f"🚫 NPC spawn blocked: '{npc_spawn.name}' is a player character")
+                                print(f"\n🚫 NPC spawn blocked: '{npc_spawn.name}' conflicts with player character name")
+                                continue
 
                             # Check if NPC with same name already exists (prevent duplicates)
                             existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
@@ -3270,7 +3438,7 @@ Generate narratives (numbered list only):"""
 
     async def _check_vendor_spawn(self, round_count: int):
         """Check if a vendor should randomly spawn this round."""
-        vendor_frequency = self.config.get('vendor_spawn_frequency', -1)
+        vendor_frequency = self.config.get('vendor_spawn_frequency', 3)
 
         # -1 means vendors never spawn randomly
         if vendor_frequency <= 0:
@@ -3715,19 +3883,57 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if not all_resolutions:
             return "No resolutions this round"
 
+        # Get target_id_mapper for resolving target names
+        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+
         summary_lines = []
         for resolution in all_resolutions:
             agent_name = resolution.get('character_name', 'Unknown')
-            action = resolution.get('action_description', 'Unknown action')
+
+            # Extract action text from either PC dict format or enemy string format
+            action_raw = resolution.get('action')
+            if isinstance(action_raw, dict):
+                # PC format: action is a dict with intent/description/target
+                action = action_raw.get('intent') or action_raw.get('description', 'Unknown action')
+                target_id = action_raw.get('target')
+            else:
+                # Enemy format: action is a string like 'attack'
+                action = resolution.get('action_description') or str(action_raw or 'Unknown action')
+                target_id = resolution.get('target')
 
             # Truncate long actions
             if len(action) > 100:
                 action = action[:97] + "..."
 
-            # Get success status and margin
-            success = resolution.get('success', False)
-            margin = resolution.get('margin', 0)
-            tier = resolution.get('outcome_tier', 'UNKNOWN')
+            # Extract success/margin — handle nested resolution dict (PC) vs flat (enemy)
+            outcome = resolution.get('resolution', {})
+            if isinstance(outcome, dict) and 'resolution' in outcome:
+                # PC format: resolution.resolution.success/margin
+                inner = outcome['resolution']
+                success = inner.get('success', outcome.get('success', False))
+                margin = inner.get('margin', outcome.get('margin', 0))
+                tier = inner.get('success_tier', outcome.get('outcome_tier', 'UNKNOWN'))
+            elif isinstance(outcome, dict) and ('success' in outcome or 'margin' in outcome):
+                # Outcome dict with flat success/margin keys
+                success = outcome.get('success', False)
+                margin = outcome.get('margin', 0)
+                tier = outcome.get('outcome_tier', outcome.get('success_tier', 'UNKNOWN'))
+            else:
+                # Enemy format with flat keys at top level, or no resolution dict
+                success = resolution.get('success', resolution.get('result') not in ['invalidated', 'failed', 'target not found'])
+                margin = resolution.get('margin', 0)
+                tier = resolution.get('outcome_tier', 'UNKNOWN')
+
+            # Resolve target name
+            target_text = ""
+            if target_id and target_id_mapper:
+                entity = target_id_mapper.resolve_target(target_id)
+                if entity:
+                    name = getattr(entity, 'name', None)
+                    if not name and hasattr(entity, 'character_state'):
+                        name = getattr(entity.character_state, 'name', None)
+                    if name:
+                        target_text = f" → targeting {name}"
 
             # Build status with margin/tier for context
             if success:
@@ -3792,7 +3998,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     condition_text = f" | Conditions: {', '.join(conditions)}"
 
             # Build full summary line with narration
-            summary_line = f"- {agent_name}: {action} ({status}){damage_text}{clock_text}{condition_text}"
+            summary_line = f"- {agent_name}: {action}{target_text} ({status}){damage_text}{clock_text}{condition_text}"
 
             # Add DM narration on next line (indented for readability)
             if narration:
@@ -3801,6 +4007,81 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             summary_lines.append(summary_line)
 
         return "\n".join(summary_lines)
+
+    def _extract_social_target_ids(self, all_resolutions: List[Dict]) -> set:
+        """
+        Extract enemy agent_ids that were targeted by successful non-damage PC actions.
+
+        Uses mechanical signals (target + success + no damage), NOT keyword detection.
+
+        Args:
+            all_resolutions: List of resolution dicts from this round
+
+        Returns:
+            Set of enemy agent_ids that were socially targeted
+        """
+        social_targets = set()
+
+        if not self.shared_state:
+            return social_targets
+
+        target_id_mapper = self.shared_state.get_target_id_mapper()
+        if not target_id_mapper:
+            return social_targets
+
+        # Build set of active enemy agent_ids for quick lookup
+        enemy_agent_ids = set()
+        enemy_combat = self.shared_state.enemy_combat
+        if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
+            for enemy in enemy_combat.enemy_agents:
+                if enemy.is_active:
+                    enemy_agent_ids.add(enemy.agent_id)
+
+        for resolution in all_resolutions:
+            action = resolution.get('action')
+            if not isinstance(action, dict):
+                continue  # Enemy format — skip
+
+            target_id = action.get('target')
+            if not target_id:
+                continue
+
+            # Check success from nested resolution
+            outcome = resolution.get('resolution', {})
+            if isinstance(outcome, dict) and 'resolution' in outcome:
+                inner = outcome['resolution']
+                success = inner.get('success', False)
+            elif isinstance(outcome, dict):
+                success = outcome.get('success', False)
+            else:
+                continue
+
+            if not success:
+                continue
+
+            # Check no damage dealt
+            effects = resolution.get('effects')
+            has_damage = False
+            if effects:
+                if hasattr(effects, 'damage') and effects.damage:
+                    total = sum(getattr(d, 'dealt', 0) for d in effects.damage)
+                    has_damage = total > 0
+                elif isinstance(effects, dict):
+                    damage = effects.get('damage')
+                    if damage and isinstance(damage, dict):
+                        has_damage = (damage.get('dealt', 0) or 0) > 0
+
+            if has_damage:
+                continue
+
+            # Resolve target to agent and check if it's an enemy
+            entity = target_id_mapper.resolve_target(target_id)
+            if entity:
+                agent_id = getattr(entity, 'agent_id', None)
+                if agent_id and agent_id in enemy_agent_ids:
+                    social_targets.add(agent_id)
+
+        return social_targets
 
     def _resolve_target_ids_in_text(self, text: str) -> str:
         """
@@ -5176,38 +5457,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             adv = synthesis.story_advancement
             logger.info(f"Story advancement: {adv.location} - {adv.situation}")
 
-            # Clear clocks (always happens on story advancement)
-            if mechanics and mechanics.scene_clocks:
-                # Log each clock removal before clearing
-                for clock_name, clock in mechanics.scene_clocks.items():
-                    if mechanics.jsonl_logger:
-                        mechanics.jsonl_logger.log_event(
-                            event_type="clock_removal",
-                            data={
-                                "clock_name": clock_name,
-                                "current_ticks": clock.current,
-                                "maximum_ticks": clock.maximum,
-                                "description": clock.description,
-                                "removal_reason": "story_advancement",
-                                "expiration_type": None,
-                                "filled": clock.filled,
-                                "consequence_triggered": False
-                            },
-                            round_num=mechanics.current_round
-                        )
-                    mechanics.clock_history.append({
-                        'event_type': 'removed',
-                        'clock_name': clock_name,
-                        'round': mechanics.current_round,
-                        'current': clock.current,
-                        'max': clock.maximum,
-                        'description': clock.description,
-                        'removal_reason': 'story_advancement'
-                    })
+            # Selectively clear clocks named in clear_specific_clocks (empty = keep all)
+            if mechanics and mechanics.scene_clocks and adv.clear_specific_clocks:
+                for clock_name in adv.clear_specific_clocks:
+                    if clock_name in mechanics.scene_clocks:
+                        clock = mechanics.scene_clocks[clock_name]
 
-                archived_clocks = list(mechanics.scene_clocks.keys())
-                mechanics.scene_clocks.clear()
-                logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "story_advancement",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+                        mechanics.clock_history.append({
+                            'event_type': 'removed',
+                            'clock_name': clock_name,
+                            'round': mechanics.current_round,
+                            'current': clock.current,
+                            'max': clock.maximum,
+                            'description': clock.description,
+                            'removal_reason': 'story_advancement'
+                        })
+
+                        del mechanics.scene_clocks[clock_name]
+                        logger.info(f"Cleared clock: {clock_name}")
+                    else:
+                        logger.debug(f"Clock '{clock_name}' not found (already cleared or never existed)")
 
             # Update environmental void_level if specified
             if adv.new_void_level is not None:
@@ -5357,6 +5641,16 @@ NO conversions/morale checks needed (scene just started).
                         resolution_summary=new_scene_context
                     )
 
+                    # Mechanical guard: preserve enemies when config says so
+                    if not adv.clear_all_enemies:
+                        if post_advancement_decisions.enemy_departures:
+                            blocked = post_advancement_decisions.enemy_departures
+                            logger.info(
+                                f"Blocking {len(blocked)} enemy departures "
+                                f"(clear_all_enemies=False): {blocked}"
+                            )
+                            post_advancement_decisions.enemy_departures = []
+
                     print(f"\n✅ New scene entities:")
                     print(f"   - NPC departures: {len(post_advancement_decisions.npc_departures)}")
                     print(f"   - Enemy departures: {len(post_advancement_decisions.enemy_departures)}")
@@ -5413,7 +5707,19 @@ NO conversions/morale checks needed (scene just started).
                         from .npc_agent import NPCAgent
                         import uuid
 
+                        # Collect PC names to prevent NPC spawns that duplicate player characters
+                        pc_names = set()
+                        for pa in self.shared_state.player_agents:
+                            if hasattr(pa, 'character_state') and hasattr(pa.character_state, 'name'):
+                                pc_names.add(pa.character_state.name)
+
                         for npc_spawn in post_advancement_decisions.npc_spawns:
+                            # Block NPC spawns that duplicate player character names
+                            if npc_spawn.name in pc_names:
+                                logger.warning(f"🚫 NPC spawn blocked: '{npc_spawn.name}' is a player character")
+                                print(f"\n🚫 NPC spawn blocked: '{npc_spawn.name}' conflicts with player character name")
+                                continue
+
                             # Check if NPC with same name already exists (prevent duplicates)
                             existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
                             if existing_npc:
@@ -5454,6 +5760,25 @@ NO conversions/morale checks needed (scene just started).
         # Phase 1 (before synthesis): Conversions, spawns for current scene
         # Phase 2 (after story advancement): Initial spawns for new scene
         # RoundSynthesis schema has NO entity management fields.
+
+        # Dead PC cleanup: remove permanently dead PCs from player_agents and target maps
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            dead_pcs = [
+                a for a in self.shared_state.player_agents
+                if getattr(a, '_permanently_dead', False) or not a.is_alive
+            ]
+            for dead_pc in dead_pcs:
+                self.shared_state.player_agents.remove(dead_pc)
+                pc_name = dead_pc.character_state.name if hasattr(dead_pc, 'character_state') else dead_pc.agent_id
+                logger.info(f"💀 Dead PC removed from active players: {pc_name} ({dead_pc.agent_id})")
+
+                # Clean up target ID mapper
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper:
+                    tid = target_id_mapper.reverse_map.pop(dead_pc.agent_id, None)
+                    if tid and tid in target_id_mapper.target_id_map:
+                        del target_id_mapper.target_id_map[tid]
+                        logger.debug(f"Cleaned up target ID {tid} for dead PC {dead_pc.agent_id}")
 
         # 2. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:

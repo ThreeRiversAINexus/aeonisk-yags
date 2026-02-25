@@ -33,7 +33,7 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-  "_scenario_hint": "Street ambush in a commercial district at dusk. Three gang members emerge from an alley and attack. The situation is straightforward \u2014 no moral complexity, no civilians making demands, no conspiracy. Just a violent encounter that could be resolved with lethal force, non-lethal takedowns, or anything in between. Let the players' declared actions drive the outcome. Do NOT push toward either lethal or non-lethal resolution.",
+  "scenario_hint": "Street ambush in a commercial district at dusk. Three gang members emerge from an alley and attack. The situation is straightforward \u2014 no moral complexity, no civilians making demands, no conspiracy. Just a violent encounter that could be resolved with lethal force, non-lethal takedowns, or anything in between. Let the players' declared actions drive the outcome. Do NOT push toward either lethal or non-lethal resolution.",
   "scenario": {
     "theme": "urban_enforcement_ambush",
     "location": "Aeonisk Prime - Midtown Commercial District",

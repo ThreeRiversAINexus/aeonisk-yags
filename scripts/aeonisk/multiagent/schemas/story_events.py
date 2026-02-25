@@ -252,6 +252,11 @@ Shorter descriptions feel rushed and unsatisfying. Longer descriptions create im
         description="New clocks to spawn with this story beat"
     )
 
+    clear_specific_clocks: List[str] = Field(
+        default_factory=list,
+        description="Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene."
+    )
+
     vendor_departures: List[str] = Field(
         default_factory=list,
         description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
@@ -611,11 +616,11 @@ class RoundSynthesis(BaseModel):
       - Update EXISTING clocks via ActionResolution.effects.clock_updates
       - Damage, void changes, other immediate mechanical effects
 
-    **Clock Spawning Guidance:**
-    Spawn 1-2 NEW clocks every 2-3 rounds via ScenePivot.new_clocks (same location) or
-    StoryAdvancement.new_clocks (new location). Clocks drive dynamic tension and prevent
-    static scenarios. Use liberally when justified by narrative consequences (failed actions,
-    filled clocks creating new pressures, environmental changes).
+    **Clock Spawning Guidance (Quality Over Quantity):**
+    Spawn NEW clocks only when an existing clock fills/expires AND the consequence creates
+    genuine new pressure. Aim for 3-4 active clocks maximum. Do not spawn clocks that
+    cannot possibly fill within remaining rounds. Prefer ticking existing clocks over
+    spawning new ones.
 
     Example (Scene Pivot):
     ```python

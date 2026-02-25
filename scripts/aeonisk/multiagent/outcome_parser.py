@@ -294,6 +294,8 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
         source is "dm_explicit" or "inferred_by_parser"
     """
     triggers = []
+    if not narration:
+        return triggers
     narration_lower = narration.lower()
 
     # If no active clocks provided, return empty (no clocks to advance)
@@ -830,6 +832,10 @@ def parse_state_changes(
     Returns:
         Dict with state changes: clocks, void, conditions, position_change, etc.
     """
+    # Guard against None narration (e.g. unsupported LLM provider returning None)
+    if narration is None:
+        narration = ""
+
     # Extract expected_target_id from action for compliance checking
     expected_target_id = None
     if action and action.get('target') and action['target'].startswith('tgt_'):

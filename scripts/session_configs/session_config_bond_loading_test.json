@@ -124,5 +124,5 @@
       }
     ]
   },
-  "_scenario_hint": "The party investigates strange void readings in an abandoned research station. This is a test scenario - keep it short (1 turn only)."
+  "scenario_hint": "The party investigates strange void readings in an abandoned research station. This is a test scenario - keep it short (1 turn only)."
 }

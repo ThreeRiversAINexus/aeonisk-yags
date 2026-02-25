@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen to **explore**. Now let's define the mechanical details.
 
@@ -41,7 +42,7 @@ content: |-
   ## Common Exploration Skills
 
   - `Perception × Awareness` - General navigation, finding paths
-  - `Perception × Survival` - Outdoor navigation, tracking
+  - `Perception × Awareness` - Outdoor navigation, tracking
   - `Agility × Combat` - Tactical movement under fire
 
   ## Examples

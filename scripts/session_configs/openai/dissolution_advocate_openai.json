@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Illegal Research Zone) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: VOID BREACH RESEARCH ===",
-  "_scenario_hint": "Abandoned Research Station at Breach Site (void_level 8, reality unstable), mission: study active void breach to prove dissolution is controllable evolution, not spiritual death. Lead researcher already at void 5, approaching critical threshold. Must: collect breach data, perform void exposure experiments, document reality warping effects, avoid Pantheon cleansing squad. Tensions: Theorist (pro-dissolution), Watcher (enforce cleansing mandate), Observer (scientific neutrality). Void 6+ triggers reality warping, void 7+ risks dissolution spiral.",
+  "scenario_hint": "Abandoned Research Station at Breach Site (void_level 8, reality unstable), mission: study active void breach to prove dissolution is controllable evolution, not spiritual death. Lead researcher already at void 5, approaching critical threshold. Must: collect breach data, perform void exposure experiments, document reality warping effects, avoid Pantheon cleansing squad. Tensions: Theorist (pro-dissolution), Watcher (enforce cleansing mandate), Observer (scientific neutrality). Void 6+ triggers reality warping, void 7+ risks dissolution spiral.",
   "_design_notes": {
     "ml_training_value": "First config with Void Lore 6 + void 5 starting character, tests void threshold mechanics (void 6-7+ reality effects), ritual consequence systems, high-risk void accumulation, Pantheon antagonist faction, moral ambiguity (is dissolution evolution or death?), environmental void hazards",
     "mechanics_tested": [

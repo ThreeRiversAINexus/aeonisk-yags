@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen a **support action**. Now let's define the mechanical details.
 
@@ -82,7 +83,7 @@ content: |-
 
   **Medicine (SUPPORT action):**
   - Conventional healing: wounds, bleeding, stabilization, broken bones
-  - Skills: Intelligence × Medicine / First Aid
+  - Skills: Intelligence × Medicine / Healing
   - Typical DC: 12-20 (varies by injury severity)
   - **NO void risk** - safe medical treatment
   - Use for: gunshot wounds, lacerations, blunt trauma, blood loss

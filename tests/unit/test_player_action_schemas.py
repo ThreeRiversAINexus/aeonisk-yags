@@ -229,7 +229,7 @@ class TestPurchaseAction:
             intent="Buy Incense from marketplace vendor",
             description="Approaching the vendor stall and negotiating for ritual incense supplies.",
             attribute="Empathy",
-            skill="Negotiation",
+            skill="Charm",
             difficulty_estimate=12,
             difficulty_justification="Routine transaction at established market",
             action_type=ActionType.PURCHASE,

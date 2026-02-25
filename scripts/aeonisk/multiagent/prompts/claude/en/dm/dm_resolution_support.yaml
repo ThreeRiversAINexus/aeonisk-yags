@@ -183,6 +183,12 @@ content: |-
   | 5-9 (solid) | 5-6 HP | 7-8 HP |
   | 10+ (excellent) | 7-8 HP | 9-10 HP |
 
+  ## ACTION PREEMPTION (action_skipped)
+
+  If the character CANNOT execute their support action due to circumstances that arose
+  DURING this round, set `action_skipped=True` with a descriptive `skip_reason`.
+  The engine suppresses ALL effects when action_skipped=True — leave effects empty.
+
   ## NARRATION TIPS FOR SUPPORT
 
   - Show the physical process of treatment/assistance

@@ -16,7 +16,7 @@
     "auto_execute_reactions": true
   },
 
-  "_scenario_hint": "A three-way standoff in a contested Freeborn market district. Pantheon Security patrols clash with Tempest operatives while armed Freeborn locals defend their territory. The PCs arrive and see all three groups. Sera's goal is to attack Freeborn NPCs as corporate collateral. Ash's goal is to help Freeborn NPCs fight back against Tempest. Pantheon and Tempest should fight each other AND target Freeborn NPCs who get in their way. The Freeborn NPCs should fight back against anyone who attacks them.",
+  "scenario_hint": "A three-way standoff in a contested Freeborn market district. Pantheon Security patrols clash with Tempest operatives while armed Freeborn locals defend their territory. The PCs arrive and see all three groups. Sera's goal is to attack Freeborn NPCs as corporate collateral. Ash's goal is to help Freeborn NPCs fight back against Tempest. Pantheon and Tempest should fight each other AND target Freeborn NPCs who get in their way. The Freeborn NPCs should fight back against anyone who attacks them.",
 
   "scenario": {
     "theme": "multi_faction_standoff",

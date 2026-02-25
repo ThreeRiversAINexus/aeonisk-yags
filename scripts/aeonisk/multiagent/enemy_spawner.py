@@ -112,6 +112,7 @@ def spawn_enemy(
     # Determine morale_behavior (use override if provided, else template, else default)
     morale_behavior = personality_override if personality_override else template.get("morale_behavior", "flee_when_broken")
     character_brief = template.get("character_brief", "")
+    engagement_stance = template.get("engagement_stance", "lethal")
 
     # Create agent
     agent = EnemyAgent(
@@ -132,6 +133,7 @@ def spawn_enemy(
         retreat_threshold=template["retreat_threshold"],
         morale_behavior=morale_behavior,
         character_brief=character_brief,
+        engagement_stance=engagement_stance,
         void_score=template.get("void_score", 0),
         weapons=weapons,
         armor=armor,

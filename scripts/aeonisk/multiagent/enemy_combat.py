@@ -54,6 +54,7 @@ class EnemyDeclaration:
     token_target: Optional[str]
     reasoning: str
     shared_intel: Optional[str]
+    dialogue_content: Optional[str] = None
 
 
 def _get_panicked_action(enemy: EnemyAgent) -> str:
@@ -171,6 +172,8 @@ class EnemyCombatManager:
 
         # LLM Provider for structured output - initialized later from session config
         self.llm_provider = None
+        # LLM Call Logger for JSONL token tracking - set by session.py after init
+        self.llm_logger = None
 
     def _get_agent_name(self, agent: Any, fallback_id: str) -> str:
         """
@@ -547,7 +550,9 @@ class EnemyCombatManager:
                 'initiative': enemy.initiative,
                 'major_action': parsed.major_action,
                 'target': parsed.target,
-                'reasoning': parsed.reasoning
+                'weapon': parsed.weapon,
+                'reasoning': parsed.reasoning,
+                'dialogue_content': parsed.dialogue_content
             }
 
         active_enemies = get_active_enemies(self.enemy_agents)
@@ -572,7 +577,11 @@ class EnemyCombatManager:
         from .enemy_prompts import generate_tactical_prompt
 
         # Collect recent action narrations from player agents (filtered by awareness)
+        # Deduplicate: broadcast narrations are stored by every player agent,
+        # so the same text appears once per player. Track seen texts to avoid
+        # feeding the enemy prompt N copies of each narration.
         recent_narrations = []
+        seen_narration_texts = set()
         for player_agent in player_agents:
             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
                 # Filter narrations based on what this enemy can see
@@ -583,11 +592,68 @@ class EnemyCombatManager:
                 # Convert NarrationEntry to text for prompt
                 for narration in visible_narrations:
                     narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
-                    recent_narrations.append(narration_text)
+                    if narration_text not in seen_narration_texts:
+                        seen_narration_texts.add(narration_text)
+                        recent_narrations.append(narration_text)
+
+        # Enemy detection: attempt to spot hidden PCs before filtering
+        if self.shared_state:
+            hidden_pcs = self.shared_state.get_hidden_pcs()
+            for hidden_pc_id in hidden_pcs:
+                hidden_pc = self.shared_state.get_agent_by_id(hidden_pc_id)
+                if not hidden_pc:
+                    continue
+                # Enemy detection roll: Per × Awareness + d20
+                perception = enemy.attributes.get('Perception', 2)
+                awareness_skill = enemy.skills.get('Awareness', 0)
+                detection_roll = random.randint(1, 20)
+                if awareness_skill > 0:
+                    detection_total = (perception * awareness_skill) + detection_roll
+                else:
+                    detection_total = detection_roll // 2  # Unskilled penalty
+
+                # PC passive stealth DC: Agi × Stealth (or just Agi if unskilled)
+                pc_char = getattr(hidden_pc, 'character_state', None)
+                if pc_char:
+                    agi = pc_char.attributes.get('Agility', 3)
+                    stealth_skill = pc_char.skills.get('Stealth', 0)
+                    stealth_dc = (agi * stealth_skill) if stealth_skill > 0 else agi
+                else:
+                    stealth_dc = 15  # Fallback
+
+                if detection_total >= stealth_dc:
+                    logger.info(f"{enemy.name} detected {hidden_pc_id}! (roll {detection_total} vs DC {stealth_dc})")
+                    self.shared_state.reveal_agent(hidden_pc_id)  # Global reveal
+                else:
+                    logger.debug(f"{enemy.name} failed to detect {hidden_pc_id} (roll {detection_total} vs DC {stealth_dc})")
+
+        # Filter out PCs hidden from this enemy (stealth target filtering)
+        visible_players = player_agents
+        if self.shared_state:
+            visible_players = [
+                pc for pc in player_agents
+                if self.shared_state.is_visible_to(getattr(pc, 'agent_id', ''), enemy.agent_id)
+            ]
+            hidden_count = len(player_agents) - len(visible_players)
+            if hidden_count > 0:
+                logger.info(f"{enemy.name}: {hidden_count} PC(s) hidden from targeting")
+
+        # Build hidden presence hint for enemy tactical awareness
+        hidden_count = len(player_agents) - len(visible_players)
+        hidden_presence_hint = None
+        if hidden_count > 0:
+            hidden_presence_hint = (
+                f"HIDDEN PRESENCE: You sense {hidden_count} unidentified hostile(s) nearby "
+                f"but cannot locate them. You may use your action to Search (attempt detection) "
+                f"or proceed cautiously."
+            )
+            if recent_narrations is None:
+                recent_narrations = []
+            recent_narrations.append(hidden_presence_hint)
 
         prompt = generate_tactical_prompt(
             enemy=enemy,
-            player_agents=player_agents,
+            player_agents=visible_players,
             enemy_agents=active_enemies,
             shared_intel=self.shared_intel,
             available_tokens=available_tokens,
@@ -635,7 +701,9 @@ class EnemyCombatManager:
                     'initiative': enemy.initiative,
                     'major_action': parsed.major_action,
                     'target': parsed.target,
-                    'reasoning': parsed.reasoning
+                    'weapon': parsed.weapon,
+                    'reasoning': parsed.reasoning,
+                    'dialogue_content': parsed.dialogue_content
                 }
             else:
                 logger.warning(f"{enemy.name}: Failed to parse declaration")
@@ -669,7 +737,9 @@ class EnemyCombatManager:
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,
                 max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                temperature=1.0
+                temperature=1.0,
+                llm_logger=self.llm_logger,
+                current_round=self.current_round
             )
 
             # Log the raw decision object for debugging
@@ -695,7 +765,8 @@ class EnemyCombatManager:
                 defence_token=enemy_decision.defence_token or "None",
                 token_target=enemy_decision.token_target or "None",
                 reasoning=enemy_decision.tactical_reasoning,
-                shared_intel=enemy_decision.shared_intel
+                shared_intel=enemy_decision.shared_intel,
+                dialogue_content=enemy_decision.dialogue_content
             )
 
             logger.debug(f"✓ Enemy {enemy.name} converted to EnemyDeclaration: {enemy_declaration.major_action}")
@@ -706,138 +777,6 @@ class EnemyCombatManager:
             logger.error(f"Enemy {enemy.name}: Structured output failed: {type(e).__name__}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
-
-    async def declare_actions(
-        self,
-        player_agents: List[Any],
-        available_tokens: List[str],
-        llm_client: Any
-    ) -> List[Dict[str, Any]]:
-        """
-        Generate enemy declarations during declaration phase.
-
-        Args:
-            player_agents: List of PC agents
-            available_tokens: Unclaimed tactical tokens
-            llm_client: LLM client for generating responses
-
-        Returns:
-            List of declaration dicts for logging
-        """
-        logger.debug(f"declare_actions called: enabled={self.enabled}, enemy_count={len(self.enemy_agents)}")
-
-        if not self.enabled:
-            return []
-
-        active_enemies = get_active_enemies(self.enemy_agents)
-        logger.debug(f"Active enemies count: {len(active_enemies)}")
-
-        if not active_enemies:
-            logger.warning("No active enemies found in declare_actions")
-            return []
-
-        declarations = []
-
-        for enemy in active_enemies:
-            logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
-
-            # Collect context once for all prompt variants
-            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-            free_targeting = self.shared_state.config.get('free_targeting_mode', True) if self.shared_state else True
-            recent_narrations = []
-            for player_agent in player_agents:
-                if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                    recent_narrations.extend(player_agent.recent_narrations)
-
-            # Try structured output first (Phase 4: Pydantic AI migration)
-            parsed = None
-            logger.debug(f"Enemy {enemy.name}: llm_provider check - hasattr={hasattr(self, 'llm_provider')}, value={getattr(self, 'llm_provider', 'NOT_SET')}, is_none={self.llm_provider is None if hasattr(self, 'llm_provider') else 'N/A'}")
-            if hasattr(self, 'llm_provider') and self.llm_provider is not None:
-                try:
-                    # Use structured-output-compatible prompt (no text format instructions)
-                    from .enemy_prompts import generate_tactical_prompt_structured
-
-                    structured_prompt = generate_tactical_prompt_structured(
-                        enemy=enemy,
-                        player_agents=player_agents,
-                        enemy_agents=active_enemies,
-                        shared_intel=self.shared_intel,
-                        available_tokens=available_tokens,
-                        current_round=self.current_round,
-                        target_id_mapper=target_id_mapper,
-                        free_targeting=free_targeting,
-                        recent_narrations=recent_narrations if recent_narrations else None
-                    )
-
-                    parsed = await self._generate_enemy_decision_structured(enemy, structured_prompt)
-                    if parsed:
-                        logger.debug(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
-                except Exception as e:
-                    logger.warning(f"Enemy {enemy.name}: Structured output failed ({e}), falling back to legacy")
-
-            # Legacy text parsing fallback
-            if not parsed:
-                try:
-                    # Generate legacy prompt with text format instructions
-                    from .enemy_prompts import generate_tactical_prompt
-
-                    legacy_prompt = generate_tactical_prompt(
-                        enemy=enemy,
-                        player_agents=player_agents,
-                        enemy_agents=active_enemies,
-                        shared_intel=self.shared_intel,
-                        available_tokens=available_tokens,
-                        current_round=self.current_round,
-                        target_id_mapper=target_id_mapper,
-                        free_targeting=free_targeting,
-                        recent_narrations=recent_narrations if recent_narrations else None
-                    )
-
-                    response = await llm_client.generate_async(
-                        prompt=legacy_prompt,
-                        temperature=1.0,
-                        max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
-                    )
-                    declaration_text = response.get('content', '')
-
-                    # Parse declaration
-                    parsed = parse_enemy_declaration(declaration_text, enemy)
-                except Exception as e:
-                    logger.error(f"{enemy.name}: Error generating declaration: {e}")
-
-            # Process the parsed declaration (whether from structured or legacy)
-            if parsed:
-                self.enemy_declarations[enemy.agent_id] = parsed
-
-                # Update enemy defence token
-                enemy.defence_token = parsed.defence_token
-
-                # Add to shared intel
-                if parsed.shared_intel:
-                    self.shared_intel.add_intel(
-                        enemy.name,
-                        parsed.shared_intel,
-                        self.current_round
-                    )
-
-                # Log declaration
-                declarations.append({
-                    'agent_id': enemy.agent_id,
-                    'character_name': enemy.name,
-                    'initiative': enemy.initiative,
-                    'major_action': parsed.major_action,
-                    'target': parsed.target,
-                    'reasoning': parsed.reasoning
-                })
-
-                logger.info(
-                    f"{enemy.name} declared: {parsed.major_action} "
-                    f"(target: {parsed.target}, reasoning: {parsed.reasoning[:50]}...)"
-                )
-            else:
-                logger.warning(f"{enemy.name}: Failed to parse declaration")
-
-        return declarations
 
     def execute_enemy_action(
         self,
@@ -902,6 +841,10 @@ class EnemyCombatManager:
             return self._execute_charge(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'retreat' in major_action:
             return self._execute_retreat(enemy, declaration, resolution_state)
+        elif 'dialogue' in major_action:
+            return self._execute_dialogue(enemy, declaration, mechanics_engine)
+        elif 'wait' in major_action:
+            return self._execute_wait(enemy, declaration, mechanics_engine)
         elif 'surrender' in major_action:
             return self._execute_surrender(enemy, declaration, resolution_state)
         elif 'grenade' in major_action or 'throw' in major_action:
@@ -938,12 +881,27 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to attack allied player {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'attack',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot attack allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) attacking hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can attack each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to attack allied enemy {target_id} ({target_faction})")
                         return {
                             'enemy_id': enemy.agent_id,
@@ -1064,6 +1022,11 @@ class EnemyCombatManager:
         }
 
         if hit:
+            # Enemy found the target — reveal them from stealth if hidden
+            target_agent_id = getattr(target, 'agent_id', None)
+            if target_agent_id and self.shared_state:
+                self.shared_state.reveal_agent(target_agent_id)
+
             # Roll damage
             strength = enemy.attributes.get('Strength', 3)
             damage_roll = random.randint(1, 20)
@@ -1258,12 +1221,27 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to suppress allied player {target_id} ({target_faction})")
+                        return {
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'action': 'suppress',
+                            'result': 'invalid target',
+                            'narration': f"{enemy.name} cannot suppress allied {target_faction} forces"
+                        }
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) suppressing hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can suppress each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to suppress allied enemy {target_id} ({target_faction})")
                         return {
                             'enemy_id': enemy.agent_id,
@@ -1404,6 +1382,31 @@ class EnemyCombatManager:
             result['choices'] = ['Dive', 'Hunker Down']
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
+
+        # Log suppress action to JSONL
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            attack_roll_data = {
+                "attribute": attribute,
+                "skill": skill,
+                "weapon_bonus": weapon.attack,
+                "d20": attack_roll,
+                "range_penalty": range_penalty,
+                "total": attack_total,
+                "defence": target_defence,
+                "hit": hit
+            }
+            mechanics_engine.jsonl_logger.log_combat_action(
+                round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
+                attacker_id=enemy.agent_id,
+                attacker_name=enemy.name,
+                defender_id=self._get_agent_id(target, target_id),
+                defender_name=self._get_agent_name(target, target_id),
+                weapon=f"{weapon.name} (suppress)",
+                attack_roll=attack_roll_data,
+                damage_roll=None,
+                wounds_dealt=0,
+                defender_state_after=None
+            )
 
         return result
 
@@ -1677,12 +1680,20 @@ class EnemyCombatManager:
 
                 # Verify target type and apply faction rules
                 if target_entity and target_id_mapper.is_player(target_id):
-                    target = target_entity
+                    # Faction-aware: check if player is from an allied faction
+                    from .faction_utils import are_factions_allied
+                    target_info = target_id_mapper.get_combatant_info(target_id)
+                    target_faction = target_info.get('faction', 'Unknown') if target_info else 'Unknown'
+                    if are_factions_allied(enemy.faction, target_faction):
+                        logger.warning(f"{enemy.name} ({enemy.faction}) attempted to charge allied player {target_id} ({target_faction})")
+                    else:
+                        target = target_entity
+                        logger.info(f"{enemy.name} ({enemy.faction}) charging hostile player {target_id} ({target_faction})")
                 elif target_entity and target_id_mapper.is_enemy(target_id):
                     # Faction-aware: hostile factions can charge each other
-                    from .faction_utils import are_factions_allied
+                    from .faction_utils import are_factions_allied as are_allied
                     target_faction = getattr(target_entity, 'faction', 'Unknown')
-                    if are_factions_allied(enemy.faction, target_faction):
+                    if are_allied(enemy.faction, target_faction):
                         logger.warning(f"{enemy.name} attempted to charge allied enemy {target_id} ({target_faction})")
                     else:
                         target = target_entity
@@ -1740,6 +1751,55 @@ class EnemyCombatManager:
             'narration': f"{enemy.name} lowers their weapon and surrenders",
             'surrender': True  # Signal for conversion check
         }
+
+    def _execute_dialogue(self, enemy: EnemyAgent, declaration: EnemyDeclaration, mechanics_engine: Any) -> Dict[str, Any]:
+        """Execute enemy dialogue action (speak, warn, demand, negotiate)."""
+        dialogue = getattr(declaration, 'dialogue_content', None) or ''
+
+        result = {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'dialogue',
+            'result': 'success',
+            'dialogue_content': dialogue,
+            'narration': f'{enemy.name} speaks: "{dialogue}"' if dialogue else f'{enemy.name} attempts to communicate.'
+        }
+
+        # JSONL logging
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            mechanics_engine.jsonl_logger.log_enemy_action(
+                round_num=self.current_round,
+                enemy_id=enemy.agent_id,
+                enemy_name=enemy.name,
+                action_type='dialogue',
+                result='success',
+                narration=result['narration']
+            )
+
+        return result
+
+    def _execute_wait(self, enemy: EnemyAgent, declaration: EnemyDeclaration, mechanics_engine: Any) -> Dict[str, Any]:
+        """Execute enemy wait action (observe, hold position)."""
+        result = {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'wait',
+            'result': 'success',
+            'narration': f'{enemy.name} holds position, observing.'
+        }
+
+        # JSONL logging
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            mechanics_engine.jsonl_logger.log_enemy_action(
+                round_num=self.current_round,
+                enemy_id=enemy.agent_id,
+                enemy_name=enemy.name,
+                action_type='wait',
+                result='success',
+                narration=result['narration']
+            )
+
+        return result
 
     def _execute_retreat(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
         """Execute enemy retreat action."""
@@ -2048,10 +2108,51 @@ class EnemyCombatManager:
         # Clear old intel
         self.shared_intel.clear_old_intel(self.current_round, max_age=3)
 
+        # Prune defeated enemies past grace period (memory cleanup)
+        pruned = self.prune_defeated_enemies()
+        if pruned:
+            logger.info(f"Pruned {pruned} defeated enemy(ies) from list")
+
         # Increment round
         self.current_round += 1
 
         return events
+
+    def prune_defeated_enemies(self, grace_rounds: int = 2) -> int:
+        """Remove enemies inactive for >grace_rounds from the list.
+
+        Not a game rule — just memory cleanup after logging is done.
+        Defeated enemies stay for a grace period so the DM can reference
+        them in narration, then get garbage-collected.
+
+        Args:
+            grace_rounds: How many rounds after defeat to keep the enemy.
+
+        Returns:
+            Number of enemies pruned.
+        """
+        surviving = []
+        pruned_ids = []
+        for enemy in self.enemy_agents:
+            if enemy.is_active:
+                surviving.append(enemy)
+            elif (enemy.despawned_round is not None
+                  and self.current_round - enemy.despawned_round > grace_rounds):
+                pruned_ids.append(enemy.agent_id)
+            else:
+                surviving.append(enemy)  # Keep recently defeated or safety case (no despawned_round)
+
+        # Clean up target mapper entries for pruned enemies
+        if pruned_ids and self.shared_state:
+            target_id_mapper = self.shared_state.get_target_id_mapper()
+            if target_id_mapper:
+                for agent_id in pruned_ids:
+                    target_id = target_id_mapper.reverse_map.pop(agent_id, None)
+                    if target_id:
+                        target_id_mapper.target_id_map.pop(target_id, None)
+
+        self.enemy_agents = surviving
+        return len(pruned_ids)
 
     def get_active_enemy_count(self) -> int:
         """Get count of active enemy units."""

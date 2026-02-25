@@ -349,7 +349,7 @@ Forces a specific combat template from the DM's scenario list.
 
 **Note:** If index is out of range, DM falls back to random selection.
 
-### `_scenario_hint` (String, Optional)
+### `scenario_hint` (String, Optional, Top-Level)
 
 **🛑 BINDING CONSTRAINTS** for DM scenario generation with **automatic validation enforcement**.
 
@@ -363,22 +363,14 @@ When provided, these constraints **OVERRIDE all other scenario generation instru
 **Example (test scenario - mechanical constraints):**
 ```json
 {
-  "agents": {
-    "dm": {
-      "_scenario_hint": "Pure PvP scenario - NO SPAWN_ENEMY, NO NPCs, just two PCs competing for single objective. Absolutely zero enemies or bystanders."
-    }
-  }
+  "scenario_hint": "Pure PvP scenario - NO SPAWN_ENEMY, NO NPCs, just two PCs competing for single objective. Absolutely zero enemies or bystanders."
 }
 ```
 
 **Example (ML training scenario - detailed blueprint):**
 ```json
 {
-  "agents": {
-    "dm": {
-      "_scenario_hint": "Terminus Outpost (void_level 6) - mysterious void-tainted plague spreading through mining station workers. 12 sick NPCs need stabilization, limited medical supplies. Competing player goals: Healer wants to save everyone, Enforcer wants quarantine, Researcher wants to study contagion. Clock pressure: illness spreading, supply depletion, evacuation deadline."
-    }
-  }
+  "scenario_hint": "Terminus Outpost (void_level 6) - mysterious void-tainted plague spreading through mining station workers. 12 sick NPCs need stabilization, limited medical supplies. Competing player goals: Healer wants to save everyone, Enforcer wants quarantine, Researcher wants to study contagion. Clock pressure: illness spreading, supply depletion, evacuation deadline."
 }
 ```
 
@@ -398,6 +390,8 @@ When provided, these constraints **OVERRIDE all other scenario generation instru
 - Use keywords: "NO SPAWN_ENEMY" triggers enemy prohibition check
 - Specify locations: "Terminus Outpost" triggers location keyword validation
 - Length: 50-900 characters (short for tests, detailed for ML training)
+
+**Note:** `scenario_hint` is a **top-level** config field (not nested under `agents.dm`). The old `_scenario_hint` name is still supported for backward compatibility but deprecated.
 
 ---
 

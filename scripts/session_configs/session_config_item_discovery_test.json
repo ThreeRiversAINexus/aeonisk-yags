@@ -76,7 +76,7 @@
     "location": "Abandoned Leyline Garden",
     "situation": "You're exploring an abandoned leyline-corrupted garden where void-touched plants grow. The area is littered with abandoned supply caches and corpses from a previous conflict. A friendly scavenger NPC is also present, willing to trade items.",
     "void_level": 4,
-    "_scenario_hint": "DM should spawn: (1) leyline plant with Raw Seeds (DC 14 Awareness check), (2) corpse with currency/items (DC 10 Awareness check), (3) supply cache with mixed loot (DC 16 Investigation check), (4) friendly NPC scavenger willing to gift minor items if asked nicely (DC 12 Charm check)"
+    "scenario_hint": "DM should spawn: (1) leyline plant with Raw Seeds (DC 14 Awareness check), (2) corpse with currency/items (DC 10 Awareness check), (3) supply cache with mixed loot (DC 16 Investigation check), (4) friendly NPC scavenger willing to gift minor items if asked nicely (DC 12 Charm check)"
   },
   "mission_objectives": [
     {

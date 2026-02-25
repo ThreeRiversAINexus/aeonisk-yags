@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Remote Expedition) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: EXPLORATION/DISCOVERY ===",
-  "_scenario_hint": "Uncharted Moon Mu-12 (void_level unknown, pre-Covenant ruins detected), team hired by Tempest to survey, map, and assess commercial/research value. Unknown challenges: unstable terrain, ancient security systems, alien ecosystem, pre-Covenant artifacts with unpredictable effects, reality distortions. Discovery opportunities: technology, historical records, Seed deposits, void phenomena. Information control: what to report to Tempest? What to suppress? What to sell to highest bidder? Each faction wants different intel (Tempest: void tech, Nexus: suppress dangerous knowledge, Freeborn: liberate discoveries). Exploration tests: Pilot (navigation, terrain traversal), Investigation (mapping, analysis), Attunement (artifact interaction), Systems (tech reverse-engineering), Awareness (hazard detection).",
+  "scenario_hint": "Uncharted Moon Mu-12 (void_level unknown, pre-Covenant ruins detected), team hired by Tempest to survey, map, and assess commercial/research value. Unknown challenges: unstable terrain, ancient security systems, alien ecosystem, pre-Covenant artifacts with unpredictable effects, reality distortions. Discovery opportunities: technology, historical records, Seed deposits, void phenomena. Information control: what to report to Tempest? What to suppress? What to sell to highest bidder? Each faction wants different intel (Tempest: void tech, Nexus: suppress dangerous knowledge, Freeborn: liberate discoveries). Exploration tests: Pilot (navigation, terrain traversal), Investigation (mapping, analysis), Attunement (artifact interaction), Systems (tech reverse-engineering), Awareness (hazard detection).",
   "_design_notes": {
     "ml_training_value": "Exploration/discovery gameplay, unknown territory mapping, environmental challenges without predetermined solutions, artifact interaction with unpredictable effects, information control decisions (factional loyalty vs. profit vs. public good), surveying mechanics (Investigation + Pilot + Systems synergy), unknown hazard management, discovery-driven narrative (DM improvises based on PC exploration choices)",
     "mechanics_tested": [
@@ -113,8 +113,8 @@
           "Awareness": 6,
           "Investigation": 5,
           "Athletics": 5,
-          "Engineering": 4,
-          "Combat": 3
+          "Combat": 3,
+          "Tech/Craft": 4
         },
         "void": 2,
         "soulcredit": -1,
@@ -231,8 +231,8 @@
           "Systems": 5,
           "Magick Theory": 5,
           "Void Lore": 5,
-          "Engineering": 4,
-          "Investigation": 4
+          "Investigation": 4,
+          "Tech/Craft": 4
         },
         "void": 4,
         "soulcredit": -2,

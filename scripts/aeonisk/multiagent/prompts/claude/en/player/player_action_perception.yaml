@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen a **perception action**. This is for **DETECTING** and **SENSING**.
 
@@ -56,7 +57,7 @@ content: |-
 
   - `Perception × Awareness` - General alertness, spotting hidden things
   - `Perception × Combat` - Detecting ambushes, tactical awareness
-  - `Perception × Survival` - Tracking, natural dangers (if you have this)
+  - `Perception × Investigation` - Tracking, analyzing natural dangers
 
   ## Examples
 

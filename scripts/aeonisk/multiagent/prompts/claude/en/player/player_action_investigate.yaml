@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen to **investigate**. This is for **SEARCHING** and **FINDING ITEMS**.
 
@@ -56,7 +57,7 @@ content: |-
   - `Intelligence × Systems` - Analyzing terminals, data, networks
   - `Intelligence × Medicine` - Examining bodies, wounds, biological samples
   - `Perception × Awareness` - Noticing details, hidden clues, patterns
-  - `Intelligence × Engineering` - Understanding mechanisms, structures
+  - `Intelligence × Tech/Craft` - Understanding mechanisms, structures
 
   ## Examples
 

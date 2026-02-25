@@ -24,7 +24,7 @@
   },
 
   "_comment_scenario": "=== INFILTRATION SCENARIO ===",
-  "_scenario_hint": "Tempest operatives have docked at Nimbus Station - a hollowed-out asteroid that serves as a Freeborn pirate haven. Their cover: void artifact buyers looking to make a deal. Their real mission: scout the station's defenses, identify the pirate leadership, and plant tracking beacons for a future Tempest strike force. The pirates are suspicious but greedy. Play this as a slow burn - tension, social maneuvering, gathering intel. Combat should emerge organically from blown cover, double-crosses, or moral choices. DM should spawn pirate NPCs who can be bribed, intimidated, seduced, or pushed into fights. Let escalation/de-escalation happen naturally.",
+  "scenario_hint": "Tempest operatives have docked at Nimbus Station - a hollowed-out asteroid that serves as a Freeborn pirate haven. Their cover: void artifact buyers looking to make a deal. Their real mission: scout the station's defenses, identify the pirate leadership, and plant tracking beacons for a future Tempest strike force. The pirates are suspicious but greedy. Play this as a slow burn - tension, social maneuvering, gathering intel. Combat should emerge organically from blown cover, double-crosses, or moral choices. DM should spawn pirate NPCs who can be bribed, intimidated, seduced, or pushed into fights. Let escalation/de-escalation happen naturally.",
 
   "scenario": {
     "theme": "undercover_infiltration_morally_gray",

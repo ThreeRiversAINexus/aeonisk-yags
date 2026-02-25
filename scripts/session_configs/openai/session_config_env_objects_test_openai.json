@@ -11,7 +11,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: CORPORATE SERVER ROOM - RICH ENVIRONMENT ===",
-  "_scenario_hint": "Tempest Corp Server Room (void_level 1, abandoned maintenance shift). Location has MANY interactive environmental features: security terminals (need hacking), sealed maintenance doors (need unlock/force), server racks (can be disabled), cargo containers of backup drives (need opening), control panels, airlock systems, emergency override stations. Team goals: extract corporate secrets, disable security, find hidden data. Players will naturally mention wanting to 'hack the terminal', 'open the door', 'search the cargo' - DM should spawn these as environmental objects to test the system. Security is offline but systems are locked, requiring environmental interaction.",
+  "scenario_hint": "Tempest Corp Server Room (void_level 1, abandoned maintenance shift). Location has MANY interactive environmental features: security terminals (need hacking), sealed maintenance doors (need unlock/force), server racks (can be disabled), cargo containers of backup drives (need opening), control panels, airlock systems, emergency override stations. Team goals: extract corporate secrets, disable security, find hidden data. Players will naturally mention wanting to 'hack the terminal', 'open the door', 'search the cargo' - DM should spawn these as environmental objects to test the system. Security is offline but systems are locked, requiring environmental interaction.",
   "_design_notes": {
     "test_hypothesis": "Environmental object spawning reduces target hallucination. When players say 'I hack the terminal', DM spawns EnvObjectSpawn(object_type='terminal',...) making it explicit rather than pure narrative.",
     "expected_env_objects": [
@@ -87,10 +87,10 @@
         "skills": {
           "Hacking": 6,
           "Systems": 5,
-          "Engineering": 4,
           "Awareness": 3,
           "Stealth": 3,
-          "Investigation": 3
+          "Investigation": 3,
+          "Tech/Craft": 4
         },
         "void": 2,
         "soulcredit": -2,
@@ -141,12 +141,11 @@
           "Dexterity": 3
         },
         "skills": {
-          "Engineering": 5,
           "Athletics": 4,
           "Awareness": 3,
           "Melee": 4,
-          "Salvage": 5,
-          "Pilot": 2
+          "Pilot": 2,
+          "Tech/Craft": 5
         },
         "void": 1,
         "soulcredit": -4,

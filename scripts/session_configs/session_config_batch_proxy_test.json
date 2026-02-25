@@ -85,7 +85,7 @@
     ]
   },
   "scenario": {
-    "_scenario_hint": "investigation",
+    "scenario_hint": "investigation",
     "void_level": 4,
     "force_combat": false
   },

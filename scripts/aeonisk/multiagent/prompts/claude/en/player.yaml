@@ -292,8 +292,8 @@ sections:
     PlayerAction(
         intent="Intimidate the guard captain into standing down",
         description="I step forward, hand on my weapon, and lock eyes with the captain. 'Walk away now, or I drop you where you stand. Your squad won't make it out alive. Is this contract worth dying for?'",
-        attribute="Empathy",
-        skill="Charm",
+        attribute="Willpower",
+        skill="Intimidation",
         difficulty_estimate=22,
         difficulty_justification="DC 22: Professional guard following orders, but outnumbered and facing credible threat",
         action_type=ActionType.SOCIAL,

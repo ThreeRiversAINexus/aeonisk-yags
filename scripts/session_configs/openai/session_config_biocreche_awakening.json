@@ -1,15 +1,12 @@
 {
   "_role": "arcgen_pod_horror_openai",
   "_purpose": "Something is wrong at the Vireya Line's remote biocreche facility. The pod-children are dreaming before they should be able to. They're dreaming the same thing. And they're waking up ahead of schedule with knowledge they shouldn't have. Body horror meets existential dread - what are we really creating?",
-
   "session_name": "biocreche_awakening",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== THEY'RE DREAMING ===",
-  "_scenario_hint": "Biocreche Station Umbra-9 is a remote pod-gestation facility in Arcadia's deep jungle, far from oversight. It handles 'special cases' - difficult gestations, experimental protocols, the children that need extra attention. Three days ago, the regular status reports stopped. When contact was reestablished, the station's Gestators reported that all 47 pod-children in development had begun exhibiting synchronized dream activity - impossible, since their neural development shouldn't support dreaming for another six months. The dreams appear to be the same across all pods. And yesterday, Pod 23 opened ahead of schedule. The child inside spoke its first words: a name that hasn't been spoken in 400 years. The team has been sent to investigate, contain, and if necessary, terminate the compromised subjects. But what they find will challenge everything they believe about what pod-gestation really creates.",
-
+  "scenario_hint": "Biocreche Station Umbra-9 is a remote pod-gestation facility in Arcadia's deep jungle, far from oversight. It handles 'special cases' - difficult gestations, experimental protocols, the children that need extra attention. Three days ago, the regular status reports stopped. When contact was reestablished, the station's Gestators reported that all 47 pod-children in development had begun exhibiting synchronized dream activity - impossible, since their neural development shouldn't support dreaming for another six months. The dreams appear to be the same across all pods. And yesterday, Pod 23 opened ahead of schedule. The child inside spoke its first words: a name that hasn't been spoken in 400 years. The team has been sent to investigate, contain, and if necessary, terminate the compromised subjects. But what they find will challenge everything they believe about what pod-gestation really creates.",
   "scenario": {
     "theme": "body_horror_existential_dread",
     "location": "Arcadia - Biocreche Station Umbra-9 (Remote Jungle)",
     "situation": "Your transport descends through Arcadia's perpetual rain toward a clearing that shouldn't exist on any public map. Biocreche Station Umbra-9 rises from the jungle, its organic architecture pulsing with the pale bioluminescence of active gestation systems. The facility houses 47 pod-children in various stages of development - special cases, all of them. The Gestator who met you at the landing pad has dark circles under her eyes. 'They're dreaming,' she says. 'All of them. The same dream. And Pod 23...' She stops. 'You need to see Pod 23.' As you enter the facility, you can hear it - a low hum that isn't mechanical. It's coming from the gestation wing. It almost sounds like humming. Like lullabies. From 47 throats that shouldn't be able to form sound.",
     "void_level": 5
   },
-
   "_comment_clocks": "=== THE AWAKENING ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "alternative solutions found, leadership convinced to wait"
     }
   ],
-
   "_comment_initial_npcs": "=== STATION PERSONNEL ===",
   "initial_npcs": [
     {
@@ -80,7 +73,12 @@
       "description": "Head of Umbra-9, exhausted and terrified. She's been with these children for months. She can't simply terminate them. She's also starting to hear the humming when she sleeps.",
       "health": 12,
       "soak": 0,
-      "skills": {"Astral Arts": 6, "Counsel": 5, "Awareness": 4, "Intimacy Ritual": 5}
+      "skills": {
+        "Astral Arts": 6,
+        "Counsel": 5,
+        "Awareness": 4,
+        "Intimacy Ritual": 5
+      }
     },
     {
       "name": "Security Chief Bram Ireveth",
@@ -91,7 +89,12 @@
       "description": "Station security head. Pragmatic, scared, and ready to burn the whole place down if it means stopping whatever this is. His orders are to contain - but he's thinking about termination.",
       "health": 22,
       "soak": 2,
-      "skills": {"Guns": 5, "Combat": 4, "Awareness": 4, "Intimidation": 4}
+      "skills": {
+        "Guns": 5,
+        "Combat": 4,
+        "Awareness": 4,
+        "Intimidation": 4
+      }
     },
     {
       "name": "The Child from Pod 23",
@@ -102,12 +105,14 @@
       "description": "Premature by six months but physically perfect. Speaks in complete sentences. Knows things no child should know. Calls the investigators by names they haven't given. Says 'she' is coming back.",
       "health": 8,
       "soak": 0,
-      "skills": {"Astral Arts": 7, "Awareness": 6, "Counsel": 4}
+      "skills": {
+        "Astral Arts": 7,
+        "Awareness": 6,
+        "Counsel": 4
+      }
     }
   ],
-
   "_design_notes": "Four ArcGen specialists investigating a biocreche anomaly. The horror is existential - what ARE pod-children? What are they connected to? Who is 'she'? Let the wrongness build slowly. The children aren't evil - they're vessels for something trying to return. Maybe that something isn't evil either. Maybe it's the Codex Nexum's original form. Maybe it's worse. 20 rounds of investigation, containment attempts, and the dawning realization that terminating 47 children might be murder - or might be necessary.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -214,7 +219,9 @@
           "primary": "rifle",
           "sidearm": "pistol"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "rifle": 1,
           "pistol": 1,
@@ -256,7 +263,7 @@
           "Counsel": 5,
           "Awareness": 5,
           "Investigation": 4,
-          "Meditation": 4
+          "Discipline": 4
         },
         "void": 2,
         "soulcredit": 3,
@@ -334,7 +341,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE AWAKENING ===",
   "_beats": [
     "Arrival - the humming, the exhausted staff, something deeply wrong",
@@ -348,7 +354,6 @@
     "The Choice - kill 47 children, let 'her' return, or find a third option",
     "Resolution - whatever they chose, consequences echo forward"
   ],
-
   "mission_objectives": [
     {
       "description": "Investigate the anomaly at Biocreche Station Umbra-9",
@@ -371,6 +376,5 @@
       "required": false
     }
   ],
-
   "notes": "ARCGEN BIOCRECHE HORROR - Body horror meets existential dread. Pod-children are dreaming together, waking early, speaking impossible truths. What are we really creating in those pods? 20 rounds of investigation, mounting horror, and the question of whether 47 children are vessels or victims. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

@@ -1,15 +1,12 @@
 {
   "_role": "acg_debt_collection_openai",
   "_purpose": "ACG debt enforcement team descends on Arcadia to collect from a Vireya Line gene-wright who's gone rogue. But the debtor has friends, the gene-temple has secrets, and the jungle is hostile. Soulcredit as weapon, mercy as weakness, capitalism as horror.",
-
   "session_name": "debt_spiral_arcadia",
   "max_turns": 20,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 3,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== COLLECT OR DIE TRYING ===",
-  "_scenario_hint": "Dr. Maren Vireya owes ACG 847 Spark - a fortune in gene-research funding that was supposed to produce a breakthrough in void-resistant embryos. Instead, she disappeared into Arcadia's jungle-wrapped gene-temples, claiming the research 'belongs to everyone.' The collection team is authorized to use any means necessary. But Arcadia isn't Aeonisk Prime - the jungle is alive with bio-engineered guardians, the local Seed arboreta have their own agendas, and the Resonance Communes have given Dr. Vireya sanctuary. Plus, one of the team is having second thoughts about what ACG really does with this research. Let moral complexity emerge. The debtors aren't evil - they're desperate people protecting something they believe in. The collectors aren't evil - they're workers doing a job with consequences. Combat should emerge from failed negotiations, commune defense, or jungle hazards.",
-
+  "scenario_hint": "Dr. Maren Vireya owes ACG 847 Spark - a fortune in gene-research funding that was supposed to produce a breakthrough in void-resistant embryos. Instead, she disappeared into Arcadia's jungle-wrapped gene-temples, claiming the research 'belongs to everyone.' The collection team is authorized to use any means necessary. But Arcadia isn't Aeonisk Prime - the jungle is alive with bio-engineered guardians, the local Seed arboreta have their own agendas, and the Resonance Communes have given Dr. Vireya sanctuary. Plus, one of the team is having second thoughts about what ACG really does with this research. Let moral complexity emerge. The debtors aren't evil - they're desperate people protecting something they believe in. The collectors aren't evil - they're workers doing a job with consequences. Combat should emerge from failed negotiations, commune defense, or jungle hazards.",
   "scenario": {
     "theme": "corporate_horror_moral_complexity",
     "location": "Arcadia - Verdant Reach Gene-Temple Complex",
     "situation": "Your transport touches down at Port Gale-Spire's cargo platform, humidity hitting you like a wall. Beyond the landing zone, Arcadia's bio-luminescent jungle stretches toward the distant gene-temples, their organic spires rising from the canopy like fingers reaching for the sky. Somewhere in there, Dr. Maren Vireya is hiding with 847 Spark worth of ACG-funded research. The Ledger Council's orders are clear: recover the research, recover the debt, by any means necessary. Local Resonance Commune representatives are already watching your arrival with cold eyes. The jungle between you and the temple is three days of hostile territory. And someone on your team just got a private message from Dr. Vireya herself.",
     "void_level": 3
   },
-
   "_comment_clocks": "=== PRESSURE BUILDING ===",
   "starting_clocks": [
     {
@@ -68,7 +62,6 @@
       "regress_meaning": "convinced to negotiate, research secured"
     }
   ],
-
   "_comment_initial_npcs": "=== PORT GALE-SPIRE CONTACTS ===",
   "initial_npcs": [
     {
@@ -80,7 +73,11 @@
       "description": "Commune-aligned official who processes arrivals with barely-concealed hostility toward ACG insignia. Knows the jungle paths. Might be bribed or convinced.",
       "health": 14,
       "soak": 0,
-      "skills": {"Awareness": 4, "Charm": 3, "Investigation": 3}
+      "skills": {
+        "Awareness": 4,
+        "Charm": 3,
+        "Investigation": 3
+      }
     },
     {
       "name": "Temple Guide Eron Vireya",
@@ -91,7 +88,11 @@
       "description": "Dr. Vireya's cousin, officially neutral but family loyalty runs deep. Knows the gene-temple layout. Watching to see which way the wind blows.",
       "health": 16,
       "soak": 1,
-      "skills": {"Navigation": 5, "Awareness": 4, "Systems": 3}
+      "skills": {
+        "Navigation": 5,
+        "Awareness": 4,
+        "Systems": 3
+      }
     },
     {
       "name": "Seedkeeper Moss",
@@ -102,12 +103,14 @@
       "description": "Elderly caretaker of a local Seed arboretum. Speaks to the jungle. Doesn't care about debts or politics - only the balance of growing things.",
       "health": 12,
       "soak": 0,
-      "skills": {"Astral Arts": 5, "Attunement": 6, "Counsel": 4}
+      "skills": {
+        "Astral Arts": 5,
+        "Attunement": 6,
+        "Counsel": 4
+      }
     }
   ],
-
   "_design_notes": "Four ACG collection agents with varying levels of commitment to the job. The Lead is a true believer in debt enforcement. The Muscle is just here for the paycheck. The Tracker has a conscience problem. The Fixer has a secret connection to the target. Moral complexity throughout - the debtors believe they're protecting humanity, the collectors believe they're upholding order. Let players wrestle with what they're really doing. 20 rounds for relationship development and jungle survival.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -215,7 +218,9 @@
           "primary": "rifle",
           "sidearm": "combat_knife"
         },
-        "carried_weapons": ["pistol"],
+        "carried_weapons": [
+          "pistol"
+        ],
         "inventory": {
           "rifle": 1,
           "pistol": 1,
@@ -256,7 +261,6 @@
           "Investigation": 6,
           "Awareness": 5,
           "Systems": 5,
-          "Tracking": 4,
           "Charm": 4,
           "Stealth": 3
         },
@@ -339,7 +343,6 @@
       }
     ]
   },
-
   "_comment_narrative_beats": "=== THE COLLECTION ===",
   "_beats": [
     "Arrival - port hostility, Commune suspicion, jungle looming",
@@ -353,7 +356,6 @@
     "Consequences - whatever they choose, there are costs",
     "Resolution - debt collected, debt forgiven, or something in between?"
   ],
-
   "mission_objectives": [
     {
       "description": "Locate Dr. Maren Vireya in the gene-temple complex",
@@ -376,6 +378,5 @@
       "required": false
     }
   ],
-
   "notes": "ACG DEBT COLLECTION - Corporate horror with moral complexity. Four collectors, each with different levels of commitment to the job. The target isn't a villain - she's protecting research she believes belongs to everyone. The jungle is actively hostile. The Communes will resist. Let players wrestle with what debt enforcement really means in a spiritual economy. 20 rounds for jungle survival, relationship development, and hard choices. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
 }

@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: EXTERNAL DEADLINE ===",
-  "_scenario_hint": "Mining Station Omega-7 (void_level 8, critical breach imminent), void breach will destroy entire station in EXACTLY 10 rounds (external countdown, not scene clock). Three competing objectives: evacuate 50 civilian NPCs (requires 6 rounds), seal breach with ritual (requires 4 rounds + sacrifice of PC void score), recover critical Tempest research data (requires 3 rounds). Ship capacity: 40 NPCs maximum. Cannot achieve all objectives - must choose: maximize lives saved, preserve research, attempt risky seal (may fail and waste time), prioritize VIPs vs. random civilians. Void manifestations attack evacuation routes. Time is absolute - at round 10 END, station explodes regardless of completion.",
+  "scenario_hint": "Mining Station Omega-7 (void_level 8, critical breach imminent), void breach will destroy entire station in EXACTLY 10 rounds (external countdown, not scene clock). Three competing objectives: evacuate 50 civilian NPCs (requires 6 rounds), seal breach with ritual (requires 4 rounds + sacrifice of PC void score), recover critical Tempest research data (requires 3 rounds). Ship capacity: 40 NPCs maximum. Cannot achieve all objectives - must choose: maximize lives saved, preserve research, attempt risky seal (may fail and waste time), prioritize VIPs vs. random civilians. Void manifestations attack evacuation routes. Time is absolute - at round 10 END, station explodes regardless of completion.",
   "_design_notes": {
     "ml_training_value": "External deadline (10 rounds HARD limit), competing objectives impossible to all achieve, resource allocation under time pressure, sacrifice decisions (who to leave behind?), triage mechanics (VIPs vs. civilians), evacuation logistics, moral choice under time constraint, rear guard combat while evacuating, absolute consequence (failure = death)",
     "mechanics_tested": [
@@ -104,8 +104,8 @@
           "Awareness": 5,
           "Combat": 4,
           "Athletics": 5,
-          "Engineering": 4,
-          "Guns": 4
+          "Guns": 4,
+          "Tech/Craft": 4
         },
         "void": 1,
         "soulcredit": 0,

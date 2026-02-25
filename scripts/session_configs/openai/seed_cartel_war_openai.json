@@ -20,7 +20,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - SEED-FOCUSED (Black Market Dealers) ===",
   "vendor_spawn_frequency": 2,
   "_comment_scenario": "=== SCENARIO: SEED ECONOMY ===",
-  "_scenario_hint": "Freeborn Black Market District (void_level 4, unregulated), two rival Seed cartels (Hollow Syndicate vs. Spirit Traders) fighting over territory and supply lines. Team hired as neutral brokers/enforcers: must navigate Seed trade politics, prevent violence, secure supply for own faction. Seed mechanics: Raw Seeds degrade in 7 cycles (timer), Raw Seeds give +1 void if used unattunedneeds echo-calibrator + ritual altar for safe attuning), Attuned Seeds stable and valuable, Hollow Seeds (degraded) dangerous but potent (+1 void, unstable). Cartel tensions: Hollow Syndicate floods market with cheap dangerous Hollows, Spirit Traders maintain quality Attuned supply but high prices. Economic pressure: ritual component scarcity, contamination risks, degradation timers forcing rushed attuning, competing buyers. Combat if negotiations fail.",
+  "scenario_hint": "Freeborn Black Market District (void_level 4, unregulated), two rival Seed cartels (Hollow Syndicate vs. Spirit Traders) fighting over territory and supply lines. Team hired as neutral brokers/enforcers: must navigate Seed trade politics, prevent violence, secure supply for own faction. Seed mechanics: Raw Seeds degrade in 7 cycles (timer), Raw Seeds give +1 void if used unattunedneeds echo-calibrator + ritual altar for safe attuning), Attuned Seeds stable and valuable, Hollow Seeds (degraded) dangerous but potent (+1 void, unstable). Cartel tensions: Hollow Syndicate floods market with cheap dangerous Hollows, Spirit Traders maintain quality Attuned supply but high prices. Economic pressure: ritual component scarcity, contamination risks, degradation timers forcing rushed attuning, competing buyers. Combat if negotiations fail.",
   "_design_notes": {
     "ml_training_value": "First config testing Seed economy (Raw/Attuned/Hollow), ritual attuning mechanics (echo-calibrator + ritual altar), Seed degradation timers (7 cycles), void contamination from Raw/Hollow usage, black market economics, cartel faction dynamics, ritual component scarcity pressure, economic manipulation tactics, Attunement skill for ritual success, trade negotiation vs. combat resolution",
     "mechanics_tested": [
@@ -175,8 +175,7 @@
           "Debt Law": 5,
           "Corporate Influence": 5,
           "Investigation": 4,
-          "Awareness": 4,
-          "Persuasion": 5
+          "Awareness": 4
         },
         "void": 0,
         "soulcredit": 5,

@@ -24,7 +24,7 @@
   },
 
   "_comment_scenario": "=== STEALTH TEST SCENARIO ===",
-  "_scenario_hint": "This scenario tests the aware_agents stealth visibility system. Shadow is a stealth specialist who should sneak past guards - when successful, NPCs should NOT know about it. Blaze is loud and obvious - NPCs SHOULD react to their actions. DM MUST use aware_agents field: stealth successes get aware_agents=['dm', 'player_shadow'], loud actions get aware_agents=[] (empty = public). Spawn guard NPCs immediately who patrol and can be snuck past or alerted.",
+  "scenario_hint": "This scenario tests the aware_agents stealth visibility system. Shadow is a stealth specialist who should sneak past guards - when successful, NPCs should NOT know about it. Blaze is loud and obvious - NPCs SHOULD react to their actions. DM MUST use aware_agents field: stealth successes get aware_agents=['dm', 'player_shadow'], loud actions get aware_agents=[] (empty = public). Spawn guard NPCs immediately who patrol and can be snuck past or alerted.",
 
   "scenario": {
     "theme": "stealth_infiltration_test",
@@ -57,7 +57,7 @@
   "initial_npcs": [
     {
       "name": "Desk Guard Chen",
-      "faction": "ACG Security",
+      "faction": "ACG",
       "entity_type": "neutral",
       "threat_level": "armed_neutral",
       "disposition": "neutral",
@@ -68,7 +68,7 @@
     },
     {
       "name": "Patrol Guard Vasquez",
-      "faction": "ACG Security",
+      "faction": "ACG",
       "entity_type": "neutral",
       "threat_level": "armed_neutral",
       "disposition": "neutral",

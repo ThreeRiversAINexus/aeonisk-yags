@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen a **social action**. Now let's define the mechanical details.
 
@@ -32,7 +33,7 @@ content: |-
       intent: str,
       description: str,               # 50-800 chars
       attribute: str,                 # Empathy, Willpower
-      skill: str,                     # Charm, Intimidation, Guile, Negotiation
+      skill: str,                     # Charm, Intimidation, Guile, Insight, Corporate Influence
       difficulty_estimate: int,
       difficulty_justification: str,
       action_type: ActionType.SOCIAL,
@@ -44,9 +45,9 @@ content: |-
 
   - `Empathy × Charm` - Friendly persuasion, building rapport, reading emotions
   - `Empathy × Guile` - Deception, lying, misdirection
-  - `Empathy × Negotiation` - Understanding others' needs, finding compromise
+  - `Empathy × Corporate Influence` - Faction politics, extracting favors, power dynamics
+  - `Empathy × Insight` - Reading emotional states, understanding motivations
   - `Willpower × Intimidation` - Mental domination, threats, authority
-  - `Willpower × Command` - Leadership, giving orders
 
   ## Examples
 

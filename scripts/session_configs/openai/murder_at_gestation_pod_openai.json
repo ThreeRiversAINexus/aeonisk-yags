@@ -11,7 +11,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: MURDER INVESTIGATION ===",
-  "_scenario_hint": "Sovereign Nexus Gestation Facility (void_level 1, high security), Gestator Lyss Veln found dead in pod chamber with void contamination marks. Evidence suggests: Bond corruption ritual gone wrong, sabotage by anti-Nexus agent, or accidental void exposure during unauthorized experiment. 6 NPC witnesses with conflicting testimonies, partial security logs, ritual residue. Time pressure: Nexus tribunal convenes in 10 rounds - must present case with evidence. Red herrings: jealous co-worker, corporate espionage, secret Bond affair.",
+  "scenario_hint": "Sovereign Nexus Gestation Facility (void_level 1, high security), Gestator Lyss Veln found dead in pod chamber with void contamination marks. Evidence suggests: Bond corruption ritual gone wrong, sabotage by anti-Nexus agent, or accidental void exposure during unauthorized experiment. 6 NPC witnesses with conflicting testimonies, partial security logs, ritual residue. Time pressure: Nexus tribunal convenes in 10 rounds - must present case with evidence. Red herrings: jealous co-worker, corporate espionage, secret Bond affair.",
   "_design_notes": {
     "ml_training_value": "First investigation-led config, tests Investigation/Awareness/Systems/Insight for detective work, NPC witness interview depth, evidence collection mechanics, time-pressure clock (tribunal deadline), red herring misdirection, forensic analysis, moral choice (truth vs. political pressure)",
     "mechanics_tested": [
@@ -95,7 +95,6 @@
           "Insight": 5,
           "Magick Theory": 4,
           "Intimidation": 4,
-          "Forensics": 5,
           "Guns": 3
         },
         "void": 0,
@@ -212,8 +211,7 @@
           "Counsel": 5,
           "Investigation": 4,
           "Awareness": 5,
-          "Guile": 4,
-          "Persuasion": 4
+          "Guile": 4
         },
         "void": 0,
         "soulcredit": 4,

@@ -18,7 +18,7 @@
     "use_scenario_context": true
   },
   "_comment_scenario": "=== SCENARIO: GYMBAR NETWORKING WITH INTER-CHARACTER DIALOGUE ===",
-  "_scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7. It's Networking Night: professionals from all factions gather to network, make deals, and dialogue. PRIMARY GOAL: Characters should engage in meaningful inter-character dialogue and relationship building. Pre-existing bonds create natural conversation hooks. No initial enemies - let social dynamics evolve organically. Security prevents violence, focus on conversation, deals, intel gathering, and reputation. DM should facilitate character-to-character interactions rather than spawning external threats.",
+  "scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7. It's Networking Night: professionals from all factions gather to network, make deals, and dialogue. PRIMARY GOAL: Characters should engage in meaningful inter-character dialogue and relationship building. Pre-existing bonds create natural conversation hooks. No initial enemies - let social dynamics evolve organically. Security prevents violence, focus on conversation, deals, intel gathering, and reputation. DM should facilitate character-to-character interactions rather than spawning external threats.",
   "_design_notes": {
     "social_focus": "Zero combat scenario testing social skills: Charm, Persuasion, Insight, Guile, Intimidation, Athletics (displays of skill), Corporate Influence, Debt Law",
     "setting_areas": [
@@ -123,7 +123,6 @@
         },
         "skills": {
           "Charm": 6,
-          "Persuasion": 5,
           "Corporate Influence": 5,
           "Debt Law": 4,
           "Insight": 5,
@@ -301,7 +300,6 @@
           "Counsel": 6,
           "Charm": 5,
           "Insight": 5,
-          "Persuasion": 4,
           "Astral Arts": 4,
           "Attunement": 4,
           "Medicine": 3

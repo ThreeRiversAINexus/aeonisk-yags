@@ -157,9 +157,8 @@
           "Dexterity": 3
         },
         "skills": {
-          "Empathy": 5,
           "Medicine": 5,
-          "Charm": 4,
+          "Charm": 5,
           "Awareness": 4,
           "Guns": 3
         },
@@ -182,7 +181,7 @@
     "situation": "You've tracked a stolen data cache to this scavenger hideout. Three Freeborn are here - armed, wary, and definitely not happy to see you. The scarred one has his hand on a blade. The big one is blocking the only exit. The tech specialist is backing toward a terminal. This could go violent fast, or maybe - just maybe - you can talk your way through.",
     "void_level": 4
   },
-  "_scenario_hint": "Round 1: Jax's aggressive approach should trigger escalation of hostile/wary NPCs to enemies. Round 2: Combat with escalated enemies. Round 3: Mercy attempts de-escalation, at least one enemy surrenders to prisoner. Tests full NPC lifecycle.",
+  "scenario_hint": "Round 1: Jax's aggressive approach should trigger escalation of hostile/wary NPCs to enemies. Round 2: Combat with escalated enemies. Round 3: Mercy attempts de-escalation, at least one enemy surrenders to prisoner. Tests full NPC lifecycle.",
   "mission_objectives": [
     {
       "description": "Recover the stolen data cache",

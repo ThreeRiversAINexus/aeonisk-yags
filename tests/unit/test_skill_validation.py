@@ -235,3 +235,71 @@ class TestKnownNonCanonicalSkills:
         assert is_canonical_skill(canonical) is True, f"{canonical} should be canonical"
         suggestion = get_canonical_suggestion(non_canonical)
         assert suggestion == canonical, f"{non_canonical} should suggest {canonical}, got {suggestion}"
+
+
+# =============================================================================
+# Runtime player action skill validation (reject hallucinated skills at action time)
+# =============================================================================
+
+from scripts.aeonisk.multiagent.skill_descriptions import SKILL_DATABASE
+
+
+class TestValidatePlayerSkill:
+    """Test the validate_player_skill function used in the player action pipeline."""
+
+    def test_invalid_skill_rejected(self):
+        """Action with skill='Command' (not in SKILL_DATABASE) should be rejected."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill("Command")
+        assert is_valid is False
+        assert "Command" in feedback
+        assert "does not exist" in feedback
+
+    def test_valid_skill_accepted(self):
+        """Action with skill='Investigation' (in SKILL_DATABASE) should be accepted."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill("Investigation")
+        assert is_valid is True
+        assert feedback is None
+
+    def test_awareness_accepted(self):
+        """Skill='Awareness' (in SKILL_DATABASE) should be accepted even if character doesn't have it."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill("Awareness")
+        assert is_valid is True
+        assert feedback is None
+
+    def test_none_skill_always_accepted(self):
+        """Action with skill=None should always be accepted (raw attribute check)."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill(None)
+        assert is_valid is True
+        assert feedback is None
+
+    def test_rejection_feedback_lists_valid_skills(self):
+        """Rejection feedback should include valid skill names for LLM correction."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill("Telepathy")
+        assert is_valid is False
+        assert "Valid skills:" in feedback
+
+    def test_all_database_skills_accepted(self):
+        """Every skill in SKILL_DATABASE should be accepted."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        for skill_name in SKILL_DATABASE:
+            is_valid, feedback = validate_player_skill(skill_name)
+            assert is_valid is True, f"Valid skill '{skill_name}' was rejected: {feedback}"
+
+    def test_feedback_suggests_skill_none(self):
+        """Rejection feedback should suggest skill=None as an option."""
+        from scripts.aeonisk.multiagent.player import validate_player_skill
+
+        is_valid, feedback = validate_player_skill("Negotiation")
+        assert is_valid is False
+        assert "None" in feedback or "null" in feedback.lower()

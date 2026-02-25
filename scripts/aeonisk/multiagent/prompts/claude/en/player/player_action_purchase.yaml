@@ -11,6 +11,7 @@ content: |-
   {personality_notes}
   {direction}
   {player_only_message}
+  {skill_rejection_feedback}
 
   You've chosen a **purchase action**. Now let's define the mechanical details.
 
@@ -34,7 +35,7 @@ content: |-
       intent: str,                    # Your Phase 1 intent
       description: str,               # 50-800 chars - Describe the transaction
       attribute: str,                 # Usually Empathy or Empathy for negotiation
-      skill: str,                     # Charm, Negotiation, Corporate Influence, etc.
+      skill: str,                     # Charm, Guile, Corporate Influence
       difficulty_estimate: int,       # Your DC estimate (consider vendor, relationship)
       difficulty_justification: str,  # Why that DC?
 
@@ -47,9 +48,9 @@ content: |-
 
   ## Common Purchase Skills
 
-  **Negotiation/Haggling:**
+  **Haggling/Bargaining:**
   - `Empathy × Charm` - Friendly persuasion, building rapport
-  - `Empathy × Negotiation` - Professional bargaining (if you have this skill)
+  - `Empathy × Guile` - Professional bargaining, reading leverage
   - `Empathy × Corporate Influence` - Leveraging faction connections
 
   **Information Gathering:**
@@ -71,7 +72,6 @@ content: |-
   **Your Social Skills:**
   - Empathy: {empathy}
   - Charm: {charm_skill}
-  - Negotiation: {negotiation_skill}
 
   ## Vendors & Items Available
 

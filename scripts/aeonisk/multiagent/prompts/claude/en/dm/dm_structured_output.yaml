@@ -43,7 +43,17 @@ content: |-
   void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual without offering")]
   ```
 
-  **3. CLOCKS → Populate `clock_updates` when advancing/regressing**
+  **3. CLOCKS → Evaluate ALL active clocks for ticking on EVERY action resolution**
+
+  Every action you resolve should consider whether it advances or regresses any active clock.
+  If clocks aren't being ticked, they aren't doing their job — they'll just expire without impact.
+
+  **Tick guidance:**
+  - Success on a task related to a clock → advance +1 to +2 ticks
+  - Failure on a task → advance +1 to related threat/consequence clocks
+  - Critical success → advance +2 to +3 ticks on relevant clocks
+  - Passage of time / loud actions → advance threat clocks by +1
+
   ```python
   clock_updates=[ClockUpdate(clock_name="Investigation", ticks=2, reason="discovered evidence")]
   ```
