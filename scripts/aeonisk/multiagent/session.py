@@ -3226,14 +3226,17 @@ Generate narratives (numbered list only):"""
                 for player in player_agents:
                     if hasattr(player, 'character_state'):
                         char_state = player.character_state
-                        # Health/wounds are stored on player agent, not CharacterState
-                        # Calculate death state based on wounds (6+ wounds = dead)
+                        # Health/wounds/stuns are stored on player agent, not CharacterState
+                        # Calculate death state based on wounds (6+ = dead), health (0 = unconscious), stuns (6+ = KO)
                         wounds = player.wounds if hasattr(player, 'wounds') else 0
                         health = player.health if hasattr(player, 'health') else 0
+                        stuns = player.stuns if hasattr(player, 'stuns') else 0
                         if wounds >= 6:
                             death_state = "dead"
                         elif health <= 0:
                             death_state = "unconscious"
+                        elif stuns >= 6:
+                            death_state = "unconscious"  # Stun KO: Beaten threshold per YAGS
                         else:
                             death_state = "alive"
 
@@ -3287,13 +3290,16 @@ Generate narratives (numbered list only):"""
                 if self.enemy_combat.enabled:
                     for enemy in self.enemy_combat.enemy_agents:
                         if enemy.is_active:  # Only log active enemies
-                            # Calculate death state for enemies too
+                            # Calculate death state for enemies (wounds, health, stuns)
                             enemy_wounds = enemy.wounds if hasattr(enemy, 'wounds') else 0
                             enemy_health = enemy.health if hasattr(enemy, 'health') else 0
+                            enemy_stuns = enemy.stuns if hasattr(enemy, 'stuns') else 0
                             if enemy_wounds >= 6:
                                 enemy_death_state = "dead"
                             elif enemy_health <= 0:
                                 enemy_death_state = "unconscious"
+                            elif enemy_stuns >= 6:
+                                enemy_death_state = "unconscious"  # Stun KO
                             else:
                                 enemy_death_state = "alive"
 

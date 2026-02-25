@@ -5074,7 +5074,7 @@ For **other actions** (flee, hide, assist, attack):
                             narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — FAILED. Could not stabilize the patient.]"
                             logger.info(f"NPC {character_name} failed to heal {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
 
-                # Handle attack actions: simplified YAGS combat
+                # Handle attack actions: route through enemy_combat.py YAGS formula
                 elif npc_action_type == 'attack' and target:
                     # Look up NPC entity to get skills and weapons
                     npc_entity = None
@@ -5085,113 +5085,57 @@ For **other actions** (flee, hide, assist, attack):
                                 npc_entity = npc
                                 break
 
-                    # Find weapon
-                    weapon = None
-                    if npc_entity and hasattr(npc_entity, 'weapons') and npc_entity.weapons:
-                        weapon = npc_entity.weapons[0]
+                    if npc_entity:
+                        # Route NPC attacks through enemy_combat.py's full YAGS combat path.
+                        # This gives NPCs: proper attribute*skill formula, range penalties,
+                        # defence tokens, death saves, defeat tracking, and combat_action JSONL logging.
+                        from .enemy_combat import execute_npc_attack
+                        from .tactical_resolution import ResolutionState
 
-                    if not weapon:
-                        # No weapon - attack fails
-                        narration += f"\n\n[{character_name} attempts to attack but has no weapon.]"
-                        success_tier = SuccessTier.FAILURE
-                        margin = -10
-                        logger.info(f"NPC {character_name} attack failed: no weapon")
-                    else:
-                        # Resolve target entity
-                        target_entity = None
-                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-                        if target and target.startswith('tgt_') and target_id_mapper:
-                            target_entity = target_id_mapper.resolve_target(target)
-                        elif target and self.shared_state:
-                            # Try direct agent_id lookup: PCs, NPCs, then enemies
-                            for player in getattr(self.shared_state, 'player_agents', []):
-                                if hasattr(player, 'agent_id') and player.agent_id == target:
-                                    target_entity = player
-                                    break
-                            if not target_entity:
-                                for npc in getattr(self.shared_state, 'npc_agents', []):
-                                    if hasattr(npc, 'agent_id') and npc.agent_id == target:
-                                        target_entity = npc
-                                        break
-                            if not target_entity:
-                                for enemy_agent in getattr(self.shared_state, 'enemy_agents', []):
-                                    if hasattr(enemy_agent, 'agent_id') and enemy_agent.agent_id == target:
-                                        target_entity = enemy_agent
-                                        break
+                        # Get or create resolution state for this round
+                        resolution_state = getattr(self, '_current_resolution_state', None)
+                        if not resolution_state:
+                            resolution_state = ResolutionState()
 
-                        if not target_entity:
-                            narration += f"\n\n[{character_name} attacks but target has moved or is not found.]"
+                        player_agents = getattr(self.shared_state, 'player_agents', [])
+                        mechanics_engine = self.shared_state.mechanics_engine if self.shared_state else None
+
+                        combat_result = execute_npc_attack(
+                            npc=npc_entity,
+                            target_id=target,
+                            weapon_name=None,  # Use first available weapon
+                            shared_state=self.shared_state,
+                            mechanics_engine=mechanics_engine,
+                            resolution_state=resolution_state,
+                            player_agents=player_agents
+                        )
+
+                        # Map combat result to NPC resolution format
+                        hit = combat_result.get('hit', False)
+                        damage_dealt = combat_result.get('damage_dealt', 0)
+                        target_name = combat_result.get('target', 'unknown')
+
+                        if hit and damage_dealt > 0:
+                            success_tier = SuccessTier.MODERATE
+                            margin = combat_result.get('attack_roll', 0) - 15
+                            narration += f"\n\n{combat_result.get('narration', '')}"
+                        elif hit:
+                            success_tier = SuccessTier.MARGINAL
+                            margin = 0
+                            narration += f"\n\n{combat_result.get('narration', '')}"
+                        else:
                             success_tier = SuccessTier.FAILURE
                             margin = -5
-                        else:
-                            target_name = getattr(target_entity, 'name', str(target))
+                            narration += f"\n\n{combat_result.get('narration', '')}"
 
-                            # Determine attribute based on weapon skill
-                            if weapon.skill == "Guns":
-                                attr_value = 3  # Default NPC Perception
-                            elif weapon.skill == "Melee":
-                                attr_value = 3  # Default NPC Dexterity
-                            else:  # Brawl
-                                attr_value = 3  # Default NPC Agility
-
-                            # Get combat skill
-                            combat_skill = 0
-                            if npc_entity and hasattr(npc_entity, 'skills'):
-                                combat_skill = npc_entity.skills.get(weapon.skill, 0)
-
-                            # Attack roll: attr × skill + weapon.attack + d20 (with unskilled penalty)
-                            unskilled_penalty = -5 if combat_skill == 0 else 0
-                            skill_value = max(combat_skill, 1)
-                            base_attack = attr_value * skill_value + weapon.attack + unskilled_penalty
-                            d20 = random.randint(1, 20)
-                            attack_total = base_attack + d20
-                            dc = 15  # Passive defense
-
-                            if attack_total >= dc:
-                                # Hit! Roll damage
-                                strength = 3  # Default NPC Strength
-                                damage_d20 = random.randint(1, 20)
-                                base_damage = strength + weapon.damage + damage_d20
-                                total_damage = int(base_damage * 0.85)  # CBM reduction
-
-                                target_soak = getattr(target_entity, 'soak', 0)
-                                damage_dealt = max(0, total_damage - target_soak)
-
-                                success_tier = SuccessTier.MODERATE if (attack_total - dc) < 5 else SuccessTier.GOOD
-                                margin = attack_total - dc
-
-                                # Apply damage
-                                if damage_dealt > 0 and hasattr(target_entity, 'health'):
-                                    from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
-                                    damage_type = weapon.damage_type
-
-                                    if damage_type == "stun":
-                                        damage_result = apply_stun_damage(target_entity, damage_dealt)
-                                    elif damage_type == "wound":
-                                        damage_result = apply_wound_damage(target_entity, damage_dealt)
-                                    elif damage_type == "mixed":
-                                        damage_result = apply_mixed_damage(target_entity, damage_dealt)
-
-                                # Add DamageEffect for JSONL logging
-                                from .schemas.shared_types import DamageEffect
-                                effects.damage = [
-                                    DamageEffect(
-                                        target=target_name,
-                                        base_damage=total_damage,
-                                        soak=target_soak,
-                                        dealt=damage_dealt,
-                                        damage_type=weapon.damage_type
-                                    )
-                                ]
-
-                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — HIT! Damage: {total_damage} - {target_soak} soak = {damage_dealt} dealt to {target_name}.]"
-                                logger.info(f"NPC {character_name} hit {target_name}: attack {attack_total} vs DC {dc}, {damage_dealt} damage ({weapon.skill} {combat_skill}, {weapon.name})")
-                            else:
-                                # Miss
-                                success_tier = SuccessTier.FAILURE
-                                margin = attack_total - dc
-                                narration += f"\n\n[Attack: {base_attack} + {d20} (d20) = {attack_total} vs DC {dc} — MISS.]"
-                                logger.info(f"NPC {character_name} missed {target_name}: attack {attack_total} vs DC {dc} ({weapon.skill} {combat_skill}, {weapon.name})")
+                        # combat_action JSONL logging is handled inside _execute_attack()
+                        logger.info(f"NPC {character_name} attack via YAGS pipeline: hit={hit}, damage_dealt={damage_dealt}")
+                    else:
+                        # NPC entity not found — cannot attack
+                        narration += f"\n\n[{character_name} attempts to attack but entity data is unavailable.]"
+                        success_tier = SuccessTier.FAILURE
+                        margin = -10
+                        logger.warning(f"NPC {character_name} attack failed: entity not found for {npc_agent_id}")
 
                 # Step 3: Build resolution and process effects
                 npc_resolution = ActionResolution(

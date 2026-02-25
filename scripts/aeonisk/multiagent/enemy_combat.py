@@ -2164,11 +2164,144 @@ class EnemyCombatManager:
 
 
 # =============================================================================
+# NPC COMBAT ADAPTER
+# =============================================================================
+
+class NPCCombatProxy:
+    """
+    Lightweight proxy that makes NPCAgent look like EnemyAgent for combat.
+
+    _execute_attack() expects an enemy-like object with attributes, skills,
+    weapons, position, health, soak, etc. NPCAgent has all of these except
+    `attributes` (which are synthesized via estimate_attributes()) and
+    `defence_token`/`tactical_token` (which NPCs don't have).
+
+    This adapter bridges the gap without modifying NPCAgent's dataclass.
+    """
+
+    def __init__(self, npc_agent, attrs: Dict[str, int]):
+        """
+        Args:
+            npc_agent: NPCAgent instance with preserved combat stats
+            attrs: Synthesized attributes from estimate_attributes()
+        """
+        self.agent_id = npc_agent.agent_id
+        self.name = npc_agent.name
+        self.faction = npc_agent.faction
+        self.attributes = attrs
+        self.skills = npc_agent.skills
+        self.weapons = npc_agent.weapons
+        self.position = npc_agent.position
+        self.health = npc_agent.health
+        self.max_health = npc_agent.max_health
+        self.soak = npc_agent.soak
+        self.wounds = npc_agent.wounds
+        self.stuns = npc_agent.stuns
+        self.is_active = npc_agent.is_active
+        # Not used in combat math, but _execute_attack may access these:
+        self.defence_token = None
+        self.tactical_token = None
+
+
+def execute_npc_attack(
+    npc,  # NPCAgent
+    target_id: str,
+    weapon_name: Optional[str],
+    shared_state,
+    mechanics_engine: Any,
+    resolution_state: 'ResolutionState',
+    player_agents: List[Any]
+) -> Dict[str, Any]:
+    """
+    Execute NPC attack using the full YAGS combat formula from _execute_attack().
+
+    Creates a lightweight adapter (NPCCombatProxy) that wraps NPCAgent with the
+    fields _execute_attack() expects, then delegates to the enemy combat path.
+
+    This gives NPCs: proper attribute*skill formula, range penalties,
+    defence tokens, death saves, defeat tracking, and combat_action JSONL logging.
+
+    Args:
+        npc: NPCAgent with preserved combat stats (skills, weapons, health, soak)
+        target_id: Target identifier (tgt_xxxx or agent_id)
+        weapon_name: Weapon to use (or None for first available)
+        shared_state: Session shared state (for target resolution)
+        mechanics_engine: Mechanics engine (for JSONL logging)
+        resolution_state: Tactical resolution state (for defeat tracking)
+        player_agents: List of player agents (for target resolution)
+
+    Returns:
+        Combat result dict matching _execute_attack() output format:
+        {enemy_id, character_name, action, target, weapon, hit, attack_roll,
+         damage, damage_dealt, narration, target_defeated, ...}
+    """
+    from .agent_conversion import estimate_attributes
+
+    # Synthesize attributes from NPC skills
+    attributes = estimate_attributes(npc.skills)
+
+    # Build proxy
+    proxy = NPCCombatProxy(npc, attributes)
+
+    # Check for weapon availability first
+    if not npc.weapons:
+        return {
+            'enemy_id': npc.agent_id,
+            'character_name': npc.name,
+            'action': 'attack',
+            'result': 'no weapon',
+            'narration': f"{npc.name} has no weapon to attack with"
+        }
+
+    # Build EnemyDeclaration from NPC action
+    declaration = EnemyDeclaration(
+        agent_id=npc.agent_id,
+        character_name=npc.name,
+        initiative=0,  # NPCs don't roll initiative
+        defence_token=None,
+        major_action="Attack",
+        target=target_id,
+        weapon=weapon_name,
+        minor_action=None,
+        token_target=None,
+        reasoning="NPC attack action",
+        shared_intel=None
+    )
+
+    # Get the EnemyCombatManager instance for _execute_attack
+    combat_manager = None
+    if shared_state and hasattr(shared_state, 'session') and shared_state.session:
+        combat_manager = getattr(shared_state.session, 'enemy_combat', None)
+
+    if combat_manager:
+        result = combat_manager._execute_attack(
+            enemy=proxy,
+            declaration=declaration,
+            player_agents=player_agents,
+            mechanics_engine=mechanics_engine,
+            resolution_state=resolution_state
+        )
+    else:
+        # Fallback: no combat manager available
+        result = {
+            'enemy_id': npc.agent_id,
+            'character_name': npc.name,
+            'action': 'attack',
+            'result': 'no combat system',
+            'narration': f"{npc.name} attempts to attack but the combat system is unavailable."
+        }
+
+    return result
+
+
+# =============================================================================
 # MODULE EXPORTS
 # =============================================================================
 
 __all__ = [
     'EnemyCombatManager',
     'EnemyDeclaration',
+    'NPCCombatProxy',
+    'execute_npc_attack',
     'parse_enemy_declaration'
 ]
