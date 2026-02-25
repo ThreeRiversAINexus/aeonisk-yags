@@ -270,6 +270,110 @@ def _intercept_damage_with_barriers(damage_amount: int, entity, logger_instance=
     return remaining_damage, messages
 
 
+# ============================================================================
+# Stealth State Processing (Spec 05)
+# ============================================================================
+
+def _process_stealth_changes(
+    stealth_changes: List,
+    shared_state: 'SharedState'
+) -> None:
+    """
+    Process StealthChange entries from ActionResolution.effects.stealth_changes.
+
+    Updates agent stealth flags (is_hidden, stealth_dc, last_known_position)
+    and syncs TargetIDMapper hidden state for target filtering.
+
+    Args:
+        stealth_changes: List of StealthChange objects from structured output
+        shared_state: SharedState for agent/mapper access
+    """
+    if not stealth_changes or not shared_state:
+        return
+
+    target_id_mapper = shared_state.get_target_id_mapper()
+
+    for change in stealth_changes:
+        agent_id = change.agent_id
+        agent = shared_state.get_agent_by_id(agent_id)
+
+        if not agent:
+            logger.warning(f"Stealth change for unknown agent: {agent_id}")
+            continue
+
+        if change.is_hidden:
+            # Agent is hiding
+            agent.is_hidden = True
+            agent.stealth_dc = change.stealth_dc
+            # Store last known position for enemy AI reference
+            if hasattr(agent, 'position'):
+                agent.last_known_position = str(agent.position)
+            logger.info(
+                f"Stealth: {agent_id} is now HIDDEN (DC {change.stealth_dc}): "
+                f"{change.reason}"
+            )
+        else:
+            # Agent is revealed
+            agent.is_hidden = False
+            agent.stealth_dc = None
+            agent.last_known_position = None
+            logger.info(
+                f"Stealth: {agent_id} is now REVEALED: {change.reason}"
+            )
+
+        # Sync target ID mapper
+        if target_id_mapper:
+            target_id_mapper.update_hidden_state(agent_id, change.is_hidden)
+
+
+def _auto_break_stealth_on_combat(
+    action: Dict[str, Any],
+    shared_state: 'SharedState'
+) -> bool:
+    """
+    Automatically break stealth when a hidden agent performs a combat action.
+
+    Per Spec 05 Phase 4: attacking from hidden auto-breaks concealment.
+    Combat action types: 'combat', 'attack', 'brawl'.
+
+    Args:
+        action: Action dict with 'action_type' and 'agent_id'
+        shared_state: SharedState for agent/mapper access
+
+    Returns:
+        True if stealth was broken, False otherwise
+    """
+    if not action or not shared_state:
+        return False
+
+    action_type = action.get('action_type', '')
+    agent_id = action.get('agent_id', '')
+
+    if not agent_id:
+        return False
+
+    # Only break stealth for combat action types
+    combat_types = ('combat', 'attack', 'brawl')
+    if action_type not in combat_types:
+        return False
+
+    agent = shared_state.get_agent_by_id(agent_id)
+    if not agent or not getattr(agent, 'is_hidden', False):
+        return False
+
+    # Break stealth
+    agent.is_hidden = False
+    agent.stealth_dc = None
+    logger.info(f"Stealth auto-broken: {agent_id} attacked from hidden")
+
+    # Update target ID mapper
+    target_id_mapper = shared_state.get_target_id_mapper()
+    if target_id_mapper:
+        target_id_mapper.update_hidden_state(agent_id, False)
+
+    return True
+
+
 def _process_structured_damage_effects(
     damage_effects: List['DamageEffect'],
     shared_state: 'SharedState',
@@ -7577,6 +7681,17 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         resolution_obj.narration += additional_narration
                         logger.debug(f"Appended {len(healing_messages)} healing messages to narration")
 
+                # === PROCESS STEALTH CHANGES (Spec 05) ===
+                # Apply stealth state changes from DM structured output
+                if resolution_obj.effects and resolution_obj.effects.stealth_changes:
+                    logger.debug(f"Processing {len(resolution_obj.effects.stealth_changes)} stealth changes from structured output")
+                    _process_stealth_changes(resolution_obj.effects.stealth_changes, self.shared_state)
+
+                # === AUTO-BREAK STEALTH ON COMBAT (Spec 05 Phase 4) ===
+                # If a hidden agent attacks, automatically reveal them
+                if action:
+                    _auto_break_stealth_on_combat(action, self.shared_state)
+
                 return resolution_obj
             else:
                 error_msg = "DM: Structured output returned text instead of ActionResolution object"
@@ -8085,6 +8200,11 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                 info, tid, self.shared_state
                             )
 
+                            # Stealth marker (Spec 05): DM sees all agents but hidden ones are marked
+                            agent_id_for_hidden = info.get('agent_id', '')
+                            is_agent_hidden = target_id_mapper.is_hidden(agent_id_for_hidden) if agent_id_for_hidden else False
+                            hidden_marker = " [HIDDEN]" if is_agent_hidden else ""
+
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
@@ -8093,12 +8213,12 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                     combatant_lines.append(
                                         f"  - [{tid}] {info['name']} "
                                         f"({pronouns}, {faction}, {health_text}{wounds_text}) "
-                                        f"{state_tag}")
+                                        f"{state_tag}{hidden_marker}")
                                 else:
                                     combatant_lines.append(
                                         f"  - [{tid}] {info['name']} "
                                         f"({pronouns}, {faction}, player) "
-                                        f"{state_tag}")
+                                        f"{state_tag}{hidden_marker}")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -8110,7 +8230,7 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                 combatant_lines.append(
                                     f"  - [{tid}] {info['name']} "
                                     f"({pronouns}, {faction}, npc, {disposition}) "
-                                    f"{state_tag}")
+                                    f"{state_tag}{hidden_marker}")
                             elif info['type'] == 'env_object':
                                 # Environmental object with health/destructibility
                                 if info.get('is_destructible') and info.get('health') is not None:
@@ -8129,7 +8249,7 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                 combatant_lines.append(
                                     f"  - [{tid}] {info['name']} "
                                     f"({pronouns}, {faction}, {info['type']}) "
-                                    f"{state_tag}")
+                                    f"{state_tag}{hidden_marker}")
 
                     if combatant_lines:
                         combatant_list = "\n\n**VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"

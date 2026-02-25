@@ -15,7 +15,7 @@ Date: 2025-10-26
 import random
 import string
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ class TargetIDMapper:
         self.reverse_map: Dict[str, str] = {}     # agent_id -> tgt_7a3f
         self.enabled: bool = False
         self.npc_registry: Dict[str, Any] = {}    # agent_id -> NPC reference
+        self.hidden_agents: Set[str] = set()       # Set of agent_ids that are currently hidden (Spec 05)
         logger.debug("TargetIDMapper initialized")
 
     def enable(self):
@@ -70,7 +71,88 @@ class TargetIDMapper:
         """Clear all ID mappings."""
         self.target_id_map.clear()
         self.reverse_map.clear()
+        self.hidden_agents.clear()
         logger.debug("Target ID mappings cleared")
+
+    # =========================================================================
+    # STEALTH / HIDDEN STATE (Spec 05)
+    # =========================================================================
+
+    def update_hidden_state(self, agent_id: str, is_hidden: bool) -> None:
+        """Update hidden state for an agent.
+
+        Args:
+            agent_id: The agent's permanent ID (e.g., 'player_01', 'enemy_grunt_01')
+            is_hidden: True to hide the agent, False to reveal them
+        """
+        if is_hidden:
+            self.hidden_agents.add(agent_id)
+            logger.debug(f"Agent {agent_id} is now HIDDEN")
+        else:
+            self.hidden_agents.discard(agent_id)
+            logger.debug(f"Agent {agent_id} is now VISIBLE")
+
+    def is_hidden(self, agent_id: str) -> bool:
+        """Check if an agent is hidden.
+
+        Args:
+            agent_id: Agent's permanent ID
+
+        Returns:
+            True if the agent is currently hidden
+        """
+        return agent_id in self.hidden_agents
+
+    def get_visible_target_ids(self, observer_agent_id: str) -> List[str]:
+        """
+        Get target IDs visible to a specific observer.
+
+        Filters out hidden agents unless:
+        - The mapper is disabled (returns empty list)
+        - The hidden agent is on the same team as the observer
+          (PCs always see hidden PCs, enemies always see hidden enemies)
+
+        Args:
+            observer_agent_id: The agent requesting the target list
+
+        Returns:
+            List of visible target_ids
+        """
+        if not self.enabled:
+            return []
+
+        # If no one is hidden, return all targets (fast path)
+        if not self.hidden_agents:
+            return list(self.target_id_map.keys())
+
+        visible = []
+        observer_type = self.get_agent_type(observer_agent_id)
+
+        for target_id, agent in self.target_id_map.items():
+            agent_id = getattr(agent, 'agent_id', None) or \
+                       getattr(agent, 'vendor_id', None) or \
+                       getattr(agent, 'object_id', None)
+
+            if not agent_id:
+                visible.append(target_id)
+                continue
+
+            if agent_id not in self.hidden_agents:
+                # Not hidden, always visible
+                visible.append(target_id)
+                continue
+
+            # Hidden agent -- check if observer should see them
+            target_type = self.get_agent_type(agent_id)
+
+            # Same team always sees each other
+            if observer_type and target_type and observer_type == target_type:
+                visible.append(target_id)
+                continue
+
+            # Otherwise, hidden agent is NOT visible to this observer
+
+        return visible
 
     def assign_ids(
         self,

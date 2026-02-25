@@ -303,6 +303,11 @@ class NPCAgent:
     # Tactical positioning (defence token - which combatant this NPC is watching)
     defence_token: Optional[str] = None
 
+    # Stealth state (Spec 05)
+    is_hidden: bool = False  # True if NPC is currently concealed
+    stealth_dc: Optional[int] = None  # DC to detect this NPC (set by stealth check result)
+    last_known_position: Optional[str] = None  # Where this NPC was last seen before hiding
+
     # Logging
     agent_prompt_logger: Optional['AgentPromptLogger'] = None  # Human-readable prompt/response logging
 
