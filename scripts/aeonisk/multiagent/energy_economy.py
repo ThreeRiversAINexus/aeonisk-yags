@@ -843,6 +843,216 @@ def create_standard_vendors() -> List[Vendor]:
     return vendors
 
 
+# =============================================================================
+# LOOT SYSTEM
+# =============================================================================
+
+@dataclass
+class LootResult:
+    """
+    Structured loot from defeated enemy or container.
+
+    Created by acquire_loot() to formalize the existing suggest_loot() output
+    into actual inventory additions. Contains both structured data and a
+    human-readable description.
+    """
+    weapons: List  # List of Weapon objects (with condition info)
+    currency: Dict[str, int]  # {"breath": 15, "drip": 5, ...}
+    seeds: List[Seed]  # Seed objects found
+    special_items: List[str]  # Narrative items (datapads, keycards)
+    source_name: str  # Who/what was looted
+    description: str  # Human-readable summary
+
+
+def acquire_loot(character_state, enemy_agent) -> LootResult:
+    """
+    Generate structured loot from defeated enemy and add to player inventory.
+
+    This formalizes the existing suggest_loot() pattern by:
+    1. Generating structured loot (weapons, currency, seeds, special items)
+    2. Adding currency to the player's EnergyPurse
+    3. Adding special items to the player's inventory dict
+    4. Returning a LootResult for logging/narration
+
+    Args:
+        character_state: Player's CharacterState (has energy_purse, inventory)
+        enemy_agent: Defeated EnemyAgent to loot
+
+    Returns:
+        LootResult with all loot details
+    """
+    import random as _random
+
+    loot_weapons = []
+    loot_currency = {}
+    loot_seeds = []
+    loot_special = []
+    loot_parts = []
+
+    # --- Weapons ---
+    for weapon in getattr(enemy_agent, 'weapons', []):
+        health = getattr(enemy_agent, 'health', 0)
+        wounds = getattr(enemy_agent, 'wounds', 0)
+        if health > 0:
+            condition = "good"
+        elif wounds <= 2:
+            condition = "fair"
+        else:
+            condition = "damaged"
+        loot_weapons.append(weapon)
+        loot_parts.append(f"{weapon.name} ({condition})")
+
+    # --- Currency (template-based, faction-modified) ---
+    template_currency = {
+        "grunt":       (10, 30,  3,  8,  0, 2,  0, 0),
+        "elite":       ( 0,  5,  5, 15,  2, 6,  0, 2),
+        "sniper":      ( 0,  5,  8, 20,  1, 4,  0, 1),
+        "boss":        ( 0,  0,  3, 10,  3, 8,  2, 5),
+        "void_cultist":(15, 40,  2, 10,  0, 3,  0, 1),
+        "enforcer":    ( 0,  5,  5, 15,  2, 5,  0, 2),
+        "support":     ( 5, 20,  8, 20,  1, 4,  0, 1),
+        "ambusher":    (10, 25,  5, 12,  0, 3,  0, 1),
+    }
+
+    template = getattr(enemy_agent, 'template', 'grunt')
+    base = template_currency.get(template, (5, 15, 2, 8, 0, 2, 0, 0))
+    breath_min, breath_max, drip_min, drip_max, grain_min, grain_max, spark_min, spark_max = base
+
+    faction_lower = getattr(enemy_agent, 'faction', '').lower()
+
+    breath = _random.randint(breath_min, breath_max) if breath_max > 0 else 0
+    drip = _random.randint(drip_min, drip_max) if drip_max > 0 else 0
+    grain = _random.randint(grain_min, grain_max) if grain_max > 0 else 0
+    spark = _random.randint(spark_min, spark_max) if spark_max > 0 else 0
+
+    # Faction theme adjustments
+    if "tempest" in faction_lower:
+        spark += _random.randint(0, 2)
+    elif "acg" in faction_lower or "commerce" in faction_lower or "sovereign nexus" in faction_lower:
+        spark += _random.randint(0, 1)
+        grain += _random.randint(0, 2)
+    elif "pantheon" in faction_lower or "security" in faction_lower:
+        grain += _random.randint(0, 2)
+        breath += _random.randint(0, 5)
+    elif "freeborn" in faction_lower or "street" in faction_lower or "gang" in faction_lower:
+        breath += _random.randint(5, 15)
+        drip += _random.randint(0, 5)
+    elif "resonance" in faction_lower or "commune" in faction_lower:
+        breath += _random.randint(5, 10)
+        drip += _random.randint(0, 3)
+    elif "void" in faction_lower or "cult" in faction_lower:
+        drip += _random.randint(0, 5)
+        breath += _random.randint(10, 20)
+
+    loot_currency = {
+        "breath": breath,
+        "drip": drip,
+        "grain": grain,
+        "spark": spark,
+    }
+
+    # Add currency to player purse
+    purse = getattr(character_state, 'energy_purse', None)
+    if purse:
+        for currency_type, amount in loot_currency.items():
+            if amount > 0:
+                purse.add_currency(currency_type, amount)
+
+    currency_parts = []
+    if breath > 0:
+        currency_parts.append(f"{breath} Breath")
+    if drip > 0:
+        currency_parts.append(f"{drip} Drip")
+    if grain > 0:
+        currency_parts.append(f"{grain} Grain")
+    if spark > 0:
+        currency_parts.append(f"{spark} Spark")
+    if currency_parts:
+        loot_parts.append(", ".join(currency_parts))
+
+    # --- Seeds ---
+    void_score = getattr(enemy_agent, 'void_score', 0)
+    seed_dropped = False
+
+    if void_score >= 3:
+        hollow_chance = 0.25 if "tempest" in faction_lower else 0.20
+        if _random.random() < hollow_chance:
+            hollow_seed = Seed(SeedType.HOLLOW, origin=f"loot_{getattr(enemy_agent, 'name', 'enemy')}")
+            loot_seeds.append(hollow_seed)
+            if purse:
+                purse.add_seed(hollow_seed)
+            loot_parts.append("1 Hollow Seed (illicit void energy)")
+            seed_dropped = True
+
+    if not seed_dropped and ("resonance" in faction_lower or "nexus" in faction_lower or "commune" in faction_lower):
+        if _random.random() < 0.15:
+            if _random.random() < 0.5:
+                elem = _random.choice([Element.FIRE, Element.WATER, Element.AIR, Element.EARTH])
+                attuned_seed = Seed(SeedType.ATTUNED, element=elem, origin=f"loot_{getattr(enemy_agent, 'name', 'enemy')}")
+                loot_seeds.append(attuned_seed)
+                if purse:
+                    purse.add_seed(attuned_seed)
+                loot_parts.append(f"1 Attuned Seed ({elem.value.title()})")
+            else:
+                raw_seed = create_raw_seed(origin=f"loot_{getattr(enemy_agent, 'name', 'enemy')}", freshness="random")
+                loot_seeds.append(raw_seed)
+                if purse:
+                    purse.add_seed(raw_seed)
+                loot_parts.append("1 Raw Seed (unstable)")
+            seed_dropped = True
+
+    if not seed_dropped and template == "boss":
+        if _random.random() < 0.30:
+            if void_score >= 2:
+                hollow_seed = Seed(SeedType.HOLLOW, origin=f"loot_{getattr(enemy_agent, 'name', 'enemy')}")
+                loot_seeds.append(hollow_seed)
+                if purse:
+                    purse.add_seed(hollow_seed)
+                loot_parts.append("1 Hollow Seed (illicit void energy)")
+            else:
+                elem = _random.choice([Element.FIRE, Element.WATER, Element.AIR, Element.EARTH, Element.SPIRIT])
+                attuned_seed = Seed(SeedType.ATTUNED, element=elem, origin=f"loot_{getattr(enemy_agent, 'name', 'enemy')}")
+                loot_seeds.append(attuned_seed)
+                if purse:
+                    purse.add_seed(attuned_seed)
+                loot_parts.append(f"1 Attuned Seed ({elem.value.title()})")
+
+    # --- Special Items ---
+    if _random.random() < 0.1:
+        special_options = [
+            "encrypted datapad",
+            "faction insignia",
+            "coded message",
+            "security keycard",
+        ]
+        if void_score > 3:
+            special_options.append("ritual talisman")
+        special_item = _random.choice(special_options)
+        loot_special.append(special_item)
+        loot_parts.append(special_item)
+
+        # Add special items to player inventory
+        inventory = getattr(character_state, 'inventory', None)
+        if inventory is not None:
+            key = item_name_to_inventory_key(special_item)
+            inventory[key] = inventory.get(key, 0) + 1
+
+    loot_str = ", ".join(loot_parts)
+    description = f"**Loot from {getattr(enemy_agent, 'name', 'enemy')}:** {loot_str}" if loot_parts else f"Defeated {getattr(enemy_agent, 'name', 'enemy')}: No loot"
+
+    result = LootResult(
+        weapons=loot_weapons,
+        currency=loot_currency,
+        seeds=loot_seeds,
+        special_items=loot_special,
+        source_name=getattr(enemy_agent, 'name', 'enemy'),
+        description=description,
+    )
+
+    logger.info(f"Loot acquired from {result.source_name}: {loot_str}")
+    return result
+
+
 # Export key classes
 __all__ = [
     'SeedType',
@@ -852,6 +1062,9 @@ __all__ = [
     'EnergyPurse',
     'VendorItem',
     'Vendor',
+    'LootResult',
+    'acquire_loot',
     'create_test_vendor',
-    'create_standard_vendors'
+    'create_standard_vendors',
+    'item_name_to_inventory_key',
 ]

@@ -16,6 +16,7 @@ import logging
 
 from .npc_agent import NPCAgent, ConversionRecord
 from .enemy_agent import EnemyAgent, Position
+from .energy_economy import EnergyPurse
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,9 @@ def deescalate_enemy_to_npc(
 
         # Equipment (preserve from enemy)
         weapons=list(getattr(enemy, 'weapons', [])),
+
+        # Economy (empty purse so NPC can receive currency transfers)
+        energy_purse=EnergyPurse(breath=0, drip=0, grain=0, spark=0, seeds=[]),
 
         # Conversion tracking (for reverse operation)
         converted_from_enemy=True,
