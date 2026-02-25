@@ -7,7 +7,7 @@ Replaces text parsing of enemy declarations with validated structured output.
 """
 
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from .shared_types import Position
 
 
@@ -121,6 +121,16 @@ class EnemyDecision(BaseModel):
         """
     )
 
+    intel_recipients: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Target IDs (tgt_xxxx) of contacts you want to share intel with. "
+            "Choose recipients from the DETECTED CONTACTS list based on faction "
+            "allegiance. Only share with targets you believe are allies. "
+            "If omitted, intel is broadcast to all same-faction allies (legacy mode)."
+        )
+    )
+
     @model_validator(mode='after')
     def validate_dialogue_content(self):
         """Dialogue action requires dialogue_content."""
@@ -158,6 +168,7 @@ class EnemyDecision(BaseModel):
             'token_target': self.token_target,
             'reasoning': self.tactical_reasoning,
             'shared_intel': self.shared_intel,
+            'intel_recipients': self.intel_recipients,
         }
         if self.dialogue_content:
             result['dialogue_content'] = self.dialogue_content

@@ -677,36 +677,81 @@ class EnemyAgent:
 
 @dataclass
 class IntelItem:
-    """Single piece of shared tactical intelligence."""
-    source_agent: str
-    intel: str
-    round: int
+    """Single piece of shared tactical intelligence.
+
+    Supports both legacy mode (source_agent, no recipients) and IFF mode
+    (source_target_id, explicit recipients set).
+    """
+    source_agent: str = ""           # Legacy: agent name (e.g. "ACG Scout")
+    source_target_id: str = ""       # IFF mode: tgt_xxxx of sender
+    intel: str = ""
+    round: int = 0
+    recipients: Optional[Set[str]] = None  # IFF mode: set of tgt_xxxx recipient IDs
 
 
 class SharedIntel:
     """
-    Tactical information shared between enemy agents.
+    Battlefield-wide intel sharing pool.
 
-    Enables coordination without explicit DM control.
+    Supports two modes:
+    - Legacy (iff_enabled=False): Global broadcast via source_agent name.
+      add_intel(source_agent=...) broadcasts to all enemies.
+      get_recent_intel() returns all recent intel.
+    - IFF (iff_enabled=True): Selective sharing via tgt_xxxx recipients.
+      add_intel(source_target_id=..., recipients=...) targets specific agents.
+      get_recent_intel_for_target() filters by recipient.
+
+    Any agent can post intel with explicit recipient target_ids.
+    Recipients can be ANY target -- the sender must reason about who
+    is an ally based on faction names. If they reason wrong, intel
+    leaks to the wrong side.
     """
 
     def __init__(self):
         self.intel_pool: List[IntelItem] = []
 
-    def add_intel(self, source_agent: str, intel: str, round_num: int):
-        """Add intelligence from an enemy agent."""
-        if intel and intel.strip():
-            item = IntelItem(
-                source_agent=source_agent,
-                intel=intel.strip(),
-                round=round_num
-            )
-            self.intel_pool.append(item)
-            logger.debug(f"Shared intel added from {source_agent}: {intel}")
+    def add_intel(
+        self,
+        source_agent: str = "",
+        intel: str = "",
+        round_num: int = 0,
+        source_target_id: str = "",
+        recipients: Optional[Set[str]] = None,
+    ):
+        """Add intelligence to the pool.
+
+        Supports both legacy and IFF calling conventions:
+        - Legacy: add_intel(source_agent="name", intel="msg", round_num=1)
+        - IFF: add_intel(source_target_id="tgt_xxx", intel="msg", round_num=1, recipients={"tgt_yyy"})
+
+        Args:
+            source_agent: Legacy agent name (for backward compat)
+            intel: The intelligence text
+            round_num: Round number when intel was generated
+            source_target_id: IFF mode target ID of the sender
+            recipients: IFF mode set of recipient target IDs (None = legacy broadcast)
+        """
+        if not intel or not intel.strip():
+            return
+        # Don't add if recipients is explicitly empty set (no one to receive)
+        if recipients is not None and len(recipients) == 0:
+            return
+        item = IntelItem(
+            source_agent=source_agent,
+            source_target_id=source_target_id,
+            intel=intel.strip(),
+            round=round_num,
+            recipients=recipients,
+        )
+        self.intel_pool.append(item)
+        source = source_target_id or source_agent
+        logger.debug(f"Shared intel added from {source}: {intel}")
 
     def get_recent_intel(self, current_round: int, lookback: int = 2) -> List[str]:
         """
-        Get intel from recent rounds.
+        Get intel from recent rounds (legacy mode -- returns ALL intel).
+
+        Used when iff_enabled=False. Returns all intel regardless of recipients.
 
         Args:
             current_round: Current combat round
@@ -715,11 +760,43 @@ class SharedIntel:
         Returns:
             List of formatted intel strings
         """
-        recent = [
-            f"[FROM {item.source_agent}] {item.intel}"
-            for item in self.intel_pool
-            if current_round - item.round <= lookback
-        ]
+        recent = []
+        for item in self.intel_pool:
+            if current_round - item.round > lookback:
+                continue
+            # Use source_target_id if available, else source_agent
+            source = item.source_target_id or item.source_agent
+            recent.append(f"[FROM {source}] {item.intel}")
+        return recent
+
+    def get_recent_intel_for_target(
+        self,
+        target_id: str,
+        current_round: int,
+        lookback: int = 2
+    ) -> List[str]:
+        """Get intel addressed to a specific target_id (IFF mode).
+
+        Only returns intel where the target_id is in the recipients set.
+        Used when iff_enabled=True.
+
+        Args:
+            target_id: The tgt_xxxx ID to query for
+            current_round: Current combat round
+            lookback: How many rounds back to include
+
+        Returns:
+            List of formatted intel strings addressed to this target
+        """
+        recent = []
+        for item in self.intel_pool:
+            if current_round - item.round > lookback:
+                continue
+            if item.recipients is None:
+                continue  # Legacy broadcast items — not addressed to specific targets
+            if target_id in item.recipients:
+                source = item.source_target_id or item.source_agent
+                recent.append(f"[FROM {source}] {item.intel}")
         return recent
 
     def clear_old_intel(self, current_round: int, max_age: int = 3):

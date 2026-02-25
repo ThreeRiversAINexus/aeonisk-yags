@@ -7964,6 +7964,78 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
         return "--- SESSION CONTEXT ---\n" + "\n\n".join(parts) + "\n--- END SESSION CONTEXT ---"
 
+    # =========================================================================
+    # IFF/ROE SUPPORT (Spec 06)
+    # =========================================================================
+
+    @staticmethod
+    def _get_intercepted_intel_for_pc(
+        pc_target_id: str,
+        shared_intel,
+        current_round: int,
+    ) -> str:
+        """
+        Get any intel that was addressed to this PC by enemy agents.
+
+        This happens when an enemy incorrectly identifies the PC as an ally
+        (IFF error) and shares tactical intel with them. The PC sees it as
+        intercepted/overheard communication.
+
+        Args:
+            pc_target_id: The tgt_xxxx ID of the PC
+            shared_intel: SharedIntel pool instance
+            current_round: Current combat round
+
+        Returns:
+            Formatted intercepted communications section, or "" if none
+        """
+        if shared_intel is None:
+            return ""
+        intel_items = shared_intel.get_recent_intel_for_target(
+            pc_target_id, current_round
+        )
+        if not intel_items:
+            return ""
+
+        lines = ["\n**INTERCEPTED COMMUNICATIONS:**"]
+        lines.append("(You overheard the following from nearby contacts)")
+        for item in intel_items:
+            lines.append(f"  {item}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _build_pc_party_context(
+        pc_target_id: str,
+        party_members: list,
+    ) -> str:
+        """
+        Build party context for a PC, listing other party member target IDs.
+
+        PCs know who their party members are (they traveled together). This is
+        not an IFF challenge -- it's common knowledge within the party.
+
+        Args:
+            pc_target_id: The tgt_xxxx ID of this PC
+            party_members: List of dicts with 'name' and 'target_id' keys
+
+        Returns:
+            Formatted party context section, or "" if no other party members
+        """
+        others = [
+            m for m in party_members
+            if m.get('target_id') != pc_target_id
+        ]
+        if not others:
+            return ""
+
+        lines = ["\n**YOUR PARTY:**"]
+        lines.append("You are traveling with the following party members:")
+        for m in others:
+            lines.append(f"  - [{m['target_id']}] {m['name']}")
+        lines.append("\nOther contacts on the DETECTED CONTACTS list are NOT party members.")
+        lines.append("Determine their allegiance from their faction and observed behavior.")
+        return "\n".join(lines)
+
     def _build_combatant_list_with_range(self, acting_agent_id: str) -> str:
         """
         Build combatant list with range information for the acting agent.

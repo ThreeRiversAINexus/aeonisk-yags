@@ -167,6 +167,7 @@ class EnemyCombatManager:
         self.enemy_declarations: Dict[str, EnemyDeclaration] = {}
         self.current_round: int = 0
         self.enabled: bool = False
+        self.iff_enabled: bool = False  # Spec 06: IFF/ROE mode
         self.config: Dict[str, Any] = {}
         self.shared_state = shared_state  # Reference to shared state for logging
 
@@ -228,6 +229,9 @@ class EnemyCombatManager:
             session_config.get('tactical_module_enabled', False) and
             session_config.get('enemy_agents_enabled', False)
         )
+
+        # Spec 06: IFF/ROE mode — gates selective intel, faction context, etc.
+        self.iff_enabled = session_config.get('iff_enabled', False)
 
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})

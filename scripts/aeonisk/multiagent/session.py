@@ -496,6 +496,12 @@ class SelfPlayingSession:
         else:
             print("  Enemy combat manager disabled")
 
+        # Spec 06: IFF/ROE mode flag — propagate to shared_state for subsystems
+        self.iff_enabled = self.config.get('iff_enabled', False)
+        self.shared_state.iff_enabled = self.iff_enabled
+        if self.iff_enabled:
+            print("✓ IFF/ROE mode ENABLED")
+
         # Load DM notes for scenario variety
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
         self.shared_state.load_dm_notes(str(dm_notes_path))

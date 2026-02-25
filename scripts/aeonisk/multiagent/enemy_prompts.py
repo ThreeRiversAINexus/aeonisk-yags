@@ -992,6 +992,35 @@ Stance: {stance}
 About: {description}"""
 
 
+def _format_iff_context(faction_name: str) -> str:
+    """Format IFF (Identification Friend or Foe) reasoning context.
+
+    Tells the enemy its own faction and instructs it to reason about
+    allegiance from faction names rather than system-provided labels.
+
+    Args:
+        faction_name: The enemy's faction name (e.g. "ACG", "Freeborn")
+
+    Returns:
+        Formatted IFF context section for the enemy prompt
+    """
+    return f"""## IFF (IDENTIFICATION FRIEND OR FOE)
+{"=" * 60}
+Your Faction: {faction_name}
+You recognize fellow {faction_name} operatives as allies.
+
+## Allegiance
+The DETECTED CONTACTS list shows all visible contacts with their faction.
+You must determine who is hostile, neutral, or friendly based on faction.
+The system will NOT tell you who is an ally or enemy -- you must reason
+from your knowledge of faction relationships.
+
+## Communication
+Use shared_intel + intel_recipients to communicate with contacts you
+believe are allies. Specify their target IDs (tgt_xxxx) as recipients.
+WARNING: If you share intel with the wrong contact, they will receive it."""
+
+
 def _format_character(enemy: EnemyAgent) -> str:
     """Format character brief section for personality injection."""
     character_brief = getattr(enemy, 'character_brief', '')
