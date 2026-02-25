@@ -3384,6 +3384,15 @@ Generate narratives (numbered list only):"""
             # Check if all clocks are complete and trigger story advancement
             await self._check_and_trigger_story_advancement()
 
+        # Tick condition durations for all agents at end of round
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics:
+            all_agent_ids = list(mechanics.conditions.keys())
+            for agent_id in all_agent_ids:
+                expired = mechanics.tick_conditions(agent_id)
+                if expired:
+                    logger.info(f"Conditions expired for {agent_id}: {', '.join(expired)}")
+
         # Clear the action buffer for next round
         self._declared_actions.clear()
 

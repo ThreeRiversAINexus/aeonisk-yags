@@ -90,7 +90,7 @@ content: |-
               name="Disarmed",
               penalty=-3,
               duration=1,
-              description="dropped weapon, -3 to attacks until retrieved",
+              description="dropped weapon, -3 to all rolls until retrieved",
               target="tgt_7a3f"
           )],
           soulcredit_changes=[SoulcreditChange(

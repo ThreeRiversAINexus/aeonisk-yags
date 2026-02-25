@@ -6085,8 +6085,9 @@ For **other actions** (flee, hide, assist, attack):
                     type=condition_data['type'],
                     penalty=condition_data['penalty'],
                     description=condition_data['description'],
-                    duration=3,  # Default duration
-                    affects=[]  # Affects all by default
+                    duration=condition_data.get('duration', 3),
+                    affects=[],  # Phase 3: populate from LLM output
+                    protection_amount=condition_data.get('protection_amount')
                 )
 
                 # Determine who receives the condition
@@ -6579,8 +6580,9 @@ For **other actions** (flee, hide, assist, attack):
                     type=condition_data['type'],
                     penalty=condition_data['penalty'],
                     description=condition_data['description'],
-                    duration=3,  # Default duration
-                    affects=[]  # Affects all by default
+                    duration=condition_data.get('duration', 3),
+                    affects=[],  # Phase 3: populate from LLM output
+                    protection_amount=condition_data.get('protection_amount')
                 )
 
                 # Determine who receives the condition

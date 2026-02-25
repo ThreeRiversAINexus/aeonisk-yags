@@ -225,7 +225,7 @@ class Condition(BaseModel):
 
     Examples:
     - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round, -3 to all rolls")
-    - Condition(name="Inspired", penalty=2, duration=3, description="+2 to next attack")
+    - Condition(name="Inspired", penalty=2, duration=3, description="+2 to all rolls for 3 rounds")
     - Condition(name="Wavering", target="tgt_abc1", penalty=-2, duration=1, description="Hesitant after intimidation")
     - Condition(name="Astral Barrier", target="tgt_7a3f", penalty=0, duration=2, description="Blocks 10 damage", protection_amount=10)
     - Multi-target: [Condition(target="tgt_abc1", ...), Condition(target="tgt_def2", ...), Condition(target="tgt_ghi3", ...)]

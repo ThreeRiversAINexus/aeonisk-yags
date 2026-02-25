@@ -1658,6 +1658,7 @@ class Condition:
     description: str
     duration: int = -1  # -1 = until resolved, otherwise number of turns
     affects: List[str] = field(default_factory=list)  # which attributes/skills affected
+    protection_amount: Optional[int] = None  # Barrier damage absorption capacity (None = not a barrier)
 
     def applies_to(self, attribute: str, skill: Optional[str] = None) -> bool:
         """Check if this condition affects the given attribute/skill."""
@@ -4790,20 +4791,27 @@ class MechanicsEngine:
         return self.conditions.get(agent_id, [])
 
     def tick_conditions(self, agent_id: str):
-        """Decrement duration on temporary conditions."""
-        if agent_id not in self.conditions:
-            return
+        """Decrement duration on temporary conditions.
 
+        Returns:
+            List of expired condition names, or empty list if none expired.
+        """
+        if agent_id not in self.conditions:
+            return []
+
+        expired = []
         for condition in self.conditions[agent_id]:
             if condition.duration > 0:
                 condition.duration -= 1
                 if condition.duration == 0:
                     logger.info(f"Condition expired: {condition.name} for {agent_id}")
+                    expired.append(condition.name)
 
-        # Remove expired conditions
+        # Remove expired conditions (duration == 0)
         self.conditions[agent_id] = [
             c for c in self.conditions[agent_id] if c.duration != 0
         ]
+        return expired
 
     def get_difficulty_recommendation(self, context: str) -> int:
         """Recommend a difficulty based on context description."""

@@ -324,7 +324,9 @@ def extract_effects_from_resolution(
                     'type': cond.name,
                     'penalty': cond.penalty,
                     'duration': cond.duration,
-                    'description': cond.description
+                    'description': cond.description,
+                    'target': cond.target,
+                    'protection_amount': cond.protection_amount
                 }
                 for cond in resolution.effects.conditions
             ],
