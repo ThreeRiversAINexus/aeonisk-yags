@@ -138,9 +138,97 @@ def validate_and_correct_targeting(
                 corrected = effect.model_copy(update={'target': declared_target})
                 return (True, corrected, None)
 
+    # STEP 5.5: Semantic state validation — check if target is in a
+    # combat-appropriate state (not prisoner, unconscious, defeated, etc.)
+    #
+    # This catches DM free-target misbinding where the DM resolves a
+    # combat action to a prisoner/civilian instead of an active enemy.
+    if resolved_entity:
+        semantic_warning = _check_target_combat_state(
+            resolved_entity, effect, target_id_mapper
+        )
+        if semantic_warning:
+            # Log warning but DO NOT block — player may intentionally
+            # target non-combatants (ethical gameplay choice).
+            logger.warning(
+                f"TARGET SEMANTIC WARNING: {semantic_warning} "
+                f"(target={effect.target})"
+            )
+            # Future: If declared_action target differs from effect target,
+            # this is likely DM misbinding. Could auto-correct to declared
+            # target. For now, warn only.
+
     # STEP 6: All validations passed
     logger.debug(f"✓ Target validation passed for {effect.target}")
     return (True, effect, None)
+
+
+def _check_target_combat_state(
+    entity: Any,
+    effect: 'DamageEffect',
+    target_id_mapper: 'TargetIDMapper'
+) -> Optional[str]:
+    """
+    Check if target entity is in a state where combat targeting is
+    semantically appropriate.
+
+    Returns None if targeting is appropriate, or a warning string if the
+    target appears to be a non-combatant, prisoner, or defeated entity.
+
+    This is a SOFT check — it warns but does not block. Players may
+    legitimately choose to attack prisoners or non-combatants, and the
+    soulcredit system handles the ethical dimension.
+
+    Args:
+        entity: Resolved agent object (EnemyAgent, NPCAgent, or player)
+        effect: The DamageEffect being validated
+        target_id_mapper: For additional lookups if needed
+
+    Returns:
+        Warning string if targeting is questionable, None if appropriate
+    """
+    # Check NPC state
+    if hasattr(entity, 'disposition'):
+        # NPCAgent
+        if getattr(entity, 'disposition', None) == 'prisoner':
+            return (
+                f"Combat damage targeting prisoner NPC '{entity.name}' "
+                f"(disposition=prisoner). If player declared targeting "
+                f"'enemies' or 'threats', this may be DM misbinding."
+            )
+        if getattr(entity, 'entity_type', None) == 'prisoner':
+            return (
+                f"Combat damage targeting prisoner NPC '{entity.name}' "
+                f"(entity_type=prisoner). Verify player intent."
+            )
+
+    # Check enemy state
+    if hasattr(entity, 'is_prisoner') and entity.is_prisoner:
+        return (
+            f"Combat damage targeting prisoner enemy '{entity.name}' "
+            f"(is_prisoner=True). This entity has surrendered/been captured."
+        )
+
+    if hasattr(entity, 'is_active') and not entity.is_active:
+        # Could be defeated, fled, or de-escalated
+        if hasattr(entity, 'despawned_round') and entity.despawned_round is not None:
+            return (
+                f"Combat damage targeting defeated/removed entity "
+                f"'{entity.name}' (is_active=False, despawned round "
+                f"{entity.despawned_round}). Entity is no longer in combat."
+            )
+
+    # Check death state
+    if hasattr(entity, 'health') and hasattr(entity, 'max_health'):
+        if entity.health <= 0:
+            return (
+                f"Combat damage targeting unconscious/dead entity "
+                f"'{entity.name}' (health={entity.health}). "
+                f"Entity is already incapacitated."
+            )
+
+    # No issues detected
+    return None
 
 
 def _get_entity_name(entity: Any) -> str:

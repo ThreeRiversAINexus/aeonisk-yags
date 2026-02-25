@@ -94,6 +94,99 @@ def _resolve_weapon_and_damage_type(
     return ("Unknown Weapon", "wound", None)
 
 
+def _get_combatant_state_tag(
+    info: Dict[str, Any],
+    target_id: str,
+    shared_state: Any
+) -> str:
+    """
+    Generate a state tag for a combatant in the DM target list.
+
+    Returns a bracketed tag like [ACTIVE], [PRISONER], [WOUNDED], etc.
+    that helps the DM distinguish targetable entities from non-combatants.
+
+    Args:
+        info: Combatant info dict from TargetIDMapper.get_combatant_info()
+        target_id: The tgt_xxxx ID
+        shared_state: SharedState instance for entity lookups
+
+    Returns:
+        State tag string, e.g. "[ACTIVE]", "[PRISONER]", "[UNCONSCIOUS]"
+    """
+    entity_type = info.get('type', 'unknown')
+
+    # Check death state first (applies to all entity types)
+    death_state = info.get('death_state', 'alive')
+    if death_state == 'dead':
+        return "[DEAD]"
+    if death_state == 'unconscious':
+        return "[UNCONSCIOUS]"
+
+    # Player-specific states
+    if entity_type == 'player':
+        health = info.get('health', 0)
+        max_health = info.get('max_health', 1)
+        wounds = info.get('wounds', 0)
+        if wounds >= 4:
+            return "[CRITICAL]"
+        elif health <= max_health * 0.25 and max_health > 0:
+            return "[WOUNDED]"
+        return "[ACTIVE]"
+
+    # NPC-specific states
+    if entity_type == 'npc':
+        # Look up NPC agent for disposition and entity_type
+        if shared_state and hasattr(shared_state, 'npc_agents') and shared_state.npc_agents:
+            agent_id = info.get('agent_id')
+            for npc in shared_state.npc_agents:
+                if hasattr(npc, 'agent_id') and npc.agent_id == agent_id:
+                    if getattr(npc, 'disposition', None) == 'prisoner' or getattr(npc, 'entity_type', None) == 'prisoner':
+                        return "[PRISONER]"
+                    if not getattr(npc, 'is_active', True):
+                        return "[INACTIVE]"
+                    # Check if NPC is fleeing (has flee action in recent memory)
+                    if (hasattr(npc, 'memory') and npc.memory and
+                            hasattr(npc.memory, 'own_actions') and npc.memory.own_actions):
+                        last_action = npc.memory.own_actions[-1]
+                        if last_action.get('action_type') == 'flee':
+                            return "[FLEEING]"
+                    return "[NON-COMBATANT]"
+        return "[NON-COMBATANT]"
+
+    # Enemy-specific states
+    if entity_type == 'enemy':
+        # Look up enemy agent for state flags
+        agent = None
+        if shared_state and hasattr(shared_state, 'enemy_combat') and shared_state.enemy_combat:
+            agent_id = info.get('agent_id')
+            enemy_agents = getattr(shared_state.enemy_combat, 'enemy_agents', [])
+            for enemy in enemy_agents:
+                if getattr(enemy, 'agent_id', None) == agent_id:
+                    agent = enemy
+                    break
+
+        if agent:
+            if agent.is_prisoner:
+                return "[PRISONER]"
+            if not agent.is_active:
+                return "[DEFEATED]"
+            if agent.is_panicked:
+                return "[PANICKED/FLEEING]"
+            # Wounded check
+            health = info.get('health', 0)
+            max_health = info.get('max_health', 1)
+            if max_health > 0 and health <= max_health * 0.25:
+                return "[WOUNDED]"
+            return "[ACTIVE]"
+        return "[ACTIVE]"
+
+    # Vendor
+    if entity_type == 'vendor':
+        return "[VENDOR/NON-COMBATANT]"
+
+    return "[UNKNOWN]"
+
+
 def _get_active_protections(entity) -> List['Condition']:
     """
     Get active protection barriers/shields for an entity.
@@ -7746,14 +7839,26 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                             # Show health info for players (for injury-aware narration)
                             pronouns = info.get('pronouns', 'they/them')
                             faction = info.get('faction', 'Unknown')
+
+                            # Determine state tag for this entity (Spec 03 Layer 1)
+                            state_tag = _get_combatant_state_tag(
+                                info, tid, self.shared_state
+                            )
+
                             if info['type'] == 'player' and 'agent_id' in info:
                                 player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
                                 if player_agent and hasattr(player_agent, 'health'):
                                     health_text = f"{player_agent.health}/{player_agent.max_health} HP"
                                     wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {health_text}{wounds_text})")
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"({pronouns}, {faction}, {health_text}{wounds_text}) "
+                                        f"{state_tag}")
                                 else:
-                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, player)")
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"({pronouns}, {faction}, player) "
+                                        f"{state_tag}")
                             elif info['type'] == 'npc':
                                 # Show NPC with disposition so DM knows not to attack them
                                 disposition = 'neutral'
@@ -7762,21 +7867,35 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                         if hasattr(npc, 'agent_id') and npc.agent_id == info.get('agent_id'):
                                             disposition = getattr(npc, 'disposition', 'neutral')
                                             break
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, npc, {disposition})")
+                                combatant_lines.append(
+                                    f"  - [{tid}] {info['name']} "
+                                    f"({pronouns}, {faction}, npc, {disposition}) "
+                                    f"{state_tag}")
                             else:
-                                # Format for enemies: [tgt_xxxx] Name (faction, enemy)
-                                combatant_lines.append(f"  - [{tid}] {info['name']} ({pronouns}, {faction}, {info['type']})")
+                                # Format for enemies: [tgt_xxxx] Name (faction, enemy) [STATE]
+                                combatant_lines.append(
+                                    f"  - [{tid}] {info['name']} "
+                                    f"({pronouns}, {faction}, {info['type']}) "
+                                    f"{state_tag}")
 
                     if combatant_lines:
-                        combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
-                        combatant_list += "⚠️  **MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
-                        combatant_list += "⚠️  **DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
-                        combatant_list += "⚠️  **DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+                        combatant_list = "\n\n**VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+                        combatant_list += "**MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+                        combatant_list += "**DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+                        combatant_list += "**DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
                         combatant_list += "\n".join(combatant_lines)
-                        combatant_list += "\n\n✅ **CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) ← Uses exact ID from list\n"
-                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) ← Character name - FAILS!\n"
-                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
-                        combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
+                        combatant_list += "\n\n**CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) <- Uses exact ID from list\n"
+                        combatant_list += "**WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) <- Character name - FAILS!\n"
+                        combatant_list += "**WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) <- Invented ID - FAILS!\n"
+                        combatant_list += "\n**TIP:** Character names go in NARRATION only, NOT in target= fields.\n"
+                        # Anti-misbinding instruction (Spec 03 Layer 3)
+                        combatant_list += "\n"
+                        combatant_list += "**TARGETING RULE:** When a player declares an attack against "
+                        combatant_list += "'enemies', 'threats', or 'hostiles', resolve the target to an "
+                        combatant_list += "entity tagged [ACTIVE], NOT one tagged [PRISONER], [DEFEATED], "
+                        combatant_list += "[UNCONSCIOUS], [FLEEING], or [NON-COMBATANT]. "
+                        combatant_list += "Only resolve to non-active targets if the player EXPLICITLY "
+                        combatant_list += "names or describes targeting that specific entity."
 
         # Build weapon context for combat actions
         weapon_context = ""
