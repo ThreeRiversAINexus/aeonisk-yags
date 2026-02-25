@@ -1312,8 +1312,8 @@ class EnemyCombatManager:
                 'narration': f"{enemy.name} has no weapon to suppress with"
             }
 
-        # Check if weapon has sufficient RoF (Rate of Fire ≥ 3)
-        weapon_rof = getattr(weapon, 'rate_of_fire', 0)
+        # Check if weapon has sufficient RoF (Rate of Fire >= 3)
+        weapon_rof = getattr(weapon, 'rof', 0) or getattr(weapon, 'rate_of_fire', 0)
         if weapon_rof < 3:
             return {
                 'enemy_id': enemy.agent_id,
@@ -1383,17 +1383,21 @@ class EnemyCombatManager:
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
 
-        # Log suppress action to JSONL
+        # Log suppress action to JSONL (field names match _execute_attack format)
         if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
             attack_roll_data = {
-                "attribute": attribute,
-                "skill": skill,
+                "attr": "Perception" if weapon.skill == "Guns" else (
+                    "Dexterity" if weapon.skill == "Melee" else "Agility"),
+                "attr_val": attribute,
+                "skill": weapon.skill,
+                "skill_val": skill,
                 "weapon_bonus": weapon.attack,
-                "d20": attack_roll,
                 "range_penalty": range_penalty,
+                "d20": attack_roll,
                 "total": attack_total,
-                "defence": target_defence,
-                "hit": hit
+                "dc": target_defence,
+                "hit": hit,
+                "margin": attack_total - target_defence
             }
             mechanics_engine.jsonl_logger.log_combat_action(
                 round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
@@ -2153,6 +2157,21 @@ class EnemyCombatManager:
 
         self.enemy_agents = surviving
         return len(pruned_ids)
+
+    def prune_inactive_enemies(self, min_rounds_inactive: int = 2) -> int:
+        """Alias for prune_defeated_enemies() matching Spec 02 naming.
+
+        Remove enemies that have been inactive for more than min_rounds_inactive.
+        Called at round boundaries to prevent unbounded list growth.
+
+        Args:
+            min_rounds_inactive: Minimum rounds since despawn before removal.
+                Default 2 (enemy defeated in round 3 is pruned at start of round 6).
+
+        Returns:
+            Number of enemies pruned.
+        """
+        return self.prune_defeated_enemies(grace_rounds=min_rounds_inactive)
 
     def get_active_enemy_count(self) -> int:
         """Get count of active enemy units."""
