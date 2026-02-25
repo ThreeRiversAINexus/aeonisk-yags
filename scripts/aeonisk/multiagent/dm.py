@@ -2894,8 +2894,10 @@ Apply this narrative style to:
             )
         except Exception as e:
             # Fatal error during adjudication - log and signal error
+            import traceback
+            tb = traceback.format_exc()
             error_msg = f"Fatal adjudication error: {type(e).__name__}: {e}"
-            logger.error(f"❌ DM {self.agent_id}: {error_msg}")
+            logger.error(f"❌ DM {self.agent_id}: {error_msg}\n{tb}")
 
             # Log to JSONL if possible
             if self.shared_state and self.shared_state.mechanics_engine:
@@ -8319,6 +8321,43 @@ When adjudicating:
                         )
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+                return narration
+
+            else:
+                # All other providers (deepinfra, xai, gemini, grok, etc.)
+                # Use UnifiedAIClient which supports OpenAI-compatible APIs
+                from .unified_llm_client import UnifiedAIClient
+                import asyncio
+
+                # Map provider names to UnifiedAIClient conventions
+                provider_map = {'xai': 'grok'}
+                unified_provider = provider_map.get(provider, provider)
+
+                client = UnifiedAIClient(provider=unified_provider)
+                narration = await asyncio.to_thread(
+                    client.chat_completion,
+                    messages=[
+                        {"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=400
+                )
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=narration,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': 0, 'output': 0},  # Token counts not available from UnifiedAIClient
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+                    self.llm_logger.call_count += 1
 
                 return narration
 
