@@ -5482,3 +5482,45 @@ def process_item_effect(item_effect, character_state, player_id) -> bool:
     shared_state = SharedState()
     mechanics = MechanicsEngine(shared_state=shared_state)
     return mechanics.process_item_effect(item_effect, character_state, player_id)
+
+
+# ==============================================================================
+# DEFENSE TOKEN MODIFIER (Spec 04 — Universal defence token mechanic)
+# ==============================================================================
+
+def apply_defense_token_modifier(
+    attacker_agent_id: str,
+    target,
+    target_id_mapper=None
+) -> Tuple[int, str]:
+    """
+    Calculate defense token attack modifier.
+
+    The target's defence_token determines the modifier:
+    - If target is watching the attacker: attacker gets -2
+    - If target is watching someone else or no one: attacker gets +2 (flanking)
+
+    Args:
+        attacker_agent_id: The agent_id of the attacker
+        target: The target entity (must have .defence_token attribute or lack thereof)
+        target_id_mapper: Optional mapper for resolving tgt_xxxx to agent_id
+
+    Returns:
+        (modifier, description) -- e.g., (-2, "target watching -2") or (+2, "flanking +2")
+    """
+    target_defense = getattr(target, 'defence_token', None)
+
+    if target_defense is None:
+        return (2, "flanking +2, target not watching anyone")
+
+    # Direct match on agent_id
+    if target_defense == attacker_agent_id:
+        return (-2, "target watching -2")
+
+    # Check if target's defence_token is the attacker's tgt_xxxx alias
+    if target_id_mapper:
+        attacker_tgt_id = target_id_mapper.get_target_id(attacker_agent_id)
+        if attacker_tgt_id and target_defense == attacker_tgt_id:
+            return (-2, "target watching -2")
+
+    return (2, "flanking +2")

@@ -1326,12 +1326,21 @@ Generate narratives (numbered list only):"""
             if self.shared_state:
                 self.shared_state.expire_stealth(round_count)
 
-            # Clear declared actions from previous round (for all player agents)
+            # Clear declared actions and defence tokens from previous round
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
             for agent in player_agents:
                 if hasattr(agent, 'declared_actions_this_round'):
                     agent.declared_actions_this_round.clear()
                     logger.debug(f"Cleared declared actions for {agent.character_state.name}")
+                # Reset defence tokens at round start (must re-declare each round)
+                if hasattr(agent, 'defence_token'):
+                    agent.defence_token = None
+
+            # Reset NPC defence tokens at round start
+            if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                for npc in self.shared_state.npc_agents:
+                    if hasattr(npc, 'defence_token'):
+                        npc.defence_token = None
 
             # Run round with initiative-based turns
             combat_continues = await self._run_initiative_round()
@@ -2044,6 +2053,12 @@ Generate narratives (numbered list only):"""
                                 continue
 
                             # Normal NPC action processing
+                            # Store defence_token on NPC agent (Spec 04)
+                            if hasattr(npc_action, 'defence_token') and hasattr(agent, 'defence_token'):
+                                agent.defence_token = npc_action.defence_token
+                                if npc_action.defence_token:
+                                    logger.info(f"NPC {agent.name} watching {npc_action.defence_token}")
+
                             # Log NPC declaration
                             if mechanics and mechanics.jsonl_logger:
                                 mechanics.jsonl_logger.log_action_declaration(
@@ -4988,6 +5003,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         action_intent = message.payload.get('intent', 'unknown')[:60]
         is_free = message.payload.get('is_free_action', False)
         logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
+
+        # Store defence_token on agent from player declaration (Spec 04)
+        defence_token = message.payload.get('defence_token')
+        if defence_token:
+            player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+            if player_agent and hasattr(player_agent, 'defence_token'):
+                player_agent.defence_token = defence_token
+                logger.info(f"{agent_id} watching {defence_token}")
 
         # PRE-VALIDATE AND EXECUTE PURCHASE ACTIONS (before DM sees them)
         # This prevents phantom purchases where DM narrates success but mechanics fail

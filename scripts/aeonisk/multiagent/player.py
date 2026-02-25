@@ -294,6 +294,9 @@ class AIPlayerAgent(Agent):
         # Free action tracking (one per round)
         self.free_action_used = False
 
+        # Tactical positioning (defence token - which combatant this PC is watching)
+        self.defence_token: Optional[str] = None
+
         # Buff tracking (positive effects from allies)
         self.buffs = []  # List of active buffs from ally support
 

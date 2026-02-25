@@ -993,14 +993,14 @@ class EnemyCombatManager:
         attack_roll = random.randint(1, 20)
         attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
 
-        # Check if target has defence token on this enemy
-        target_defence_token = getattr(target, 'defence_token', None)
-        if target_defence_token == enemy.agent_id:
-            attack_total -= 2  # Target watching this enemy
-            defence_note = "(target watching -2)"
-        else:
-            attack_total += 2  # Flanking bonus
-            defence_note = "(flanking +2)"
+        # Check defence token modifier (shared utility handles all agent types)
+        from .mechanics import apply_defense_token_modifier
+        token_modifier, defence_note = apply_defense_token_modifier(
+            enemy.agent_id, target,
+            self.shared_state.get_target_id_mapper() if self.shared_state else None
+        )
+        attack_total += token_modifier
+        defence_note = f"({defence_note})"
 
         # Placeholder: Compare to target defence (would need target's defence roll)
         # For now, use passive defence of 15 (YAGS standard)
@@ -1343,14 +1343,14 @@ class EnemyCombatManager:
 
         attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
 
-        # Check defence token
-        target_defence_token = getattr(target, 'defence_token', None)
-        if target_defence_token == enemy.agent_id:
-            attack_total -= 2  # Target watching this enemy
-            defence_note = "(target watching -2)"
-        else:
-            attack_total += 2  # Flanking bonus
-            defence_note = "(flanking +2)"
+        # Check defence token modifier (shared utility handles all agent types)
+        from .mechanics import apply_defense_token_modifier
+        token_modifier, defence_note = apply_defense_token_modifier(
+            enemy.agent_id, target,
+            self.shared_state.get_target_id_mapper() if self.shared_state else None
+        )
+        attack_total += token_modifier
+        defence_note = f"({defence_note})"
 
         # Check hit (simplified)
         target_defence = 15
