@@ -300,6 +300,9 @@ class NPCAgent:
     # Flags
     is_active: bool = True  # Can be set False if NPC leaves scene
 
+    # Tactical positioning (defence token - which combatant this NPC is watching)
+    defence_token: Optional[str] = None
+
     # Logging
     agent_prompt_logger: Optional['AgentPromptLogger'] = None  # Human-readable prompt/response logging
 
@@ -419,6 +422,16 @@ class NPCAction(BaseModel):
         At least one of transfer_currency or transfer_items required for transfer action.
         Example: {"Medkit": 1, "KeyCard": 1}
         """
+    )
+
+    # Tactical positioning (defence token)
+    defence_token: Optional[str] = Field(
+        None,
+        description=(
+            "Target ID (tgt_xxxx) you are watching/covering during combat. "
+            "That combatant gets -2 to attack you; others get +2 flanking. "
+            "Recommended for armed_neutral and potential_threat NPCs in combat."
+        )
     )
 
     def model_post_init(self, __context):
