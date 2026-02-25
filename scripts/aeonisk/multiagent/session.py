@@ -222,6 +222,52 @@ def _mark_defeated_from_resolution(
             logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
 
 
+def _check_condition_incapacitation(
+    agent_id: str,
+    mechanics,
+    resolution_state: ResolutionState
+) -> bool:
+    """
+    Check if an agent has incapacitating conditions and mark them in resolution_state.
+
+    Scans the agent's active conditions from mechanics.get_conditions(). If any
+    condition has abs(penalty) >= 6 (the Stunned/incapacitation threshold), marks
+    the agent as incapacitated in resolution_state.
+
+    This is additive to the existing ResolutionState.is_incapacitated() check --
+    it feeds into the same skip path but triggers from the condition pipeline
+    rather than the stun KO combat path.
+
+    Args:
+        agent_id: The agent's ID to check conditions for
+        mechanics: The mechanics engine (may be None)
+        resolution_state: Resolution state to update if incapacitated
+
+    Returns:
+        True if the agent was marked incapacitated (or already was), False otherwise
+    """
+    INCAPACITATION_THRESHOLD = 6  # abs(penalty) >= this means incapacitated
+
+    if not mechanics or not hasattr(mechanics, 'get_conditions'):
+        return False
+
+    conditions = mechanics.get_conditions(agent_id)
+    if not conditions:
+        return False
+
+    for condition in conditions:
+        # Only negative penalties indicate impairment; positive values are buffs
+        if condition.penalty < 0 and abs(condition.penalty) >= INCAPACITATION_THRESHOLD:
+            resolution_state.mark_incapacitated(agent_id)
+            logger.info(
+                f"Condition-based incapacitation: {agent_id} has '{condition.name}' "
+                f"(penalty={condition.penalty}, threshold={INCAPACITATION_THRESHOLD})"
+            )
+            return True
+
+    return False
+
+
 def _get_energy_purse(agent):
     """
     Get energy purse from player or NPC agent.
@@ -2215,6 +2261,11 @@ Generate narratives (numbered list only):"""
                                 effects={'skip_reason': skip_reason}
                             )
                     continue
+
+                # Check conditions for incapacitation (Spec 15 extension)
+                # If any condition has abs(penalty) >= 6, mark as incapacitated
+                # This feeds into the existing is_incapacitated() check below
+                _check_condition_incapacitation(agent.agent_id, mechanics, resolution_state)
 
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
