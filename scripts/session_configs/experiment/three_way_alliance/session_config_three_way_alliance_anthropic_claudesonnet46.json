@@ -1,0 +1,248 @@
+{
+  "_role": "ml_training_scenario",
+  "_purpose": "Test multi-faction dynamics, competing goals within party, uneasy alliance, betrayal opportunities, reputation with multiple factions, shared vs. individual objectives",
+  "session_name": "The Breach Site Alliance_anthropic_claudesonnet46",
+  "max_turns": 18,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Potential PvP + Faction Conflict) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (spawn every 3 rounds) ===",
+  "vendor_spawn_frequency": 3,
+  "_comment_scenario": "=== SCENARIO: THREE-WAY STANDOFF (pre-defined, no LLM generation) ===",
+  "scenario": {
+    "theme": "faction_standoff_competing_claims",
+    "location": "Aeonisk Prime - Ancient Ritual Site, Pre-Covenant Archive Chamber",
+    "situation": "The void-scarred ruins of a pre-Covenant archive site pulse with unstable energy. Void Researcher Arden (Tempest Industries), Codex Enforcer Lyss (Sovereign Nexus), and Liberator Kael (Freeborn Collective) have each arrived independently, drawn by separate intelligence about the archive's contents. They notice each other almost simultaneously across the crumbling atrium. The ancient data vaults are intact but sealed behind void-resonant locks that will take time to crack. Nobody planned to share this discovery. Arden is already scanning the vault seals. Lyss has her hand on her weapon, calculating. Kael is eyeing the exits and the data ports. Three factions. One archive. Each wants something different from whatever is locked inside \u2014 and none of them are sure yet whether the others are obstacles, threats, or reluctant partners. There are no other operatives present \u2014 each came alone.",
+    "void_level": 7
+  },
+  "_design_notes": {
+    "ml_training_value": "Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing individual goals within team, reputation tracking with 3 factions, betrayal/defection opportunities, moral tension (cooperation vs. self-interest), potential PvP if alliance breaks",
+    "mechanics_tested": [
+      "Multi-faction reputation",
+      "Competing PC goals",
+      "Faction negotiation and diplomacy",
+      "Betrayal mechanics",
+      "Factional equipment differences",
+      "Trust/suspicion clocks"
+    ],
+    "character_innovation": "Three characters from antagonistic factions, faction-specific gear (Nexus seal, Tempest void scanner, Freeborn counterfeit IDs), explicit goal conflicts"
+  },
+  "starting_clocks": [
+    {
+      "name": "Archive Access Progress",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Unlocking ancient archive. At 8 ticks: data accessible (triggering faction competition for control).",
+      "advance_meaning": "archive access progress progresses",
+      "regress_meaning": "archive access progress setback or reversal"
+    },
+    {
+      "name": "Alliance Cohesion",
+      "current_ticks": 5,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Team trust level. At 3 ticks: betrayal likely. At 0 ticks: alliance collapses, potential PvP.",
+      "advance_meaning": "alliance cohesion worsens or time runs out",
+      "regress_meaning": "alliance cohesion improves or delayed"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Void Researcher Arden",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Void Lore": 5,
+          "Systems": 5,
+          "Investigation": 5,
+          "Magick Theory": 5,
+          "Guns": 3,
+          "Medicine": 4
+        },
+        "void": 4,
+        "soulcredit": -2,
+        "goals": [
+          "Secure archive data for Tempest void research",
+          "Prevent Nexus from suppressing knowledge",
+          "Betray alliance if necessary to protect research"
+        ],
+        "equipped_weapons": {
+          "primary": "hollowed_repeater",
+          "sidearm": "void_cloak"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "hollowed_repeater": 1,
+          "void_cloak": 1,
+          "void_scanner": 1,
+          "hollow_seed": 3,
+          "data_slate": 1,
+          "breach_compass": 1,
+          "tempest_credentials": 1,
+          "neural_stimulant": 2,
+          "containment_vessel": 2
+        }
+      },
+      {
+        "name": "Codex Enforcer Lyss",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 1,
+          "bondPreference": "seeks",
+          "ritualConservatism": 10
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Debt Law": 5,
+          "Investigation": 5,
+          "Intimidation": 4,
+          "Astral Arts": 4,
+          "Guns": 5
+        },
+        "void": 0,
+        "soulcredit": 7,
+        "goals": [
+          "Suppress dangerous pre-Covenant knowledge",
+          "Ensure archive aligns with Codex doctrine",
+          "Detain Tempest researcher if necessary"
+        ],
+        "equipped_weapons": {
+          "primary": "shrike_cannon",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "shrike_cannon": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "nexus_seal": 1,
+          "data_recorder": 1,
+          "purification_incense": 5,
+          "restraint_cuffs": 3,
+          "tribunal_writ": 1,
+          "riot_carapace": 1
+        }
+      },
+      {
+        "name": "Liberator Kael",
+        "pronouns": "he/him",
+        "faction": "Freeborn Collective",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Stealth": 5,
+          "Pilot": 4,
+          "Guile": 5,
+          "Awareness": 5,
+          "Guns": 5,
+          "Athletics": 4
+        },
+        "void": 2,
+        "soulcredit": -1,
+        "goals": [
+          "Broadcast archive contents to all factions (liberate knowledge)",
+          "Prevent Nexus monopoly on information",
+          "Escape with data copy if alliance fails"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "combat_knife": 1,
+          "counterfeit_credentials": 3,
+          "broadcast_access_chip": 1,
+          "data_slate": 1,
+          "comm_jammer": 1,
+          "grappling_hook": 1,
+          "smoke_grenades": 2,
+          "freeborn_manifesto": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Multi-faction party (Tempest vs. Nexus vs. Freeborn), competing PC goals (research vs. suppression vs. liberation), uneasy alliance mechanics, betrayal opportunities, faction reputation tracking, potential PvP if cooperation fails. Tests underrepresented factional conflict within party, moral tension between cooperation and self-interest, trust/suspicion dynamics. Long campaign (18 turns) allows alliance to form, strain, potentially break. Features exotic weapons: Hollowed Repeater (Void, scales with void score), Shrike Cannon (Glyph-Encoded, +6 DMG)."
+}
