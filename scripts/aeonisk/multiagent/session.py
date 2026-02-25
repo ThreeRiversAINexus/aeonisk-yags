@@ -1042,12 +1042,76 @@ class SelfPlayingSession:
 
         logger.debug(f"Created {len(self.agents)} agents")
 
+        # Ensure all characters have bonds=[] initialized
+        for agent in player_agents:
+            if hasattr(agent, 'character_state') and not hasattr(agent.character_state, 'bonds'):
+                agent.character_state.bonds = []
+
+        # Check bonds_enabled config flag (default: True)
+        bonds_enabled = self.config.get('bonds_enabled', True)
+
         # Auto-generate bonds if enabled (BEFORE loading explicit starting_bonds)
-        if 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
+        if bonds_enabled and 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
             try:
                 await self._generate_bonds_automatically(player_agents)
             except Exception as e:
                 logger.error(f"Failed to auto-generate bonds: {e}")
+        elif bonds_enabled and len(player_agents) >= 2 and 'starting_bonds' not in self.config:
+            # Generate default bond matrix when no explicit bonds configured
+            try:
+                from .mechanics import generate_default_bond_matrix
+                from .schemas.shared_types import Bond, BondType, BondStatus
+
+                character_names = []
+                factions = {}
+                for agent in player_agents:
+                    if hasattr(agent, 'character_state'):
+                        name = agent.character_state.name
+                        character_names.append(name)
+                        factions[name] = agent.character_state.faction
+
+                bond_suggestions = generate_default_bond_matrix(
+                    character_names=character_names,
+                    factions=factions,
+                    random_seed=self.random_seed,
+                )
+
+                bonds_created = 0
+                for idx, suggestion in enumerate(bond_suggestions):
+                    char_a_agent = None
+                    char_b_agent = None
+                    for agent in player_agents:
+                        if hasattr(agent, 'character_state'):
+                            if agent.character_state.name == suggestion['character_a']:
+                                char_a_agent = agent
+                            if agent.character_state.name == suggestion['character_b']:
+                                char_b_agent = agent
+
+                    if not char_a_agent or not char_b_agent:
+                        continue
+
+                    bond_type = BondType(suggestion['bond_type'])
+                    bond = Bond(
+                        bond_id=f"bond_default_{idx:03d}",
+                        character_a=suggestion['character_a'],
+                        character_b=suggestion['character_b'],
+                        bond_type=bond_type,
+                        status=BondStatus.ACTIVE,
+                        formed_round=0,
+                        witnessed_by=[],
+                        narrative_description="",
+                    )
+
+                    char_a_agent.character_state.bonds.append(bond)
+                    char_b_agent.character_state.bonds.append(bond)
+                    bonds_created += 1
+
+                if bonds_created > 0:
+                    logger.info(f"Generated {bonds_created} default bonds for party of {len(player_agents)}")
+            except Exception as e:
+                logger.error(f"Failed to generate default bond matrix: {e}")
+        elif not bonds_enabled:
+            logger.info("Bond generation skipped (bonds_enabled=False)")
 
         # Load starting_bonds from config (AFTER agents created)
         if 'starting_bonds' in self.config and self.config['starting_bonds']:

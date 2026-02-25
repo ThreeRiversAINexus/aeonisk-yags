@@ -146,6 +146,43 @@ def validate_player_skill(skill: Optional[str]) -> tuple:
     return False, feedback
 
 
+def build_bond_context(bonds: list) -> str:
+    """Build bond context string for player action prompts.
+
+    Shows the player's current bonds with status indicators and
+    mechanical benefits for active bonds.
+
+    Args:
+        bonds: List of Bond objects for the character
+
+    Returns:
+        Formatted string with bond information, or empty string if no bonds
+    """
+    if not bonds:
+        return ""
+
+    bond_lines = []
+    for bond in bonds:
+        status_value = bond.status.value if hasattr(bond.status, 'value') else str(bond.status)
+        status_icon = {
+            "active": "[ACTIVE]",
+            "dormant": "[DORMANT]",
+            "severed": "[SEVERED]",
+            "void_locked": "[VOID-LOCKED]",
+        }.get(status_value, "[?]")
+
+        benefits = ""
+        if status_value == "active":
+            benefits = " -- +2 ritual bonus, +1 soak defending them, sacrifice available"
+
+        bond_type_value = bond.bond_type.value if hasattr(bond.bond_type, 'value') else str(bond.bond_type)
+        bond_lines.append(
+            f"  - {bond.character_b} ({bond_type_value}) {status_icon}{benefits}"
+        )
+
+    return "Your Bonds:\n" + "\n".join(bond_lines)
+
+
 @dataclass
 class CharacterState:
     """Current character state."""

@@ -1967,6 +1967,112 @@ class SoulcreditState:
             return "Pariah"
 
 
+def generate_default_bond_matrix(
+    character_names: List[str],
+    factions: Dict[str, str],
+    random_seed: Optional[int] = None,
+    min_bonds: int = 2,
+    max_bonds: int = 5,
+) -> List[Dict[str, Any]]:
+    """
+    Generate a default bond matrix for a party of characters.
+
+    Creates bond suggestions deterministically using the provided random seed.
+    Ensures every character has at least 1 bond (unless Freeborn-constrained).
+    Respects Freeborn bond limit (max 1).
+
+    Args:
+        character_names: List of character names in the party
+        factions: Dict mapping character name to faction string
+        random_seed: Random seed for deterministic generation
+        min_bonds: Minimum number of bonds to generate
+        max_bonds: Maximum number of bonds to generate
+
+    Returns:
+        List of bond suggestion dicts with character_a, character_b, bond_type
+    """
+    if len(character_names) < 2:
+        return []
+
+    if random_seed is not None:
+        random.seed(random_seed)
+
+    party_size = len(character_names)
+    bond_counts = {name: 0 for name in character_names}
+    num_bonds = min(max_bonds, max(min_bonds, party_size))
+
+    bonds = []
+    attempts = 0
+    max_attempts = 100
+
+    while len(bonds) < num_bonds and attempts < max_attempts:
+        attempts += 1
+        char_a, char_b = random.sample(character_names, 2)
+
+        # Check pair uniqueness
+        if (char_a, char_b) in bonds or (char_b, char_a) in bonds:
+            continue
+        # Check bond limits (max 3 per character)
+        if bond_counts[char_a] >= 3 or bond_counts[char_b] >= 3:
+            continue
+        # Freeborn max 1 bond
+        faction_a = factions.get(char_a, '').lower()
+        faction_b = factions.get(char_b, '').lower()
+        if 'freeborn' in faction_a and bond_counts[char_a] >= 1:
+            continue
+        if 'freeborn' in faction_b and bond_counts[char_b] >= 1:
+            continue
+
+        bonds.append((char_a, char_b))
+        bond_counts[char_a] += 1
+        bond_counts[char_b] += 1
+
+    # Ensure all characters have at least 1 bond (unless Freeborn-constrained)
+    unbonded = [name for name, count in bond_counts.items() if count == 0]
+    for char in unbonded:
+        faction_lower = factions.get(char, '').lower()
+        if 'freeborn' in faction_lower and bond_counts[char] >= 1:
+            continue
+        candidates = [
+            other for other in character_names
+            if other != char and bond_counts[other] < 3
+            and (char, other) not in bonds and (other, char) not in bonds
+        ]
+        if candidates:
+            partner = random.choice(candidates)
+            bonds.append((char, partner))
+            bond_counts[char] += 1
+            bond_counts[partner] += 1
+
+    # Assign bond types based on faction relationships
+    suggestions = []
+    for char_a, char_b in bonds:
+        bond_type = _suggest_bond_type_for_factions(
+            factions.get(char_a, ''), factions.get(char_b, '')
+        )
+        suggestions.append({
+            'character_a': char_a,
+            'character_b': char_b,
+            'bond_type': bond_type,
+        })
+
+    return suggestions
+
+
+def _suggest_bond_type_for_factions(faction_a: str, faction_b: str) -> str:
+    """Suggest bond type based on faction pairing."""
+    faction_a_lower = faction_a.lower()
+    faction_b_lower = faction_b.lower()
+    is_freeborn = ('freeborn' in faction_a_lower or 'freeborn' in faction_b_lower)
+    same_faction = (faction_a_lower == faction_b_lower)
+
+    if is_freeborn:
+        return random.choice(["kinship", "passion"])
+    if same_faction:
+        return random.choice(["kinship", "faction"])
+    return random.choice(["passion", "debt", "voidward"])
+
+
 class MechanicsEngine:
     """
     Core mechanics engine for YAGS resolution in Aeonisk.

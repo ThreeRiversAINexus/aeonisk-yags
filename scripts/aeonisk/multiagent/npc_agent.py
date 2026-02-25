@@ -229,6 +229,130 @@ def _default_npc_position():
     return Position(ring="Near", side="Enemy")
 
 
+def initialize_vendor_inventory(faction: str = "Unknown") -> list:
+    """Initialize faction-appropriate vendor inventory items.
+
+    Creates a list of VendorItem objects appropriate for the given faction.
+    Each faction gets thematic items with balanced pricing.
+
+    Args:
+        faction: The faction string (e.g., "Sovereign Nexus", "Tempest", "Freeborn")
+
+    Returns:
+        List of VendorItem objects
+    """
+    from .energy_economy import VendorItem
+
+    faction_lower = faction.lower()
+
+    if 'sovereign' in faction_lower or 'nexus' in faction_lower or 'pantheon' in faction_lower:
+        # Sovereign Nexus / Pantheon: sanctioned ritual items, official supplies
+        return [
+            VendorItem(
+                name="Sanctified Incense",
+                description="Codex-approved ritual incense for cleansing ceremonies",
+                price_drip=2,
+                item_type="offering",
+            ),
+            VendorItem(
+                name="Ration Pack",
+                description="Standard-issue nutrient pack, sustaining but bland",
+                price_grain=1,
+                item_type="food",
+            ),
+            VendorItem(
+                name="Nexus Med-Kit",
+                description="Officially sanctioned medical supplies",
+                price_spark=3,
+                item_type="consumable",
+            ),
+            VendorItem(
+                name="Data Slate",
+                description="Clearance-level information terminal",
+                price_spark=2,
+                item_type="tool",
+            ),
+        ]
+    elif 'tempest' in faction_lower:
+        # Tempest: void-adjacent items, illicit goods
+        return [
+            VendorItem(
+                name="Void-Touched Incense",
+                description="Dark incense that resonates with void energy",
+                price_drip=3,
+                item_type="offering",
+            ),
+            VendorItem(
+                name="Hollow Seed Extract",
+                description="Concentrated hollow seed essence for rituals",
+                price_hollow=2,
+                item_type="offering",
+            ),
+            VendorItem(
+                name="Synth Rations",
+                description="Nutrient-dense paste, tastes like static",
+                price_grain=1,
+                item_type="food",
+            ),
+            VendorItem(
+                name="Void Scanner",
+                description="Handheld device for detecting void energy patterns",
+                price_spark=4,
+                item_type="tool",
+            ),
+        ]
+    elif 'freeborn' in faction_lower:
+        # Freeborn: practical survival goods, scavenged items
+        return [
+            VendorItem(
+                name="Trail Rations",
+                description="Dried food and preserved fruit from the borderlands",
+                price_grain=1,
+                item_type="food",
+            ),
+            VendorItem(
+                name="Salvaged Med-Kit",
+                description="Repurposed medical supplies, rough but functional",
+                price_spark=2,
+                item_type="consumable",
+            ),
+            VendorItem(
+                name="Foraged Offering",
+                description="Wild herbs gathered from ley-line crossings",
+                price_drip=1,
+                item_type="offering",
+            ),
+            VendorItem(
+                name="Multitool",
+                description="Well-worn but reliable multi-purpose tool",
+                price_spark=3,
+                item_type="tool",
+            ),
+        ]
+    else:
+        # Generic vendor items for unknown factions
+        return [
+            VendorItem(
+                name="Basic Rations",
+                description="Simple food supplies",
+                price_grain=1,
+                item_type="food",
+            ),
+            VendorItem(
+                name="Standard Med-Kit",
+                description="Basic medical supplies",
+                price_spark=2,
+                item_type="consumable",
+            ),
+            VendorItem(
+                name="Ritual Incense",
+                description="Common incense for offerings",
+                price_drip=2,
+                item_type="offering",
+            ),
+        ]
+
+
 @dataclass
 class NPCAgent:
     """
