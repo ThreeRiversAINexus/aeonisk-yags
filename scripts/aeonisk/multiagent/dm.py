@@ -368,6 +368,46 @@ def _process_structured_damage_effects(
             messages.append(f"⚠️ **Target '{target_identifier}' not found for damage**")
             continue
 
+        # === ENVIRONMENTAL OBJECT DAMAGE ===
+        # Env objects use simple HP reduction (no barrier interception, no wound/stun)
+        from .shared_state import EnvironmentalObject as _EnvObj
+        if isinstance(target_entity, _EnvObj):
+            actual_damage = target_entity.apply_damage(damage_amount)
+            if actual_damage > 0:
+                health_before = target_entity.health + actual_damage
+                messages.append(
+                    f"** {target_entity.name} takes {actual_damage} damage! "
+                    f"({health_before} -> {target_entity.health} HP)"
+                )
+                if target_entity.is_destroyed:
+                    messages.append(f"** {target_entity.name} is DESTROYED!")
+                    logger_instance.info(f"Environmental object destroyed: {target_entity.name} ({target_entity.object_id})")
+
+                    # Log destruction event
+                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        try:
+                            mechanics.jsonl_logger.log_env_object_damage(
+                                round_num=current_round,
+                                object_id=target_entity.object_id,
+                                object_name=target_entity.name,
+                                damage_dealt=actual_damage,
+                                health_before=health_before,
+                                health_after=0,
+                                destroyed=True,
+                                attacker_id=attacker_id
+                            )
+                        except (AttributeError, TypeError):
+                            pass  # Logger may not have this method yet
+                else:
+                    logger_instance.info(
+                        f"Environmental object damaged: {target_entity.name} "
+                        f"({target_entity.health}/{target_entity.max_health} HP)"
+                    )
+            elif not target_entity.is_destructible:
+                messages.append(f"** {target_entity.name} is impervious to damage!")
+                logger_instance.info(f"Damage blocked: {target_entity.name} is non-destructible")
+            continue  # Skip combatant damage logic
+
         # === BARRIER INTERCEPTION ===
         damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
             damage_amount,
@@ -8071,6 +8111,19 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                                     f"  - [{tid}] {info['name']} "
                                     f"({pronouns}, {faction}, npc, {disposition}) "
                                     f"{state_tag}")
+                            elif info['type'] == 'env_object':
+                                # Environmental object with health/destructibility
+                                if info.get('is_destructible') and info.get('health') is not None:
+                                    health_str = f"{info['health']}/{info['max_health']} HP"
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"(object, {health_str})"
+                                    )
+                                else:
+                                    combatant_lines.append(
+                                        f"  - [{tid}] {info['name']} "
+                                        f"(object, indestructible)"
+                                    )
                             else:
                                 # Format for enemies: [tgt_xxxx] Name (faction, enemy) [STATE]
                                 combatant_lines.append(

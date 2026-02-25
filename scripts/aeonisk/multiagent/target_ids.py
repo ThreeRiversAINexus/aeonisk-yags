@@ -77,20 +77,22 @@ class TargetIDMapper:
         player_agents: List[Any],
         enemy_agents: List[Any],
         npc_agents: Optional[List[Any]] = None,
-        vendors: Optional[List[Any]] = None
+        vendors: Optional[List[Any]] = None,
+        env_objects: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
-        Assign random IDs to all combatants and vendors at round start.
+        Assign random IDs to all combatants, vendors, and env objects at round start.
 
-        Combines PCs, enemies, NPCs, and vendors into single pool, shuffles to
-        randomize order (prevents pattern detection), then assigns
-        unique target IDs.
+        Combines PCs, enemies, NPCs, vendors, and environmental objects into
+        single pool, shuffles to randomize order (prevents pattern detection),
+        then assigns unique target IDs.
 
         Args:
             player_agents: List of PC agents
             enemy_agents: List of enemy agents (active only)
             npc_agents: List of NPC agents (active only)
             vendors: List of legacy Vendor objects (for transfers)
+            env_objects: List of EnvironmentalObject instances (destructible, not destroyed)
 
         Returns:
             Dict mapping target_id -> agent reference
@@ -131,7 +133,15 @@ class TargetIDMapper:
                     all_combatants.append(vendor)
                     vendor_count += 1
 
-        logger.info(f"Assigning target IDs to {len(all_combatants)} entities ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs, {vendor_count} vendors)")
+        # Add environmental objects (they have object_id instead of agent_id)
+        env_count = 0
+        if env_objects:
+            for env_obj in env_objects:
+                if hasattr(env_obj, 'object_id') and env_obj.object_id:
+                    all_combatants.append(env_obj)
+                    env_count += 1
+
+        logger.info(f"Assigning target IDs to {len(all_combatants)} entities ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs, {vendor_count} vendors, {env_count} env objects)")
 
         # Shuffle to randomize order (prevents position-based patterns)
         random.shuffle(all_combatants)
@@ -150,12 +160,14 @@ class TargetIDMapper:
                 logger.error(f"Failed to generate unique target ID after 10 attempts")
                 continue
 
-            # Get agent_id (vendors use vendor_id instead)
+            # Get agent_id (vendors use vendor_id, env objects use object_id)
             agent_id = getattr(agent, 'agent_id', None)
             if not agent_id:
                 agent_id = getattr(agent, 'vendor_id', None)
             if not agent_id:
-                logger.warning(f"Entity {agent} has no agent_id or vendor_id")
+                agent_id = getattr(agent, 'object_id', None)
+            if not agent_id:
+                logger.warning(f"Entity {agent} has no agent_id, vendor_id, or object_id")
                 continue
 
             # Get name: enemies have .name, players have .character_state.name
@@ -167,6 +179,10 @@ class TargetIDMapper:
 
             self.target_id_map[target_id] = agent
             self.reverse_map[agent_id] = target_id
+
+            # Store target_id on env objects for later resolution
+            if hasattr(agent, 'object_id') and hasattr(agent, 'target_id'):
+                agent.target_id = target_id
 
             assigned_count += 1
             logger.debug(f"  {target_id} -> {agent_name} ({agent_id})")
@@ -251,6 +267,23 @@ class TargetIDMapper:
         is_pc = hasattr(agent, 'character_state')
         return is_pc
 
+    def is_env_object(self, target_id: str) -> bool:
+        """
+        Check if target ID belongs to an environmental object.
+
+        Args:
+            target_id: Target ID to check
+
+        Returns:
+            True if env object, False otherwise
+        """
+        agent = self.resolve_target(target_id)
+        if not agent:
+            return False
+        # Use isinstance check to distinguish env objects from mocked agents
+        from .shared_state import EnvironmentalObject
+        return isinstance(agent, EnvironmentalObject)
+
     def is_enemy(self, target_id: str) -> bool:
         """
         Check if target ID belongs to an enemy.
@@ -291,6 +324,23 @@ class TargetIDMapper:
         agent = self.resolve_target(target_id)
         if not agent:
             return None
+
+        # Check if this is an environmental object
+        from .shared_state import EnvironmentalObject
+        if isinstance(agent, EnvironmentalObject):
+            info = {
+                'target_id': target_id,
+                'agent_id': getattr(agent, 'object_id', 'unknown'),
+                'type': 'env_object',
+                'name': agent.name,
+                'health': agent.health,
+                'max_health': agent.max_health,
+                'is_destructible': agent.is_destructible,
+                'destroyed': agent.is_destroyed,
+                'object_type': agent.object_type.value if hasattr(agent.object_type, 'value') else str(agent.object_type),
+                'cover_value': getattr(agent, 'cover_value', None),
+            }
+            return info
 
         # Get agent ID (vendors use vendor_id instead of agent_id)
         entity_id = getattr(agent, 'agent_id', None) or getattr(agent, 'vendor_id', 'unknown')
