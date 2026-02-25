@@ -111,6 +111,45 @@ def apply_intra_round_position_update(agent, new_position_str: str) -> None:
     )
 
 
+# =============================================================================
+# NPC LLM CONFIG HELPER (Spec 11: Per-Role Model Configuration)
+# =============================================================================
+
+def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Get NPC LLM config from session config with fallback chain.
+
+    NPC LLM fallback chain: npcs -> enemies -> dm.
+
+    1. agents.npcs.llm if present
+    2. agents.enemies.llm if present (enemies and NPCs share a tier)
+    3. agents.dm.llm as final fallback
+
+    Args:
+        session_config: Full session configuration dict.
+
+    Returns:
+        LLM config dict, or None if no config found at any level.
+    """
+    agents = session_config.get('agents', {})
+
+    # Try NPC-specific config first
+    npc_llm = agents.get('npcs', {}).get('llm')
+    if npc_llm:
+        return npc_llm
+
+    # Fall back to enemy config (enemies and NPCs share a tier)
+    enemy_llm = agents.get('enemies', {}).get('llm')
+    if enemy_llm:
+        return enemy_llm
+
+    # Final fallback to DM config
+    dm_llm = agents.get('dm', {}).get('llm')
+    if dm_llm:
+        return dm_llm
+
+    return None
+
+
 def _parse_surrender_from_resolution(
     resolution_data: Dict[str, Any],
     resolution_state: ResolutionState,
@@ -461,6 +500,32 @@ class SelfPlayingSession:
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
         self.shared_state.load_dm_notes(str(dm_notes_path))
         self.dm_notes_path = dm_notes_path
+
+    def _get_npc_llm_provider(self):
+        """Get NPC LLM provider using the per-role fallback chain (Spec 11).
+
+        NPC LLM fallback chain: npcs -> enemies -> dm.
+        Falls back to self.enemy_combat.llm_provider for backward compat
+        if no NPC-specific config is found.
+
+        Returns:
+            LLM provider instance, or None if no config available.
+        """
+        npc_llm_config = get_npc_llm_config(self.config)
+        if npc_llm_config:
+            try:
+                from .llm_provider import LLMConfig, create_provider
+                config = LLMConfig.from_dict(npc_llm_config, max_tokens=2000)
+                provider = create_provider(config)
+                logger.debug(f"NPC LLM provider created from per-role config ({config.provider}:{config.model})")
+                return provider
+            except Exception as e:
+                logger.warning(f"Failed to create NPC LLM provider from config: {e}")
+
+        # Ultimate fallback: use enemy_combat's provider (backward compat)
+        if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'llm_provider'):
+            return self.enemy_combat.llm_provider
+        return None
 
     def _initialize_persistent_vendors(self):
         """
@@ -2827,12 +2892,12 @@ Generate narratives (numbered list only):"""
 
                 if enemy and enemy.is_active:
                     # Convert to NPC with "prisoner" disposition
-                    # NPCs use same LLM provider as enemies (if available)
+                    # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition="prisoner",
                         current_round=mechanics.current_round if mechanics else 0,
-                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                        llm_provider=self._get_npc_llm_provider()
                     )
 
                     # Add to shared state
@@ -3043,12 +3108,12 @@ Generate narratives (numbered list only):"""
                                                                      EnemyResolution.NEUTRALIZED,
                                                                      EnemyResolution.SUBDUED]:
                                     # Enemy becomes NPC
-                                    # NPCs use same LLM provider as enemies (if available)
+                                    # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                                     npc = deescalate_enemy_to_npc(
                                         enemy=enemy,
                                         disposition=enemy_conversion.resulting_disposition or "prisoner",
                                         current_round=mechanics.current_round if mechanics else 0,
-                                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                        llm_provider=self._get_npc_llm_provider()
                                     )
 
                                     # Add to shared state
@@ -3159,7 +3224,7 @@ Generate narratives (numbered list only):"""
                                 void_score=0,  # NPCs start with no void
                                 skills=npc_spawn.skills,
                                 description=npc_spawn.description,
-                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                llm_provider=self._get_npc_llm_provider()  # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                             )
 
                             # Add to shared state
@@ -5953,7 +6018,7 @@ NO conversions/morale checks needed (scene just started).
                                 void_score=0,
                                 skills=npc_spawn.skills or {},
                                 agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None,
-                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                llm_provider=self._get_npc_llm_provider()  # NPC LLM fallback: npcs -> enemies -> dm (Spec 11)
                             )
 
                             self.shared_state.npc_agents.append(npc)

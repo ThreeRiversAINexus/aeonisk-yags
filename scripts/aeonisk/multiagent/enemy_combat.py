@@ -232,18 +232,26 @@ class EnemyCombatManager:
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})
 
-            # Initialize LLM provider from DM config (enemies use same provider as DM)
+            # Initialize LLM provider: per-role enemy config with DM fallback (Spec 11)
+            # Resolution: structured output - enemies use Pydantic-based EnemyDecision schema
             from .llm_provider import create_provider
             try:
-                dm_config = session_config.get('agents', {}).get('dm', {})
-                llm_config = dm_config.get('llm', {})
+                # Per-role enemy LLM config (Spec 11: agents.enemies.llm)
+                enemy_llm_config = session_config.get('agents', {}).get('enemies', {}).get('llm')
+                enemy_specific = enemy_llm_config is not None
 
-                if llm_config:
+                # Fallback to DM config if no per-role enemy config (backward compat)
+                if not enemy_llm_config:
+                    dm_config = session_config.get('agents', {}).get('dm', {})
+                    enemy_llm_config = dm_config.get('llm', {})
+
+                if enemy_llm_config:
                     from .llm_provider import LLMConfig
 
-                    config = LLMConfig.from_dict(llm_config, max_tokens=4000)
+                    config = LLMConfig.from_dict(enemy_llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
-                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({config.provider}:{config.model})")
+                    config_source = "per-role enemy" if enemy_specific else "DM fallback"
+                    logger.debug(f"EnemyCombatManager: Using {config_source} LLM config ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
                     logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
