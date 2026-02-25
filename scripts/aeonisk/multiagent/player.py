@@ -294,6 +294,11 @@ class AIPlayerAgent(Agent):
         # Free action tracking (one per round)
         self.free_action_used = False
 
+        # Stealth state (Spec 05)
+        self.is_hidden: bool = False  # True if agent is currently concealed
+        self.stealth_dc: Optional[int] = None  # DC to detect this agent (set by stealth check result)
+        self.last_known_position: Optional[str] = None  # Where this agent was last seen before hiding
+
         # Buff tracking (positive effects from allies)
         self.buffs = []  # List of active buffs from ally support
 

@@ -28,6 +28,37 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# STEALTH CONTEXT FOR ENEMY PROMPTS (Spec 05)
+# =============================================================================
+
+def _format_hidden_targets(hidden_pcs: List[Dict[str, Any]]) -> str:
+    """
+    Format hidden PC information for enemy tactical prompts.
+
+    When PCs are hidden, enemies cannot directly target them but may know
+    their last known position. This section informs the enemy AI about
+    hidden targets and suggests using Scan to detect them.
+
+    Args:
+        hidden_pcs: List of dicts with 'name' and 'last_known_position' keys
+
+    Returns:
+        Formatted string section for enemy prompt, or empty string if no hidden PCs
+    """
+    if not hidden_pcs:
+        return ""
+
+    lines = ["\n**HIDDEN TARGETS (cannot be directly targeted):**"]
+    for pc in hidden_pcs:
+        name = pc.get('name', 'Unknown PC')
+        last_pos = pc.get('last_known_position', 'Unknown')
+        lines.append(f"- {name}: HIDDEN (last seen at {last_pos})")
+
+    lines.append("\nUse 'Scan' as your minor_action to attempt detection.")
+    return "\n".join(lines)
+
+
+# =============================================================================
 # PC ATTRIBUTE HELPERS — AIPlayerAgent stores name/faction on character_state
 # =============================================================================
 

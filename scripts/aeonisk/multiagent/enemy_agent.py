@@ -351,6 +351,13 @@ class EnemyAgent:
     despawned_round: Optional[int] = None  # When they left combat
 
     # =========================================================================
+    # STEALTH STATE (Spec 05)
+    # =========================================================================
+    is_hidden: bool = False  # True if agent is currently concealed
+    stealth_dc: Optional[int] = None  # DC to detect this agent (set by stealth check result)
+    last_known_position: Optional[str] = None  # Where this agent was last seen before hiding
+
+    # =========================================================================
     # COMMUNICATION (Shared Intel)
     # =========================================================================
     shared_intel: Dict[str, Any] = field(default_factory=dict)

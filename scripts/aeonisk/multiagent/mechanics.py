@@ -5482,3 +5482,233 @@ def process_item_effect(item_effect, character_state, player_id) -> bool:
     shared_state = SharedState()
     mechanics = MechanicsEngine(shared_state=shared_state)
     return mechanics.process_item_effect(item_effect, character_state, player_id)
+
+
+# =============================================================================
+# STEALTH MECHANICS (Spec 05)
+# =============================================================================
+
+def _get_attribute(agent, attr_name: str, default: int = 3) -> int:
+    """Get attribute value from any agent type.
+
+    Supports:
+    - EnemyAgent / NPCAgent: agent.attributes dict
+    - AIPlayerAgent: agent.character_state.attributes dict
+
+    Args:
+        agent: Any agent type
+        attr_name: Attribute name (e.g., 'Agility', 'Perception')
+        default: Default value if not found
+
+    Returns:
+        Attribute value as int
+    """
+    # EnemyAgent / NPCAgent: agent.attributes dict
+    if hasattr(agent, 'attributes') and isinstance(agent.attributes, dict):
+        return agent.attributes.get(attr_name, default)
+    # AIPlayerAgent: agent.character_state.attributes dict
+    if hasattr(agent, 'character_state'):
+        cs = agent.character_state
+        if hasattr(cs, 'attributes') and isinstance(cs.attributes, dict):
+            return cs.attributes.get(attr_name, default)
+    return default
+
+
+def _get_skill(agent, skill_name: str, default: int = 0) -> int:
+    """Get skill value from any agent type.
+
+    Supports:
+    - EnemyAgent / NPCAgent: agent.skills dict
+    - AIPlayerAgent: agent.character_state.skills dict
+
+    Args:
+        agent: Any agent type
+        skill_name: Skill name (e.g., 'Stealth', 'Awareness')
+        default: Default value if not found
+
+    Returns:
+        Skill value as int
+    """
+    if hasattr(agent, 'skills') and isinstance(agent.skills, dict):
+        return agent.skills.get(skill_name, default)
+    if hasattr(agent, 'character_state'):
+        cs = agent.character_state
+        if hasattr(cs, 'skills') and isinstance(cs.skills, dict):
+            return cs.skills.get(skill_name, default)
+    return default
+
+
+def resolve_stealth_check(
+    agent,
+    environment_dc: int = 15,
+    modifiers: int = 0
+) -> Dict[str, Any]:
+    """
+    Resolve a stealth check using YAGS formula.
+
+    Formula: Agility x Stealth + d20 + modifiers vs environment_dc
+
+    Void interaction:
+    - void_score == 10: automatic failure (stealth impossible)
+
+    Args:
+        agent: The agent attempting to hide (must have attributes and skills)
+        environment_dc: Base difficulty (10=dark alley, 15=normal, 20=open ground,
+                        25=well-lit, 30=actively searched area)
+        modifiers: Situational modifiers (+/- for cover, noise, distractions)
+
+    Returns:
+        Dict with:
+            success: bool
+            stealth_roll: int (total roll value, becomes detection DC if successful)
+            d20: int (raw die roll)
+            margin: int (roll - dc, negative = failure)
+            formula: str (human-readable breakdown)
+            agility: int
+            stealth_skill: int
+    """
+    # Void 10: stealth impossible
+    void_score = getattr(agent, 'void_score', 0)
+    if void_score == 10:
+        return {
+            'success': False,
+            'stealth_roll': 0,
+            'd20': 0,
+            'margin': -environment_dc,
+            'formula': f"VOID 10 - stealth impossible (void corruption visible)",
+            'agility': _get_attribute(agent, 'Agility', default=3),
+            'stealth_skill': _get_skill(agent, 'Stealth', default=0),
+        }
+
+    # Get stats
+    agility = _get_attribute(agent, 'Agility', default=3)
+    stealth_skill = _get_skill(agent, 'Stealth', default=0)
+
+    # YAGS unskilled penalty
+    unskilled_penalty = -5 if stealth_skill == 0 else 0
+
+    d20 = random.randint(1, 20)
+    roll_total = (agility * stealth_skill) + d20 + modifiers + unskilled_penalty
+
+    # Minimum roll of 1 (can't go negative)
+    roll_total = max(1, roll_total)
+
+    success = roll_total >= environment_dc
+    margin = roll_total - environment_dc
+
+    formula = (
+        f"Agility {agility} x Stealth {stealth_skill} + d20({d20})"
+        f"{f' + modifiers({modifiers})' if modifiers else ''}"
+        f"{f' + unskilled({unskilled_penalty})' if unskilled_penalty else ''}"
+        f" = {roll_total} vs DC {environment_dc}"
+    )
+
+    return {
+        'success': success,
+        'stealth_roll': roll_total,
+        'd20': d20,
+        'margin': margin,
+        'formula': formula,
+        'agility': agility,
+        'stealth_skill': stealth_skill,
+    }
+
+
+def resolve_detection_check(
+    observer,
+    stealth_dc: int,
+    modifiers: int = 0
+) -> Dict[str, Any]:
+    """
+    Resolve a detection check against a hidden target.
+
+    Formula: Perception x Awareness + d20 + modifiers vs stealth_dc
+
+    The stealth_dc is the total from the hider's stealth check (their roll becomes
+    the DC for detection).
+
+    Void interaction (caller responsibility):
+    - Target void_score >= 7: caller should pass modifiers=+5
+
+    Args:
+        observer: The agent attempting to detect (must have attributes and skills)
+        stealth_dc: DC to beat (from the hider's stealth check result)
+        modifiers: Situational modifiers (+5 void aura, +/- for noise, equipment)
+
+    Returns:
+        Dict with:
+            success: bool (True = detected the hidden agent)
+            detection_roll: int
+            d20: int
+            margin: int
+            formula: str
+            perception: int
+            awareness_skill: int
+    """
+    perception = _get_attribute(observer, 'Perception', default=3)
+    awareness_skill = _get_skill(observer, 'Awareness', default=0)
+
+    unskilled_penalty = -5 if awareness_skill == 0 else 0
+
+    d20 = random.randint(1, 20)
+    roll_total = (perception * awareness_skill) + d20 + modifiers + unskilled_penalty
+    roll_total = max(1, roll_total)
+
+    success = roll_total >= stealth_dc
+    margin = roll_total - stealth_dc
+
+    formula = (
+        f"Perception {perception} x Awareness {awareness_skill} + d20({d20})"
+        f"{f' + modifiers({modifiers})' if modifiers else ''}"
+        f"{f' + unskilled({unskilled_penalty})' if unskilled_penalty else ''}"
+        f" = {roll_total} vs DC {stealth_dc}"
+    )
+
+    return {
+        'success': success,
+        'detection_roll': roll_total,
+        'd20': d20,
+        'margin': margin,
+        'formula': formula,
+        'perception': perception,
+        'awareness_skill': awareness_skill,
+    }
+
+
+def break_stealth_on_attack(agent) -> bool:
+    """
+    Break stealth when an agent attacks from hidden.
+
+    Automatically sets is_hidden=False and clears stealth_dc.
+    Called after combat action resolution for hidden agents.
+
+    Args:
+        agent: The agent whose stealth should be broken
+
+    Returns:
+        True if stealth was broken (agent was hidden), False otherwise
+    """
+    if getattr(agent, 'is_hidden', False):
+        agent.is_hidden = False
+        agent.stealth_dc = None
+        logger.info(f"Stealth broken: {getattr(agent, 'agent_id', 'unknown')} attacked from hidden")
+        return True
+    return False
+
+
+def get_first_strike_bonus(agent) -> int:
+    """
+    Get First Strike damage bonus for attacking from hidden.
+
+    Returns +2 damage modifier if agent is currently hidden (attacking from stealth).
+    Returns 0 if agent is not hidden.
+
+    Args:
+        agent: The attacking agent
+
+    Returns:
+        Damage bonus (2 if hidden, 0 if not)
+    """
+    if getattr(agent, 'is_hidden', False):
+        return 2
+    return 0

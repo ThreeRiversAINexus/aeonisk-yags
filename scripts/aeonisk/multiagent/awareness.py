@@ -94,3 +94,25 @@ def is_agent_aware(agent_id: str, aware_agents: List[str]) -> bool:
         # Empty list = public, everyone is aware
         return True
     return agent_id in aware_agents
+
+
+def get_hidden_agent_ids(agents: List) -> set:
+    """
+    Get the set of agent IDs that are currently hidden (Spec 05).
+
+    Checks the is_hidden attribute on each agent. Works with any agent type
+    (AIPlayerAgent, EnemyAgent, NPCAgent) as long as they have agent_id
+    and is_hidden attributes.
+
+    Args:
+        agents: List of agent instances (mixed types allowed)
+
+    Returns:
+        Set of agent_id strings for agents where is_hidden is True
+    """
+    hidden = set()
+    for agent in agents:
+        agent_id = getattr(agent, 'agent_id', None)
+        if agent_id and getattr(agent, 'is_hidden', False):
+            hidden.add(agent_id)
+    return hidden

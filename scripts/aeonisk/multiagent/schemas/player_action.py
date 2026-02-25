@@ -437,6 +437,12 @@ class PerceptionAction(PlayerActionBase):
 
     action_type: Literal[ActionType.PERCEPTION] = ActionType.PERCEPTION
 
+    search_for_hidden: bool = Field(
+        default=False,
+        description="True if actively searching for hidden agents (triggers opposed "
+                    "Perception x Awareness check vs hidden targets' stealth_dc)"
+    )
+
 
 class SupportAction(PlayerActionBase):
     """
