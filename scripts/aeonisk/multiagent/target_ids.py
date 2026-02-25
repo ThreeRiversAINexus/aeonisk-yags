@@ -350,7 +350,70 @@ class TargetIDMapper:
         else:
             info['death_state'] = 'alive'
 
+        # State fields for semantic validation (Layer 4 — Spec 03)
+        info['is_active'] = getattr(agent, 'is_active', True)
+        info['is_prisoner'] = getattr(agent, 'is_prisoner', False)
+        info['is_panicked'] = getattr(agent, 'is_panicked', False)
+        info['disposition'] = getattr(agent, 'disposition', None)
+        info['entity_subtype'] = getattr(agent, 'entity_type', None)
+
         return info
+
+    def get_combatant_status(self, target_id: str) -> Optional[str]:
+        """
+        Get the combat status of a combatant as a single string.
+
+        Returns one of:
+            "active" - Can be targeted normally
+            "prisoner" - Surrendered/captured, targeting is ethically questionable
+            "defeated" - Removed from combat (is_active=False)
+            "unconscious" - Health <= 0 but not dead
+            "dead" - Permanently dead (wounds >= 6)
+            "fleeing" - Panicked/morale broken
+            "non_combatant" - NPC with non-hostile disposition
+            None - Target ID not found
+
+        Args:
+            target_id: The tgt_xxxx ID to check
+
+        Returns:
+            Status string or None
+        """
+        info = self.get_combatant_info(target_id)
+        if not info:
+            return None
+
+        # Death states take priority
+        death_state = info.get('death_state', 'alive')
+        if death_state == 'dead':
+            return 'dead'
+        if death_state == 'unconscious':
+            return 'unconscious'
+
+        # Prisoner state (enemy or NPC)
+        if info.get('is_prisoner', False):
+            return 'prisoner'
+        if info.get('disposition') == 'prisoner':
+            return 'prisoner'
+        if info.get('entity_subtype') == 'prisoner':
+            return 'prisoner'
+
+        # Defeated/inactive
+        if not info.get('is_active', True):
+            return 'defeated'
+
+        # Fleeing
+        if info.get('is_panicked', False):
+            return 'fleeing'
+
+        # NPC non-combatant check
+        if info.get('type') == 'npc':
+            disposition = info.get('disposition')
+            if disposition in ('friendly', 'neutral', 'wary'):
+                return 'non_combatant'
+
+        # Player or active enemy
+        return 'active'
 
     # NPC tracking methods (for de-escalation system)
 
