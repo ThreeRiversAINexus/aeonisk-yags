@@ -1,5 +1,6 @@
 # Aeonisk Gear & Tech Reference
 
+**Version 1.2.4**
 *Quick‑look tables for weapons, armor, accessories, vehicles, and companion automata — all formatted for at‑table play or fast GM prep.*
 
 ------
@@ -15,7 +16,9 @@
 
 ---
 
-> **GM Tip—Local Rates:** Typical markets peg 1 Spark ≈ 2–5 Drips per session; high-security hubs (e.g., Aeonisk Prime) slide it closer to 1 Spark = 3 Drips, while frontier bazaars might only honor 1 Spark = 2 Drips.  
+> **GM Tip—Local Rates:** Baseline canon is **1 Spark = 400 Drip = 20 Grain = 8 000 Breath**, but every market floats this ±20–30%. High-security hubs (e.g., Aeonisk Prime) often honor closer to the high end (1 Spark ≈ 480 Drip), while frontier bazaars and post-glut markets push it down (1 Spark ≈ 320 Drip). Settle the rate before you commit the trade.
+
+> **GM Tip—Spark-fueled gear is elite tier.** Items that still consume **Sparks** as fuel (Spark-Bound Pulse Rifle, Arcstorm Array) are deliberately expensive to operate at ≈400 Drips per Spark. In fiction, these are military-grade or vehicle-mounted systems carried by Pantheon Security, the very wealthy, or licensed contractors — not casual street kit. Personal gear that previously listed Spark upkeep has been renominated to Drips (see field stats below).
 
 
 
@@ -58,14 +61,14 @@ See the foot-notes beneath the table and the Reference Symbols list for full det
 | Oathpiercer Carbine     | Conventional • Rifle    | —            | +DMG vs ex‑Bonds                                    | Ethically suspect             |
 | Glyph‑Slinger           | Glyph • Wrist launcher  | —            | 5 mini ritual charges                               | Re‑carve sigils               |
 | Seedstrike Blade        | Glyph • Blade           | —            | Breaks Seed on crit for burst (requires an elementally Attuned Seed; raw use adds +1 Void) | Consumes 1 Attuned Seed       |
-| Spark Lash              | Glyph • Whip            | +5 DMG       | Chain‑lightning on crit                             | 1 Spark/3 rds                 |
+| Spark Lash              | Glyph • Whip            | +5 DMG       | Chain‑lightning on crit                             | 5 Drips / 3 rds               |
 | Drip Veil Projector     | Spirit • Non‑lethal     | —            | Induce purge trance (Will 18)                       | 1 Drip cap / shot             |
 | Seedburst Gauntlet      | Glyph • Fist            | +6 DMG       | Roots target (Will 15) (requires an elementally Attuned Seed; raw use adds +1 Void) | 1 Attuned Seed per use        |
 | Breath Whisper Array    | Contract • Sonic        | +3 DMG       | Silences chants on crit                             | Fails if Bonds > 3            |
-| Sparkspike Dagger       | Bonded • Knife          | +4 DMG       | +1 DEF next turn if duel                            | Re‑spark daily                |
+| Sparkspike Dagger       | Bonded • Knife          | +4 DMG       | +1 DEF next turn if duel                            | Re‑spark daily (1 Drip)       |
 | Union Heavy Pistol      | Conventional            | +4 DMG       | Ubiquitous street sidearm                           | Legal in most zones           |
 | Breach Hammer           | Conventional • 2‑H      | +7 DMG       | Breaks bonded tech (Will 15)                        | Restricted                    |
-| Compact Drone Halo*     | Contract • Assist drone | Soak +5      | Auto‑deploy shield                                  | 1 Spark / hr; Soulcredit ≥ –2 |
+| Compact Drone Halo*     | Contract • Assist drone | Soak +5      | Auto‑deploy shield                                  | 5 Drips / hr; Soulcredit ≥ –2 |
 | Arcstorm Array*         | Glyph • Vehicle         | +12 DMG      | EMP vs 10 m on crit                                 | 3 Spark per volley            |
 | Tempest Ballista Mk IV* | Contract • Vehicle      | +10 DMG      | Locks without Tempest key                           | —                             |
 | Void Reclaimer Cannon*  | Void • Siege            | +14 DMG      | +1 Void to 5 m splash                               | Risk: local breach            |
@@ -82,8 +85,8 @@ See the foot-notes beneath the table and the Reference Symbols list for full det
 | Resonant Shell Weave     | Glyph        | +3                | Reduces energy dmg 2        | +1 Void if cracked  |
 | Tempest Tactical Skin    | Contract     | +5 / +1 ranged    | Sends breach ping if torn   | Soulcredit ≥ 0      |
 | Voidshroud Drape         | Void         | +2                | Phase‑shift (harder to hit) | +1 Void / hr        |
-| Echo‑Lattice Gown        | Spirit       | +1                | +1 DEF when Guiding Principle       | Nightly dream quest |
-| Embercloak Shroud        | Glyph        | +3 / +1 vs energy | Deflects dmg once           | 1 Spark /session    |
+| Echo‑Lattice Gown        | Spirit       | +1                | +1 DEF when acting in alignment with Guiding Principle | Nightly dream quest |
+| Embercloak Shroud        | Glyph        | +3 / +1 vs energy | Deflects dmg once           | 5 Drips / session   |
 | Bondweave Mantle         | Bonded       | +4 / +2*          | Share dmg between Bonds     | 1 Seed / month      |
 | Rainthread Vestment      | Spirit       | +1                | Resist mind effects ×2      | Absorb grief (±SC)  |
 | Riot Carapace (Standard) | Conventional | +5                | Blast resistant             | Legal civ‑grade     |
@@ -95,7 +98,7 @@ See the foot-notes beneath the table and the Reference Symbols list for full det
 | Item                | Type     | Function                   | Upkeep / Risk                       |
 | ------------------- | -------- | -------------------------- | ----------------------------------- |
 | Leyshade Visor      | Sensor   | Reveal hidden glyphs/Bonds | 1 Breath use; +1 Void in dreamspace |
-| Multi‑Bind Sheath   | Bracer   | Quick‑swap 4 Talismans     | 1 Spark/day to bond                 |
+| Multi‑Bind Sheath   | Bracer   | Quick‑swap 4 Talismans     | 5 Drips/day to bond                 |
 | Soulcredit Tag      | Civic ID | Broadcasts ledger          | +1 Void per forged sync             |
 | Talisman Blanks (3) | Craft    | Raw substrates             | Carve to suit                       |
 | Whisper Wax Tablet  | Recorder | Breath‑activated audio     | Single‑use                          |
@@ -120,9 +123,9 @@ See the foot-notes beneath the table and the Reference Symbols list for full det
 | Mini‑Oraculum        | Home AI       | Ritual advice, snark    | Data tithe to Codex      |
 | Seedwalker Class 3   | Utility heavy | Gate, carry corpses     | Attunes to glyphs        |
 | Voidling Assistant V | Illicit aide  | Reads suppressed memory | Banned in Nexus          |
-| Glyph‑Walker Scribe  | Lore drone    | +1 to Ritual rolls      | 1 Spark/2 uses           |
+| Glyph‑Walker Scribe  | Lore drone    | +1 to Ritual rolls      | 5 Drips/2 uses           |
 | Echo Pulse Familiar  | Performance   | +2 Persuade/Perform     | 1 Breath/session         |
-| Voidcradle A‑Bot     | Anti‑Ritual   | Disables 1 glyph/turn   | 1 Hollow/3 uses; +1 Void |
+| Voidcradle A‑Bot     | Anti‑Ritual   | Disables 1 glyph/turn   | 1 Hollow Shard / 3 uses; +1 Void |
 
 ------
 
@@ -214,14 +217,14 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 ## 8 · Consumables & Culinary Tech — Sovereign Nexus
 
-*A snapshot of everyday and prestige culinary gear now canon in Aeonisk. For full tables, mechanics, and Soulcredit-gated upgrades see **Sovereign Nexus Culinary Guide — Currency Edition (v1.0).***
+*A snapshot of everyday and prestige culinary gear now canon in Aeonisk. For full tables, mechanics, and Soulcredit-gated upgrades see **Sovereign Nexus Culinary Guide — Currency Edition (v2.0).***
 
 | Category                     | Example Items (see Guide)                                   | Typical Cost* |
 | ---------------------------- | ----------------------------------------------------------- | ------------- |
 | **Drinks**                   | Resonance Tea, Spiral Kvas, Aetherwine, Aurora Fizz, Oath Whiskey, Shadowdraft† | 2–10 Drips |
 | **Snacks & Appetisers**      | Soulcrackers, Echo-Crackers, Nebula Chips, Pulsefruit Skewers | 1–2 Drips |
 | **Desserts**                 | Bonded Chutney Tarts, Voidberry Parfait†, Promise Pudding   | 1–8 Drips |
-| **Intoxicants & Enhancers**  | Spark Mist, Ephemeral Mead, Dreamer's Draught, Leyline Elixir | 2–4 Drips / 2 Sparks |
+| **Intoxicants & Enhancers**  | Spark Mist, Ephemeral Mead, Dreamer's Draught, Leyline Elixir | 2–4 Drips (1 Grain refined) |
 | **Kitchen Tech & Appliances**| PrepBot S-10, TasteDrone, Ritual AltarBot, Voidguard Hood   | 4–10 Sparks |
 
 *Cost ranges are urban-average Drip prices; see Guide for Grain/Breath/Spark equivalents and contraband Hollow Shard rates.*
@@ -232,102 +235,15 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 ---
 
-## Aeonisk Permissive Commercial License
+## License
 
-Aeonisk Permissive Commercial License (APCL) v1
+This Gear & Tech Reference is published under the **Aeonisk Permissive Commercial License (APCL) v1**. The full license text is maintained as the canonical copy in **Aeonisk — System Neutral Lore v1.3.0** (`content/Aeonisk - System Neutral Lore - v1.3.0.md`).
 
-Plain-English clarity with legally operative language.  One printed page at normal margins.
+**Required attribution** (when republishing or adapting any material from this document):
 
-⸻
+> "This work is based on Aeonisk, created by Three Rivers AI Nexus.
+> Used under the Aeonisk Permissive Commercial License (APCL)."
 
-1. Definitions
-
-"Licensor" – Three Rivers AI Nexus.
-"Aeonisk Material" – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
-"Your Work" – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
-"Mechanics" – underlying game rules and procedures (ideas, not expression).
-"Trademark" – the word-mark "AEONISK" and associated logos.
-
-⸻
-
-1. Grant of Rights
-
-The Licensor grants you a perpetual, worldwide, non-exclusive, royalty-free license to reproduce, adapt, distribute, publicly display, and perform Aeonisk Material in Your Work, subject to the terms below.
-
-⸻
-
-2. Attribution Requirement
-
-You must place the following notice in a reasonably visible location (e.g., credits page, read-me, or product listing):
-
-"This work is based on Aeonisk, created by Three Rivers AI Nexus.
-Used under the Aeonisk Permissive Commercial License (APCL)."
-
-You may add a URL after the statement.
-
-⸻
-
-3. Independence & Endorsement
-
-You may describe Your Work as "Compatible with Aeonisk."
-You shall not state or imply that Your Work is official, licensed by, or endorsed by the Licensor unless you have a separate written agreement.
-
-⸻
-
-4. Trademark Use
-
-The Trademark remains the Licensor's property. You may use it only:
-	•	(a) in the required attribution;
-	•	(b) to state compatibility ("Compatible with Aeonisk"); or
-	•	(c) in the official APCL badge (Sec. 5).
-You may not use "Aeonisk" in a company name, imprint, or product line title (e.g., "Aeonisk Studios") without a custom license.
-
-⸻
-
-5. APCL Badge
-
-A "Built under the APCL" badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor's site. Badge permission may be revoked for misuse or violation of this license.
-
-⸻
-
-6. Termination
-	•	Automatic termination – This license automatically ends if you materially breach it and fail to cure that breach within 30 days of written notice from the Licensor.
-	•	After termination you must cease new distribution of infringing copies, but you may sell off existing physical inventory already manufactured before termination.
-
-⸻
-
-7. Warranty Disclaimer & Limitation of Liability
-
-The Aeonisk Material is provided "AS IS, WITHOUT WARRANTY OF ANY KIND."
-IN NO EVENT shall the Licensor be liable for any indirect, special, incidental, or consequential damages arising out of this license. Some jurisdictions do not allow such exclusions; if so, the minimum allowed by law applies.
-
-⸻
-
-8. Game Mechanics vs. Expression
-
-Nothing in this license restricts your independent use of un-copyrightable game mechanics or ideas. This license applies only to the expression of those mechanics found in Aeonisk Material (text, art, lore, stat blocks, etc.).
-
-⸻
-
-9. Interplay with YAGS GNU GPL v2
-
-The core YAGS rules engine is released under GNU GPL v2. Your use of YAGS content must follow the GPL in addition to—and not replaced by—this license.
-
-⸻
-
-10. Governing Law & Venue
-
-This license is governed by the laws of the Commonwealth of Pennsylvania, USA.
-Any dispute shall be brought exclusively in the state or federal courts located within Pennsylvania.
-
-⸻
-
-11. Custom Arrangements
-
-For large-scale video games, officially branded products, or joint ventures, contact the Licensor to negotiate a separate agreement.
-
-⸻
-
-Thank you for helping Aeonisk grow.
+YAGS mechanics carried in this document remain governed by GNU GPL v2 in addition to the APCL. For trademark use, custom arrangements, or full terms, consult the System Neutral Lore document.
 
 — Three Rivers AI Nexus, Licensor

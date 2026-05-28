@@ -2,11 +2,11 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.2.3
+Version 1.3.0
 
 ## 1. Introduction
 
-Aeonisk is a science-fantasy roleplaying setting built on intimacy, intention, and control, using the **Yet Another Game System (YAGS)** as its foundation. In this world, there are no nations — only factions, dynasties, and spiritual economies. Technology hums in harmony with  magick. Rituals shape reality. Bonds bind more than blood.
+Aeonisk is a science-fantasy roleplaying setting built on intimacy, intention, and control, using the **Yet Another Game System (YAGS)** as its foundation. In this world, there are no nations — only factions, dynasties, and spiritual economies. Technology hums in harmony with magic. Rituals shape reality. Bonds bind more than blood.
 
 You are a wielder of Will. You live in a world where to act is to mean  something — and to mean something is dangerous. This module adapts the  YAGS system into a framework for stories about:
 
@@ -21,7 +21,7 @@ You may rise through purpose, or fall through sacrifice. But either way: the Ast
 Aeonisk YAGS focuses on:
 
 - Emotional and spiritual tension, not just physical conflict.
-- Ritual magick with consequences, cost, and deep symbolism.
+- Ritual magic with consequences, cost, and deep symbolism.
 - Formally declared Bonds as party cohesion and narrative anchors.
 - A real spiritual economy of Soulcredit and ritual debt.
 - The creeping influence of the Void as temptation and corruption.
@@ -46,7 +46,7 @@ Aeonisk uses the core YAGS mechanics but modifies or adds the following:
 | --------------------- | ------------------------------------------------------------ |
 | Core Dice Mechanic    | Skill Attribute × Skill + d20                                |
 | Ritual Resolution     | Willpower × Astral Arts + d20 vs Ritual Threshold. Outcome determined by margin of success/failure. |
-| New Skills            | Astral Arts, Magick Theory, Intimacy Ritual, Corporate Influence, Debt Law, Pilot, Drone Operation |
+| New Skills            | Astral Arts, Magic Theory, Intimacy Ritual, Corporate Influence, Debt Law, Pilot, Drone Operation |
 | Void Score            | Tracks spiritual corruption (0–10); passively warps reality at 5+, triggers Void Spike on rapid gain. |
 | Soulcredit            | Tracks spiritual trust and obligation (–10 to +10).          |
 | Bond Mechanics        | Formal connections (max 3, Freeborn 1). Provides +2 to rituals and +1 Soak (defending Bonded). Can be sacrificed. |
@@ -142,7 +142,7 @@ Professionals have extra options for predictable, non-opposed tasks:
 Eight primary attributes define raw potential. Human average is 3, range typically 2-5 (higher is rare).
 
 - **Strength (Str):** Physical power, lifting, hurting, breaking things. Carrying capacity is based on Str^2.
-- **Health (Hea):** Endurance, fitness, resisting injury/poison/fatigue, staying conscious.
+- **Endurance (End):** Stamina, fitness, resisting injury/poison/fatigue, staying conscious. *(Aeonisk renames the YAGS Health attribute to Endurance; mechanics are identical.)*
 - **Agility (Agi):** Quickness, acrobatics, balance, dodging, brawling.
 - **Dexterity (Dex):** Hand-eye coordination, sleight-of-hand, melee/pistol skills, driving.
 - **Perception (Per):** Alertness, senses (vision, hearing), observation, noticing things. Used for rifles/bows.
@@ -231,7 +231,7 @@ Rituals are acts of intention, symbolism, and sacrifice, not simple spells. They
 | Type      | Ritual Threshold | Description                                                |
 | --------- | ---------------- | ---------------------------------------------------------- |
 | Minor     | 16               | Emotional veil, symbolic marking, light defense            |
-| Standard  | 18               | Bond reinforcement, magickal tracking, simple bindings     |
+| Standard  | 18               | Bond reinforcement, magical tracking, simple bindings      |
 | Major     | 20–22            | Contract severing, astral healing, memory reweaving        |
 | Forbidden | 26–28            | Soul extraction, resurrection, Void channeling (High Void) |
 
@@ -242,6 +242,15 @@ Rituals are acts of intention, symbolism, and sacrifice, not simple spells. They
   - **Skipping Offering:** Gain +1 Void. May shift the ritual outcome downward by one tier on the  outcome table (see Section 6). Unethical intent also triggers Void  penalty.
 
 *(See Section 6 for detailed Ritual Rules).*
+
+**Dreamwork (Astral Arts Specialization):**
+Dreamwork is a specialization of Astral Arts focused on dream-state work — introspection rituals, prophetic vision, mnemonic reweaving across sleep, communion with dream entities, and group dream-trance. It uses the standard ritual mechanic (Willpower × Astral Arts + d20 vs Ritual Threshold) with two specifics:
+
+- **Required Primary Ritual Item:** A Dream Ring or equivalent dream-talisman (Oneiric Mask, Echo Shard, etc.). Attempting Dreamwork without one incurs +1 Void on top of any normal ritual cost — the practitioner cannot enter the dream-state safely.
+- **Typical Thresholds:** Most Dreamwork falls in the Standard (18) or Major (20–22) tier. Forbidden-tier Dreamwork (soul-recovery from a fractured dream, dream-resurrection) sits at 26–28.
+- **Lineage Note:** The Nymir Line ("Gaze Line") is particularly known for Dream Ring training and produces most of the bonded ley-readers and slipstream navigators. Other Lines train in Dreamwork as well; it is not Nymir-exclusive.
+
+Group Dreamwork follows the §6.3 Group Rituals rules.
 
 ### 3.2. Soulcredit & Void
 
@@ -287,13 +296,20 @@ Your soul's sacred trajectory or purpose. Not a motto, but a metaphysical path.
 
 ### 3.5. Aeonisk Currency: Elemental Economy
 
-Aeonisk uses charged elemental talismans instead of abstract money. Value is transferred energy.
+Aeonisk uses charged elemental talismans instead of abstract money. Each talisman is a **hard asset** — a real piece of crystallized energy or refined elemental material that *also* functions as currency. Value is transferred energy.
 
-- **Types:** Grain (Earth), Drip (Water), Spark (Fire), Breath (Air). Each represents different conceptual energies.
-- **Forbidden:** Hollow (Void) - Black market, corrupting.
-- **Potential:** Seed (Raw/Unaligned) - Raw Seeds are unstable potential, cannot be traded directly as currency, and must be ritually attuned to an elemental aspect (e.g., Spark, Drip) to become stable and usable in specialized gear or as foundational talismans. Using a Raw Seed without attunement typically incurs Void.
-- **Usage:** Energy is siphoned from talismans (e.g., Spark Core 743/1000) to pay  others or power devices. Empty talismans can be recharged or sacrificed.
-- **Sizes:** Single (1 unit), Band (10-99), Sigil (100-999), Core (1k-9.9k), Vault (10k+).
+- **Types (four elemental currencies):** Breath (Air), Drip (Water), Grain (Earth), Spark (Fire). Each represents a distinct conceptual energy; they are not interchangeable in *use* (you can't power a Spark device with Drip), only in *trade*.
+- **Baseline Exchange (±20–30% market variance):**
+  - 1 Drip = 20 Breath
+  - 1 Grain = 20 Drip = 400 Breath
+  - 1 Spark = 20 Grain = 400 Drip = 8 000 Breath
+  Rates float by region, season, and faction supply. A frontier bazaar might give 16 Grain for a Spark; an Aeonisk Prime exchange might charge 24. Settle the rate before you commit the trade.
+- **Forbidden (Void Energy):** Hollow energy is illicit under Nexus law and incurs Void exposure. It is traded in two forms:
+  - **Hollow Seed** — the raw form. Forms when a Bond fractures or a Raw Seed degrades past its 7-cycle stability window. Unstable; varies significantly in size. Value depends on size and purity, not a standardized unit.
+  - **Hollow Shard** — crystallized fragments refined or broken off from larger Hollow Seeds. Stable enough for standardized black-market trade. The closest void-energy equivalent to a Spark in clean markets.
+- **Potential:** **Raw Seed** (distinct from Hollow Seed). Unstable, unaligned potential. Cannot be traded directly as currency; must be ritually attuned to an elemental aspect (Spark, Drip, Grain, Breath) to become stable. Using a Raw Seed without attunement typically incurs Void. Degrades into a Hollow Seed if not used or attuned within 7 cycles.
+- **Usage:** Energy is siphoned from talismans (e.g., a Spark Core marked 743/1000) to pay others or power devices. Empty talismans can be recharged or sacrificed.
+- **Talisman Capacities:** Single (1 unit), Band (10–99), Sigil (100–999), Core (1k–9.9k), Vault (10k+). Capacity is independent of currency type — a Spark Sigil holds 100–999 Spark units; a Drip Sigil holds 100–999 Drip units.
 
 *(See Section 9 for detailed Currency Rules).*
 
@@ -315,13 +331,14 @@ Select an Origin. This grants an Attribute bonus (+1 to one of two listed stats)
 | Astral Commerce Group | Intelligence or Emp     | **Contract-Bound:** Start with +1 Soulcredit or one favourable minor contract/debt owed *to* you. |
 | Pantheon Security     | Strength or Agility     | **Tactical Protocol:** Once per combat, automatically succeed on an Initiative roll (treat as 20). |
 | Aether Dynamics       | Empathy or Perception   | **Ley Sense:** Can sense the presence, general strength, and mood (calm/turbulent) of nearby ley lines. |
-| Arcane Genetics       | Health or Dexterity     | **Bio-Stabilized:** +2 to rolls resisting biological Void effects, disease, or mutation. |
+| Arcane Genetics       | Endurance or Dexterity  | **Bio-Stabilized:** +2 to rolls resisting biological Void effects, disease, or mutation. |
 | Tempest Industries    | Dexterity or Perception | **Disruptor:** +2 bonus when attempting to sabotage or hijack rituals or ritually-encoded tech. |
+| House of Vox          | Perception or Empathy   | **Audience Read:** +2 to read crowd sentiment, or to detect spin, framing, and deception in broadcast or recorded media. |
 | Freeborn / Unbound    | Any 3 Attributes        | **Wild Will:** Can only form/maintain 1 Bond. Cannot sacrifice this Bond without extreme cost (GM call). |
 
 ### 4.3. Step 3: Assign Attributes
 
-Distribute points into the 8 primary YAGS attributes (Str, Hea, Agi, Dex, Per,  Int, Emp, Wil) according to your chosen priority level and point pool.  Remember the human average is 3. Apply your +1 Origin bonus *after* spending points. Check maximum attribute level allowed by campaign level.
+Distribute points into the 8 primary YAGS attributes (Str, End, Agi, Dex, Per,  Int, Emp, Wil) according to your chosen priority level and point pool.  Remember the human average is 3. Apply your +1 Origin bonus *after* spending points. Check maximum attribute level allowed by campaign level.
 
 ### 4.4. Step 4: Choose Skills
 
@@ -332,7 +349,7 @@ Spend Experience points on Skills. Select from the YAGS core list or  Aeonisk-sp
 | Skill               | Attribute | Description                                                  |
 | ------------------- | --------- | ------------------------------------------------------------ |
 | Astral Arts         | Willpower | Channeling, resisting, and shaping spiritual energies in rituals. |
-| Magick Theory       | Int       | Knowledge of glyphs, ritual systems, sacred mechanics, Aeons. |
+| Magic Theory       | Int       | Knowledge of glyphs, ritual systems, sacred mechanics, Aeons. |
 | Intimacy Ritual     | Empathy   | Performing emotionally-powered or Bond-based rituals. Requires trust. (Includes Intimidation Ritual as a use-case: a ritual “threat” instead of a social roll. Check: Empathy × Intimacy Ritual + d20. Subdomain tag: `intimidation_ritual`). |
 | Corporate Influence | Emp       | Navigating faction politics, extracting favors, reading intentions. |
 | Debt Law            | Int       | Understanding/manipulating contracts, oaths, Soulcredit systems. |
@@ -409,14 +426,14 @@ Combat uses the YAGS core loop, potentially modified by Aeonisk elements. GMs ma
    | 3      | 4     | -10     | Moderate (Wounded/Stunned)      |
    | 4      | 5     | -15     | Heavy (Seriously Wounded/Dazed) |
    | 5      | 6+    | -25     | Critical (Critical/Beaten)      |
-   | 6+     | -     | -40     | Fatal (Health check or die)     |
+   | 6+     | -     | -40     | Fatal (Endurance check or die)  |
 
    - Wounds track lasting injury. Stuns track temporary impact/bruising. Penalties stack!
    - *Damage Types:* Wound (swords, bullets), Stun (fists, clubs), Mixed (knives; half wounds, half stuns).
 
 7. **End of Round:**
 
-   - Make Health checks to stay conscious if Critical/Fatal/Beaten.
+   - Make Endurance checks to stay conscious if Critical/Fatal/Beaten.
    - Apply ongoing effects (bleeding, poison, rituals, Void).
    - Start next round (Declare Actions).
 
@@ -499,7 +516,7 @@ The Margin Outcome Table covers the raw mechanical results. For immediate narrat
 - **Roll:** The lead caster makes a single Ritual Roll using the group's combined power against the scaled DC.
 - Requires mutual Bonds among participants for most effective group rituals.
 - Consequences from the outcome table (Void gain, backlash, benefits) generally apply to all participants, unless the GM rules otherwise based on narrative context.
-- Dreamwork can be done in groups as well, following similar principles.
+- Dreamwork (see §3.1 for the specialization rules) can be performed in groups, following the same principles as other group rituals; the primary caster's Dream Ring counts for the group, and additional Dream-talismans among participants grant a +1 Synergy bonus.
 
 **Example: Revised Group Ritual Rule (Ley Repair)**
 
@@ -531,7 +548,7 @@ The Margin Outcome Table covers the raw mechanical results. For immediate narrat
 1. **Thread the Bond:** Reinforce Bond (+1 Wil rolls for session, requires "Solid Success" margin or better). *Offering:* Written confession, sealed.
 2. **Ghost of the Ledger:** Compel truthful answer to 1 question (target with spiritual debt, requires "Solid Success" margin or better). *Offering:* Torn ledger page, blood.
 3. **Seal the Threshold:** Temporary barrier vs spiritual intrusion/Void. *Offering:* Salt and personal ash circle.
-4. **Attunement Ritual:** Uses an appropriate skill (e.g., Astral Arts, Magick Theory, or a dedicated Attunement skill if available) to ritually process a Raw Seed, aligning it to a specific elemental aspect (Spark, Drip, Breath, Grain), transforming it into a stable Attuned Seed. Can also refer to rituals for attuning other items or oneself to concepts/energies, like ship attunement for ley navigation.
+4. **Attunement Ritual:** Uses an appropriate skill (e.g., Astral Arts, Magic Theory, or a dedicated Attunement skill if available) to ritually process a Raw Seed, aligning it to a specific elemental aspect (Spark, Drip, Breath, Grain), transforming it into a stable Attuned Seed. Can also refer to rituals for attuning other items or oneself to concepts/energies, like ship attunement for ley navigation.
 
 **Major (Threshold 20-22):**
 
@@ -811,19 +828,20 @@ Power aligns with philosophy, not geography.
 
 *(See Appendix 1 for full Faction details, including Tenets and Mechanical Notes)*
 
-- **Sovereign Nexus:** Theocratic matriarchy. Order, ritual, hierarchy. Regulates magick, cleanses Void.
+- **Sovereign Nexus:** Theocratic matriarchy. Order, ritual, hierarchy. Regulates magic, cleanses Void.
 - **Astral Commerce Group (ACG):** Financial entity. Tracks/brokers Soulcredit, contracts, ritual debt. Law is literal.
 - **Pantheon Security:** Privatized tactical force. Loyalty, procedure. Militarized ritual, Void containment.
 - **Aether Dynamics:** Ecological-spiritual balance. Leylines, harmony, symbiosis. Fluid ritual, attuned tech.
 - **Arcane Genetics:** Biotech/ritual fusion. Evolution, coded spirituality. Fleshcrafting, programmable purity.
 - **Tempest Industries:** Subversive syndicate. Stolen tech, forbidden ritual, Void tools. Power through control.
+- **House of Vox:** Media and broadcast temples. Information control, propaganda, narrative shaping. Nexus-aligned by convenience, never by oath.
 - **Freeborn / Unbound:** Outside faction structure. Rare, mistrusted/feared. Scarce Bonds, truth over power.
 
 ## 11. World Lore
 
 ### 11.1. History Synopsis
 
-Aeonisk's dominant species evolved from bonobo ancestors, retaining some emphasis on intimacy but developing complex, matriarchal societies. They  harnessed technology, underwent an Age of Enlightenment, and eventually  unified under the matriarch Aurora (~1500 years ago) who formed the **Sovereign Nexus** to ensure peace through centralized authority and technological/astral  advancement. Interstellar travel led to colonization (Arcadia, Elysium,  Nimbus). The Nexus maintains stability but faces whispers of dissent and hidden agendas.
+Aeonisk's dominant species evolved from bonobo ancestors, retaining some emphasis on intimacy but developing complex, matriarchal societies. They harnessed technology and underwent an Age of Enlightenment. Aurora's founding vision is ancient — recited in the Second Aeon and dated by chroniclers to roughly 1500 years before the present — but it was only at the dawn of the Third Aeon (~683 AR ago) that her doctrine was formally codified into the **Sovereign Nexus**, binding the Wills of the bonded worlds into a single harmonic. Interstellar travel led to the colonization of Arcadia and Nimbus. The Nexus maintains stability but faces whispers of dissent and hidden agendas.
 
 ### 11.2. The Aeons
 
@@ -831,12 +849,12 @@ Metaphysical currents shaping reality, not just time periods.
 
 - **First Aeon (First Sovereignty, ~6000-1200 BR):** Age of Towers. Defined Will through form, structure, pattern, naming.  Key Tech: Celestial harmonics, ritual metalwork, codified lineage.  Events: Treaty of Ten Provinces, Project of Names, Harmonium War. *Outsiders:* Siblings of the Black Horizon (embraced Void).
 - **Second Aeon (Aeon of Weaving, ~1200 BR - 0 BR):** Root Aeon. Focused on connection, continuity, intuition, remembrance.  Matriarchal, recursive. Law was sung. Key Tech: Fleshcrafting, astral  convergence, memory-weaving. Structure: Covenant Rings (Kinship, Dream,  Descent). Events: Rites of Recovery, Founding of Rings, Subduction Wars, Spiral Reconciliation.
-- **Third Aeon (Sovereign Aeon, 0 AR - Present ~683 AR):** Present Aeon. Awakening of individual sovereignty, codified  consequence, metaphysical economy (Soulcredit). Will as Law, Choice as  Sacrament, Debt as Reflection. Key Tech: Soulcredit economy, ritual AI  arbitration, biotech under oath, astral infrastructure. *Periods:* Early (Nexus rises, SC quantified), Middle (Fracture Cults, Ritual  Standardization Act, Eye of Breach AI), Late (Bond status key, Void  Accord Crisis, prophecy returns).
+- **Third Aeon (Sovereign Aeon, 0 AR - Present ~683 AR):** Present Aeon. Awakening of individual sovereignty, codified  consequence, metaphysical economy (Soulcredit). Sovereign Will, Witnessed Choice, Reflective Debt. Key Tech: Soulcredit economy, ritual AI  arbitration, biotech under oath, astral infrastructure. *Periods:* Early (Nexus rises, SC quantified), Middle (Fracture Cults, Ritual  Standardization Act, Eye of Breach AI), Late (Bond status key, Void  Accord Crisis, prophecy returns).
 
 ### 11.3. Liturgical Calendar (Abbreviated)
 
 - **High Rites:** Equinoxes/Solstices (Breath, Flame, Grain, Drip) - Public rituals.
-- **Feasts of Passage:** Life (birth/naming), Fire (male puberty), Water (female puberty), Death.
+- **Feasts of Passage:** Life (birth/naming), Unveiling (pod opening / Covenant Ring assignment), Death.
 - **Civic Festivals:** Ledger Day (ACG), Bondlight (Nexus), Ash Resonance (Aether), Maskfire (Pantheon/Freeborn), Seedmoon (Wild).
 
 *(See Appendix 3 for full Calendar details).*
@@ -880,12 +898,13 @@ Mechanics for both are fully resolved via the Margin Outcome Table in §6.1. For
 
 
 
-- **Sovereign Nexus:** (+1 Wil/Int). Indoctrinated (+2 vs ritual disruption). Govern via  ritual, hierarchy. Bonds registered. Magick regulated. Void = unclean.
+- **Sovereign Nexus:** (+1 Wil/Int). Indoctrinated (+2 vs ritual disruption). Govern via  ritual, hierarchy. Bonds registered. Magic regulated. Void = unclean.
 - **Astral Commerce Group (ACG):** (+1 Int/Emp). Contract-Bound (+1 SC or favor owed *to* PC). Debt is structure. SC is value. Contracts litigated. Void = risk/investment.
 - **Pantheon Security:** (+1 Str/Agi). Tactical Protocol (Auto-win 1 initiative/day). Honor=function. Militarized ritual. Void = active threat.
 - **Aether Dynamics:** (+1 Emp/Per). Ley Sense (Sense lines). Harmony=health. Fluid ritual. Tech attuned. Void = imbalance.
-- **Arcane Genetics:** (+1 Hea/Dex). Bio-Stabilized (+2 vs bio-Void/mutation). Ritual embodied/coded. Bonds enhanced. Void = potential mutation.
+- **Arcane Genetics:** (+1 End/Dex). Bio-Stabilized (+2 vs bio-Void/mutation). Ritual embodied/coded. Bonds enhanced. Void = potential mutation.
 - **Tempest Industries:** (+1 Dex/Per). Disruptor (+2 sabotage rituals/tech). Subversive. Rituals hacked. Bonds strategic/expendable. Void = tool/status.
+- **House of Vox:** (+1 Per/Emp). Audience Read (+2 to read crowd sentiment or detect spin/lies in media). Broadcast temples, narrative shaping, propaganda. Bonds performative/leveraged. Void = scandal/leak.
 - **Freeborn / Unbound:** (+1 Any Three). Wild Will (1 Bond max). Outside structure. Bonds sacred/scarce. Void understood. Truth > Power.
 
 ## Appendix 2: Ritual Library & Card Template
@@ -930,7 +949,8 @@ ____________________________________________________________
 - **Aeon:** Metaphysical current shaping reality. Not time, but awakening.
 - **AR/BR:** After/Before Reconciliation (Year 0). Standard time notation.
 - **Bond:** Formal metaphysical alignment/contract. Real and binding.
-- **Codex Nexum:** Governing legal-mnemonic text of the Nexus.
+- **Codex Cathedral:** Fortified citadel on Aeonisk Prime that houses the main physical manifestation of the Codex Nexum. Seat of the Sovereign Nexus's clerical and judicial body (Confessors, tribunal clerks, Cathedral healers, ritual-supply clergy). Not a separate faction — operates under Nexus authority.
+- **Codex Nexum:** Governing legal-mnemonic text of the Nexus. Its main physical manifestation resides in the Codex Cathedral; secondary instances ripple through sanctified ley networks.
 - **Covenant Rings:** Second Aeon structure (Kinship, Dream, Descent).
 - **Cycle:** A period of 7 days, a week.
 - **Eye of Breach:** Unsanctioned AI that mirrors the Codex Nexum. Active on Nimbus and Hollow Vector.

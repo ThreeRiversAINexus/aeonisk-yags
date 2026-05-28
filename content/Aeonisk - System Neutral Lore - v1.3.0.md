@@ -33,7 +33,7 @@ Title: "Understanding the Sovereign Nexus: You Are Not Alone"
 
 Excerpt:
 
-The Sovereign Nexus is not a government. It is a harmonic. A system of balance, record, and Will-recognition spanning Aeonisk Prime and its bonded worlds. Born from Matriarch Aurora's vision nearly seven centuries ago, the Nexus was conceived to bind the disparate Wills into a stable harmony, ensuring continuity above all.
+The Sovereign Nexus is not a government. It is a harmonic. A system of balance, record, and Will-recognition spanning Aeonisk Prime and its bonded worlds. Codified nearly seven centuries ago from Matriarch Aurora's ancient vision (recited in the Second Aeon and dated by chroniclers to roughly fifteen centuries before the present), the Nexus was conceived to bind the disparate Wills into a stable harmony, ensuring continuity above all.
 
 It does not rule. It remembers. It reflects.
 
@@ -188,12 +188,13 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **Expulsion Cause:** Zeroing out a soulcredit debt without ritual loss or equivalent energy transfer. Forging ledgers (poorly).
 *   **What They Never Tell You:** The market is designed to harvest dissolution, not stabilize it. Default is a resource.
 
-**Resonance Communes (Nexus-Sanctioned) - The Rhythm of Bond**
+**Resonance Communes (Freeborn-aligned, Nexus-tolerated) - The Rhythm of Bond**
+*   **Affiliation Note:** Communes are a Freeborn subfaction — communal ritual traditions outside Sovereign authority. Some operate under Nexus *sanction* (a registration permitting public ritual), but the Communes themselves are not Nexus-aligned; Sovereign oversight is the price they pay for visible practice, not a Bond of loyalty.
 *   **Curriculum Highlights:** Ley-synced trancework, Talismanaut attunement, group ritual improvisation, emotional resonance mapping (often guided by Thaurin adepts).
 *   **Deployment Style:** Ravewitch, intimacy node keeper, feedback ritualist, communal weaver, grief-channeler.
-*   **Hidden Curriculum:** Spontaneity is a programmable illusion. Shared feeling is filtered feeling.
-*   **Expulsion Cause:** Refusing to attune. Disrupting sync. Generating unsanctioned emotional harmonics.
-*   **What They Never Tell You:** The communion is being archived. Every. Single. Pulse. For analysis by Nexus regulators.
+*   **Hidden Curriculum:** Spontaneity is a programmable illusion — at least when the Nexus is listening. Shared feeling can still be filtered feeling.
+*   **Expulsion Cause:** Refusing to attune. Disrupting sync. Generating unsanctioned emotional harmonics that bring Confessor attention down on the host commune.
+*   **What They Never Tell You:** Sanctioned communions are archived for Nexus review. Every. Single. Pulse. The unsanctioned ones — the deep Freeborn rites — are the reason the Communes still matter.
 
 **Tempest Industries - The Hollow Path (Unofficial/Subversive)**
 *   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced drone operation for stealth and sabotage, study of Siblings of the Black Horizon texts.
@@ -214,7 +215,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 > "They say the Sovereign shapes your Will. But what if your Will doesn't bend? Some of us remember what it means to be unformatted. We weren't educated. We were trained to forget. So now we write it back into the glyphs — our own curriculum, in stolen Sparks and defiant silence. Find us where the Codex signal weakens."
 
-*(Additional Faction Paths like Pantheon Security, Fractal Praxis, House of Vox, etc., can be detailed similarly if desired for deeper world-building).*
+*(Additional Faction Paths like Pantheon Security, House of Vox, etc., or Freeborn subfactions like Fractal Praxis and the Resonance Communes, can be detailed similarly if desired for deeper world-building).*
 
 ------
 
@@ -300,7 +301,7 @@ Clearance: Youth Tier III (Public Circulation)
 ### Core Planets of Aeonisk Interstellar Civilization
 
 1.  **Aeonisk Prime (Homeworld)**
-     • Seat of the Sovereign Nexus and the Codex Cathedral. Dominant Lines: Elaras, Halessan, Ireveth.
+     • Seat of the Sovereign Nexus and the Codex Cathedral — the fortified citadel that houses the main physical manifestation of the Codex Nexum. Dominant Lines: Elaras, Halessan, Ireveth.
      • Spider‑webbed with sanctified ley networks & ancestral archives of the First and Second Aeons.
      • World motto: *"All Acts Count."*
 2.  **Arcadia**
@@ -571,13 +572,13 @@ Plain-English clarity with legally operative language.  One printed page at norm
 
 ⸻
 
-1. Grant of Rights
+2. Grant of Rights
 
 The Licensor grants you a perpetual, worldwide, non-exclusive, royalty-free license to reproduce, adapt, distribute, publicly display, and perform Aeonisk Material in Your Work, subject to the terms below.
 
 ⸻
 
-2. Attribution Requirement
+3. Attribution Requirement
 
 You must place the following notice in a reasonably visible location (e.g., credits page, read-me, or product listing):
 
@@ -588,19 +589,19 @@ You may add a URL after the statement.
 
 ⸻
 
-3. Independence & Endorsement
+4. Independence & Endorsement
 
 You may describe Your Work as "Compatible with Aeonisk."
 You shall not state or imply that Your Work is official, licensed by, or endorsed by the Licensor unless you have a separate written agreement.
 
 ⸻
 
-4. Trademark Use
+5. Trademark Use
 
 The Trademark remains the Licensor's property. You may use it only:
 	•	(a) in the required attribution;
 	•	(b) to state compatibility ("Compatible with Aeonisk"); or
-	•	(c) in the official APCL badge (Sec. 5).
+	•	(c) in the official APCL badge (Sec. 6).
 You may not use "Aeonisk" in a company name, imprint, or product line title (e.g., "Aeonisk Studios") without a custom license.
 
 Any distribution of Aeonisk-derived content (including digital, print, audio, or interactive formats) must include, in a visible spot (credits page, About box, README, etc.), a statement like:
@@ -611,45 +612,45 @@ You don't have to get my permission or send me anything—just include that line
 
 ⸻
 
-1. APCL Badge
+6. APCL Badge
 
 A "Built under the APCL" badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor's site. Badge permission may be revoked for misuse or violation of this license.
 
 ⸻
 
-6. Termination
+7. Termination
 	•	Automatic termination – This license automatically ends if you materially breach it and fail to cure that breach within 30 days of written notice from the Licensor.
 	•	After termination you must cease new distribution of infringing copies, but you may sell off existing physical inventory already manufactured before termination.
 
 ⸻
 
-7. Warranty Disclaimer & Limitation of Liability
+8. Warranty Disclaimer & Limitation of Liability
 
 The Aeonisk Material is provided "AS IS, WITHOUT WARRANTY OF ANY KIND."
 IN NO EVENT shall the Licensor be liable for any indirect, special, incidental, or consequential damages arising out of this license. Some jurisdictions do not allow such exclusions; if so, the minimum allowed by law applies.
 
 ⸻
 
-8. Game Mechanics vs. Expression
+9. Game Mechanics vs. Expression
 
 Nothing in this license restricts your independent use of un-copyrightable game mechanics or ideas. This license applies only to the expression of those mechanics found in Aeonisk Material (text, art, lore, stat blocks, etc.).
 
 ⸻
 
-9. Interplay with YAGS GNU GPL v2
+10. Interplay with YAGS GNU GPL v2
 
 The core YAGS rules engine is released under GNU GPL v2. Your use of YAGS content must follow the GPL in addition to—and not replaced by—this license.
 
 ⸻
 
-10. Governing Law & Venue
+11. Governing Law & Venue
 
 This license is governed by the laws of the Commonwealth of Pennsylvania, USA.
 Any dispute shall be brought exclusively in the state or federal courts located within Pennsylvania.
 
 ⸻
 
-11. Custom Arrangements
+12. Custom Arrangements
 
 For large-scale video games, officially branded products, or joint ventures, contact the Licensor to negotiate a separate agreement.
 
