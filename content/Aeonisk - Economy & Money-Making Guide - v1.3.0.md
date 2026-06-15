@@ -1,20 +1,22 @@
 # Aeonisk - Economy & Money-Making Guide
 
-**Version 1.2.3**
+**Version 1.3.0**
 *A comprehensive guide to currency, commerce, and survival in the Aeonisk economy*
 
 ---
 
 ## Talismanic Energy Currency
 
-The Sovereign Nexus standardized currency is **Talismanic Energy** - crystallized spiritual power stored in various denominations:
+The Sovereign Nexus standardized currency is **Talismanic Energy** — crystallized spiritual power that is also a **hard asset**. Each talisman is a real piece of refined elemental matter you can hold, hoard, grind down for raw materials, or burn for its stored charge.
 
-- **Breath** (smallest) - 1 unit
-- **Drip** - 10 Breath
-- **Grain** - 10 Drip (100 Breath)
-- **Spark** (largest common unit) - 10 Grain (1000 Breath)
+**Baseline denominations** (each is a distinct elemental energy, not interchangeable in use — only in trade):
 
-**Conversion is always possible** at any vendor, temple, or exchange. No fees for standard conversions.
+- **Breath** (Air, smallest) – 1 unit
+- **Drip** (Water) – 20 Breath
+- **Grain** (Earth) – 20 Drip (400 Breath)
+- **Spark** (Fire, largest common unit) – 20 Grain (400 Drip / 8 000 Breath)
+
+**Conversion is always possible** at any vendor, temple, or exchange — but **exchange rates float ±20–30% from baseline** depending on region, season, and faction supply. Frontier bazaars discount, high-security hubs levy a premium, post-harvest gluts swing Grain rates, ritual seasons swing Breath. Settle the rate before you commit the trade.
 
 **Starting Wealth**: Most characters begin with modest resources (5-15 Breath, 3-10 Drip, 0-3 Grain, 0-2 Spark). High-end gear often costs 4-12 Spark - more than most people have on hand.
 
@@ -67,33 +69,39 @@ Characters can combine their currency to make purchases. This is a simple social
 
 ---
 
-### Raw Seeds → Hollow Seeds (Illegal, Risky, Very Profitable)
+### Raw Seeds → Hollow Seeds / Hollow Shards (Illegal, Risky, Very Profitable)
 
-**Process:**
+Hollow energy is illicit under Nexus law and exists in two trading forms:
+
+- **Hollow Seed** — the raw form. Forms when a Bond fractures or a Raw Seed degrades past its 7-cycle stability window. Unstable, varies significantly in size; value depends on size and purity, not a standardized unit.
+- **Hollow Shard** — crystallized fragments refined or broken off from larger Hollow Seeds. Stable enough for standardized black-market trade. The closest void-energy equivalent to a Spark in clean markets.
+
+**Process (creating Hollow energy from Raw Seeds):**
 1. Allow Raw Seed to fully degrade (takes time, environmental void exposure)
-2. Harvest the Hollow Seed
-3. Sell on black market
+2. Harvest the resulting Hollow Seed
+3. Optionally: refine or break off Shards from a larger Seed for standardized resale
+4. Sell on black market
 
-**Profit:**
-- Hollow Seed: ~10-15 Drip value (illicit commodity)
-- **Much higher profit, but costs soulcredit**
+**Profit (rough black-market ranges, GM discretion):**
+- Hollow Seed: highly variable by size and purity (small seed ≈ a few Sparks; large or pure seeds command vastly more)
+- Hollow Shard: standardized contraband unit; commonly traded by the Shard
+- **Much higher profit potential than legal seed work, but costs soulcredit**
 
 **Risks:**
 - **Soulcredit penalty:** -1 to -2 per Hollow Seed created
-- Legal risk: Pantheon Security considers this contraband
-- Void exposure: Hollow Seeds leak corruption
+- Legal risk: Pantheon Security considers all Hollow trade contraband
+- Void exposure: Hollow Seeds leak corruption while held
 - Reputation damage with some factions
 
-**Who buys Hollow Seeds?**
-- Tempest Industries (void research)
-- Underground traders
+**Who buys Hollow Seeds and Shards?**
+- Tempest Industries (void research; prefers raw Seeds)
+- Underground traders (Shards for resale)
 - Certain Freeborn networks
 - Void cultists
 
 **Factions that will punish you:**
-- Sovereign Nexus
-- Codex Cathedral
-- Resonance Commune
+- Sovereign Nexus (Codex Cathedral clergy enforce; Confessors investigate)
+- Resonance Communes (Freeborn-aligned; will eject members caught dealing Hollow)
 
 ---
 
@@ -161,10 +169,10 @@ Some vendors offer **"buy now, pay later"** arrangements:
 
 - **Investigation** (3-8 Spark)
   - Find missing person/item
-  - Requires Perception × Investigation or Awareness
+  - Requires Perception × Awareness
   - May uncover faction secrets (risky)
 
-**Negotiation:** Use Charisma × Corporate Influence or Empathy × Charm to set terms.
+**Negotiation:** Use Empathy × Corporate Influence or Empathy × Charm to set terms.
 
 ---
 
@@ -186,7 +194,7 @@ Some factions will front you equipment in exchange for loyalty:
 - **Tempest Industries:** Gear in exchange for void research data
 - **Pantheon Security:** Equipment for informant work
 - **House of Vox:** Tech for exclusive stories
-- **Codex Cathedral:** Ritual supplies for sacred missions
+- **Codex Cathedral (Sovereign Nexus clergy):** Ritual supplies for sacred missions; service rendered to the Cathedral usually pays in ritual gear or healing tokens.
 
 **Soulcredit impact varies** - generally safe if aligned with faction's values.
 
@@ -204,7 +212,7 @@ Some factions will front you equipment in exchange for loyalty:
 
 ### Medical Kit Alternatives
 - Use Willpower × Astral Arts for healing (risky)
-- Find a Codex Cathedral healer (free but may require service)
+- Find a Codex Cathedral healer — Cathedral clergy provide care under Nexus authority (free but may require service or oath in return)
 - Improvise with lower-quality supplies (Drip-level items)
 
 ### Tech Alternatives
@@ -240,7 +248,8 @@ Some factions will front you equipment in exchange for loyalty:
 ### Seeds
 - **Raw Seed:** 1-2 Drip (degrading)
 - **Attuned Seed:** 5-8 Drip (stable)
-- **Hollow Seed:** 10-15 Drip (black market)
+- **Hollow Seed:** 1-3 Spark for small seeds; large/pure seeds command much more (highly variable by size and purity — see §Raw Seeds → Hollow Seeds / Hollow Shards above)
+- **Hollow Shard:** 50-150 Drip per Shard (refined contraband unit)
 
 ### Services
 - **Ritual Performance:** 4-10 Spark
@@ -275,25 +284,30 @@ Some factions will front you equipment in exchange for loyalty:
 
 ## Soulcredit & Economic Trust
 
-**Soulcredit is your spiritual credit score** (0-10 scale):
+**Soulcredit is your spiritual credit score**, ranging from **−10 to +10**. It represents your spiritual trust and standing in the eyes of the Codex, faction registries, and vendor networks.
 
-- **8-10:** Excellent - vendors give discounts, ACG offers best loan terms
-- **5-7:** Good - standard prices, loans available
-- **3-4:** Fair - vendors wary, higher interest rates
-- **0-2:** Poor - many vendors refuse service, ACG won't lend
+**Tiers and Practical Effects** *(tier boundaries match YAGS Module §3.2 canon)*:
+
+- **+6 to +10 — Trusted:** Vendors offer discounts and pre-release access. ACG offers best loan terms. Civic privileges (priority queues, ritual seating, restricted-archive access). Faction recruitment overtures common.
+- **+1 to +5 — Standard:** Full vendor access at posted rates. Loans available; interest scales inversely with score. Most working citizens sit here.
+- **0 — Neutral:** Baseline. No special standing, no penalty. Most newly-emerged sapients and recent travelers start here.
+- **−1 to −5 — Suspect:** Vendors wary; higher interest rates and visible ledger reviews. Some premium goods refused outright. May need a Bonded recommendation to access ritual gear.
+- **−6 to −10 — Hunted / Cut Off:** Exiled from legal commerce. Public kiosks may flag you for tribunal review. Trade only on Freeborn, Tempest, or off-grid networks. Pantheon Security may have an open file.
 
 **What lowers soulcredit:**
-- Creating Hollow Seeds (-1 to -2)
-- Taking loans (-1 temporary)
-- Late loan payments (-1 additional)
-- Stealing, fraud, betrayal (-2 to -5)
-- Void corruption exposure (situational)
+- Creating Hollow Seeds (−1 to −2 per Seed)
+- Taking loans (−1 temporary while in debt)
+- Late loan payments (−1 additional)
+- Stealing, fraud, betrayal (−2 to −5)
+- Breaking a Bond or contract (severity-dependent)
+- Void corruption exposure (situational, often −1 per spike)
 
 **What raises soulcredit:**
 - Completing sacred missions (+1)
 - Paying debts on time (+1)
 - Forming legitimate Bonds (+1)
 - Ritual service to community (+1)
+- Cleansing Void from a ley site or person (+1 to +2)
 
 ---
 

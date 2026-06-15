@@ -1,8 +1,13 @@
-# Aeonisk Tactical Module - v1.2.3
+# Aeonisk Tactical Module - v1.3.0
 
 **Integrating the Aeonisk Tactical Layer with YAGS Core**
 
 This document clarifies and summarizes the key rules introduced by the Aeonisk Tactical Addendum to the YAGS Core system, based on v1.2 and subsequent refinements discussed in the source material.
+
+**Version 1.3.0 Changes:**
+- Synced attribute naming to canon (Health → Endurance; abbreviation Hea → End)
+- Corrected Fatal threshold (5 → 6+ Wounds, matching YAGS Module §5.1 wound table)
+- Corrected sample Defence Roll formula (Will × Agility was malformed; canonical YAGS formula is Attribute × Skill + Weapon Defense + d20)
 
 **Version 1.2.3 Changes:**
 - Replaced pairwise range tracking with **concentric ring model** with PC/Enemy hemispheres
@@ -67,7 +72,7 @@ This system is designed to make tactical combat flow quickly, emphasize narrativ
 *   **Damage Roll:** Strength + Weapon Bonus + d20
 *   **Soak:** Subtract from damage.
 *   **Wounds:** 1 Wound per hit ≥ Soak, +1 per full +5 damage over Soak.
-*   **Fatal:** At 5 Wounds, make a Health check (Hea × 2 vs. DC 20 + 5 per extra Wound).
+*   **Fatal:** At 6+ Wounds, make an Endurance check (End × 2 vs. DC 20 + 5 per extra Wound beyond 6). *(5 Wounds is Critical, not Fatal — see YAGS Module §5.1 wound table.)*
 *   **Wound Ladder:** A printable "Wound ladder" tracker should be provided.
 
 ---
@@ -114,7 +119,7 @@ Each round, characters typically have:
 
 ### 3. Range-Band Zones & Movement
 
-**v1.2.3 UPDATE:** Combat occurs across four abstract Range Bands arranged as **concentric rings** around a central action point, with the battlefield divided into **PC hemisphere** and **Enemy hemisphere** by a center line.
+Combat occurs across four abstract Range Bands arranged as **concentric rings** around a central action point, with the battlefield divided into **PC hemisphere** and **Enemy hemisphere** by a center line. *(See changelog at top of document for revision history.)*
 
 #### The Physical Model
 
@@ -409,7 +414,7 @@ A gunner on the catwalk opens fire at Kaelia.
 Nyx uses their Reaction, projecting calm:
 Kaelia rolls defence with +2 Bonded Defence.
 —
-Roll: Kaelia Defence d20 + Will×Agility + 2 = 14 + 2 = 16 vs Attack 18 → miss
+Roll: Kaelia Defence — Agility × Brawl + d20 + 2 (Bonded Defence) = 14 + 2 = 16 vs Attack 18 → miss
 
 A moment later, Nyx leans on their Bond…
 Next time Nyx defends: they roll with –2 to that defence roll as the backlash penalty.

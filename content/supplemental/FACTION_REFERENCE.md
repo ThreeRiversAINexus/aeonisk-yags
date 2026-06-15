@@ -5,12 +5,15 @@
 
 ---
 
-## 7 Main Factions
+## 8 Main Factions
+
+*(7 institutional factions + Freeborn umbrella)*
 
 ### Pro-Nexus (Establishment)
 1. **Sovereign Nexus**
    - The government, Codex authority
    - Pod gestation system, spiritual bureaucracy
+   - **Sub-organ: Codex Cathedral** — the Nexus's clerical and judicial body. A fortified citadel on Aeonisk Prime that houses the main physical manifestation of the Codex Nexum. Confessors (enforcement), tribunal clerks (judiciary), Cathedral healers, and ritual-supply clergy all operate under Cathedral authority but answer to the Nexus hierarchy. Not a separate playable faction; characters use **Sovereign Nexus** as their faction tag and may flavor their role as Cathedral clergy.
 
 2. **Pantheon Security**
    - Law enforcement, civic order
@@ -37,13 +40,13 @@
    - Spaceship slipstream pilots
 
 ### Anti-Nexus (Rebels)
-6. **Tempest Industries**
+7. **Tempest Industries**
    - Void research, dissolution advocacy
    - Resist commodification, maintain autonomy
    - **Associated Entity**: Eye of Breach (rogue AI)
 
 ### Freeborn/Unbound (Neutral, Outside System)
-7. **Freeborn** (Umbrella faction)
+8. **Freeborn** (Umbrella faction)
    - Natural birth (not biocreche pods)
    - Limited to 1 bond max (vs 3 for others)
    - **Subfactions**:

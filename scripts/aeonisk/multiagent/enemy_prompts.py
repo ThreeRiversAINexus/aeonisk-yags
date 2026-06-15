@@ -6,7 +6,7 @@ Prompts include battlefield awareness, tactical options, threat analysis,
 and structured output requirements.
 
 Design Document: /content/experimental/Enemy Agent System - Design Document.md
-Tactical Module: /content/experimental/Aeonisk - Tactical Module - v1.2.3.md
+Tactical Module: /content/experimental/Aeonisk - Tactical Module - v1.3.0.md
 
 Author: Three Rivers AI Nexus
 Date: 2025-10-22
