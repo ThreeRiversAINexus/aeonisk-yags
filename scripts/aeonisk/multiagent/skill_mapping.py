@@ -50,9 +50,9 @@ SKILL_ALIASES = {
     'pilot': 'Pilot',  # Aeonisk-Specific
 
     # Knowledge skills (YAGS Base + Aeonisk)
-    'magick theory': 'Magick Theory',
-    'magic theory': 'Magick Theory',
-    'theory': 'Magick Theory',
+    'magic theory': 'Magic Theory',
+    'magick theory': 'Magic Theory',
+    'theory': 'Magic Theory',
 
     # Aeonisk-Specific Social/Economic Skills
     'corporate influence': 'Corporate Influence',
@@ -106,7 +106,7 @@ def validate_ritual_mechanics(
     Ritual Rules:
     - Void manipulation rituals: Willpower × Astral Arts
     - Intimacy/social rituals: Use Intimacy Ritual skill (if specified)
-    - Investigation of rituals: Use Magick Theory (not Astral Arts)
+    - Investigation of rituals: Use Magic Theory (not Astral Arts)
     - Default rituals: Willpower × Astral Arts
 
     Args:
@@ -125,11 +125,11 @@ def validate_ritual_mechanics(
         if normalized_skill == 'Intimacy Ritual':
             return (RITUAL_ATTRIBUTE, normalized_skill)
 
-        # Magick Theory is for investigating/analyzing rituals, not performing them
+        # Magic Theory is for investigating/analyzing rituals, not performing them
         # If someone is "investigating a ritual", it's not action_type='ritual'
-        # So if we're here with Magick Theory, it's likely misclassified
+        # So if we're here with Magic Theory, it's likely misclassified
         # Keep it but flag for review
-        if normalized_skill == 'Magick Theory':
+        if normalized_skill == 'Magic Theory':
             return (attribute, normalized_skill)  # Don't force Willpower for investigation
 
         # All other rituals (void manipulation, binding, etc.) use Astral Arts
@@ -250,10 +250,10 @@ NON_CANONICAL_SKILL_MAP = {
     "Melee Combat": "Melee",
 
     # Knowledge variants
-    "Magic Theory": "Magick Theory",
+    "Magick Theory": "Magic Theory",
     "Meditation": "Discipline",
     "Ritual Knowledge": "Ritual Lore",
-    "Occult": "Magick Theory",
+    "Occult": "Magic Theory",
     "Void Sense": "Attunement",  # Sensing void energies
 
     # Aeonisk ritual variants

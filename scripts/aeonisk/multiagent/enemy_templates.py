@@ -227,7 +227,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Astral Arts": 5,
             "Intimacy Ritual": 4,
             "Awareness": 3,
-            "Magick Theory": 4
+            "Magic Theory": 4
         },
 
         "health": 40,  # Buffed 15→40 ritual specialist (moderate durability)

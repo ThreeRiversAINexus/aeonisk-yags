@@ -109,7 +109,7 @@ class ActionDeclaration:
             errors.append(f"Action type must be one of: {', '.join(valid_action_types)}")
 
         # Removed overly restrictive ritual validation
-        # Rituals CAN use Astral Arts, but other skills (Magick Theory, Attunement, Systems)
+        # Rituals CAN use Astral Arts, but other skills (Magic Theory, Attunement, Systems)
         # can also interact with void/spiritual phenomena in different ways
         # The action router handles appropriate skill selection
 

@@ -68,7 +68,7 @@ class ActionRouter:
                 'Debt Law': 'Intelligence',
                 'Corporate Influence': 'Empathy',
                 'Investigation': 'Perception',
-                'Magick Theory': 'Intelligence',
+                'Magic Theory': 'Intelligence',
                 'Void Lore': 'Intelligence',  # NEW
                 'Ritual Lore': 'Intelligence',  # NEW
                 'Tactics': 'Intelligence',  # NEW

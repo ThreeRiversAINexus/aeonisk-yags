@@ -113,11 +113,11 @@ class TestModifierDisplayIntegration:
             outcome_tier=SuccessTier.EXCELLENT
         )
 
-        modifiers = {"synergy_magick_theory": 2}
+        modifiers = {"synergy_magic_theory": 2}
         formatted = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers)
 
         assert "Modifiers:" in formatted
-        assert "synergy_magick_theory" in formatted or "synergy" in formatted.lower()
+        assert "synergy_magic_theory" in formatted or "synergy" in formatted.lower()
         assert "+2" in formatted
         assert "Net: +2" in formatted or "→ Net: +2" in formatted
 

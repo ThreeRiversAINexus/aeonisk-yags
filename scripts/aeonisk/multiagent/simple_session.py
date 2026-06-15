@@ -41,7 +41,7 @@ class AeoniskCharacter:
             'Melee': random.randint(1, 3),
             'Ranged': random.randint(1, 3),
             'Athletics': random.randint(1, 3),
-            'Magick Theory': random.randint(0, 3),
+            'Magic Theory': random.randint(0, 3),
             'Intimacy Ritual': random.randint(0, 3),
             'Corporate Influence': random.randint(0, 3) if faction in ['Tempest Industries', 'Astral Commerce Group'] else 0
         }

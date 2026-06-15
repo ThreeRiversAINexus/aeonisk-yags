@@ -198,7 +198,7 @@ sections:
     **Movement:** Athletics, Climbing, Running, Stealth, Swimming
     **Social:** Charm, Corporate Influence, Counsel, Guile, Insight, Intimacy Ritual
     **Technical:** Drone Operation, Drive, Hacking, Pilot, Sleight, Systems, Tech/Craft
-    **Knowledge:** Area Lore, Debt Law, History, Magick Theory, Ritual Lore, Science, Void Lore
+    **Knowledge:** Area Lore, Debt Law, History, Magic Theory, Ritual Lore, Science, Void Lore
     **Investigation:** Attunement, Awareness, Investigation
     **Ritual:** Astral Arts, Dreamwork
     **Survival:** Resistance
@@ -384,7 +384,7 @@ sections:
     Reaching Void 10 means losing character control - you become unpredictable/hostile!
 
     **CRITICAL - No Offerings Needed For:**
-    - Intelligence × Magick Theory → analyze/study void phenomena
+    - Intelligence × Magic Theory → analyze/study void phenomena
     - Perception × Attunement → sense/detect void currents
     - Analysis and sensing don't consume offerings!
   coordination_dialogue: |-
@@ -576,7 +576,7 @@ sections:
     - ⚠️ **WARNING**: Void magic always gives +1 Void and -1 to -2 Soulcredit!
 
     **CREATIVE/ENVIRONMENTAL:**
-    - **Magick Analysis**: Intelligence × Magick Theory (find weaknesses, +2 ally damage)
+    - **Magic Analysis**: Intelligence × Magic Theory (find weaknesses, +2 ally damage)
       Example: "Analyze enemy's defensive matrix"
     - **Astral Environment**: Willpower × Astral Arts (collapse structures, 5-15 AoE)
       Example: "Destabilize void-tainted support beams"
@@ -590,7 +590,7 @@ sections:
     - **Environmental**: Awareness/Systems (trigger hazards, 10-15 AoE)
 
     **Non-Combat Skills:**
-    - **ANALYZE void/rituals**: Intelligence × Magick Theory (NO offerings needed!)
+    - **ANALYZE void/rituals**: Intelligence × Magic Theory (NO offerings needed!)
     - **Investigation**: Perception × Awareness or Intelligence × Investigation
     - **Technical Work**: Intelligence × Systems or relevant technical skill
     - **Social Interaction**: Empathy × Charm/Counsel, or Empathy × Corporate Influence

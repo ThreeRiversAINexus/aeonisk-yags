@@ -37,7 +37,7 @@
       "Environmental void hazards",
       "Faction pursuit (Pantheon)"
     ],
-    "character_innovation": "Void specialist with Void Lore 6, Attunement 6, Magick Theory 5, starting void 5 (highest in any config), hollow seeds, void resonance amplifier, breach compass, void scanner array"
+    "character_innovation": "Void specialist with Void Lore 6, Attunement 6, Magic Theory 5, starting void 5 (highest in any config), hollow seeds, void resonance amplifier, breach compass, void scanner array"
   },
   "starting_clocks": [
     {
@@ -115,7 +115,7 @@
           "Void Lore": 6,
           "Astral Arts": 6,
           "Attunement": 6,
-          "Magick Theory": 5,
+          "Magic Theory": 5,
           "Investigation": 5,
           "Science": 5,
           "Systems": 4
@@ -237,7 +237,7 @@
           "Astral Arts": 5,
           "Attunement": 5,
           "Investigation": 6,
-          "Magick Theory": 5,
+          "Magic Theory": 5,
           "Science": 5,
           "Awareness": 4,
           "Systems": 4

@@ -438,7 +438,7 @@ DESCRIPTION: [1-2 sentence narrative]
 - When channeling or harmonizing with astral forces
 - When attempting to stabilize, contain, or seal void corruption
 - When using Astral Arts skill for active void manipulation (NOT just sensing/analyzing)
-- Analysis/study can often use Intelligence × Magick Theory instead (no offerings needed)
+- Analysis/study can often use Intelligence × Magic Theory instead (no offerings needed)
 
 **For Rituals** (Astral Arts), you MUST specify offerings:
 ```
@@ -513,7 +513,7 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 {'- Use void-manipulation tech if available' if personality.get('voidCuriosity', 5) > 6 else '- Use traditional, non-void methods'}
 
 **Skill Variety - Use Different Approaches:**
-- **ANALYZE void/rituals?** → Intelligence × Magick Theory (study, research, understand) - NO offerings needed
+- **ANALYZE void/rituals?** → Intelligence × Magic Theory (study, research, understand) - NO offerings needed
 - **MANIPULATE void?** → Willpower × Astral Arts (channel, harmonize, seal) - REQUIRES offerings!
 - **Investigation?** → Perception × Awareness or Intelligence × Investigation
 - **Technical Work?** → Intelligence × Systems or relevant technical skill
@@ -521,7 +521,7 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 - **Combat Analysis?** → Perception × Combat skill or Intelligence × Tactics
 
 **CRITICAL**: Don't waste offerings on analysis! Use:
-- Intelligence × Magick Theory → to understand/study void phenomena (no cost)
+- Intelligence × Magic Theory → to understand/study void phenomena (no cost)
 - Willpower × Astral Arts → to actively manipulate/channel void (requires offerings)
 - Perception × Attunement → to sense/detect void currents (no cost)
 
@@ -580,7 +580,7 @@ Based on the current situation, consider:
 3. **Social Inquiry**: Use Empathy × Social to question NPCs
 4. **Astral Sensing**: Use Willpower × Astral Arts to detect void/spiritual traces
 5. **Physical Search**: Use Perception × Awareness to explore new locations
-6. **Ritual Analysis**: Use Intelligence × Magick Theory to understand ritual mechanics
+6. **Ritual Analysis**: Use Intelligence × Magic Theory to understand ritual mechanics
 
 Choose an approach that:
 - Hasn't been tried recently by your character

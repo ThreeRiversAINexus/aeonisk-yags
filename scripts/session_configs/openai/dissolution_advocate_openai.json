@@ -32,7 +32,7 @@
       "Environmental void hazards",
       "Faction pursuit (Pantheon)"
     ],
-    "character_innovation": "Void specialist with Void Lore 6, Attunement 6, Magick Theory 5, starting void 5 (highest in any config), hollow seeds, void resonance amplifier, breach compass, void scanner array",
+    "character_innovation": "Void specialist with Void Lore 6, Attunement 6, Magic Theory 5, starting void 5 (highest in any config), hollow seeds, void resonance amplifier, breach compass, void scanner array",
     "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
   },
   "starting_clocks": [
@@ -111,7 +111,7 @@
           "Void Lore": 6,
           "Astral Arts": 6,
           "Attunement": 6,
-          "Magick Theory": 5,
+          "Magic Theory": 5,
           "Investigation": 5,
           "Science": 5,
           "Systems": 4
@@ -233,7 +233,7 @@
           "Astral Arts": 5,
           "Attunement": 5,
           "Investigation": 6,
-          "Magick Theory": 5,
+          "Magic Theory": 5,
           "Science": 5,
           "Awareness": 4,
           "Systems": 4

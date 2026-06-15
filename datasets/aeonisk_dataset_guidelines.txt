@@ -18,7 +18,7 @@ task_id: YAGS-AEONISK-### # Unique identifier, increment sequentially.
 
 domain:
   core: <core_domain>      # e.g., rule_application, lore_interaction, glyph_creation
-  subdomain: <subdomain>   # Specific type of task, e.g., skill_check, ritual_check, combat, investigation, pilot_check, drone_operation, bond_mechanic, magick_theory, etc. Use consistent tags.
+  subdomain: <subdomain>   # Specific type of task, e.g., skill_check, ritual_check, combat, investigation, pilot_check, drone_operation, bond_mechanic, magic_theory, etc. Use consistent tags.
 
 scenario: >
   <1–3 sentences describing the narrative setup of the task. Be evocative and clear.>
@@ -32,7 +32,7 @@ characters:
   - name: <Character Name>
     tech_level: <Aeonisk Standard | High Tech | etc.> # As per Aeonisk YAGS Module
     attributes: {strength: X, dexterity: X, agility: X, intelligence: X, perception: X, willpower: X, empathy: X} # Use full attribute names.
-    skills: {<skill1_lowercase>: X, <skill2_lowercase>: X, ...} # Use lowercase skill names with underscores (e.g., astral_arts, magick_theory).
+    skills: {<skill1_lowercase>: X, <skill2_lowercase>: X, ...} # Use lowercase skill names with underscores (e.g., astral_arts, magic_theory).
     # Optional fields (as relevant to the scenario):
     # current_void: X
     # soulcredit: X

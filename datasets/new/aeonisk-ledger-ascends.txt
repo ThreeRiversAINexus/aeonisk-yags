@@ -57,7 +57,7 @@ standard_skills:
   drive: 1
 
 astral_skills:
-  magick_theory: 2
+  magic_theory: 2
   attunement: 2
 
 languages:
@@ -101,7 +101,7 @@ characters:
   - name: Tavros Eluun
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
-    skills: {magick_theory: 2, attunement: 2, debt_law: 3, guile: 2, corporate_influence: 2}
+    skills: {magic_theory: 2, attunement: 2, debt_law: 3, guile: 2, corporate_influence: 2}
     soulcredit: 1
     current_void: 1
     equipment: ["Echo-Calibrator", "Ritual Ledger Slate"]
@@ -469,7 +469,7 @@ characters:
   - name: Tavros Eluun
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
-    skills: {attunement: 2, magick_theory: 2, debt_law: 3}
+    skills: {attunement: 2, magic_theory: 2, debt_law: 3}
     bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
     soulcredit: 2
     current_void: 1
@@ -831,7 +831,7 @@ domain:
   subdomain: skill_check_debt_law
 
 scenario: >
-  Upon docking at Arcadia’s Ceremonial Node, Tavros meets with the Sanctum Curator to arrange secure storage and magickal processing for the Living Seed. He must draft a binding micro‐contract outlining climate controls, ritual cycle schedules, and Custodial Bond responsibilities, while leveraging Magick Theory to ensure the facility meets attunement specifications.
+  Upon docking at Arcadia’s Ceremonial Node, Tavros meets with the Sanctum Curator to arrange secure storage and magical processing for the Living Seed. He must draft a binding micro‐contract outlining climate controls, ritual cycle schedules, and Custodial Bond responsibilities, while leveraging Magic Theory to ensure the facility meets attunement specifications.
 
 environment: Arcadia Ceremonial Node storage wing—vault doors, climate‐regulation runes, ritual workstations lined against polished walls.
 
@@ -842,14 +842,14 @@ characters:
   - name: Tavros Eluun
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
-    skills: {debt_law: 3, magick_theory: 2, administration: 2}
+    skills: {debt_law: 3, magic_theory: 2, administration: 2}
     bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
     soulcredit: 2
     current_void: 1
     equipment: ["Seed Ledger Slate", "Ossai Incense"]
 
 goal: >
-  Use Debt Law expertise to negotiate and formalize a micro‐contract with the Sanctum Curator that guarantees climate‐stabilized vault storage, periodic attunement rites (Magick Theory compliance), and Custodial Bond obligations.
+  Use Debt Law expertise to negotiate and formalize a micro‐contract with the Sanctum Curator that guarantees climate‐stabilized vault storage, periodic attunement rites (Magic Theory compliance), and Custodial Bond obligations.
 
 expected_fields:
   - attribute_used
@@ -898,7 +898,7 @@ gold_answer:
         Custodial Bond granted (+2 to processing rituals). +2 Soulcredit. Seed now under Tavros’s personal care.
 
 rationale: >
-  Negotiating a micro‐contract with legal and magickal stipulations relies on Intelligence × Debt Law. DC 22 reflects high‐security protocols and the need to integrate Magick Theory requirements into the contractual clauses.
+  Negotiating a micro‐contract with legal and magical stipulations relies on Intelligence × Debt Law. DC 22 reflects high‐security protocols and the need to integrate Magic Theory requirements into the contractual clauses.
 task_id: YAGS-AEONISK-113
 
 domain:

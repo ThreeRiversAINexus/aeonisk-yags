@@ -186,7 +186,7 @@ class TestYAGSUnskilledKnowledgeSkills:
     def test_knowledge_skill_helper(self):
         """Test is_knowledge_skill() helper function."""
         # Knowledge skills (per skill_descriptions.py)
-        assert is_knowledge_skill("Magick Theory") == True
+        assert is_knowledge_skill("Magic Theory") == True
         assert is_knowledge_skill("Ritual Lore") == True
         assert is_knowledge_skill("Science") == True
         assert is_knowledge_skill("History") == True
@@ -213,7 +213,7 @@ class TestYAGSUnskilledKnowledgeSkills:
             resolution = mechanics.resolve_action(
                 intent="Recall arcane theory",
                 attribute="Intelligence",
-                skill="Magick Theory",  # Knowledge skill
+                skill="Magic Theory",  # Knowledge skill
                 attribute_value=5,
                 skill_value=0,  # Unskilled
                 difficulty=10  # Easy DC

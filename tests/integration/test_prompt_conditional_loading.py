@@ -223,7 +223,7 @@ class TestPromptAssembly:
             pronouns="she/her",
             attributes={"Strength": 2, "Agility": 3, "Endurance": 3, "Perception": 3,
                        "Intelligence": 4, "Empathy": 2, "Willpower": 4, "Empathy": 2},
-            skills={"Astral Arts": 8, "Attunement": 6, "Magick Theory": 5},
+            skills={"Astral Arts": 8, "Attunement": 6, "Magic Theory": 5},
             void_score=3,
             soulcredit=0,
             bonds=[],

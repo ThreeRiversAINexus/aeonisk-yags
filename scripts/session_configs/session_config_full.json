@@ -372,7 +372,7 @@
           "Debt Law": 5,
           "Corporate Influence": 4,
           "Investigation": 4,
-          "Magick Theory": 3,
+          "Magic Theory": 3,
           "Charm": 3,
           "Awareness": 3
         },
@@ -588,7 +588,7 @@
           "Systems": 6,
           "Astral Arts": 4,
           "Investigation": 4,
-          "Magick Theory": 3,
+          "Magic Theory": 3,
           "Awareness": 3
         },
         "void": 1,
@@ -794,7 +794,7 @@
         "skills": {
           "Astral Arts": 6,
           "Attunement": 5,
-          "Magick Theory": 5,
+          "Magic Theory": 5,
           "Systems": 4,
           "Investigation": 4,
           "Melee": 2
@@ -848,7 +848,7 @@
           "Astral Arts": 5,
           "Attunement": 6,
           "Investigation": 4,
-          "Magick Theory": 4,
+          "Magic Theory": 4,
           "Awareness": 4
         },
         "void": 2,
@@ -898,7 +898,7 @@
         "skills": {
           "Astral Arts": 6,
           "Attunement": 5,
-          "Magick Theory": 4,
+          "Magic Theory": 4,
           "Systems": 4,
           "Awareness": 3
         },

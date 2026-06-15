@@ -47,7 +47,7 @@ def is_knowledge_skill(skill_name: Optional[str]) -> bool:
     Knowledge skills require training (skill >= 1) to attempt.
     Standard skills can be attempted untrained with d20 ÷ 2.
 
-    Knowledge skills: Magick Theory, Ritual Lore, Science, History, Area Lore,
+    Knowledge skills: Magic Theory, Ritual Lore, Science, History, Area Lore,
                       Void Theory, Debt Law
     """
     if not skill_name:

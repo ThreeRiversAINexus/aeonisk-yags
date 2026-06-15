@@ -70,7 +70,7 @@ class EvaluationMetrics:
         skill_aliases = {
             'athletics': 'athletics',
             'astral arts': 'astral_arts',
-            'magick theory': 'magick_theory',
+            'magic theory': 'magic_theory',
             'lore biotech': 'lore_biotech',
             'corporate influence': 'corporate_influence',
             'debt law': 'debt_law',

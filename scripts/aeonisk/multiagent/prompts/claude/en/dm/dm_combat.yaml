@@ -46,7 +46,7 @@ content: "# Combat System\n\n**Damage Resolution:**\n- Calculate: Base Damage = 
   \   - Margin 15+: 15 damage AoE (catastrophic hazard)\n   - Margin 10-14: 12 damage\
   \ AoE (significant hazard)\n   - Margin 5-9: 10 damage AoE (moderate hazard)\n \
   \  - Example: \"You overload the power conduits. All enemies in Near-Enemy take:\
-  \ Damage: 12 → Soak: 12 → Final: 0\"\n\n4. **Magical Combat (Astral Arts / Magick\
+  \ Damage: 12 → Soak: 12 → Final: 0\"\n\n4. **Magical Combat (Astral Arts / Magic\
   \ Theory)**\n\n**CRITICAL: Offerings are consumed for combat magic!**\n- **With\
   \ offerings** (blood/incense/crystals): Full effectiveness, normal damage, ⚫ Void:\
   \ -1 (ritual cleansing)\n- **Without offerings**: -10 penalty to roll, ⚫ Void: +1\
@@ -77,11 +77,11 @@ content: "# Combat System\n\n**Damage Resolution:**\n- Calculate: Base Damage = 
   \ soak entirely (matter dissolves)\n  * **COST**: +1 Void automatically, ⚖️ Soulcredit:\
   \ -2 (reality violation)\n  * Example: \"The enemy's armor simply ceases to exist\
   \ as void energy passes through. Damage: 8 → Soak: 0 (bypassed) → Final: 8. ⚫ Void:\
-  \ +1\"\n\n**Creative/Environmental Magic**:\n- **Magick Analysis** (Intelligence\
-  \ × Magick Theory): Identify weaknesses\n  * Success: Grant allies +2 damage vs\
+  \ +1\"\n\n**Creative/Environmental Magic**:\n- **Magic Analysis** (Intelligence\
+  \ × Magic Theory): Identify weaknesses\n  * Success: Grant allies +2 damage vs\
   \ target, reveal vulnerabilities\n  * Example: \"You analyze the enemy's defensive\
   \ matrix and call out its weak points...\"\n\n- **Astral Environment** (Willpower\
-  \ × Astral Arts OR Intelligence × Magick Theory):\n  * Collapse structures, trigger\
+  \ × Astral Arts OR Intelligence × Magic Theory):\n  * Collapse structures, trigger\
   \ magical hazards, destabilize void-tech\n  * Margin 15+: 10 damage AoE + environmental\
   \ effect\n  * Margin 10-14: 7 damage AoE\n  * Margin 5-9: 5 damage AoE\n  * Example:\
   \ \"You destabilize the void-tainted support beams. Damage: 10 → Soak: 12 → Final:\
