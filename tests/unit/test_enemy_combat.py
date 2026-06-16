@@ -242,7 +242,9 @@ class TestExecuteDialogue:
 
         mock_logger = MagicMock()
         mock_mechanics = MagicMock()
+        mock_mechanics.current_round = 7
         mock_mechanics.jsonl_logger = mock_logger
+        manager.current_round = 0
 
         result = manager.execute_enemy_action(
             enemy_id=enemy.agent_id,
@@ -254,6 +256,7 @@ class TestExecuteDialogue:
         mock_logger.log_enemy_action.assert_called_once()
         call_kwargs = mock_logger.log_enemy_action.call_args
         assert call_kwargs[1]['action_type'] == 'dialogue' or call_kwargs[0][3] == 'dialogue'
+        assert call_kwargs[1]['round_num'] == 7
 
 
 class TestExecuteWait:
@@ -308,7 +311,9 @@ class TestExecuteWait:
 
         mock_logger = MagicMock()
         mock_mechanics = MagicMock()
+        mock_mechanics.current_round = 7
         mock_mechanics.jsonl_logger = mock_logger
+        manager.current_round = 0
 
         result = manager.execute_enemy_action(
             enemy_id=enemy.agent_id,
@@ -320,6 +325,7 @@ class TestExecuteWait:
         mock_logger.log_enemy_action.assert_called_once()
         call_kwargs = mock_logger.log_enemy_action.call_args
         assert call_kwargs[1]['action_type'] == 'wait' or call_kwargs[0][3] == 'wait'
+        assert call_kwargs[1]['round_num'] == 7
 
 
 class TestEnemyDecisionToDeclarationConversion:

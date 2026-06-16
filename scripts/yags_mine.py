@@ -128,6 +128,9 @@ def cmd_discover(args: argparse.Namespace) -> int:
         complete_only=args.complete_only,
         min_rounds=args.min_rounds,
     )
+    for session in sessions:
+        session['score'] = discovery.calculate_interestingness(session)
+    sessions.sort(key=lambda s: s['score'], reverse=True)
 
     # Limit results
     if args.limit:
@@ -145,8 +148,8 @@ def cmd_discover(args: argparse.Namespace) -> int:
         for i, session in enumerate(sessions, 1):
             score = session.get('score', 0)
             rounds = session.get('rounds', 0)
-            complete = '✓' if session.get('is_complete') else '✗'
-            actions = session.get('total_actions', 0)
+            complete = '✓' if session.get('complete') else '✗'
+            actions = session.get('actions', 0)
             print(f"{i:3d}. {session['path'].name}")
             print(f"     Score: {score:.1f} | Rounds: {rounds} | Actions: {actions} | Complete: {complete}")
 
@@ -164,16 +167,19 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     # Import SessionAnalyzer from analyze_session
     from analyze_session import SessionAnalyzer
 
-    if path.is_file():
-        analyzer = SessionAnalyzer(path)
+    def print_analysis(analyzer: SessionAnalyzer) -> None:
         if args.mode == 'errors':
-            analyzer.print_error_analysis()
+            analyzer.print_errors()
         elif args.mode == 'void':
-            analyzer.print_void_analysis()
+            analyzer.print_void()
         elif args.mode == 'clocks':
-            analyzer.print_clock_analysis()
+            analyzer.print_clocks()
         else:
             analyzer.print_summary()
+
+    if path.is_file():
+        analyzer = SessionAnalyzer(path)
+        print_analysis(analyzer)
     else:
         # Directory: run analysis on all files
         files = sorted(path.rglob("session_*.jsonl") if args.recursive else path.glob("session_*.jsonl"))
@@ -183,10 +189,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             print(f"{'=' * 60}")
             try:
                 analyzer = SessionAnalyzer(f)
-                if args.mode == 'errors':
-                    analyzer.print_error_analysis()
-                else:
-                    analyzer.print_summary()
+                print_analysis(analyzer)
             except Exception as e:
                 print(f"Error analyzing {f}: {e}")
 

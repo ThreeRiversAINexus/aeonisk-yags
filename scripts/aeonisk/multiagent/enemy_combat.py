@@ -270,6 +270,11 @@ class EnemyCombatManager:
         else:
             logger.debug("Enemy combat manager initialized (DISABLED)")
 
+    def _logging_round(self, mechanics_engine: Any) -> int:
+        """Return the authoritative round number for enemy action logging."""
+        round_num = getattr(mechanics_engine, 'current_round', None) if mechanics_engine else None
+        return round_num if isinstance(round_num, int) else self.current_round
+
     def process_dm_narration(self, narration: str) -> List[str]:
         """
         Legacy marker processing removed - use structured output instead.
@@ -1784,7 +1789,7 @@ class EnemyCombatManager:
         # JSONL logging
         if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
             mechanics_engine.jsonl_logger.log_enemy_action(
-                round_num=self.current_round,
+                round_num=self._logging_round(mechanics_engine),
                 enemy_id=enemy.agent_id,
                 enemy_name=enemy.name,
                 action_type='dialogue',
@@ -1807,7 +1812,7 @@ class EnemyCombatManager:
         # JSONL logging
         if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
             mechanics_engine.jsonl_logger.log_enemy_action(
-                round_num=self.current_round,
+                round_num=self._logging_round(mechanics_engine),
                 enemy_id=enemy.agent_id,
                 enemy_name=enemy.name,
                 action_type='wait',
