@@ -5,6 +5,7 @@
 # AI/LLM Providers
 anthropic==0.71.0
 openai==2.6.0
+tiktoken==0.12.0
 
 # Vector Database & Embeddings
 chromadb==1.2.1

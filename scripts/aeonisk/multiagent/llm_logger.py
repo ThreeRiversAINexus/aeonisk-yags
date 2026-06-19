@@ -134,6 +134,11 @@ class LLMCallLogger:
             logger.debug(f"No JSONL logger configured for {self.agent_id}, skipping LLM call log")
             return
 
+        tokens = dict(tokens or {})
+        tokens.setdefault('input', 0)
+        tokens.setdefault('output', 0)
+        tokens.setdefault('total', tokens.get('input', 0) + tokens.get('output', 0))
+
         event = {
             'event_type': 'llm_call',
             'ts': datetime.now(timezone.utc).isoformat(),

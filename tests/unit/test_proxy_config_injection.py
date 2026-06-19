@@ -144,6 +144,29 @@ class TestInjectProxyConfig:
         assert dm_llm["provider"] == "batch_proxy"
         assert dm_llm["underlying_provider"] == "anthropic"
 
+    def test_preserves_existing_batch_proxy_underlying_provider(self):
+        """Pre-proxied mixed-provider configs should not be rewritten to batch_proxy."""
+        from bulk_session_runner import inject_proxy_config
+
+        config = make_openai_config()
+        config["agents"]["dm"]["llm"] = {
+            "provider": "batch_proxy",
+            "underlying_provider": "openai",
+            "model": "gpt-5.4-mini",
+        }
+        config["agents"]["players"][0]["llm"] = {
+            "provider": "batch_proxy",
+            "underlying_provider": "gemini",
+            "model": "gemini-3.5-flash",
+        }
+
+        result = inject_proxy_config(config, "http://localhost:8017", "direct")
+
+        assert result["agents"]["dm"]["llm"]["underlying_provider"] == "openai"
+        assert result["agents"]["players"][0]["llm"]["underlying_provider"] == "gemini"
+        assert result["agents"]["dm"]["llm"]["proxy_strategy"] == "direct"
+        assert result["agents"]["players"][0]["llm"]["proxy_url"] == "http://localhost:8017"
+
     def test_no_agents_key_is_noop(self):
         """Config without agents key should not crash."""
         from bulk_session_runner import inject_proxy_config

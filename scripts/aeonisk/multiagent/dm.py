@@ -14,6 +14,7 @@ from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import Vendor, VendorType, create_standard_vendors
 from .prompt_loader import load_agent_prompt, compose_sections, load_modular_prompt
+from token_utils import count_chat_tokens, count_text_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -4851,12 +4852,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    messages = [{"role": "user", "content": prompt}]
                     estimated_tokens = {
-                        'input': len(prompt) // 4,
-                        'output': len(synthesis_text) // 4,
+                        'input': count_chat_tokens(messages, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
+                        'output': count_text_tokens(synthesis_text, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
                     }
+                    estimated_tokens['total'] = estimated_tokens['input'] + estimated_tokens['output']
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=synthesis_text,
                         model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                         temperature=self.llm_config.get('temperature', 1.0),
@@ -4869,10 +4872,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
                     try:
+                        messages = [{"role": "user", "content": prompt}]
                         estimated_tokens = {
-                            'input': len(prompt) // 4,
-                            'output': len(synthesis_text) // 4,
+                            'input': count_chat_tokens(messages, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
+                            'output': count_text_tokens(synthesis_text, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
                         }
+                        estimated_tokens['total'] = estimated_tokens['input'] + estimated_tokens['output']
                         self.agent_prompt_logger.log_llm_call(
                             agent_id=self.agent_id,
                             round_num=round_num,
@@ -7784,20 +7789,23 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                 # Log LLM call for replay (structured output path)
                 if self.llm_logger:
-                    # Note: We can't get exact token counts from pydantic-ai without modifying it,
-                    # but we can approximate based on text length for now
-                    estimated_input_tokens = len(prompt) // 4  # rough estimate: 1 token ~= 4 chars
-                    estimated_output_tokens = len(resolution_obj.narration) // 4
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ]
+                    estimated_input_tokens = count_chat_tokens(messages, model)
+                    estimated_output_tokens = count_text_tokens(resolution_obj.narration, model)
 
                     self.llm_logger._log_llm_call(
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
+                        messages=messages,
                         response=resolution_obj.narration,  # Log narration as response
                         model=model,
                         temperature=temperature,
-                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=current_round,
                         call_sequence=self.llm_logger.call_count
                     )
@@ -9068,12 +9076,22 @@ When adjudicating:
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    messages = [
+                        {"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
+                        {"role": "user", "content": prompt}
+                    ]
+                    estimated_input_tokens = count_chat_tokens(messages, model)
+                    estimated_output_tokens = count_text_tokens(narration, model)
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=narration,
                         model=model,
                         temperature=temperature,
-                        tokens={'input': 0, 'output': 0},  # Token counts not available from UnifiedAIClient
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
@@ -9272,21 +9290,24 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
                 # Log LLM call for replay
                 if self.llm_logger:
-                    # Use actual token count if available, otherwise estimate
+                    messages = [{"role": "user", "content": prompt}]
                     if response.tokens_used:
-                        # tokens_used is total, estimate split
-                        estimated_input_tokens = len(prompt) // 4
-                        estimated_output_tokens = response.tokens_used - estimated_input_tokens
+                        estimated_input_tokens = count_chat_tokens(messages, model)
+                        estimated_output_tokens = max(response.tokens_used - estimated_input_tokens, 0)
                     else:
-                        estimated_input_tokens = len(prompt) // 4
-                        estimated_output_tokens = len(event_text) // 4
+                        estimated_input_tokens = count_chat_tokens(messages, model)
+                        estimated_output_tokens = count_text_tokens(event_text, model)
 
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=event_text,
                         model=model,
                         temperature=self.llm_config.get('temperature', 1.0),
-                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )

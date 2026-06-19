@@ -534,7 +534,10 @@ def modify_config_for_bulk_run(
 
 def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> None:
     """Switch a single LLM config dict to use batch_proxy provider."""
-    llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
+    if llm_config.get('provider') == 'batch_proxy':
+        llm_config['underlying_provider'] = llm_config.get('underlying_provider', 'openai')
+    else:
+        llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
     llm_config['provider'] = 'batch_proxy'
     llm_config['use_proxy'] = True
     llm_config['proxy_url'] = proxy_url

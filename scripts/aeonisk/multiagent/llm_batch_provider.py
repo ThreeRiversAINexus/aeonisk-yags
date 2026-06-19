@@ -13,6 +13,7 @@ from typing import Optional, Any, Dict, List
 
 from .llm_provider import LLMProvider, LLMConfig, LLMResponse
 from .unified_llm_client import UnifiedAIClient
+from token_utils import count_chat_tokens, count_text_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -254,12 +255,12 @@ class BatchProxyProvider(LLMProvider):
 
             # Success — log and return
             if llm_logger:
-                input_chars = len(enhanced_system_prompt) + len(prompt)
-                output_chars = len(content)
+                estimated_input_tokens = count_chat_tokens(messages, self.config.model)
+                estimated_output_tokens = count_text_tokens(content, self.config.model)
                 estimated_tokens = {
-                    'input': input_chars // 4,
-                    'output': output_chars // 4,
-                    'total': (input_chars + output_chars) // 4
+                    'input': estimated_input_tokens,
+                    'output': estimated_output_tokens,
+                    'total': estimated_input_tokens + estimated_output_tokens
                 }
                 llm_logger._log_llm_call(
                     messages=messages,
@@ -283,12 +284,12 @@ class BatchProxyProvider(LLMProvider):
             validated = result_type(**truncated_data)
 
             if llm_logger and content:
-                input_chars = len(enhanced_system_prompt) + len(prompt)
-                output_chars = len(content)
+                estimated_input_tokens = count_chat_tokens(messages, self.config.model)
+                estimated_output_tokens = count_text_tokens(content, self.config.model)
                 estimated_tokens = {
-                    'input': input_chars // 4,
-                    'output': output_chars // 4,
-                    'total': (input_chars + output_chars) // 4
+                    'input': estimated_input_tokens,
+                    'output': estimated_output_tokens,
+                    'total': estimated_input_tokens + estimated_output_tokens
                 }
                 llm_logger._log_llm_call(
                     messages=messages,
