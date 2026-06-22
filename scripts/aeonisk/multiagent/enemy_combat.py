@@ -240,21 +240,27 @@ class EnemyCombatManager:
             # Resolution: structured output - enemies use Pydantic-based EnemyDecision schema
             from .llm_provider import create_provider
             try:
+                agents_config = session_config.get('agents', {})
+
                 # Per-role enemy LLM config (Spec 11: agents.enemies.llm)
-                enemy_llm_config = session_config.get('agents', {}).get('enemies', {}).get('llm')
-                enemy_specific = enemy_llm_config is not None
+                enemy_llm_config = agents_config.get('enemies', {}).get('llm')
+                config_source = "per-role enemy"
+
+                if not enemy_llm_config:
+                    enemy_llm_config = agents_config.get('enemy_agents', {}).get('llm')
+                    config_source = "legacy enemy_agents"
 
                 # Fallback to DM config if no per-role enemy config (backward compat)
                 if not enemy_llm_config:
-                    dm_config = session_config.get('agents', {}).get('dm', {})
+                    dm_config = agents_config.get('dm', {})
                     enemy_llm_config = dm_config.get('llm', {})
+                    config_source = "DM fallback"
 
                 if enemy_llm_config:
                     from .llm_provider import LLMConfig
 
                     config = LLMConfig.from_dict(enemy_llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
-                    config_source = "per-role enemy" if enemy_specific else "DM fallback"
                     logger.debug(f"EnemyCombatManager: Using {config_source} LLM config ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:

@@ -545,6 +545,14 @@ def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str =
     llm_config['proxy_strategy'] = proxy_strategy
 
 
+def _iter_enemy_llm_configs(agents: Dict):
+    """Yield current and legacy enemy LLM config dicts."""
+    for key in ('enemies', 'enemy_agents'):
+        enemy_config = agents.get(key)
+        if isinstance(enemy_config, dict) and isinstance(enemy_config.get('llm'), dict):
+            yield enemy_config['llm']
+
+
 def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> Dict:
     """
     Inject proxy configuration into all agents' LLM configs.
@@ -574,9 +582,9 @@ def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'aut
         _switch_llm_to_proxy(player_llm, proxy_url, proxy_strategy)
         player['llm'] = player_llm
 
-    # Inject into enemy agents
-    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
-        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url, proxy_strategy)
+    # Inject into enemy agents (current and legacy config shapes)
+    for enemy_llm in _iter_enemy_llm_configs(agents):
+        _switch_llm_to_proxy(enemy_llm, proxy_url, proxy_strategy)
 
     return config
 
@@ -604,9 +612,9 @@ def inject_force_truncate(config: Dict) -> Dict:
     for player in agents.get('players', []):
         player.setdefault('llm', {})['force_truncate'] = True
 
-    # Inject into enemy agents
-    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
-        agents['enemy_agents']['llm']['force_truncate'] = True
+    # Inject into enemy agents (current and legacy config shapes)
+    for enemy_llm in _iter_enemy_llm_configs(agents):
+        enemy_llm['force_truncate'] = True
 
     return config
 

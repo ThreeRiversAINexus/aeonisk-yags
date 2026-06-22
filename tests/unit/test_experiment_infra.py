@@ -374,6 +374,31 @@ class TestEnemyCombatManagerLLMConfig:
         assert config_arg.provider == "anthropic"
 
     @patch('aeonisk.multiagent.llm_provider.create_provider')
+    def test_enemy_uses_legacy_enemy_agents_config_when_present(self, mock_create):
+        """EnemyCombatManager reads legacy agents.enemy_agents.llm before DM fallback."""
+        from aeonisk.multiagent.enemy_combat import EnemyCombatManager
+
+        mock_provider = MagicMock()
+        mock_create.return_value = mock_provider
+
+        config = {
+            "tactical_module_enabled": True,
+            "enemy_agents_enabled": True,
+            "agents": {
+                "dm": {"llm": {"provider": "anthropic", "model": "claude-sonnet-4-5"}},
+                "enemy_agents": {"llm": {"provider": "openai", "model": "gpt-4o-mini"}},
+            },
+        }
+
+        ecm = EnemyCombatManager()
+        ecm.initialize(config)
+
+        assert mock_create.called
+        config_arg = mock_create.call_args[0][0]
+        assert config_arg.model == "gpt-4o-mini"
+        assert config_arg.provider == "openai"
+
+    @patch('aeonisk.multiagent.llm_provider.create_provider')
     def test_enemy_config_logged(self, mock_create, session_config_with_enemy_llm):
         """EnemyCombatManager logs which config source it used."""
         from aeonisk.multiagent.enemy_combat import EnemyCombatManager
@@ -459,6 +484,60 @@ class TestSessionNPCLLMFallback:
         result = get_npc_llm_config(config)
 
         assert result is None
+
+
+class TestSessionEnemyLLMFallback:
+    """Test enemy LLM config fallback chain in session.py."""
+
+    def test_get_enemy_llm_config_uses_current_enemy_config(self, session_config_with_enemy_llm):
+        """get_enemy_llm_config returns agents.enemies.llm when present."""
+        from aeonisk.multiagent.session import get_enemy_llm_config
+
+        result = get_enemy_llm_config(session_config_with_enemy_llm)
+
+        assert result is not None
+        assert result["provider"] == "openai"
+        assert result["model"] == "gpt-4o-mini"
+
+    def test_get_enemy_llm_config_falls_back_to_legacy_enemy_agents(self):
+        """get_enemy_llm_config falls back to legacy agents.enemy_agents.llm."""
+        from aeonisk.multiagent.session import get_enemy_llm_config
+
+        config = {
+            "agents": {
+                "dm": {"llm": {"provider": "anthropic", "model": "claude-sonnet-4-5"}},
+                "enemy_agents": {"llm": {"provider": "openai", "model": "gpt-4o-mini"}},
+            }
+        }
+
+        result = get_enemy_llm_config(config)
+
+        assert result is not None
+        assert result["provider"] == "openai"
+        assert result["model"] == "gpt-4o-mini"
+
+    def test_get_enemy_llm_config_falls_back_to_dm(self):
+        """get_enemy_llm_config falls back to DM config as last resort."""
+        from aeonisk.multiagent.session import get_enemy_llm_config
+
+        config = {
+            "agents": {
+                "dm": {"llm": {"provider": "anthropic", "model": "claude-sonnet-4-5"}},
+                "players": [],
+            }
+        }
+
+        result = get_enemy_llm_config(config)
+
+        assert result is not None
+        assert result["provider"] == "anthropic"
+        assert result["model"] == "claude-sonnet-4-5"
+
+    def test_get_enemy_llm_config_returns_none_on_empty(self):
+        """get_enemy_llm_config returns None when no config exists."""
+        from aeonisk.multiagent.session import get_enemy_llm_config
+
+        assert get_enemy_llm_config({"agents": {}}) is None
 
 
 # =============================================================================

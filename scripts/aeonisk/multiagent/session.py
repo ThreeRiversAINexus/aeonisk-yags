@@ -168,17 +168,46 @@ def apply_intra_round_position_update(agent, new_position_str: str) -> None:
 
 
 # =============================================================================
-# NPC LLM CONFIG HELPER (Spec 11: Per-Role Model Configuration)
+# ROLE LLM CONFIG HELPERS (Spec 11: Per-Role Model Configuration)
 # =============================================================================
+
+def get_enemy_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Get enemy LLM config from session config with fallback chain.
+
+    Enemy LLM fallback chain: enemies -> legacy enemy_agents -> dm.
+
+    Args:
+        session_config: Full session configuration dict.
+
+    Returns:
+        LLM config dict, or None if no config found at any level.
+    """
+    agents = session_config.get('agents', {})
+
+    enemy_llm = agents.get('enemies', {}).get('llm')
+    if enemy_llm:
+        return enemy_llm
+
+    legacy_enemy_llm = agents.get('enemy_agents', {}).get('llm')
+    if legacy_enemy_llm:
+        return legacy_enemy_llm
+
+    dm_llm = agents.get('dm', {}).get('llm')
+    if dm_llm:
+        return dm_llm
+
+    return None
+
 
 def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Get NPC LLM config from session config with fallback chain.
 
-    NPC LLM fallback chain: npcs -> enemies -> dm.
+    NPC LLM fallback chain: npcs -> enemies -> legacy enemy_agents -> dm.
 
     1. agents.npcs.llm if present
     2. agents.enemies.llm if present (enemies and NPCs share a tier)
-    3. agents.dm.llm as final fallback
+    3. agents.enemy_agents.llm if present (legacy enemy config)
+    4. agents.dm.llm as final fallback
 
     Args:
         session_config: Full session configuration dict.
@@ -194,14 +223,9 @@ def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any
         return npc_llm
 
     # Fall back to enemy config (enemies and NPCs share a tier)
-    enemy_llm = agents.get('enemies', {}).get('llm')
+    enemy_llm = get_enemy_llm_config(session_config)
     if enemy_llm:
         return enemy_llm
-
-    # Final fallback to DM config
-    dm_llm = agents.get('dm', {}).get('llm')
-    if dm_llm:
-        return dm_llm
 
     return None
 
@@ -1850,13 +1874,14 @@ Generate narratives (numbered list only):"""
             if mechanics and hasattr(mechanics, 'get_unclaimed_tokens'):
                 available_tokens = mechanics.get_unclaimed_tokens()
 
-            # Get DM's LLM config for enemy prompts
+            # Get enemy LLM config for legacy enemy prompt fallback.
             dm_agents = [a for a in self.agents if isinstance(a, AIDMAgent)]
             if dm_agents:
                 dm_agent = dm_agents[0]
+                enemy_llm_config = get_enemy_llm_config(self.config) or dm_agent.llm_config
 
-                # Create a simple wrapper for the DM's LLM functionality
-                class DMLLMClient:
+                # Create a simple wrapper for enemy fallback LLM functionality.
+                class EnemyFallbackLLMClient:
                     """
                     Wrapper for enemy LLM calls with logging support.
                     Each enemy gets its own instance to track call_sequence per agent.
@@ -1890,6 +1915,12 @@ Generate narratives (numbered list only):"""
                         # Log LLM call if logger is available
                         if self.jsonl_logger:
                             try:
+                                from token_utils import count_chat_tokens, count_text_tokens
+
+                                messages = [{"role": "user", "content": prompt}]
+                                model = self.llm_config.get('model', 'unknown')
+                                input_tokens = count_chat_tokens(messages, model)
+                                output_tokens = count_text_tokens(response_text, model)
                                 self.jsonl_logger.write_event({
                                     'event_type': 'llm_call',
                                     'ts': datetime.now(timezone.utc).isoformat(),
@@ -1898,13 +1929,14 @@ Generate narratives (numbered list only):"""
                                     'agent_id': self.agent_id,
                                     'agent_type': 'enemy',
                                     'call_sequence': self.call_sequence,
-                                    'prompt': [{"role": "user", "content": prompt}],  # Format as messages
+                                    'prompt': messages,
                                     'response': response_text,
-                                    'model': self.llm_config.get('model', 'unknown'),
+                                    'model': model,
                                     'temperature': temperature,
                                     'tokens': {
-                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
-                                        'output': 0  # LLMResponse doesn't separate input/output for basic generate()
+                                        'input': input_tokens,
+                                        'output': output_tokens,
+                                        'total': input_tokens + output_tokens,
                                     }
                                 })
                                 self.call_sequence += 1
@@ -1915,17 +1947,24 @@ Generate narratives (numbered list only):"""
                         # Also log to human-readable agent prompt log if enabled
                         if self.agent_prompt_logger:
                             try:
+                                from token_utils import count_chat_tokens, count_text_tokens
+
+                                messages = [{"role": "user", "content": prompt}]
+                                model = self.llm_config.get('model', 'unknown')
+                                input_tokens = count_chat_tokens(messages, model)
+                                output_tokens = count_text_tokens(response_text, model)
                                 self.agent_prompt_logger.log_llm_call(
                                     agent_id=self.agent_id,
                                     round_num=None,  # Enemy calls don't have round context
                                     call_sequence=self.call_sequence - 1,  # Already incremented above
                                     prompt=prompt,  # Full prompt text
                                     response=response_text,
-                                    model=self.llm_config.get('model', 'unknown'),
+                                    model=model,
                                     temperature=temperature,
                                     tokens={
-                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
-                                        'output': 0
+                                        'input': input_tokens,
+                                        'output': output_tokens,
+                                        'total': input_tokens + output_tokens,
                                     }
                                 )
                             except Exception as e:
@@ -1935,8 +1974,8 @@ Generate narratives (numbered list only):"""
                         return {"content": response_text}
 
                 # Create per-enemy LLM clients for proper logging
-                llm_client = DMLLMClient(
-                    dm_agent.llm_config,
+                llm_client = EnemyFallbackLLMClient(
+                    enemy_llm_config,
                     jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                     agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
                     session_id=self.session_id,
@@ -1986,8 +2025,8 @@ Generate narratives (numbered list only):"""
                 logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
                 if llm_client:
                     # Create per-enemy LLM client for proper logging
-                    enemy_llm_client = DMLLMClient(
-                        dm_agent.llm_config,
+                    enemy_llm_client = EnemyFallbackLLMClient(
+                        enemy_llm_config,
                         jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                         agent_id=agent.agent_id,
                         session_id=self.session_id,
