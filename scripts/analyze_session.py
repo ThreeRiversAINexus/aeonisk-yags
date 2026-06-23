@@ -125,6 +125,10 @@ EVENT_SCHEMAS = {
         "required": ["event_type", "ts", "session", "round"],
         "optional": ["data", "clock_name", "reason", "event_id", "parent_event_id", "correlation_id"]
     },
+    "clock_update": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
 
     # === Round Summary Events ===
     "round_summary": {

@@ -10,13 +10,13 @@ Five canonical session recordings representing core gameplay archetypes, generat
 
 ## Archetypes at a Glance
 
-| Archetype  | File                    | Rounds | Events | Focus                              | MCP Names |
+| Archetype  | File                    | Rounds | Events | Focus                              | NPC naming |
 |------------|------------------------|--------|--------|----------------------------------|-----------|
-| **Combat** | golden_seed_combat.jsonl | 3      | 145    | Free targeting, enemy AI, damage | ✓ Canonical |
-| **Social** | golden_seed_social.jsonl | 3      | 99     | Dialogue, NPC interaction, clocks | ✓ Canonical |
-| **Ritual** | golden_seed_ritual.jsonl | 4      | 108    | Void progression, offerings, DC scaling | ✓ Canonical |
-| **Vendor** | golden_seed_vendor.jsonl | 3      | 77     | Purchase pipeline, EnergyPurse, economics | ✓ Canonical |
-| **Conversion** | golden_seed_conversion.jsonl | 3      | 134    | De-escalation, enemy→NPC, agent_id stability | ✓ Canonical |
+| **Combat** | golden_seed_combat.jsonl | 3      | 145    | Free targeting, enemy AI, damage | enemies: template+suffix; no DM-spawned NPCs |
+| **Social** | golden_seed_social.jsonl | 3      | 99     | Dialogue, NPC interaction, clocks | 5/5 NPCs MCP-canonical |
+| **Ritual** | golden_seed_ritual.jsonl | 4      | 108    | Void progression, offerings | 1 NPC DM-hallucinated (no canonical faction routed) |
+| **Vendor** | golden_seed_vendor.jsonl | 3      | 77     | Purchase pipeline, EnergyPurse, economics | author-named vendor (Field Medic Jara) |
+| **Conversion** | golden_seed_conversion.jsonl | 3      | 134    | De-escalation, enemy→NPC, agent_id stability | author-named NPCs (Kassia + guard) |
 
 ---
 
@@ -34,15 +34,15 @@ Five canonical session recordings representing core gameplay archetypes, generat
 - Morale checks and enemy fleeing/conversion to NPC
 
 **Stats:**
-- Enemies spawned: 5 Freeborn Thugs
+- Enemies spawned: 5 Freeborn (3 initial + 2 reinforcements)
 - PC success rate: 100% (6/6 actions)
 - Combat actions: 9 total
 - Environmental void: 4/10
-- Enemies defeated: 0 (1 panicked/fled)
+- Enemies defeated: 0; enemies converted (de-escalated to NPC): 2
 
 **Why representative:** Demonstrates the full tactical combat loop with multiple enemy interactions, tactical decisions, and environmental complexity. Shows how the enemy agent system makes autonomous decisions and how free targeting works in practice.
 
-**MCP Names:** All enemy names are canonical Pattern B surnames from the Freeborn House Lines (e.g., "Freeborn Thug" template spawns with prefixed House identifiers when MCP is enabled).
+**Names:** Enemy names use the production faction+archetype+suffix convention (`Freeborn Thug #1`, `Freeborn melee #1`). The MCP NPC-naming path only runs for DM-spawned NPCs in canonical factions; this fixture has no DM-spawned NPCs.
 
 ---
 
@@ -66,7 +66,7 @@ Five canonical session recordings representing core gameplay archetypes, generat
 
 **Why representative:** Pure social archetype with zero combat, showcasing dialogue, tension, and clock mechanics. Shows how the DM handles NPC-driven scenes and how clocks escalate narrative tension.
 
-**MCP Names:** All NPC names generated via MCP from Sovereign Nexus faction pool (e.g., "Sentinel Vehalin Halessan", "Officer Wrin Ireveth Vireya").
+**MCP Names:** All 5 DM-spawned NPCs have MCP-canonical Pattern B surnames from House Lines (Sovereign Nexus: Halessan, Ireveth; Freeborn: Karsel, Xalith). Actual names in the fixture: `Vehalin Halessan Voren`, `Velen Ireveth Voren`, `Sablive Karsel`, `Kashael Xalith`, `Kalen Xalith`.
 
 ---
 
@@ -82,16 +82,16 @@ Five canonical session recordings representing core gameplay archetypes, generat
 - Solo PC experience (DM narrates consequences directly)
 
 **Stats:**
-- Rituals conducted: 4 escalating (scrying, divination, channeling, communion)
-- Void progression: 0 → +1 → +2 → +3 (cumulative)
-- PC success rate: 100% (all rituals succeeded)
-- Offerings used: 2 Blood Offerings, 4 Void Crystals, 8 Ritual Components
+- PC ritual actions: 4 total (top skills: Astral Arts 3, Attunement 1)
+- PC success rate: 3/4 (75%; round 1 scrying crit-failed at margin -20, accruing +1 void)
+- Cumulative PC void: +3 (R1 +1 unstable communion, R4 +2 forbidden communion siphon)
+- 2 validation warnings: ritual actions without offering/tool that did not accrue the expected +1 void each (lines 41 and 67) — adjudication bug, not a fixture defect
 - Round duration: 4 rounds, 108 events
-- Environmental void: 2/10
+- Environmental void: 2/10 (unchanged across session)
 
-**Why representative:** Demonstrates the full ritual progression arc with void mechanics, component management, and escalating challenge. Shows how void accumulates and how offerings are consumed. Ideal for training models on magical consequence systems.
+**Why representative:** Demonstrates the void-accrual side of ritual mechanics (both expected failure void and willful corruption void) and exposes the offering/tool adjudication gap. Useful for training models on magical consequence systems and for catching regressions in the offering-void link.
 
-**MCP Names:** NPC (if any) spawned via MCP; the main character (Nova) is PC-authored.
+**MCP Names:** 1 NPC ("Lio Ren") was DM-hallucinated — the ritual scene has no canonical faction in its seed config, so the NPC-spawn path skipped the MCP. Either the seed config needs a canonical faction hint or this carve-out should be documented as intentional.
 
 ---
 
@@ -107,16 +107,16 @@ Five canonical session recordings representing core gameplay archetypes, generat
 - Consumable usage (med kit healing)
 
 **Stats:**
-- Vendor interactions: 1 (Field Medic Jara)
-- Items purchased: Med Kit (5 Drip)
-- Health restored: +15 HP (Rivan: 15 → 30)
-- PC currency pooling: Both PCs contributed Drip to transaction
+- Vendor: 1 (Field Medic Jara, persistent_vendor)
+- Purchase attempts: 6, all successful (`purchase_attempt.success=true` on all 6)
 - Round duration: 3 rounds, 77 events
 - Environmental void: 2/10
 
+**Tooling caveat:** `analyze_session.py --mode=summary` reports vendor PC actions as 0/6 success because purchase actions are skill-less (`roll.success: null`). The real signal is the 6/6 successful `purchase_attempt` events, not the action_resolution summary line.
+
 **Why representative:** Pure economics-focused session demonstrating the vendor/purchase pipeline, EnergyPurse mechanics, and how transactions pre-execute deterministically. Essential for training economic reasoning.
 
-**MCP Names:** Vendor name (Field Medic Jara) is author-authored, as vendor naming scope was excluded from MCP v1.
+**Names:** Vendor name (Field Medic Jara) is author-authored from `persistent_vendors` in the seed config — vendor naming scope was excluded from MCP v1. One DM lifecycle event emitted a malformed NPC ID (`npc_b98d3056` with no name body) — captured faithfully in the fixture; root cause is in production code.
 
 ---
 
@@ -134,16 +134,16 @@ Five canonical session recordings representing core gameplay archetypes, generat
 
 **Stats:**
 - Enemies spawned: 3 Freeborn Raiders (defensive tactics)
-- Conversions: 1 enemy → NPC (prisoner)
-- Neutral NPCs: 1 (Dock Worker Kassia)
-- PC success rate: 100% (all actions succeeded)
-- Healing applied: 0 (enemies not critically wounded)
+- Conversions: 3 enemies → NPC (per `entity_lifecycle.enemies_converted`)
+- Neutral NPCs: 1 (Dock Worker Kassia, author-defined in `initial_npcs`)
+- PC success rate: 5/6 (83%)
+- 2 narrative-only condition warnings: `Compliant` and `Tamper Flagged` have penalty=0 (intentional or omission)
 - Round duration: 3 rounds, 134 events
 - Environmental void: 3/10
 
 **Why representative:** Demonstrates the full NPC lifecycle (enemy → prisoner → potential dialogue partner). Shows agent_id stability across conversions, de-escalation mechanics, and how neutrals factor into combat scenarios. Critical for training de-escalation and conversion logic.
 
-**MCP Names:** NPC prisoner (enemy converted) receives canonical name via MCP; Dock Worker Kassia may have an MCP-generated name if the DM decided to spawn additional NPCs during the scenario.
+**Names:** Author-defined NPCs (Dock Worker Kassia, Warehouse Security Guard) retain their config names — they come from `initial_npcs`, not the MCP path. Converted enemies keep their `enemy_grunt_*` IDs by design (agent_id stability). One malformed NPC ID emitted (`npc_07670348`, no name body) — same production-code path as the vendor fixture's malformed ID.
 
 ---
 
@@ -212,19 +212,20 @@ python scripts/extract_fixture.py \
 
 ### All Sessions Include:
 
-- ✅ **Canonical MCP naming:** All DM-spawned NPCs have Pattern B surnames from aeonisk-names-mcp
-- ✅ **Deterministic outcomes:** No random variance in events after LLM generation (mechanical resolution is deterministic)
-- ✅ **Complete session_end event:** All sessions ran to completion with proper cleanup
-- ✅ **Schema-valid JSONL:** All events pass validate_logging.py schema checks
-- ✅ **gpt-5-mini generation:** All sessions generated with OpenAI's gpt-5-mini for consistency
-- ✅ **3-4 rounds each:** Representative sample size (not too short, not bloated)
+- ✅ **Canonical MCP naming where MCP runs:** DM-spawned NPCs in canonical factions have Pattern B surnames from `aeonisk-names-mcp`. Enemies and author-defined NPCs do NOT route through the MCP (by design — see per-archetype `Names` notes).
+- ✅ **Deterministic outcomes:** No random variance in events after LLM generation (mechanical resolution is deterministic).
+- ✅ **Complete session_end event:** All sessions ran to completion with proper cleanup.
+- ✅ **Schema-valid JSONL:** All events pass `analyze_session.py --validate-fixture`.
+- ✅ **gpt-5-mini generation:** All sessions generated with OpenAI's gpt-5-mini for consistency.
+- ✅ **3-4 rounds each:** Representative sample size (not too short, not bloated).
+- ✅ **Zero structured-output fallbacks:** Across all 5 fixtures, the LLM never had to drop to text parsing.
 
 ### What's NOT Included:
 
-- ❌ Multi-session narratives (each is standalone)
-- ❌ Failure/error states (all clean runs, no crashed agents or validation failures)
-- ❌ Rare edge cases (only representative archetypes, not edge-case testing)
-- ❌ Player death/TPK scenarios (focus on successful completions)
+- ❌ Multi-session narratives (each is standalone).
+- ❌ Crash-state runs (sessions completed cleanly), but **non-zero adjudication warnings exist** — ritual has 2 (offering/tool void), conversion has 2 (narrative-only conditions with penalty=0). See per-archetype Stats sections.
+- ❌ Rare edge cases (only representative archetypes, not edge-case testing).
+- ❌ Player death/TPK scenarios (focus on successful completions).
 
 ---
 
@@ -288,7 +289,9 @@ def test_combat_archetype_round_count():
 
 ```bash
 # Schema validation (ensure all JSONL is valid)
-python scripts/validate_logging.py tests/fixtures/sessions/golden_seed/*.jsonl
+for f in tests/fixtures/sessions/golden_seed/golden_seed_*.jsonl; do
+  python scripts/analyze_session.py --validate-fixture "$f"
+done
 ```
 
 ---
@@ -312,3 +315,9 @@ python scripts/validate_logging.py tests/fixtures/sessions/golden_seed/*.jsonl
 ---
 
 **Last updated:** 2026-06-23 (session generation date: 2026-06-22)
+
+---
+
+## Audit history
+
+- **2026-06-23** — Full audit pass; see `GOLDEN_SEED_AUDIT_2026-06-23.md` at repo root for the per-fixture verdict, balance table, and follow-up list. All 5 fixtures PASS or PASS-WITH-NOTES; no substitutions. Production follow-ups filed (malformed NPC IDs, ritual offering/void adjudication, `replay_fixture.py --all-cached` hang).
