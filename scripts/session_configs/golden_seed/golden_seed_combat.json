@@ -1,0 +1,74 @@
+{
+  "_seed_doc": "Golden seed corpus: COMBAT archetype. Faction skirmish exercising free targeting, IFF, damage, void changes, enemy AI. Cloned from session_config_combat.json; LLMs switched to gpt-5-mini, names_mcp enabled. Enemy faction changed from 'Local Criminal Syndicate' (not in EnemySpawn enum) to 'Freeborn' for canon compatibility.",
+  "session_name": "golden_seed_combat",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "force_combat": true,
+  "names_mcp": { "enabled": true, "from_pool": true },
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "initial_enemies": [
+    {
+      "name": "Street Gang",
+      "template": "Grunt",
+      "faction": "Freeborn",
+      "archetype": "Thug",
+      "count": 3,
+      "position": "Near-Enemy",
+      "spawn_reason": "Territorial ambush against intruders",
+      "tactics": "aggressive_melee"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 }
+    },
+    "players": [
+      {
+        "name": "Enforcer Kael Dren",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 },
+        "personality": { "riskTolerance": 6, "voidCuriosity": 1, "bondPreference": "neutral", "ritualConservatism": 9 },
+        "goals": [
+          "Investigate void-related crimes and neutralize threats",
+          "Track down illegal dissolution advocacy",
+          "Maintain order through force when necessary"
+        ],
+        "attributes": { "Strength": 3, "Agility": 4, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Charm": 3, "Willpower": 3, "Size": 5, "Dexterity": 3 },
+        "skills": { "Combat": 5, "Investigation": 4, "Awareness": 5, "Athletics": 4, "Intimidation": 4, "Guns": 5, "Brawl": 4, "Melee": 4 },
+        "equipped_weapons": { "primary": "pistol", "sidearm": "shock_baton" },
+        "carried_weapons": ["combat_knife"],
+        "inventory": { "pistol": 1, "shock_baton": 1, "combat_knife": 1, "riot_carapace": 1, "restraint_cuffs": 2, "med_kit": 1 }
+      },
+      {
+        "name": "Drifter Sable",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 },
+        "personality": { "riskTolerance": 8, "voidCuriosity": 5, "bondPreference": "avoids", "ritualConservatism": 3 },
+        "goals": [
+          "Stay off the Nexus grid and avoid ledger tracking",
+          "Survive by any means necessary",
+          "Keep independence from corporate entanglements"
+        ],
+        "attributes": { "Strength": 3, "Agility": 4, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Charm": 2, "Willpower": 3, "Size": 5, "Dexterity": 3 },
+        "skills": { "Combat": 5, "Stealth": 5, "Awareness": 5, "Athletics": 4, "Pilot": 3, "Guns": 5, "Melee": 4 },
+        "equipped_weapons": { "primary": "pistol", "sidearm": "combat_knife" },
+        "carried_weapons": [],
+        "inventory": { "pistol": 1, "combat_knife": 1, "void_cloak": 1, "med_kit": 1 }
+      }
+    ]
+  },
+  "notes": "GOLDEN SEED: Combat archetype - faction conflict with enemy AI. Used as ML training corpus seed."
+}

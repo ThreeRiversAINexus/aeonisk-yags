@@ -1,0 +1,40 @@
+{
+  "_seed_doc": "Golden seed corpus: SOCIAL/INVESTIGATION archetype. Pure dialogue scene at a checkpoint, no combat. DM spawns 2-3 NPCs across faction Lines so the MCP naming pipeline is well-exercised.",
+  "session_name": "golden_seed_social",
+  "max_turns": 3,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "vendor_spawn_frequency": -1,
+  "names_mcp": { "enabled": true, "from_pool": true },
+  "scenario_hint": "PC enters a Sovereign Nexus checkpoint at the edge of a Freeborn settlement. Spawn 2-3 NPCs across the first two rounds: a Sovereign Nexus checkpoint officer, a Pantheon Security guard, and a Freeborn vendor or bystander. NO combat. Pure social/investigation scene focused on dialogue and observation.",
+  "agents": {
+    "dm": {
+      "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 }
+    },
+    "players": [
+      {
+        "name": "Drifter Cas",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 },
+        "personality": { "riskTolerance": 4, "voidCuriosity": 3, "bondPreference": "neutral", "ritualConservatism": 5 },
+        "goals": [
+          "Pass through the checkpoint without drawing attention",
+          "Observe the local NPCs and gather information",
+          "Avoid combat"
+        ],
+        "attributes": { "Strength": 3, "Agility": 3, "Endurance": 3, "Perception": 4, "Intelligence": 3, "Charm": 3, "Willpower": 3, "Size": 5, "Dexterity": 3 },
+        "skills": { "Awareness": 4, "Charm": 3, "Investigation": 3 },
+        "void": 0,
+        "soulcredit": 0,
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {}
+      }
+    ]
+  },
+  "notes": "GOLDEN SEED: Social/investigation archetype - pure dialogue, no combat. Exercises NPC spawning + MCP naming across multiple factions in a single short session."
+}
