@@ -577,7 +577,33 @@ Matched: "Sera Karsel" → "Vessel Sera Karsel" ✓
 - INFO: `"Fuzzy matched void target: 'Sera Karsel' → 'Vessel Sera Karsel'"`
 - WARNING: `"Could not match void target 'Bob Smith': No character found..."`
 
-### 9. Bond System
+### 9. NPC Name Generation (Aeonisk Names MCP)
+**Purpose:** Replace the DM's hallucinated `NPCSpawn.name` with a canonically-grounded Pattern B name from `aeonisk-names-mcp`.
+
+**Enable in session config:**
+```json
+{
+  "names_mcp": { "enabled": true, "from_pool": true }
+}
+```
+
+**Behavior:**
+- Hook lives in `dm.py:_process_npc_spawn` (single chokepoint for all DM-spawned NPCs).
+- Maps yags faction display name → MCP kebab id, and `NPCSpawn.pronouns` → gender (she/her→feminine, he/him→masculine, else→ambiguous).
+- Non-canon yags factions (Void / Independent / Unknown) skip the MCP entirely — LLM name stands.
+- Any MCP failure (exception, empty pool, repeated reservation conflict) fails open to the LLM name.
+- Reservations recorded with `owner=f"yags:{session_id}"`; cleanup via `aeonisk-names-bank purge`.
+
+**Install (editable):**
+```bash
+source .venv/bin/activate
+pip install -e ../aeonisk-names-mcp/
+```
+
+**Files:** `names_client.py` (wrapper), `dm.py:9377+` (hook), `session.py:974+` (config wiring).
+**Tests:** `tests/unit/test_names_client.py`, `tests/unit/test_dm_npc_spawn_naming.py`.
+
+### 10. Bond System
 **Core Principle:** Structured output schemas drive all bond mechanics with automatic Void-driven transitions
 
 - **Bond Types:** Kinship, Ascendancy, Debt, Voidward, Passion, Faction

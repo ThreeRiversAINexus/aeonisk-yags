@@ -1230,6 +1230,7 @@ class AIDMAgent(Agent):
         llm_client: Optional[Any] = None,
         agent_prompt_logger: Optional[Any] = None,
         session_config: Optional[Dict[str, Any]] = None,
+        names_client: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -1243,6 +1244,7 @@ class AIDMAgent(Agent):
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
         self.session_config = session_config or {}  # Session config for persistent vendors, etc.
+        self.names_client = names_client  # Optional aeonisk-names-mcp client; None = LLM-named NPCs
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -9393,6 +9395,18 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         import logging
 
         logger = logging.getLogger(__name__)
+
+        # Canonicalize via aeonisk-names-mcp when wired in. Non-canon factions
+        # (Independent/Unknown/Void) and any failure path return None, letting
+        # the DM-generated NPCSpawn.name stand.
+        if self.names_client is not None:
+            mcp_name = self.names_client.generate_npc_name(
+                faction=npc_spawn.faction,
+                pronouns=getattr(npc_spawn, "pronouns", "they/them"),
+                context=f"npc_spawn:{npc_spawn.faction}",
+            )
+            if mcp_name:
+                npc_spawn.name = mcp_name
 
         # Generate unique agent_id with npc_ prefix
         # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)

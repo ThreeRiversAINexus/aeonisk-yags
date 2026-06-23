@@ -844,6 +844,24 @@ class SelfPlayingSession:
         # Start the game session
         self.session_id = await self.coordinator.create_session(self.config)
 
+        # Attach aeonisk-names-mcp client to the DM if enabled (off by default).
+        # Done here — after self.session_id is set — so the reservation owner
+        # string can be session-scoped for later cleanup.
+        names_mcp_config = self.config.get('names_mcp') or {}
+        if names_mcp_config.get('enabled') and getattr(self, 'dm_agent', None):
+            try:
+                from .names_client import NamesClient
+                self.dm_agent.names_client = NamesClient(
+                    owner=f"yags:{self.session_id}",
+                    from_pool=names_mcp_config.get('from_pool', True),
+                )
+                logger.info(
+                    f"📛 Aeonisk-names MCP enabled for NPC naming "
+                    f"(from_pool={names_mcp_config.get('from_pool', True)})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize Aeonisk-names MCP client: {e}")
+
         # Initialize JSONL logger for machine-readable events
         from .mechanics import JSONLLogger
         output_dir = self.config.get('output_dir', './output')
@@ -982,7 +1000,9 @@ class SelfPlayingSession:
             force_scenario=force_scenario,
             llm_client=dm_llm_client,
             session_config=self.config,  # Pass full session config for persistent vendors
+            # names_client attached in start_session() after session_id is known
         )
+        self.dm_agent = dm_agent  # Held for post-init wiring (names_mcp, etc.)
         self.agents.append(dm_agent)
         await dm_agent.start()
 
