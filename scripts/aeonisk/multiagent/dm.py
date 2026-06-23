@@ -1531,6 +1531,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 """
 
             # Add narrative style guidance if specified
+            dm_config = self.session_config.get('agents', {}).get('dm', {})
             narrative_style = dm_config.get('narrative_style', '')
             tone_guidance = dm_config.get('tone_guidance', '')
 
@@ -1756,7 +1757,8 @@ Apply this narrative style to:
                                 "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
                             )
 
-                            # Use rate-limited wrapper (already imported above)
+                            # Use rate-limited wrapper (import may be branch-scoped above)
+                            from .llm_provider import call_anthropic_with_retry
                             response = await call_anthropic_with_retry(
                                 client=self.llm_client,
                                 model=model,
