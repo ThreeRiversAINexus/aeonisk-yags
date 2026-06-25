@@ -246,8 +246,15 @@ class JSONLLogger:
         self.current_parent_event_id = session_start_event["event_id"]  # Session start is parent of first events
 
     def _get_git_commit(self) -> Optional[str]:
-        """Get current git commit hash for version tracking."""
+        """Get current git commit hash for version tracking.
+
+        Appends '-dirty' when the working tree has uncommitted changes, so the stamp
+        cannot silently claim a clean commit that the running code did not match. A
+        bare short SHA therefore reliably means "generated from exactly that commit";
+        a '-dirty' suffix means the code had local modifications on top of it.
+        """
         import subprocess
+        repo_root = Path(__file__).parent.parent.parent.parent  # Go up to repo root
         try:
             # Get short commit hash (first 7 chars)
             result = subprocess.run(
@@ -255,10 +262,21 @@ class JSONLLogger:
                 capture_output=True,
                 text=True,
                 timeout=1,
-                cwd=Path(__file__).parent.parent.parent.parent  # Go up to repo root
+                cwd=repo_root
             )
             if result.returncode == 0:
-                return result.stdout.strip()
+                commit = result.stdout.strip()
+                # Flag a dirty working tree so the version stamp stays trustworthy
+                status = subprocess.run(
+                    ['git', 'status', '--porcelain'],
+                    capture_output=True,
+                    text=True,
+                    timeout=1,
+                    cwd=repo_root
+                )
+                if status.returncode == 0 and status.stdout.strip():
+                    commit += '-dirty'
+                return commit
         except Exception:
             pass
         return None
