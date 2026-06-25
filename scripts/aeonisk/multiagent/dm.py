@@ -7596,6 +7596,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             logger.debug("DM: No llm_provider available, will use legacy text generation")
             return None
 
+        # Bind mechanics up front: the targeting-correction path below references
+        # `mechanics` (for JSONL logging) before its first conditional assignment,
+        # which raised UnboundLocalError whenever a damage effect needed correction.
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
+
         try:
             from .structured_output_helpers import generate_dm_resolution_structured
             from .schemas.action_resolution import ActionResolution

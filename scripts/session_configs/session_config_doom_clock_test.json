@@ -1,0 +1,49 @@
+{
+  "_role": "Live smoke test for DOOM-polarity terminal clock endings (aversion victory / catastrophe defeat).",
+  "_purpose": "A void breach mid-escalation: the terminal DOOM clock 'Containment Failure' (terminal_outcome=defeat) sits at 4/8. If it FILLS the dock floods -> defeat. If the party drives it to 0 it is neutralised -> victory; if they hold it off until the round cap, catastrophe is averted -> victory by aversion. Validates the polarity-aware end conditions live.",
+  "session_name": "Doom Clock Test - Void Breach Containment",
+  "max_turns": 5,
+  "party_size": 1,
+  "output_dir": "/tmp/claude-1000/-home-p-Coding-aeonisk/e3c1cced-b6a0-4d64-9976-bacd7fc02cfa/scratchpad/doom_test_output",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "vendor_spawn_frequency": 0,
+  "scenario_hint": "A void breach is widening in the dock's containment ring. The CENTRAL dramatic question is whether the breach can be contained before it floods the dock. The 'Containment Failure' clock is a DOOM clock: if it FILLS the dock floods and the scene ends in defeat. The party's goal is to push it back -- driving it to zero neutralises the breach (victory), and holding it off until the situation stabilises also counts as catastrophe averted. Do not open unrelated side-plots; this scene is about winning or losing the containment.",
+  "starting_clocks": [
+    {
+      "name": "Containment Failure",
+      "current_ticks": 4,
+      "max_ticks": 8,
+      "description": "The void breach widens toward a full containment failure that floods the dock.",
+      "advance_meaning": "the breach widens and containment degrades",
+      "regress_meaning": "the party reinforces the seal and pushes the breach back",
+      "filled_consequence": "Containment fails completely, the dock floods with void, and the scene is lost.",
+      "is_terminal_clock": true,
+      "terminal_outcome": "defeat"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": { "provider": "openai", "model": "gpt-5.4-mini", "temperature": 1.0, "max_tokens": 4000 }
+    },
+    "players": [
+      {
+        "name": "Containment Engineer Roan Vel",
+        "pronouns": "he/him",
+        "faction": "Freeborn Loner",
+        "llm": { "provider": "openai", "model": "gpt-5.4-mini", "temperature": 1.0, "max_tokens": 3000 },
+        "personality": { "riskTolerance": 5, "voidCuriosity": 4, "bondPreference": "neutral", "ritualConservatism": 5 },
+        "attributes": { "Strength": 3, "Agility": 3, "Endurance": 4, "Perception": 4, "Intelligence": 4, "Empathy": 2, "Willpower": 4, "Dexterity": 4 },
+        "skills": { "Awareness": 4, "Astral Arts": 5, "Athletics": 3, "Combat": 3 },
+        "void": 3,
+        "soulcredit": 0,
+        "goals": [
+          "Contain the void breach before it floods the dock",
+          "Drive the Containment Failure clock down and neutralise the breach"
+        ],
+        "inventory": { "comm_unit": 1, "containment_kit": 1 }
+      }
+    ]
+  },
+  "enable_human_interface": false
+}
