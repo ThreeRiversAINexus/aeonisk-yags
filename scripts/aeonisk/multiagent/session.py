@@ -524,6 +524,7 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+        self._end_state_snapshot: Optional[Dict[str, Any]] = None  # Resolve-then-leap hook: set when a terminal clock resolves the scene
         self._fatal_error: Optional[str] = None  # Track fatal agent errors for graceful termination
 
         # Replay mode
@@ -898,7 +899,9 @@ class SelfPlayingSession:
                             description=clock.description,
                             advance_meaning=clock.advance_meaning,
                             regress_meaning=clock.regress_meaning,
-                            filled_consequence=clock.filled_consequence
+                            filled_consequence=clock.filled_consequence,
+                            is_terminal=getattr(clock, 'is_terminal_clock', False),
+                            terminal_outcome=getattr(clock, 'terminal_outcome', 'victory')
                         )
                         mechanics.scene_clocks[clock.name] = scene_clock
                         logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
@@ -4823,7 +4826,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 clock.description,
                 advance_meaning=clock.advance_meaning,
                 regress_meaning=clock.regress_meaning,
-                filled_consequence=clock.filled_consequence
+                filled_consequence=clock.filled_consequence,
+                is_terminal=getattr(clock, 'is_terminal_clock', False),
+                terminal_outcome=getattr(clock, 'terminal_outcome', 'victory')
             )
 
             # Set initial ticks if specified
@@ -4891,8 +4896,63 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Reset flag so we don't trigger again until new clocks appear
             self._had_active_clocks = False
 
+    def _build_end_state_snapshot(self, mechanics, terminal: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Capture the scene's resolving state when a terminal clock fills.
+
+        This is the hand-off point for the resolve-then-leap continuation: it records
+        how the chapter ended (outcome, the beat that resolved it, who is still standing,
+        environmental void, remaining clocks) so a future session can continue with
+        continuity after a time jump.
+        """
+        party = []
+        for agent in self.agents:
+            char = getattr(agent, 'character_state', None)
+            if char is None:
+                continue
+            party.append({
+                'name': getattr(char, 'name', None),
+                'faction': getattr(char, 'faction', None),
+                'is_defeated': getattr(char, 'is_defeated', False),
+                'void_score': getattr(char, 'void_score', None),
+            })
+
+        return {
+            'outcome': terminal['outcome'],
+            'resolved_by_clock': terminal['clock_name'],
+            'resolution': terminal.get('filled_consequence') or terminal.get('reason', ''),
+            'round': terminal.get('round', mechanics.current_round),
+            'scene_void_level': getattr(mechanics, 'scene_void_level', None),
+            'party': party,
+            'state_summary': mechanics.get_state_summary(),
+        }
+
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
+        # A terminal clock filling resolves the central question -> end the session.
+        # Emit the end-state snapshot (the resolve-then-leap hook) whenever a terminal
+        # clock resolved the scene, EVEN IF the DM also declared session_end itself --
+        # which the resolution-positive prompt makes common. (Gating the snapshot on
+        # "DM hasn't ended yet" silently dropped it precisely when the prompt worked.)
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            terminal = getattr(mechanics, 'terminal_completion', None)
+            if terminal and not self._end_state_snapshot:
+                # Adopt the clock's outcome only if the DM hasn't already declared one.
+                if not self._session_end_status:
+                    self._session_end_status = terminal['outcome']
+                self._end_state_snapshot = self._build_end_state_snapshot(mechanics, terminal)
+                print(
+                    f"\n🏁 TERMINAL CLOCK '{terminal['clock_name']}' RESOLVED THE SCENE "
+                    f"→ ending session ({self._session_end_status})"
+                )
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event(
+                        event_type="end_state_snapshot",
+                        data=self._end_state_snapshot,
+                        round_num=mechanics.current_round
+                    )
+
         # Check if DM declared session end
         if self._session_end_status:
             print(f"\n🎬 DM DECLARED SESSION {self._session_end_status.upper()}")

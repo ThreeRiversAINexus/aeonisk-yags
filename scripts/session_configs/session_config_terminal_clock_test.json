@@ -1,0 +1,81 @@
+{
+  "_role": "Fast live smoke test for terminal-clock session endings + end_state_snapshot.",
+  "_purpose": "A near-resolved tribunal scene: the Final Verdict terminal clock sits at 5/6. One beat of action toward it should fill it, which must END the session (outcome=draw) instead of running to the round cap, and emit an end_state_snapshot (resolve-then-leap hook).",
+  "session_name": "Terminal Clock Test - Bond Tribunal Verdict",
+  "max_turns": 4,
+  "party_size": 1,
+  "output_dir": "/tmp/claude-1000/-home-p-Coding-aeonisk/e3c1cced-b6a0-4d64-9976-bacd7fc02cfa/scratchpad/terminal_test_output",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "vendor_spawn_frequency": 0,
+  "scenario_hint": "The Bond Severance Tribunal has nearly reached its ruling on Advocate Sera's petition to dissolve a Voidward bond. Deliberation is one beat from done. The CENTRAL dramatic question is: what does the tribunal decide? When the 'Final Verdict' clock fills, the verdict is delivered and the SESSION ENDS (terminal_outcome=draw). Do not open new investigations or side-conflicts; bring the deliberation to its binding conclusion.",
+  "starting_clocks": [
+    {
+      "name": "Final Verdict",
+      "current_ticks": 5,
+      "max_ticks": 6,
+      "description": "The tribunal deliberates toward its binding ruling on the bond-severance petition.",
+      "advance_meaning": "the tribunal moves closer to delivering its ruling",
+      "regress_meaning": "deliberation stalls and the chamber argues",
+      "filled_consequence": "The verdict is read aloud, the bond is formally dissolved, and the chamber empties.",
+      "is_terminal_clock": true,
+      "terminal_outcome": "draw"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000
+      }
+    },
+    "players": [
+      {
+        "name": "Advocate Sera Karsel",
+        "pronouns": "she/her",
+        "faction": "Freeborn Loner",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Awareness": 4,
+          "Guile": 5,
+          "Charm": 5,
+          "Corporate Influence": 4
+        },
+        "void": 2,
+        "soulcredit": 1,
+        "goals": [
+          "Persuade the tribunal to deliver its binding verdict on the bond-severance petition",
+          "Bring the deliberation to a clean conclusion"
+        ],
+        "inventory": {
+          "comm_unit": 1,
+          "petition_dossier": 1
+        }
+      }
+    ]
+  },
+  "enable_human_interface": false
+}

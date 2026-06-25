@@ -1684,7 +1684,9 @@ Apply this narrative style to:
                             clock.description,
                             clock.advance_meaning,
                             clock.regress_meaning,
-                            clock.filled_consequence
+                            clock.filled_consequence,
+                            getattr(clock, 'is_terminal_clock', False),
+                            getattr(clock, 'terminal_outcome', 'victory')
                         ))
 
                 else:
@@ -1890,10 +1892,13 @@ Apply this narrative style to:
                 advance_meaning = clock_data[3] if len(clock_data) > 3 else ""
                 regress_meaning = clock_data[4] if len(clock_data) > 4 else ""
                 filled_consequence = clock_data[5] if len(clock_data) > 5 else ""
+                is_terminal = clock_data[6] if len(clock_data) > 6 else False
+                terminal_outcome = clock_data[7] if len(clock_data) > 7 else "victory"
 
                 mechanics.create_scene_clock(
                     clock_name, max_value, description,
-                    advance_meaning, regress_meaning, filled_consequence
+                    advance_meaning, regress_meaning, filled_consequence,
+                    is_terminal=is_terminal, terminal_outcome=terminal_outcome
                 )
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 

@@ -55,6 +55,22 @@ story_advancement=StoryAdvancement(\n\
         NewClock(name=\"Escape Route\", max_ticks=6, description=\"Find transit tunnel before blast doors seal\"),\n\
         NewClock(name=\"Corporate Pursuit\", max_ticks=8, description=\"ACG forces tracking your movements\")\n\
     ]\n\
+)\n\n\
+# Resolution clock - filling this ENDS the session (mark exactly ONE per scene)\n\
+scene_pivot=ScenePivot(\n\
+    should_pivot=False,\n\
+    new_clocks=[\n\
+        NewClock(\n\
+            name=\"Final Verdict\",\n\
+            max_ticks=6,\n\
+            description=\"The tribunal deliberates toward a binding ruling\",\n\
+            advance_meaning=\"the tribunal nears a decision\",\n\
+            regress_meaning=\"deliberation stalls\",\n\
+            filled_consequence=\"The verdict is delivered and the chamber empties\",\n\
+            is_terminal_clock=True,  # filling this resolves the scene -> session ends\n\
+            terminal_outcome=\"draw\"  # victory / defeat / draw\n\
+        )\n\
+    ]\n\
 )\n\
 ```\n\n\
 **Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\n\
@@ -98,9 +114,15 @@ story_advancement=StoryAdvancement(\n\
   \ Trail\" filled AND team escapes)\n- **Defeat**: Multiple defeat clocks filled,\
   \ or team captured/killed\n- **New Clock**: A filled clock creates a NEW challenge\
   \ (not just progression)\n- **Advance Story**: All clocks completed/expired, need\
-  \ new situation OR dramatic shift in current scenario\n\n**Important:** Don't end\
-  \ sessions prematurely. Let scenarios develop. But if clocks indicate clear victory/defeat,\
-  \ use these markers to provide narrative closure.\n\n**5. Enemy Management (Structured\
+  \ new situation OR dramatic shift in current scenario\n\n**Important:** END the session when the central dramatic question is answered --\
+  \ the verdict delivered, the breach sealed, the target escaped or captured. Set\
+  \ session_end (victory/defeat/draw) with a reason; do NOT keep spawning new clocks\
+  \ once the core conflict resolves -- a resolved scene that keeps running reads as\
+  \ padding. Better still, when you create the clock that WILL resolve the scene, set\
+  \ is_terminal_clock=True (with terminal_outcome) -- filling it ends the session\
+  \ automatically. Mark exactly ONE clock terminal per scene; never flag escalation or\
+  \ side-objective clocks. Only keep developing while the central question is genuinely\
+  \ still open.\n\n**5. Enemy Management (Structured\
   \ Output):**\n\n**When using structured output (`RoundSynthesis` schema):**\n\n\
   Use `enemy_spawns` and `enemy_conversions` fields instead of text markers.\n\n**Enemy\
   \ Spawns:**\n```python\nenemy_spawns=[\n    EnemySpawn(\n        template=\"Elite\"\

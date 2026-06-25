@@ -93,6 +93,28 @@ class NewClock(BaseModel):
         description="Starting tick count (usually 0)"
     )
 
+    is_terminal_clock: bool = Field(
+        default=False,
+        description=(
+            "Mark TRUE only for the ONE clock that resolves the central dramatic "
+            "question of the scene -- the verdict delivered, the breach sealed, the "
+            "target escaped or captured. When a terminal clock fills, the session "
+            "ENDS. Never mark escalation, complication, or side-objective clocks "
+            "terminal; those are meant to keep developing."
+        )
+    )
+
+    terminal_outcome: Literal["victory", "defeat", "draw"] = Field(
+        default="victory",
+        description=(
+            "If is_terminal_clock is True, the session ends with this outcome when "
+            "the clock fills: 'victory' (the party achieved the goal), 'defeat' (the "
+            "party failed / was captured / the threat won), or 'draw' (resolved but "
+            "ambiguous, e.g. a binding verdict that satisfies no one). Ignored when "
+            "is_terminal_clock is False."
+        )
+    )
+
     @field_validator('current_ticks')
     @classmethod
     def validate_current_ticks(cls, v: int, info) -> int:

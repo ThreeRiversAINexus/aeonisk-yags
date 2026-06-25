@@ -1721,6 +1721,8 @@ class SceneClock:
     filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
     timeout_rounds: int = 5  # Rounds until clock expires (default 5)
     allow_negative: bool = False  # If True, clock can go negative (for bidirectional trackers)
+    is_terminal: bool = False  # If True, filling this clock resolves the scene and ends the session
+    terminal_outcome: str = "victory"  # Session outcome when a terminal clock fills (victory/defeat/draw)
     _ever_filled: bool = field(default=False, init=False, repr=False)
     _rounds_alive: int = field(default=0, init=False, repr=False)  # Track how long clock has existed
 
@@ -2100,6 +2102,13 @@ class MechanicsEngine:
 
         # Clock history - chronological timeline of all clock events
         self.clock_history: List[Dict[str, Any]] = []
+
+        # Terminal completion snapshot - set when a clock flagged is_terminal fills.
+        # The session loop reads this to end the session (with the declared outcome)
+        # instead of running to the round cap. Also the hook point for the
+        # resolve-then-leap continuation: it captures the resolving beat. First
+        # terminal clock to fill wins (one ending per session).
+        self.terminal_completion: Optional[Dict[str, Any]] = None
 
     def calculate_dc(
         self,
@@ -4501,7 +4510,9 @@ class MechanicsEngine:
         advance_meaning: str = "",
         regress_meaning: str = "",
         filled_consequence: str = "",
-        timeout_rounds: int = None
+        timeout_rounds: int = None,
+        is_terminal: bool = False,
+        terminal_outcome: str = "victory"
     ) -> SceneClock:
         """
         Create and register a scene clock with semantic metadata.
@@ -4514,6 +4525,8 @@ class MechanicsEngine:
             regress_meaning: What it means to regress (e.g., "Evidence destroyed")
             filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
             timeout_rounds: Rounds until clock expires (None = auto-calculated based on maximum)
+            is_terminal: If True, filling this clock resolves the scene and ends the session
+            terminal_outcome: Session outcome when a terminal clock fills (victory/defeat/draw)
         """
         # Auto-assign varied timeouts to prevent all clocks expiring simultaneously
         if timeout_rounds is None:
@@ -4534,10 +4547,39 @@ class MechanicsEngine:
             advance_meaning=advance_meaning,
             regress_meaning=regress_meaning,
             filled_consequence=filled_consequence,
-            timeout_rounds=timeout_rounds
+            timeout_rounds=timeout_rounds,
+            is_terminal=is_terminal,
+            terminal_outcome=terminal_outcome
         )
         self.scene_clocks[name] = clock
         return clock
+
+    def _record_terminal_completion(self, clock: 'SceneClock', reason: str = ""):
+        """
+        Capture the resolving beat when a terminal clock fills.
+
+        Sets self.terminal_completion (a snapshot dict) the FIRST time any terminal
+        clock fills; later terminal fills are ignored so the session has exactly one
+        ending. The session loop reads this to declare session_end with the clock's
+        terminal_outcome, and the resolve-then-leap continuation reads it to know
+        what beat resolved the chapter.
+        """
+        if not getattr(clock, 'is_terminal', False):
+            return
+        if self.terminal_completion is not None:
+            return  # one ending per session - first terminal clock wins
+
+        self.terminal_completion = {
+            'clock_name': clock.name,
+            'outcome': getattr(clock, 'terminal_outcome', 'victory'),
+            'filled_consequence': clock.filled_consequence,
+            'reason': reason or clock.filled_consequence,
+            'round': self.current_round,
+        }
+        logger.info(
+            f"🏁 TERMINAL CLOCK FILLED: {clock.name} -> session resolves "
+            f"({self.terminal_completion['outcome']})"
+        )
 
     def advance_clock(
         self,
@@ -4576,6 +4618,9 @@ class MechanicsEngine:
 
             # Trigger consequences (stores for DM synthesis)
             self._trigger_clock_consequences(clock_name, reason)
+
+            # A terminal clock filling resolves the scene -> signal session end
+            self._record_terminal_completion(clock, reason)
 
         return filled
 
@@ -4724,10 +4769,16 @@ class MechanicsEngine:
                             "reasons": reasons,
                             "filled_consequence": clock.filled_consequence,
                             "advance_meaning": clock.advance_meaning,
-                            "regress_meaning": clock.regress_meaning
+                            "regress_meaning": clock.regress_meaning,
+                            "is_terminal": getattr(clock, 'is_terminal', False),
+                            "terminal_outcome": getattr(clock, 'terminal_outcome', None) if getattr(clock, 'is_terminal', False) else None
                         },
                         round_num=self.current_round
                     )
+
+                # A terminal clock filling resolves the scene -> signal session end
+                if after >= maximum:
+                    self._record_terminal_completion(clock, "; ".join(reasons))
 
         # Clear the queue
         self.clock_update_queue = []
