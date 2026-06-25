@@ -1792,6 +1792,37 @@ class SceneClock:
         return self.current >= self.maximum
 
     @property
+    def effective_consequence(self) -> str:
+        """
+        The in-world consequence to narrate when this clock fills -- never empty.
+
+        Most authored configs leave filled_consequence blank, which made dramatic
+        completions meaningless. When it is unset we synthesize a consequence from
+        the clock's own advance_meaning (the authored sense of "filling"), then its
+        description, so the DM always receives concrete in-world text to render as
+        fact rather than improvising a near-miss.
+        """
+        authored = (self.filled_consequence or "").strip()
+        if authored:
+            return authored
+
+        advance = (self.advance_meaning or "").strip()
+        if advance:
+            text = advance[0].upper() + advance[1:]
+            if text[-1] not in ".!?":
+                text += "."
+            return text
+
+        desc = (self.description or "").strip()
+        if desc:
+            text = desc[0].upper() + desc[1:]
+            if text[-1] not in ".!?":
+                text += "."
+            return text
+
+        return f"{self.name} reaches its breaking point."
+
+    @property
     def ever_filled(self) -> bool:
         """Check if clock has ever been filled (for one-time triggers)."""
         return self._ever_filled
@@ -4665,9 +4696,16 @@ class MechanicsEngine:
         if not hasattr(self, '_filled_clocks_this_round'):
             self._filled_clocks_this_round = []
 
+        # Hand the DM the clock's in-world consequence (never empty) so the
+        # synthesis renders the resolution as fact instead of improvising a
+        # near-miss. Falls back to a synthesized consequence when unauthored.
+        clock = self.scene_clocks.get(clock_name)
+        consequence = clock.effective_consequence if clock else ""
+
         self._filled_clocks_this_round.append({
             'clock_name': clock_name,
-            'reason': reason
+            'reason': reason,
+            'consequence': consequence,
         })
 
     def get_and_clear_filled_clocks(self):

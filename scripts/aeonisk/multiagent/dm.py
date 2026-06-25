@@ -19,6 +19,54 @@ from token_utils import count_chat_tokens, count_text_tokens
 logger = logging.getLogger(__name__)
 
 
+def format_filled_clocks_guidance(filled_clocks, critical_overflow: bool = False) -> str:
+    """
+    Build the synthesis guidance for clocks that filled this round.
+
+    Surfaces each clock's in-world consequence (always present -- see
+    SceneClock.effective_consequence) and instructs the DM to narrate it as an
+    event that HAS happened. This is the fix for the "DM walks back completions"
+    failure: previously the prompt listed only clock names and told the DM to
+    "change the scenario", so a filled bond-rupture clock got narrated as a
+    near-miss ("steadies instead of tearing apart") and the resolution never
+    landed. Now the authored consequence reaches the DM and the directive
+    forbids the near-miss.
+
+    Args:
+        filled_clocks: list of {clock_name, reason, consequence} dicts from
+            MechanicsEngine.get_and_clear_filled_clocks()
+        critical_overflow: True when a clock overflowed badly (raise urgency)
+    """
+    if not filled_clocks:
+        return ""
+
+    names = [f['clock_name'] for f in filled_clocks]
+    urgency = "🚨 EXTREME URGENCY 🚨" if critical_overflow else "⚠️  URGENT"
+
+    text = f"\n\n{urgency} **CLOCKS FILLED (Auto-removing):** {', '.join(names)}\n"
+    text += (
+        "These resolutions HAVE HAPPENED. Narrate each as an event that occurs "
+        "NOW -- not as a near-miss, not 'almost', not 'threatens to', not "
+        "'steadies instead'. Show the consequence landing, then let the scene move.\n\n"
+    )
+    text += "**What just happened (narrate each as fact):**\n"
+    for f in filled_clocks:
+        cons = (f.get('consequence') or '').strip()
+        if cons:
+            text += f"  • {f['clock_name']}: {cons}\n"
+    text += "\n"
+    text += "**For clocks with mechanical markers** (e.g., [SPAWN_ENEMY: ...]):\n"
+    text += "- Include the exact marker text from the consequence in your narration\n"
+    text += "- The marker will trigger automatically\n\n"
+    text += "**For narrative clocks** (no mechanical markers):\n"
+    text += "- Render the consequence above, then move the scene with a DM control marker:\n"
+    text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
+    text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
+    text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
+    text += "⚠️  A filled clock narrated as 'almost happened' or left without a scenario marker STALLS the story."
+    return text
+
+
 def _resolution_success(resolution) -> bool:
     """
     Safely check if ActionResolution succeeded.
@@ -4289,28 +4337,9 @@ Void Level: {self.current_scenario.void_level}/10"""
 
                 # Check for newly filled clocks
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
-                if filled_clocks:
-                    filled_names = [f['clock_name'] for f in filled_clocks]
-                    if critical_overflow:
-                        urgency = "🚨 EXTREME URGENCY 🚨"
-                    else:
-                        urgency = "⚠️  URGENT"
-                    filled_clocks_text = f"\n\n{urgency} **CLOCKS FILLED (Auto-removing):** {', '.join(filled_names)}\n"
-                    filled_clocks_text += "⚠️  **MANDATORY**: Filled clocks MUST trigger scenario changes!\n\n"
-                    filled_clocks_text += "**For clocks with mechanical markers** (e.g., [SPAWN_ENEMY: ...]):\n"
-                    filled_clocks_text += "- Include the exact marker text from filled_consequence in your narration\n"
-                    filled_clocks_text += "- The marker will trigger automatically\n\n"
-                    filled_clocks_text += "**For narrative clocks** (no mechanical markers):\n"
-                    filled_clocks_text += "- You MUST use a DM control marker to change the scenario:\n"
-                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
-                    filled_clocks_text += "    Examples:\n"
-                    filled_clocks_text += "      - Investigation clock fills → [ADVANCE_STORY: Magistrate's Office | Confrontation with the saboteur]\n"
-                    filled_clocks_text += "      - Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
-                    filled_clocks_text += "      - Same location → [ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]\n"
-                    filled_clocks_text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
-                    filled_clocks_text += "    Example: Corruption clock fills → [NEW_CLOCK: Void Manifestation | 4 | Entity taking form]\n"
-                    filled_clocks_text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
-                    filled_clocks_text += "⚠️  Narrative clocks that fill WITHOUT a scenario marker will stall the story!"
+                filled_clocks_text = format_filled_clocks_guidance(
+                    filled_clocks, critical_overflow=critical_overflow
+                )
 
         # Build enemy spawn instructions (always available if enabled)
         enemy_spawn_prompt = ""

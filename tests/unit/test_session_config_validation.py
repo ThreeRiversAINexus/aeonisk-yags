@@ -353,6 +353,55 @@ class TestStartingClocks:
             )
 
 
+def get_all_session_configs_recursive():
+    """Every config under session_configs/ (all subdirs), for terminal-clock checks."""
+    configs = []
+    for config_file in SESSION_CONFIGS_DIR.rglob("*.json"):
+        if config_file.name != "character_library.json":
+            configs.append(config_file)
+    return configs
+
+
+class TestTerminalClockConfigs:
+    """
+    Forward guardrail: a config that authors a terminal clock is a drama-authored
+    scenario, so it must declare its beat consequences. Legacy non-terminal configs
+    are grandfathered (the engine fallback synthesizes their consequences at runtime
+    -- see SceneClock.effective_consequence), so this rule does not touch them.
+    """
+
+    @pytest.mark.parametrize("config_path", get_all_session_configs_recursive())
+    def test_terminal_config_has_consequences_and_one_terminal(self, config_path):
+        config = load_config(config_path)
+        clocks = config.get("starting_clocks")
+        if not clocks:
+            pytest.skip(f"{config_path.name} has no starting_clocks")
+
+        terminal = [c for c in clocks if c.get("is_terminal_clock")]
+        if not terminal:
+            pytest.skip(f"{config_path.name} authors no terminal clock (grandfathered)")
+
+        # Exactly one terminal clock resolves the scene -- the engine takes the first.
+        assert len(terminal) == 1, (
+            f"{config_path.name}: {len(terminal)} terminal clocks "
+            f"({[c.get('name') for c in terminal]}); a scene resolves on exactly one"
+        )
+
+        # A scenario serious enough to define an ending must define what each beat does.
+        for idx, clock in enumerate(clocks):
+            cons = clock.get("filled_consequence", "")
+            assert isinstance(cons, str) and cons.strip(), (
+                f"{config_path.name}: terminal-clock config but clock {idx} "
+                f"('{clock.get('name', 'unnamed')}') has no filled_consequence"
+            )
+
+        # terminal_outcome, if present, must be a valid session outcome.
+        outcome = terminal[0].get("terminal_outcome", "victory")
+        assert outcome in ("victory", "defeat", "draw"), (
+            f"{config_path.name}: invalid terminal_outcome '{outcome}'"
+        )
+
+
 # Character library tests (will test once feature is implemented)
 class TestCharacterLibrary:
     """Test character_library.json structure (if it exists)."""
