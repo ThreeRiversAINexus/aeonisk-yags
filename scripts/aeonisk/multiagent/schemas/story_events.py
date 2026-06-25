@@ -115,6 +115,22 @@ class NewClock(BaseModel):
         )
     )
 
+    @field_validator('is_terminal_clock', 'terminal_outcome', mode='before')
+    @classmethod
+    def coerce_null_terminal_fields(cls, v, info):
+        """Coerce an explicit null to the field default.
+
+        LLMs (notably gpt-5-mini) emit `terminal_outcome: null` /
+        `is_terminal_clock: null` for the non-terminal clocks they spawn via
+        story_advancement.new_clocks. A Pydantic default only fills an ABSENT
+        key, not an explicit null, so the strict Literal rejected None and blew
+        up the whole RoundSynthesis structured output (7 wasted retries). Map
+        None to the documented default instead.
+        """
+        if v is None:
+            return False if info.field_name == 'is_terminal_clock' else 'victory'
+        return v
+
     @field_validator('current_ticks')
     @classmethod
     def validate_current_ticks(cls, v: int, info) -> int:

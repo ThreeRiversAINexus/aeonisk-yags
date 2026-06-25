@@ -67,6 +67,22 @@ class TestNewClockTerminalFields:
                 terminal_outcome="banana",
             )
 
+    def test_explicit_null_terminal_fields_coerce_to_defaults(self):
+        """LLMs (gpt-5-mini) emit terminal_outcome: null for non-terminal clocks
+        they spawn; an explicit null must coerce to the default, not blow up the
+        RoundSynthesis structured-output validation."""
+        clock = NewClock(
+            name="Public Narrative",
+            max_ticks=4,
+            description="The corporate spin holds or cracks",
+            advance_meaning="the story stabilizes",
+            regress_meaning="the story unravels",
+            is_terminal_clock=None,
+            terminal_outcome=None,
+        )
+        assert clock.is_terminal_clock is False
+        assert clock.terminal_outcome == "victory"
+
 
 # ---------------------------------------------------------------------------
 # Engine: clock construction
