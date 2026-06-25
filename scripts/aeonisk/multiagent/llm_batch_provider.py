@@ -9,6 +9,7 @@ This provider wraps the UnifiedAIClient and adapts it to the LLMProvider interfa
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 
 from .llm_provider import LLMProvider, LLMConfig, LLMResponse
@@ -64,6 +65,10 @@ class BatchProxyProvider(LLMProvider):
         proxy_url = config.extra_params.get('proxy_url', 'http://localhost:8000')
         proxy_priority = config.extra_params.get('proxy_priority', 'normal')
         proxy_strategy = config.extra_params.get('proxy_strategy', 'auto')
+        proxy_timeout = config.extra_params.get('proxy_timeout')
+        no_fallback = config.extra_params.get('no_fallback')
+        if no_fallback is None:
+            no_fallback = proxy_strategy == 'batch'
 
         # Initialize unified client
         self.client = UnifiedAIClient(
@@ -72,11 +77,14 @@ class BatchProxyProvider(LLMProvider):
             proxy_url=proxy_url,
             proxy_priority=proxy_priority,
             proxy_strategy=proxy_strategy,
+            proxy_timeout=proxy_timeout,
+            no_fallback=no_fallback,
         )
 
         logger.info(
             f"BatchProxyProvider initialized: underlying_provider={self.underlying_provider}, "
-            f"use_proxy={use_proxy}, proxy_url={proxy_url}, strategy={proxy_strategy}"
+            f"use_proxy={use_proxy}, proxy_url={proxy_url}, strategy={proxy_strategy}, "
+            f"timeout={proxy_timeout}, no_fallback={no_fallback}"
         )
 
     async def generate(
@@ -197,6 +205,17 @@ class BatchProxyProvider(LLMProvider):
             messages.append({"role": "user", "content": user_content})
 
             # Call via unified client — non-retryable errors propagate immediately
+            self._log_proxy_request_start(
+                llm_logger=llm_logger,
+                messages=messages,
+                model=self.config.model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                current_round=current_round,
+                call_sequence=getattr(llm_logger, 'call_count', 0),
+                result_type=result_type.__name__,
+                attempt=attempt + 1,
+            )
             content = self.client.chat_completion(
                 messages=messages,
                 model=self.config.model,
@@ -307,6 +326,50 @@ class BatchProxyProvider(LLMProvider):
         raise ValueError(
             f"Failed to generate valid {result_type.__name__} after {1 + max_retries} attempts: {last_error}"
         )
+
+    def _log_proxy_request_start(
+        self,
+        llm_logger: Optional[Any],
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        current_round: Optional[int],
+        call_sequence: int,
+        result_type: str,
+        attempt: int,
+    ) -> None:
+        """Write a pre-response marker before a potentially long batch wait."""
+        jsonl_logger = getattr(llm_logger, 'jsonl_logger', None)
+        if not jsonl_logger:
+            return
+
+        event = {
+            'event_type': 'llm_request_start',
+            'ts': datetime.now(timezone.utc).isoformat(),
+            'session': getattr(llm_logger, 'session_id', None) or 'unknown',
+            'round': current_round,
+            'agent_id': getattr(llm_logger, 'agent_id', 'unknown'),
+            'agent_type': getattr(llm_logger, 'agent_type', 'unknown'),
+            'call_sequence': call_sequence,
+            'model': model,
+            'provider': self.provider_name,
+            'underlying_provider': self.underlying_provider,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+            'proxy_url': getattr(self.client, 'proxy_url', None),
+            'proxy_strategy': getattr(self.client, 'proxy_strategy', None),
+            'proxy_priority': getattr(self.client, 'proxy_priority', None),
+            'proxy_timeout': getattr(self.client, 'proxy_timeout', None),
+            'result_type': result_type,
+            'attempt': attempt,
+            'messages_count': len(messages),
+        }
+
+        try:
+            jsonl_logger.write_event(event)
+        except Exception as exc:
+            logger.debug(f"Failed to log proxy request start: {exc}")
 
     def _pre_validate_fields(self, data: Dict, schema: Dict) -> Dict:
         """Truncate string fields exceeding maxLength. Delegates to standalone utility."""

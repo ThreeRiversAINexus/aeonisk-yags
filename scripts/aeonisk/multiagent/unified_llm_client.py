@@ -46,6 +46,7 @@ class UnifiedAIClient:
         proxy_url: Optional[str] = None,
         proxy_priority: str = "normal",
         proxy_strategy: Optional[str] = None,
+        proxy_timeout: Optional[float] = None,
         no_fallback: bool = False,
     ):
         """
@@ -59,6 +60,7 @@ class UnifiedAIClient:
             proxy_url: Proxy server URL (defaults to LLM_PROXY_URL env var or localhost:8000)
             proxy_priority: Request priority ('high', 'normal', 'low')
             proxy_strategy: Routing strategy ('auto', 'direct', 'batch') or None for env default
+            proxy_timeout: Max seconds to wait for proxy response, or None to wait indefinitely
             no_fallback: If True, never fall back to direct API when proxy fails (raise instead)
         """
         self.provider = provider or os.getenv('AI_PROVIDER', 'openai')
@@ -68,6 +70,7 @@ class UnifiedAIClient:
         self.proxy_url = proxy_url or os.getenv('LLM_PROXY_URL', 'http://localhost:8000')
         self.proxy_priority = proxy_priority
         self.proxy_strategy = proxy_strategy  # Can be None (use env default)
+        self.proxy_timeout = self._resolve_proxy_timeout(proxy_timeout)
         self.no_fallback = no_fallback
 
         # OpenAI-compatible provider configs (base_url + env key for API key)
@@ -120,6 +123,23 @@ class UnifiedAIClient:
             f"UnifiedAIClient initialized: provider={self.provider}, "
             f"use_proxy={self.use_proxy}, proxy_url={self.proxy_url}"
         )
+
+    @staticmethod
+    def _resolve_proxy_timeout(proxy_timeout: Optional[float]) -> Optional[float]:
+        if proxy_timeout is not None:
+            return proxy_timeout
+
+        raw_timeout = os.getenv('LLM_PROXY_TIMEOUT')
+        if raw_timeout in (None, ""):
+            return None
+
+        try:
+            timeout = float(raw_timeout)
+        except ValueError:
+            logger.warning(f"Invalid LLM_PROXY_TIMEOUT={raw_timeout!r}; waiting indefinitely")
+            return None
+
+        return timeout if timeout > 0 else None
 
     @property
     def openai_client(self):
@@ -275,10 +295,16 @@ class UnifiedAIClient:
         for attempt in range(max_retries):
             try:
                 logger.debug(f"Submitting request to proxy (attempt {attempt + 1}/{max_retries})")
+                request_timeout = self.proxy_timeout
+                params = {}
+                if request_timeout is not None:
+                    params["timeout"] = request_timeout
+
                 response = requests.post(
                     f"{self.proxy_url}/submit",
                     json=request_data,
-                    timeout=None,  # No timeout - wait indefinitely for batch completion
+                    params=params,
+                    timeout=request_timeout,
                 )
                 response.raise_for_status()
 

@@ -49,6 +49,37 @@ class TestProxyRouting:
         assert "http://localhost:8000/submit" in call_args[0][0]
 
     @patch('scripts.aeonisk.multiagent.unified_llm_client.requests.post')
+    def test_proxy_timeout_is_forwarded_to_endpoint_and_requests(self, mock_post):
+        """Configured proxy timeout bounds both server-side wait and HTTP wait."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "completed",
+            "content": "bounded response"
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = UnifiedAIClient(
+            provider="openai",
+            use_proxy=True,
+            proxy_url="http://localhost:8000",
+            proxy_timeout=45,
+        )
+
+        result = client._proxy_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            model="gpt-5-mini",
+            temperature=0.7,
+            max_tokens=100
+        )
+
+        assert result == "bounded response"
+        call_kwargs = mock_post.call_args[1]
+        assert call_kwargs["params"] == {"timeout": 45}
+        assert call_kwargs["timeout"] == 45
+
+    @patch('scripts.aeonisk.multiagent.unified_llm_client.requests.post')
     @patch('scripts.aeonisk.multiagent.unified_llm_client.time.sleep')
     def test_proxy_retry_on_connection_error(self, mock_sleep, mock_post):
         """Test that connection errors trigger retries with exponential backoff."""

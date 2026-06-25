@@ -64,7 +64,9 @@ class TestBatchProxyProviderInit:
                 use_proxy=True,
                 proxy_url='http://localhost:8000',
                 proxy_priority='normal',
-                proxy_strategy='auto'
+                proxy_strategy='auto',
+                proxy_timeout=None,
+                no_fallback=False,
             )
 
     def test_init_with_anthropic_backend(self):
@@ -331,6 +333,30 @@ class TestFactoryFunction:
         assert call_kwargs['proxy_url'] == 'http://localhost:8000'
         assert call_kwargs['proxy_priority'] == 'normal'
         assert call_kwargs['proxy_strategy'] == 'auto'
+        assert call_kwargs['proxy_timeout'] is None
+        assert call_kwargs['no_fallback'] is False
+
+    def test_init_forced_batch_disables_direct_fallback(self):
+        """Forced batch strategy should not silently fall back to direct API."""
+        config = LLMConfig(
+            provider="batch_proxy",
+            model="gpt-5-mini",
+            extra_params={
+                'underlying_provider': 'openai',
+                'use_proxy': True,
+                'proxy_url': 'http://localhost:8000',
+                'proxy_strategy': 'batch',
+                'proxy_timeout': 60,
+            }
+        )
+
+        with patch('scripts.aeonisk.multiagent.llm_batch_provider.UnifiedAIClient') as mock_client:
+            BatchProxyProvider(config)
+
+        call_kwargs = mock_client.call_args[1]
+        assert call_kwargs['proxy_strategy'] == 'batch'
+        assert call_kwargs['proxy_timeout'] == 60
+        assert call_kwargs['no_fallback'] is True
 
 
 if __name__ == "__main__":
