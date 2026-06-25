@@ -40,6 +40,7 @@ class ActionDeclaration:
     target_position: Optional[str] = None  # Engaged/Near-PC/Far-PC/etc. - applied during execution
     target: Optional[str] = None  # Target reference: use enemy NAME in standard mode, or random ID (tgt_xxxx) in free_targeting_mode
     target_character: Optional[str] = None  # Universal targeting: PC or enemy ID/name (for IFF ambiguity)
+    ambient_speech: Optional[Dict[str, Any]] = None  # Flavor-only in-character speech, not a resolved action
 
     # Optional ritual-specific fields
     is_ritual: bool = False

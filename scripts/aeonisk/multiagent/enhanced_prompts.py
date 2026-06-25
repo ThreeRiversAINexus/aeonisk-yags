@@ -279,17 +279,10 @@ Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS
 - Note: Casual coordination ≠ forming a formal Bond (capital B)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
         elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
             dialogue_goal_text = f"""
@@ -303,17 +296,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
         else:
             dialogue_goal_text = f"""
@@ -325,17 +311,10 @@ Then the system will give you a FREE second action for your main task!
 - Working together ≠ formal Bonds (you can coordinate without commitment)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
 
     void_warning = ""
@@ -456,16 +435,16 @@ COMPONENTS: [what materials: "blood offering" or "incense stick"]
 - If you're LOW on offerings, consider purchasing more from vendors!
 - Blood offerings and incense are commonly sold by ritual merchants
 
-**For Coordination Dialogue** (FREE ACTION that grants +2 bonus):
+**For Ambient Speech** (optional flavor beside your real action):
 ```
-INTENT: Tell [companion name] about [what I discovered]
-ATTRIBUTE: Empathy
-SKILL: Charm (or Counsel)
-ACTION_TYPE: social
-DESCRIPTION: I explain to [name] what I found about [topic]
-
-This will trigger a FREE second action where you do your main task!
+ambient_speech={
+  "line": "Keep your comms open; I am moving on the left side.",
+  "target_type": "party",
+  "target": "[companion name]",
+  "delivery": "comms"
+}
 ```
+Use `target_type` values: `party`, `npc`, `enemy`, `crowd`, or `self`.
 
 **For Vendor Interaction** (when a vendor is present):
 ```

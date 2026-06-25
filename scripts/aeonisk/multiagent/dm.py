@@ -7315,7 +7315,8 @@ For **other actions** (flee, hide, assist, attack):
         target_id: str = "",
         previous_context: str = "",
         combatant_list: str = "",
-        session_context: str = ""
+        session_context: str = "",
+        action: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -7386,6 +7387,16 @@ For **other actions** (flee, hide, assist, attack):
                 prompt_parts.append(previous_context)
 
             prompt_parts.append(f"\nPlayer Action: {description}")
+            ambient_speech = action.get('ambient_speech') if isinstance(action, dict) else None
+            if isinstance(ambient_speech, dict) and ambient_speech.get('line'):
+                delivery = ambient_speech.get('delivery', 'spoken')
+                target = ambient_speech.get('target')
+                target_type = ambient_speech.get('target_type', 'self')
+                target_text = f" to {target}" if target else f" to {target_type}"
+                prompt_parts.append(
+                    "Ambient Speech (flavor only, do not roll or apply mechanics): "
+                    f"[{delivery}{target_text}] \"{ambient_speech['line']}\""
+                )
             prompt_parts.append(f"Action Type: {action_type}")
 
             # Add declared target explicitly so DM knows who the player is targeting
@@ -8607,7 +8618,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_id=target_id,
             previous_context=previous_context,
             combatant_list=combatant_list,
-            session_context=session_context
+            session_context=session_context,
+            action=action
         )
 
         return prompt
@@ -8991,7 +9003,8 @@ When adjudicating:
             party_context=party_context,
             character_name=character_name if action else "The character",
             target_character=target_character if target_character else "",
-            target_id=target_id
+            target_id=target_id,
+            action=action
         )
 
         try:

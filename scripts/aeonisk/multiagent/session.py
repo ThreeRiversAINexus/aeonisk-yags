@@ -2219,6 +2219,7 @@ Generate narratives (numbered list only):"""
 
                         # Collect all narrations first, filtering by awareness
                         all_narrations = []
+                        seen_narration_texts = set()
                         for player_agent in player_agents:
                             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
                                 # Filter narrations based on what this NPC can see
@@ -2234,7 +2235,8 @@ Generate narratives (numbered list only):"""
                                         narration_text.startswith(f"[{npc_name}] {npc_name}")
                                         for npc_name in npc_names
                                     )
-                                    if not is_npc_reasoning:
+                                    if not is_npc_reasoning and narration_text not in seen_narration_texts:
+                                        seen_narration_texts.add(narration_text)
                                         all_narrations.append(narration_text)
 
                         # Use NPC's memory to filter out already-seen events
@@ -5528,6 +5530,118 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         return entity_lifecycle_result
 
+    def _resolve_speech_target_agent_id(self, target: Optional[str]) -> Optional[str]:
+        """Resolve an ambient speech target to a permanent agent_id when possible."""
+        if not target:
+            return None
+
+        if self.shared_state:
+            direct = self.shared_state.get_agent_by_id(target)
+            if direct is not None:
+                return getattr(direct, 'agent_id', target)
+
+            mapper = self.shared_state.get_target_id_mapper()
+            if mapper and target.startswith('tgt_'):
+                target_entity = mapper.resolve_target(target)
+                if target_entity is not None:
+                    return (
+                        getattr(target_entity, 'agent_id', None)
+                        or getattr(target_entity, 'vendor_id', None)
+                        or getattr(target_entity, 'object_id', None)
+                    )
+
+        return target if target.startswith(('player_', 'npc_', 'enemy_')) else None
+
+    def _party_agent_ids(self, include_speaker: bool = True, speaker_id: Optional[str] = None) -> List[str]:
+        """Return active PC agent IDs for party-directed speech."""
+        if not self.shared_state:
+            return []
+
+        ids = []
+        for player in getattr(self.shared_state, 'player_agents', []) or []:
+            agent_id = getattr(player, 'agent_id', None)
+            if not agent_id:
+                continue
+            if not include_speaker and speaker_id and agent_id == speaker_id:
+                continue
+            if getattr(player, 'is_alive', True) and not getattr(player, '_permanently_dead', False):
+                ids.append(agent_id)
+        return ids
+
+    def _ambient_speech_aware_agents(self, speaker_id: str, ambient_speech: Dict[str, Any]) -> List[str]:
+        """
+        Compute aware_agents for non-mechanical ambient speech.
+
+        Empty list follows the existing awareness convention: public to everyone.
+        Populated list limits visibility to those agent IDs.
+        """
+        delivery = ambient_speech.get('delivery', 'spoken')
+        target_type = ambient_speech.get('target_type', 'self')
+        target = ambient_speech.get('target')
+        target_agent_id = self._resolve_speech_target_agent_id(target)
+
+        if delivery == 'whisper':
+            aware = [speaker_id]
+            if target_agent_id and target_agent_id != speaker_id:
+                aware.append(target_agent_id)
+            return aware
+
+        if delivery == 'comms':
+            if target_type == 'party':
+                return self._party_agent_ids(include_speaker=True, speaker_id=speaker_id)
+            if target_agent_id:
+                return [agent_id for agent_id in [speaker_id, target_agent_id] if agent_id]
+            return [speaker_id]
+
+        if target_type == 'self':
+            return [speaker_id]
+
+        # Spoken speech in the scene is public by default; targeted spoken
+        # speech remains public so nearby actors can plausibly overhear.
+        return []
+
+    def _format_ambient_speech_entry(
+        self,
+        speaker_name: str,
+        ambient_speech: Dict[str, Any],
+    ) -> str:
+        """Format ambient speech as a concise context line for later actors."""
+        line = ambient_speech.get('line', '').strip()
+        delivery = ambient_speech.get('delivery', 'spoken')
+        target_type = ambient_speech.get('target_type', 'self')
+        target = ambient_speech.get('target')
+
+        target_text = target or target_type
+        return f'[{speaker_name}, {delivery} to {target_text}] "{line}"'
+
+    def _publish_ambient_speech_context(self, speaker_id: str, action_payload: Dict[str, Any]) -> None:
+        """Add ambient speech to the existing visibility-filtered narration stream."""
+        ambient_speech = action_payload.get('ambient_speech')
+        if not isinstance(ambient_speech, dict) or not ambient_speech.get('line'):
+            return
+
+        speaker_name = action_payload.get('character_name') or action_payload.get('character') or speaker_id
+        entry = NarrationEntry(
+            text=self._format_ambient_speech_entry(speaker_name, ambient_speech),
+            aware_agents=self._ambient_speech_aware_agents(speaker_id, ambient_speech),
+        )
+
+        stored_count = 0
+        for player_agent in getattr(self.shared_state, 'player_agents', []) or []:
+            if not hasattr(player_agent, 'recent_narrations'):
+                continue
+            player_agent.recent_narrations.append(entry)
+            if len(player_agent.recent_narrations) > 20:
+                player_agent.recent_narrations.pop(0)
+            stored_count += 1
+
+        logger.debug(
+            "Ambient speech context stored from %s (aware=%s, player_buffers=%s)",
+            speaker_id,
+            entry.aware_agents,
+            stored_count,
+        )
+
     def _handle_action_declared(self, message: Message):
         """Buffer ACTION_DECLARED messages during declaration phase."""
         if message.type != MessageType.ACTION_DECLARED:
@@ -5641,6 +5755,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         action_intent = message.payload.get('intent', 'unknown')[:60]
         is_free = message.payload.get('is_free_action', False)
         logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
+
+        self._publish_ambient_speech_context(agent_id, message.payload)
 
         # Store defence_token on agent from player declaration (Spec 04)
         defence_token = message.payload.get('defence_token')
