@@ -525,6 +525,7 @@ class SelfPlayingSession:
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
         self._end_state_snapshot: Optional[Dict[str, Any]] = None  # Resolve-then-leap hook: set when a terminal clock resolves the scene
+        self._end_reason: Optional[str] = None  # How the session ended: terminal_clock | dm_declaration | round_cap
         self._fatal_error: Optional[str] = None  # Track fatal agent errors for graceful termination
 
         # Replay mode
@@ -1743,6 +1744,11 @@ Generate narratives (numbered list only):"""
             # Check if we've completed enough rounds
             if round_count >= max_rounds:
                 print(f"\n=== Completed {round_count} rounds ===")
+                # Resolve any still-open scene by clock polarity (aversion victory for
+                # held-off doom clocks; draw otherwise) and emit the end_state_snapshot,
+                # so a cap ending still feeds the resolve-then-leap continuation.
+                self._resolve_at_round_cap()
+                await self._check_end_conditions()
                 break
 
             # Check for session end conditions
@@ -4941,7 +4947,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         return {
             'outcome': outcome,
-            'ended_by': 'terminal_clock' if terminal else 'dm_declaration',
+            'ended_by': self._end_reason or ('terminal_clock' if terminal else 'dm_declaration'),
             'resolved_by_clock': resolved_by_clock,
             'resolution': resolution,
             'round': round_num,
@@ -4949,6 +4955,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             'party': party,
             'state_summary': mechanics.get_state_summary(),
         }
+
+    def _resolve_at_round_cap(self):
+        """
+        Resolve any still-open scene when the round cap is reached, by clock polarity.
+
+        Convergence backstop -- the honest, non-coercive alternative to forcing clocks
+        to complete or to be monotonic (clocks stay fully regressable):
+          * an un-filled DOOM clock (terminal_outcome=defeat) => the catastrophe was
+            held off for the whole scene => victory by aversion
+          * an un-filled GOAL clock (victory/draw) => the resolution wasn't reached in
+            time => draw (unresolved); we do NOT fabricate a win
+          * no terminal clock at all => draw
+
+        Sets _session_end_status + _end_reason so _check_end_conditions emits the
+        end_state_snapshot (the continuation hook) for cap endings too.
+        """
+        if self._session_end_status:
+            return  # already resolved by a terminal clock / DM declaration this round
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
+        if not mechanics:
+            self._session_end_status = 'draw'
+            self._end_reason = 'round_cap'
+            return
+
+        terminals = [c for c in mechanics.scene_clocks.values() if getattr(c, 'is_terminal', False)]
+        doom_unfilled = [
+            c for c in terminals
+            if getattr(c, 'terminal_outcome', '') == 'defeat' and not c.filled
+        ]
+        if doom_unfilled:
+            self._session_end_status = 'victory'  # catastrophe averted -- they held the line
+            print(f"\n🛡️  Round cap reached with doom clock(s) held off → victory by aversion")
+        else:
+            self._session_end_status = 'draw'  # ran out of time to resolve
+        self._end_reason = 'round_cap'
 
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
@@ -4964,6 +5005,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if terminal and not self._session_end_status:
                 self._session_end_status = terminal['outcome']
             if (terminal or self._session_end_status) and not self._end_state_snapshot:
+                if not self._end_reason:
+                    self._end_reason = 'terminal_clock' if terminal else 'dm_declaration'
                 self._end_state_snapshot = self._build_end_state_snapshot(mechanics, terminal)
                 how = (
                     f"TERMINAL CLOCK '{terminal['clock_name']}' RESOLVED THE SCENE"

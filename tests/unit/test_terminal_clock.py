@@ -138,18 +138,21 @@ class TestTerminalCompletionSignal:
         assert engine.terminal_completion["clock_name"] == "Breach Seal"
         assert engine.terminal_completion["outcome"] == "victory"
 
-    def test_terminal_clock_does_not_regress(self):
-        """Regression: a live run showed the DM climbing a terminal clock to 5/8 then
-        pushing it back to 3/8. Terminal clocks must advance or hold, never retreat."""
+    def test_terminal_clocks_stay_regressable(self):
+        """Clocks are a two-way gauge, not a ratchet -- terminal clocks included.
+        Convergence comes from the round-cap backstop, not from monotonic clocks."""
         engine = MechanicsEngine(jsonl_logger=None)
-        clock = engine.create_scene_clock(
-            "The New Settlement", maximum=8, is_terminal=True, terminal_outcome="victory",
-        )
-        engine.advance_clock("The New Settlement", ticks=5, reason="progress")
-        assert clock.current == 5
+        goal = engine.create_scene_clock(
+            "Final Verdict", maximum=8, is_terminal=True, terminal_outcome="victory")
+        engine.advance_clock("Final Verdict", ticks=5, reason="progress")
+        goal.regress(2)
+        assert goal.current == 3  # goal terminal clock retreats normally
 
-        clock.regress(2)  # DM tries to walk it back
-        assert clock.current == 5  # held, did not retreat
+        doom = engine.create_scene_clock(
+            "Meltdown", maximum=8, is_terminal=True, terminal_outcome="defeat")
+        engine.advance_clock("Meltdown", ticks=5, reason="escalation")
+        doom.regress(2)
+        assert doom.current == 3  # doom terminal clock retreats normally
 
     def test_non_terminal_clock_still_regresses(self):
         engine = MechanicsEngine(jsonl_logger=None)
@@ -157,6 +160,29 @@ class TestTerminalCompletionSignal:
         engine.advance_clock("Tension", ticks=5, reason="progress")
         clock.regress(2)
         assert clock.current == 3  # ordinary clocks retreat normally
+
+    def test_doom_clock_fill_signals_defeat(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.create_scene_clock(
+            "Meltdown Sequence", maximum=4, filled_consequence="reactor breaches",
+            is_terminal=True, terminal_outcome="defeat")
+        engine.queue_clock_update("Meltdown Sequence", 4, "containment fails")
+        engine.apply_queued_clock_updates()
+        assert engine.terminal_completion is not None
+        assert engine.terminal_completion["outcome"] == "defeat"
+
+    def test_doom_clock_driven_to_zero_signals_aversion_victory(self):
+        """Pushing a doom clock to 0 neutralises the threat -> victory (the user's call)."""
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.create_scene_clock(
+            "Breach Containment", maximum=8, filled_consequence="dock floods",
+            is_terminal=True, terminal_outcome="defeat")
+        engine.scene_clocks["Breach Containment"].current = 3  # threat in progress
+        engine.queue_clock_update("Breach Containment", -3, "team seals the breach")
+        engine.apply_queued_clock_updates()
+        assert engine.terminal_completion is not None
+        assert engine.terminal_completion["outcome"] == "victory"  # averted, not defeat
+        assert engine.terminal_completion["clock_name"] == "Breach Containment"
 
     def test_non_terminal_fill_does_not_signal(self):
         engine = MechanicsEngine(jsonl_logger=None)
@@ -196,6 +222,7 @@ def _bare_session(mechanics, agents=None):
     sess = object.__new__(SelfPlayingSession)
     sess._session_end_status = None
     sess._end_state_snapshot = None
+    sess._end_reason = None
     sess._last_dm_narration = ""
     sess.agents = agents or []
     sess.shared_state = SimpleNamespace(mechanics_engine=mechanics)
@@ -251,6 +278,45 @@ class TestSessionEndsOnTerminalClock:
         assert sess._end_state_snapshot is not None
         assert sess._end_state_snapshot["resolved_by_clock"] == "Final Verdict"
         assert sess._end_state_snapshot["outcome"] == "draw"
+
+    def test_round_cap_with_held_doom_clock_is_aversion_victory(self):
+        """Holding a doom clock off until the cap = catastrophe averted = victory."""
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 6
+        engine.create_scene_clock(
+            "Meltdown", maximum=8, is_terminal=True, terminal_outcome="defeat")
+        engine.advance_clock("Meltdown", ticks=6, reason="held at 6/8, never blew")
+
+        sess = _bare_session(engine)
+        sess._resolve_at_round_cap()
+        assert sess._session_end_status == "victory"
+        assert sess._end_reason == "round_cap"
+        assert asyncio.run(sess._check_end_conditions()) is True
+        assert sess._end_state_snapshot["ended_by"] == "round_cap"
+        assert sess._end_state_snapshot["outcome"] == "victory"
+
+    def test_round_cap_with_unreached_goal_clock_is_draw(self):
+        """A goal clock not reached in time = draw; we don't fabricate a win."""
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 6
+        engine.create_scene_clock(
+            "Final Verdict", maximum=8, is_terminal=True, terminal_outcome="victory")
+        engine.advance_clock("Final Verdict", ticks=6, reason="parked at 6/8")
+
+        sess = _bare_session(engine)
+        sess._resolve_at_round_cap()
+        assert sess._session_end_status == "draw"
+        assert asyncio.run(sess._check_end_conditions()) is True
+        assert sess._end_state_snapshot["outcome"] == "draw"
+
+    def test_round_cap_does_not_override_existing_end(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.create_scene_clock(
+            "Meltdown", maximum=8, is_terminal=True, terminal_outcome="defeat")
+        sess = _bare_session(engine)
+        sess._session_end_status = "defeat"  # already resolved this round
+        sess._resolve_at_round_cap()
+        assert sess._session_end_status == "defeat"  # untouched
 
     def test_snapshot_on_dm_declaration_without_terminal_fill(self):
         """Regression: the DM declared DRAW with the terminal clock at 7/8 (one tick

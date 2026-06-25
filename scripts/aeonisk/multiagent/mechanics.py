@@ -1753,15 +1753,12 @@ class SceneClock:
         By default, clocks clamp at 0 (cannot go negative).
         If allow_negative=True, can go down to -maximum.
 
-        Terminal clocks NEVER regress: once a clock is the one that resolves the
-        scene, it may advance or hold but never retreat. (A live run showed the DM
-        climbing a terminal clock to 5/8 then pushing it back to 3/8 -- the
-        "avoids finishing" instinct at the tick level, which would re-open the
-        never-ending-session problem.)
+        Clocks -- including terminal clocks -- are always regressable: the clock is a
+        two-way pressure gauge, not a ratchet. Convergence is enforced by the round-cap
+        backstop (which resolves any still-open terminal clock), NOT by making clocks
+        monotonic. Driving a DOOM terminal clock (terminal_outcome=defeat) to 0 is a
+        legitimate regression that also neutralises the threat -> victory.
         """
-        if getattr(self, 'is_terminal', False):
-            logger.debug(f"Clock {self.name} is terminal; ignoring regress({ticks}) - terminal clocks do not retreat")
-            return
         if self.allow_negative:
             # Bidirectional tracker - can go negative
             self.current = max(self.current - ticks, -self.maximum)
@@ -4563,15 +4560,20 @@ class MechanicsEngine:
         self.scene_clocks[name] = clock
         return clock
 
-    def _record_terminal_completion(self, clock: 'SceneClock', reason: str = ""):
+    def _record_terminal_completion(self, clock: 'SceneClock', reason: str = "", outcome_override: str = None):
         """
-        Capture the resolving beat when a terminal clock fills.
+        Capture the resolving beat when a terminal clock reaches an end state.
+
+        Two triggers:
+          * a terminal clock FILLS  -> resolves with the clock's terminal_outcome
+            (a goal clock = victory/draw; a doom clock = defeat / catastrophe)
+          * a DOOM clock is driven to 0 -> threat neutralised, pass
+            outcome_override='victory' (aversion win)
 
         Sets self.terminal_completion (a snapshot dict) the FIRST time any terminal
-        clock fills; later terminal fills are ignored so the session has exactly one
-        ending. The session loop reads this to declare session_end with the clock's
-        terminal_outcome, and the resolve-then-leap continuation reads it to know
-        what beat resolved the chapter.
+        clock resolves; later ones are ignored so the session has exactly one ending.
+        The session loop reads this to declare session_end, and the resolve-then-leap
+        continuation reads it to know what beat resolved the chapter.
         """
         if not getattr(clock, 'is_terminal', False):
             return
@@ -4580,13 +4582,13 @@ class MechanicsEngine:
 
         self.terminal_completion = {
             'clock_name': clock.name,
-            'outcome': getattr(clock, 'terminal_outcome', 'victory'),
+            'outcome': outcome_override or getattr(clock, 'terminal_outcome', 'victory'),
             'filled_consequence': clock.filled_consequence,
             'reason': reason or clock.filled_consequence,
             'round': self.current_round,
         }
         logger.info(
-            f"🏁 TERMINAL CLOCK FILLED: {clock.name} -> session resolves "
+            f"🏁 TERMINAL CLOCK RESOLVED: {clock.name} -> session resolves "
             f"({self.terminal_completion['outcome']})"
         )
 
@@ -4785,9 +4787,18 @@ class MechanicsEngine:
                         round_num=self.current_round
                     )
 
-                # A terminal clock filling resolves the scene -> signal session end
+                # Terminal end-triggers (not regression blocks):
+                #  - any terminal clock FILLING resolves the scene with its outcome
+                #  - a DOOM clock (defeat-on-fill) driven down to 0 = threat
+                #    neutralised -> aversion victory
                 if after >= maximum:
                     self._record_terminal_completion(clock, "; ".join(reasons))
+                elif (getattr(clock, 'is_terminal', False)
+                      and getattr(clock, 'terminal_outcome', '') == 'defeat'
+                      and before > 0 and after <= 0):
+                    self._record_terminal_completion(
+                        clock, "; ".join(reasons), outcome_override='victory'
+                    )
 
         # Clear the queue
         self.clock_update_queue = []
