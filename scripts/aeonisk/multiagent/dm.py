@@ -1885,6 +1885,28 @@ Apply this narrative style to:
             self.shared_state.initialize_mechanics()
             mechanics = self.shared_state.get_mechanics_engine()
 
+            # If the session config supplies a TERMINAL starting clock, that clock is
+            # how the scene is meant to end -- it is authoritative. Suppress the DM's
+            # own scenario-generated clocks so they don't crowd out / orphan it (a live
+            # run showed the DM inventing differently-named clocks and never advancing
+            # the config's terminal clock, so the session ran to the round cap).
+            # Scoped to terminal configs only, so existing/golden sessions that use
+            # plain starting_clocks keep their current DM-adds-clocks behavior.
+            session_config = getattr(self.shared_state, 'session_config', None) or {}
+            config_clocks = session_config.get('starting_clocks', []) or []
+            config_has_terminal = any(c.get('is_terminal_clock') for c in config_clocks)
+            if config_has_terminal and scenario_data.get('clocks'):
+                print(
+                    f"[DM {self.agent_id}] Config provides a terminal starting clock; "
+                    f"using config clocks as authoritative and skipping "
+                    f"{len(scenario_data.get('clocks', []))} DM scenario clock(s)."
+                )
+                logger.info(
+                    "Terminal starting clock present in config -- suppressing DM "
+                    "scenario-generated clocks to keep the terminal clock authoritative."
+                )
+                scenario_data['clocks'] = []
+
             for clock_data in scenario_data.get('clocks', []):
                 clock_name = clock_data[0]
                 max_value = clock_data[1]

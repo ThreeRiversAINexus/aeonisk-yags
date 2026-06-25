@@ -138,6 +138,26 @@ class TestTerminalCompletionSignal:
         assert engine.terminal_completion["clock_name"] == "Breach Seal"
         assert engine.terminal_completion["outcome"] == "victory"
 
+    def test_terminal_clock_does_not_regress(self):
+        """Regression: a live run showed the DM climbing a terminal clock to 5/8 then
+        pushing it back to 3/8. Terminal clocks must advance or hold, never retreat."""
+        engine = MechanicsEngine(jsonl_logger=None)
+        clock = engine.create_scene_clock(
+            "The New Settlement", maximum=8, is_terminal=True, terminal_outcome="victory",
+        )
+        engine.advance_clock("The New Settlement", ticks=5, reason="progress")
+        assert clock.current == 5
+
+        clock.regress(2)  # DM tries to walk it back
+        assert clock.current == 5  # held, did not retreat
+
+    def test_non_terminal_clock_still_regresses(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        clock = engine.create_scene_clock("Tension", maximum=8)
+        engine.advance_clock("Tension", ticks=5, reason="progress")
+        clock.regress(2)
+        assert clock.current == 3  # ordinary clocks retreat normally
+
     def test_non_terminal_fill_does_not_signal(self):
         engine = MechanicsEngine(jsonl_logger=None)
         engine.create_scene_clock(
@@ -231,6 +251,29 @@ class TestSessionEndsOnTerminalClock:
         assert sess._end_state_snapshot is not None
         assert sess._end_state_snapshot["resolved_by_clock"] == "Final Verdict"
         assert sess._end_state_snapshot["outcome"] == "draw"
+
+    def test_snapshot_on_dm_declaration_without_terminal_fill(self):
+        """Regression: the DM declared DRAW with the terminal clock at 7/8 (one tick
+        short). No terminal_completion was set, so terminal-only gating produced no
+        snapshot. The snapshot must still fire on a DM-declared ending."""
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 5
+        engine.create_scene_clock(
+            "The New Settlement", maximum=8, is_terminal=True, terminal_outcome="victory",
+        )
+        engine.advance_clock("The New Settlement", ticks=7, reason="near resolution")
+
+        sess = _bare_session(engine)
+        sess._session_end_status = "draw"  # DM declared it; clock never filled
+
+        ended = asyncio.run(sess._check_end_conditions())
+
+        assert ended is True
+        assert sess._end_state_snapshot is not None
+        assert sess._end_state_snapshot["ended_by"] == "dm_declaration"
+        assert sess._end_state_snapshot["outcome"] == "draw"
+        # attributed to the in-play terminal clock even though it didn't fill
+        assert sess._end_state_snapshot["resolved_by_clock"] == "The New Settlement"
 
     def test_snapshot_captures_resolution_and_party(self):
         engine = MechanicsEngine(jsonl_logger=None)

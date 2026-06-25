@@ -1752,7 +1752,16 @@ class SceneClock:
 
         By default, clocks clamp at 0 (cannot go negative).
         If allow_negative=True, can go down to -maximum.
+
+        Terminal clocks NEVER regress: once a clock is the one that resolves the
+        scene, it may advance or hold but never retreat. (A live run showed the DM
+        climbing a terminal clock to 5/8 then pushing it back to 3/8 -- the
+        "avoids finishing" instinct at the tick level, which would re-open the
+        never-ending-session problem.)
         """
+        if getattr(self, 'is_terminal', False):
+            logger.debug(f"Clock {self.name} is terminal; ignoring regress({ticks}) - terminal clocks do not retreat")
+            return
         if self.allow_negative:
             # Bidirectional tracker - can go negative
             self.current = max(self.current - ticks, -self.maximum)
