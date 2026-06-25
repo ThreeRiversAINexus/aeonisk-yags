@@ -1,0 +1,267 @@
+{
+  "_role": "murder_at_gestation_pod_bulk_gpt54mini_gemini35flash",
+  "_purpose": "Price-optimized bulk run via aeonisk-llm-proxy. DM=gpt-5.4-mini (openai); players+enemies=gemini-3.5-flash (gemini). Routed through proxy at http://localhost:9090.",
+  "session_name": "The Gestator's Death (OpenAI)",
+  "max_turns": 14,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Investigation Focus, Combat Only if Confronting Killer) ===",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: MURDER INVESTIGATION ===",
+  "scenario_hint": "Sovereign Nexus Gestation Facility (void_level 1, high security), Gestator Lyss Veln found dead in pod chamber with void contamination marks. Evidence suggests: Bond corruption ritual gone wrong, sabotage by anti-Nexus agent, or accidental void exposure during unauthorized experiment. 6 NPC witnesses with conflicting testimonies, partial security logs, ritual residue. Time pressure: Nexus tribunal convenes in 10 rounds - must present case with evidence. Red herrings: jealous co-worker, corporate espionage, secret Bond affair.",
+  "_design_notes": {
+    "ml_training_value": "First investigation-led config, tests Investigation/Awareness/Systems/Insight for detective work, NPC witness interview depth, evidence collection mechanics, time-pressure clock (tribunal deadline), red herring misdirection, forensic analysis, moral choice (truth vs. political pressure)",
+    "mechanics_tested": [
+      "Investigation checks",
+      "NPC interviews",
+      "Evidence gathering",
+      "Forensic analysis (Systems)",
+      "Insight for lie detection",
+      "Time pressure (tribunal clock)",
+      "Reveal mechanics"
+    ],
+    "character_innovation": "Investigation 6 detective, Systems 4 forensics specialist, Charm 5 witness interviewer, recording drones, data recorders, forensic scanners, void detectors",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Tribunal Deadline",
+      "current_ticks": 10,
+      "max_ticks": 10,
+      "direction": "countdown",
+      "description": "Time until Nexus tribunal convenes. At 0 ticks: must present case or investigation deemed failure, political scapegoat chosen.",
+      "advance_meaning": "tribunal deadline worsens or time runs out",
+      "regress_meaning": "tribunal deadline improves or delayed"
+    },
+    {
+      "name": "Evidence Collection",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Critical evidence gathered. At 8 ticks: enough evidence for solid case (if correct suspect identified).",
+      "advance_meaning": "evidence collection progresses",
+      "regress_meaning": "evidence collection setback or reversal"
+    },
+    {
+      "name": "Witness Cooperation",
+      "current_ticks": 4,
+      "max_ticks": 6,
+      "direction": "bidirectional",
+      "description": "NPC willingness to testify. At 0 ticks: witnesses clam up, refuse cooperation. At 6 ticks: witnesses fully cooperate, reveal secrets.",
+      "advance_meaning": "witness cooperation improves",
+      "regress_meaning": "witness cooperation worsens"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "direct"
+      }
+    },
+    "players": [
+      {
+        "name": "Inspector Veyra Kross",
+        "pronouns": "she/her",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 6,
+          "Insight": 5,
+          "Magic Theory": 4,
+          "Intimidation": 4,
+          "Guns": 3
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Solve murder before tribunal deadline",
+          "Find truth regardless of political pressure",
+          "Build airtight case with evidence"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "enforcer_badge": 1,
+          "void_scanner": 1,
+          "data_recorder": 2,
+          "forensic_scanner": 1,
+          "evidence_collection_kit": 1,
+          "data_slate": 1,
+          "security_log_access_chip": 1,
+          "restraint_cuffs": 2,
+          "interview_recording_drone": 1,
+          "purification_incense": 2
+        }
+      },
+      {
+        "name": "Forensic Analyst Kael Ren",
+        "pronouns": "they/them",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Systems": 6,
+          "Science": 6,
+          "Investigation": 5,
+          "Astral Arts": 4,
+          "Magic Theory": 4,
+          "Medicine": 3,
+          "Awareness": 4
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Analyze ritual residue and void contamination patterns",
+          "Determine cause of death (ritual vs. physical)",
+          "Provide scientific evidence for case"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "genetic_sequencer": 1,
+          "void_scanner": 1,
+          "diagnostic_scanner": 1,
+          "forensic_analysis_kit": 1,
+          "data_slate": 1,
+          "sample_collection_kit": 1,
+          "ritual_residue_analyzer": 1,
+          "neural_interface_module": 1,
+          "memory_crystal": 3,
+          "contamination_suit": 1
+        }
+      },
+      {
+        "name": "Witness Liaison Mira Thane",
+        "pronouns": "she/her",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 3,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Charm": 6,
+          "Insight": 6,
+          "Counsel": 5,
+          "Investigation": 4,
+          "Awareness": 5,
+          "Guile": 4
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Interview witnesses and extract truthful testimony",
+          "Build rapport with reluctant witnesses",
+          "Detect lies and uncover hidden motives"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "recording_drone": 2,
+          "data_slate": 1,
+          "vox_credentials": 1,
+          "interview_protocol_guide": 1,
+          "witness_testimony_templates": 5,
+          "empathy_amplifier_talisman": 1,
+          "incense": 4,
+          "spark_talisman": 3,
+          "comm_unit": 1,
+          "witness_comfort_items": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Investigation archetype (Investigation 6, Awareness 6, Insight 6, Systems 6), murder mystery structure with 6+ NPC witnesses, forensic evidence analysis, time-pressure tribunal clock, lie detection (Insight), witness interview techniques (Charm), scientific analysis (Systems/Science). Tests underrepresented investigation gameplay, NPC interaction depth, evidence-based reasoning, red herring navigation. Long campaign (14 turns) allows thorough investigation, witness relationship building, evidence synthesis, dramatic reveal. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

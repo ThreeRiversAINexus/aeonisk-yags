@@ -1,0 +1,303 @@
+{
+  "_role": "corpus_v1_bulk_cheap",
+  "_purpose": "Corpus v1 pilot config for cheaper eval/fine-tune data generation. Derived from ml_training_scenarios, capped at 10 turns, and routed through batch_proxy.",
+  "session_name": "The Ascension Gone Wrong (Corpus v1)",
+  "max_turns": 10,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Void Manifestations + Panicked NPCs) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Emergency Scenario) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: RITUAL DISASTER ===",
+  "scenario_hint": "Resonance Commune Sanctuary (void_level 3 \u2192 escalating to 9), ambitious Gestator attempted unsanctioned ascension ritual to purge void from bonded pair. Ritual catastrophically failed: void backlash spreading through sanctuary, reality warping (walls bleeding, time loops, void manifestations), 15 NPCs in panic, bonded pair corrupted into void-touched entities. Team must: contain breach before it spreads beyond sanctuary, evacuate civilians, stabilize or mercy-kill corrupted victims, perform counter-ritual to seal breach. Moral choice: attempt risky counter-ritual (may worsen situation) vs. evacuate and let Pantheon destroy site. Soulcredit penalties for ritual violations.",
+  "_design_notes": {
+    "ml_training_value": "Ritual consequence depth, failed ritual fallout effects, void environmental escalation (3 \u2192 9), reality warping mechanics, NPC rescue under duress, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision tree, potential mercy killing of corrupted NPCs, counter-ritual risk assessment",
+    "mechanics_tested": [
+      "Ritual failure consequences",
+      "Void escalation (environmental)",
+      "Reality warping effects",
+      "NPC panic/rescue",
+      "Soulcredit penalties",
+      "Counter-ritual mechanics",
+      "Moral choice (contain vs. evacuate)"
+    ],
+    "character_innovation": "Ritual specialist (Astral Arts 6), containment expert (Systems 5, Attunement 5), spiritual guide (Counsel 6), ritual altars, echo-calibrators, purification incense stockpiles, reality anchor talismans"
+  },
+  "starting_clocks": [
+    {
+      "name": "Void Breach Expansion",
+      "current_ticks": 3,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Void contamination spreading. At 6 ticks: breach reaches sanctuary perimeter. At 10 ticks: entire district corrupted, permanent void zone.",
+      "advance_meaning": "void breach expansion progresses",
+      "regress_meaning": "void breach expansion setback or reversal"
+    },
+    {
+      "name": "Civilian Evacuation",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "NPCs rescued from sanctuary. At 8 ticks: all civilians evacuated safely (if prioritized).",
+      "advance_meaning": "civilian evacuation progresses",
+      "regress_meaning": "civilian evacuation setback or reversal"
+    },
+    {
+      "name": "Counter-Ritual Preparation",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Gathering components and consecrating space for sealing ritual. At 6 ticks: ready to attempt counter-ritual.",
+      "advance_meaning": "counter-ritual preparation progresses",
+      "regress_meaning": "counter-ritual preparation setback or reversal"
+    },
+    {
+      "name": "Reality Stability",
+      "current_ticks": 5,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Local reality cohesion. At 2 ticks: time loops and spatial distortions. At 0 ticks: permanent reality fracture.",
+      "advance_meaning": "reality stability worsens or time runs out",
+      "regress_meaning": "reality stability improves or delayed"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "batch"
+      }
+    },
+    "players": [
+      {
+        "name": "Ritualist Veyra Lune",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Magic Theory": 5,
+          "Counsel": 5,
+          "Investigation": 4,
+          "Awareness": 4
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "goals": [
+          "Perform counter-ritual to seal breach and save sanctuary",
+          "Stabilize corrupted bonded pair if possible (mercy kill if not)",
+          "Preserve Commune's reputation despite ritual disaster"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_staff"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_staff": 1,
+          "ritual_altar_portable": 1,
+          "echo_calibrator": 1,
+          "attuned_seed_spirit": 3,
+          "purification_incense": 12,
+          "crystal_focus": 2,
+          "bond_ritual_kit": 1,
+          "memory_crystal": 5,
+          "reality_anchor_talisman": 3,
+          "consecration_oil": 2,
+          "blood_offering": 4
+        }
+      },
+      {
+        "name": "Containment Specialist Thane Kross",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Systems": 6,
+          "Attunement": 5,
+          "Astral Arts": 5,
+          "Science": 5,
+          "Combat": 4,
+          "Tech/Craft": 5
+        },
+        "void": 3,
+        "soulcredit": 0,
+        "goals": [
+          "Establish void containment field around breach epicenter",
+          "Study ritual failure for Tempest research data",
+          "Prevent Pantheon from destroying valuable anomaly"
+        ],
+        "equipped_weapons": {
+          "primary": "compact_emp_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "compact_emp_pistol": 1,
+          "void_scanner": 1,
+          "containment_field_generator": 1,
+          "reality_anchor_talisman": 2,
+          "neural_interface_module": 1,
+          "void_dampening_array": 1,
+          "hollow_seed": 2,
+          "data_slate": 1,
+          "breach_compass": 1,
+          "emergency_purification_kit": 1
+        }
+      },
+      {
+        "name": "Spiritual Guide Sael Thren",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Counsel": 6,
+          "Charm": 5,
+          "Astral Arts": 5,
+          "Attunement": 4,
+          "Medicine": 4,
+          "Insight": 5,
+          "Awareness": 4
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Calm panicked NPCs and coordinate evacuation",
+          "Provide spiritual comfort to corrupted bonded pair",
+          "Preserve lives above property or research"
+        ],
+        "equipped_weapons": {
+          "primary": "drip_veil_projector"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "drip_veil_projector": 1,
+          "bond_ritual_kit": 1,
+          "med_kit": 3,
+          "incense": 8,
+          "crystal_focus": 1,
+          "memory_crystal": 4,
+          "empathy_amplifier_talisman": 1,
+          "evacuation_flares": 3,
+          "comm_unit": 1,
+          "comfort_provisions": 2
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Ritual consequence mechanics (failed ascension ritual), void environmental escalation (void_level 3 \u2192 9), reality warping effects (walls bleeding, time loops), NPC panic and rescue, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision, counter-ritual risk (may worsen breach), moral choice (mercy kill corrupted NPCs?). Tests underrepresented ritual system depth, void consequence chains, environmental storytelling, NPC agency under duress. Long campaign (15 turns) allows escalating disaster, evacuation drama, counter-ritual preparation and execution, consequences of ritual violations. Features ritual-heavy characters (Astral Arts 6, Attunement 6, Counsel 6) with ritual tools: altars, echo-calibrators, reality anchors, attuned seeds.",
+  "_source_config": "scripts/session_configs/ml_training_scenarios/08_ritual_consequences/failed_ascension_ritual.json",
+  "_original_max_turns": 15,
+  "_corpus_v1": {
+    "corpus_id": "aeonisk_corpus_v1_bulk_cheap",
+    "scenario_family": "08_ritual_consequences",
+    "scenario_slug": "failed_ascension_ritual",
+    "turn_cap": 10,
+    "run_intent": "pilot_quality_and_cost_measurement",
+    "model_policy": {
+      "all_roles": "gpt-5.4-mini",
+      "underlying_provider": "openai",
+      "provider": "batch_proxy",
+      "proxy_url": "http://localhost:9090",
+      "proxy_strategy": "batch",
+      "reason": "Bounded pilot cost and consistent teacher distribution through bulk API before scaling."
+    },
+    "quality_gate": "Validate with yags_mine/bulk_validator before using outputs for eval or fine-tuning."
+  },
+  "enable_human_interface": false
+}

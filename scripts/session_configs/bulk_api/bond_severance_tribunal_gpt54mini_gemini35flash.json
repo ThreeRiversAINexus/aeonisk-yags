@@ -1,0 +1,432 @@
+{
+  "_role": "bond_severance_tribunal_bulk_gpt54mini_gemini35flash",
+  "_purpose": "Price-optimized bulk run via aeonisk-llm-proxy. DM=gpt-5.4-mini (openai); players+enemies=gemini-3.5-flash (gemini). Routed through proxy at http://localhost:9090.",
+  "session_name": "bond_severance_tribunal",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_scenario": "=== THE TRIAL ===",
+  "scenario_hint": "Matron Vessa Halessan has petitioned to sever her Bond with Matron Adris Elaras - a Bond that produces the pod-children who will lead the Nexus in the next generation. The case has drawn attention from every faction: Nexus fears the political implications, ACG sees debt opportunities in the fallout, Tempest whispers that the Bond itself is corrupted, and Pantheon Security is investigating rumors that one of the Matrons is void-touched. Four witnesses have been summoned - each with testimony that could swing the verdict, each with secrets they're protecting, each with agendas beyond the courtroom. The tribunal chamber is a sacred space, but something is very wrong. The Bond between the Matrons flickers visibly during testimony. The Codex AI seems to stutter when recording certain words. And the children already born from this Bond are experiencing... symptoms. Let legal drama unfold with supernatural undertones. Combat should only emerge if someone tries to flee, silence a witness, or if the Bond itself becomes dangerous.",
+  "scenario": {
+    "theme": "legal_drama_supernatural_horror",
+    "location": "Aeonisk Prime - Tribunal Chamber 7, Codex Cathedral",
+    "situation": "The Tribunal Chamber hums with ritual energy, concentric rings of seating rising around the central witness platform. Above, the Codex manifests as a shimmering lattice of light and law, recording every word, every heartbeat, every fluctuation in spiritual resonance. You are here as witnesses in the case of Halessan v. Elaras - the most politically charged Bond severance petition in decades. Matron Vessa Halessan sits on the left, composed but trembling. Matron Adris Elaras sits on the right, jaw set in defiance. Between them, the Bond they share is visible - a shimmering thread that pulses with unstable light. The Adjudicator, a ancient woman with void-scarred eyes, calls the first witness. The trial begins.",
+    "void_level": 4
+  },
+  "_comment_clocks": "=== TRIBUNAL PRESSURE ===",
+  "starting_clocks": [
+    {
+      "name": "Bond Stability",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "The contested Bond is becoming unstable - if it ruptures uncontrolled, consequences",
+      "advance_meaning": "visible distortions, pain for Matrons, void leakage",
+      "regress_meaning": "stabilization rituals, calm testimony, Bond strengthens"
+    },
+    {
+      "name": "Verdict Momentum",
+      "max_ticks": 8,
+      "current_ticks": 4,
+      "description": "Which way the tribunal is leaning - starts neutral",
+      "advance_meaning": "evidence favors severance (Halessan)",
+      "regress_meaning": "evidence favors preservation (Elaras)"
+    },
+    {
+      "name": "Secret Exposure",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "How close the real truth is to coming out",
+      "advance_meaning": "contradictions noted, Codex queries increase, someone cracks",
+      "regress_meaning": "deflection successful, attention diverted"
+    },
+    {
+      "name": "Void Manifestation",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "Something is wrong with this Bond - void corruption building",
+      "advance_meaning": "symptoms in pod-children worsen, shadows move, reality stutters",
+      "regress_meaning": "containment holds, symptoms explained away"
+    }
+  ],
+  "_comment_initial_npcs": "=== TRIBUNAL FIGURES ===",
+  "initial_npcs": [
+    {
+      "name": "Adjudicator Sera Nymir",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Ancient tribunal judge with void-scarred eyes from decades of reading the Codex. Fair but relentless. Suspects everyone.",
+      "health": 12,
+      "soak": 0,
+      "skills": {
+        "Debt Law": 7,
+        "Awareness": 6,
+        "Investigation": 5,
+        "Intimidation": 4
+      }
+    },
+    {
+      "name": "Matron Vessa Halessan",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Petitioner seeking severance. Composed but fragile. Knows something about her Bond-partner that terrifies her.",
+      "health": 14,
+      "soak": 0,
+      "skills": {
+        "Charm": 5,
+        "Counsel": 4,
+        "Astral Arts": 4
+      }
+    },
+    {
+      "name": "Matron Adris Elaras",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Respondent fighting the severance. Defiant, aristocratic, hiding something. The Bond corruption may be her fault - or her victim status.",
+      "health": 14,
+      "soak": 0,
+      "skills": {
+        "Corporate Influence": 5,
+        "Intimidation": 4,
+        "Astral Arts": 5
+      }
+    },
+    {
+      "name": "Codex Witness",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Manifestation of the Codex AI assigned to record testimony. Glitches when certain topics are raised. May know more than it should.",
+      "health": 1,
+      "soak": 0,
+      "skills": {
+        "Awareness": 8,
+        "Investigation": 7
+      }
+    }
+  ],
+  "_design_notes": "Four witnesses with interlocking secrets. The Gestator knows the pod-children are showing symptoms. The Investigator knows one Matron has void exposure. The Counselor has been bribed by the Elaras family. The Advocate actually wants the Bond to rupture for Tempest research purposes. Legal drama with supernatural horror - the Bond itself is becoming dangerous. 20 rounds for testimony, cross-examination, reveals, and crisis. Combat only if someone tries violence in a sacred space.",
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "direct"
+      }
+    },
+    "players": [
+      {
+        "name": "Gestator Lyris Veln",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 9
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 2,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4
+        },
+        "skills": {
+          "Counsel": 6,
+          "Astral Arts": 5,
+          "Intimacy Ritual": 5,
+          "Awareness": 4,
+          "Charm": 4,
+          "Investigation": 3
+        },
+        "void": 0,
+        "soulcredit": 7,
+        "goals": [
+          "Testify about the pod-children's gestation (summoned as medical expert)",
+          "Hide that the children are showing void-symptoms (protect the Nexus reputation)",
+          "Determine which Matron is responsible before testifying (moral obligation)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "gestator_robes": 1,
+          "medical_records": 1,
+          "diagnostic_scanner": 1,
+          "purification_incense": 5,
+          "memory_crystal": 2,
+          "soul_resonance_tuner": 1
+        }
+      },
+      {
+        "name": "Investigator Thane Ireveth",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Debt Law": 4,
+          "Guns": 4,
+          "Combat": 3
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Present evidence of void exposure in the Bond (Pantheon mandate)",
+          "Identify which Matron is the source of corruption (professional duty)",
+          "Prevent violence in the sacred tribunal space (sworn oath)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "investigator_badge": 1,
+          "void_scanner": 1,
+          "evidence_case": 1,
+          "data_recorder": 1,
+          "restraint_cuffs": 2,
+          "purification_incense": 3
+        }
+      },
+      {
+        "name": "Counselor Mira Thaurin",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4
+        },
+        "skills": {
+          "Counsel": 6,
+          "Charm": 5,
+          "Awareness": 4,
+          "Guile": 4,
+          "Astral Arts": 3
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "goals": [
+          "Testify about the emotional state of both Matrons (court-appointed neutral)",
+          "Protect Matron Elaras (secretly bribed by Elaras family - compromised)",
+          "Maintain reputation as neutral counselor (career depends on it)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "counselor_credentials": 1,
+          "therapeutic_incense": 4,
+          "memory_crystal": 3,
+          "emotional_resonance_kit": 1,
+          "spark_talisman": 2,
+          "bribe_funds": 1
+        }
+      },
+      {
+        "name": "Advocate Kael Xalith",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 9,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Debt Law": 6,
+          "Guile": 5,
+          "Investigation": 4,
+          "Astral Arts": 4,
+          "Charm": 4,
+          "Awareness": 3
+        },
+        "void": 4,
+        "soulcredit": -2,
+        "goals": [
+          "Represent Matron Halessan as legal advocate (official role)",
+          "Ensure the Bond ruptures violently for Tempest void research (secret agenda)",
+          "Document the manifestation for Eye of Breach correlation studies (personal obsession)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "legal_dataslate": 1,
+          "advocate_credentials": 1,
+          "void_scanner": 1,
+          "hollow_seed": 3,
+          "memory_crystal": 2,
+          "breach_compass": 1,
+          "data_recorder": 1
+        }
+      }
+    ],
+    "enemies": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gemini-3.5-flash",
+        "temperature": 0.8,
+        "max_tokens": 3000,
+        "underlying_provider": "gemini",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "direct"
+      }
+    }
+  },
+  "_comment_narrative_beats": "=== THE TRIAL ===",
+  "_beats": [
+    "Opening Statements - Adjudicator sets the stakes, Bond flickers visibly",
+    "Gestator's Testimony - medical evidence, questions about children's symptoms",
+    "First Contradiction - testimony doesn't match records, Codex glitches",
+    "Investigator's Evidence - void exposure proof, which Matron is the source?",
+    "Cross-Examination - secrets start to emerge, tensions rise",
+    "Counselor's Conflict - torn between truth and bribery, cracks show",
+    "The Children - someone brings up what's happening to the pod-children",
+    "Advocate's Gambit - pushing for rupture, Tempest agenda exposed or hidden",
+    "Bond Crisis - the Bond itself becomes unstable, void manifestation begins",
+    "Verdict and Aftermath - severance granted or denied, consequences for all"
+  ],
+  "mission_objectives": [
+    {
+      "description": "Survive the tribunal without being exposed for secrets or crimes",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Influence the verdict in your faction's favor",
+      "type": "social",
+      "required": true
+    },
+    {
+      "description": "Prevent the Bond from rupturing catastrophically",
+      "type": "containment",
+      "required": false
+    },
+    {
+      "description": "Discover the true source of the Bond's corruption",
+      "type": "investigation",
+      "required": false
+    }
+  ],
+  "notes": "BOND SEVERANCE TRIBUNAL - Legal drama meets supernatural horror. Four witnesses, each with secrets, each trying to influence a verdict while hiding their agendas. The Bond itself is unstable and may rupture. The Codex is glitching. The children are showing symptoms. Let testimony and cross-examination drive the drama. Combat only as last resort in sacred space. 20 rounds for a full trial with revelations and crisis. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}
