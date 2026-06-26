@@ -245,6 +245,93 @@ def _bare_session(mechanics, agents=None):
     return sess
 
 
+# The DM's bookkeeping fallback narration (dm.py:7325) -- a game-state stub that
+# must never become the rendered ending.
+_STUB = "The situation evolves... (Stabilize the Bond: 3/6 | Final Evacuation: 2/6)"
+
+
+def _agents(specs):
+    return [SimpleNamespace(character_state=SimpleNamespace(**s)) for s in specs]
+
+
+def _assert_clean_resolution(resolution):
+    import re
+    assert resolution and resolution.strip(), "resolution must not be empty"
+    low = resolution.lower()
+    assert "situation evolves" not in low, f"stub leaked into resolution: {resolution!r}"
+    assert not re.search(r"\b\d+\s*/\s*\d+\b", resolution), f"clock fraction leaked: {resolution!r}"
+
+
+class TestCleanEndingResolution:
+    """TPK and round-cap endings must hand the renderer clean in-world resolution
+    text, not the DM's clock-stub. Regression from a live ritual run: a round-cap
+    draw rendered as 'The session ended in a draw. The final state held the bond at
+    3/6...' because the snapshot resolution echoed the stub; and a TPK emitted no
+    defeat snapshot at all, so the renderer let dead characters give debriefs."""
+
+    def test_round_cap_draw_resolution_is_clean(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 15
+        engine.create_scene_clock(
+            "Stabilize the Bond", maximum=6, is_terminal=True, terminal_outcome="victory")
+        engine.advance_clock("Stabilize the Bond", ticks=3, reason="partial")
+        sess = _bare_session(engine, agents=_agents([
+            {"name": "Veyra", "faction": "Freeborn", "is_defeated": False, "void_score": 2}]))
+        sess._last_dm_narration = _STUB
+        sess._resolve_at_round_cap()
+        snap = sess._build_end_state_snapshot(engine, None)
+        assert snap["outcome"] == "draw"
+        _assert_clean_resolution(snap["resolution"])
+
+    def test_round_cap_aversion_victory_resolution_is_clean(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 6
+        engine.create_scene_clock(
+            "Meltdown", maximum=8, is_terminal=True, terminal_outcome="defeat")
+        engine.advance_clock("Meltdown", ticks=6, reason="held off")
+        sess = _bare_session(engine)
+        sess._last_dm_narration = _STUB
+        sess._resolve_at_round_cap()
+        snap = sess._build_end_state_snapshot(engine, None)
+        assert snap["outcome"] == "victory"
+        _assert_clean_resolution(snap["resolution"])
+
+    def test_tpk_snapshot_is_defeat_with_clean_resolution(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 8
+        sess = _bare_session(engine, agents=_agents([
+            {"name": "Veyra", "faction": "Freeborn", "is_defeated": True, "void_score": 9},
+            {"name": "Sael", "faction": "Freeborn", "is_defeated": True, "void_score": 7}]))
+        sess._session_end_status = "defeat"
+        sess._end_reason = "tpk"
+        sess._last_dm_narration = _STUB
+        snap = sess._build_end_state_snapshot(engine, None)
+        assert snap["outcome"] == "defeat"
+        assert snap["ended_by"] == "tpk"
+        assert all(p["is_defeated"] for p in snap["party"]), "all party dead in a TPK"
+        _assert_clean_resolution(snap["resolution"])
+
+    def test_dm_declaration_with_stub_narration_is_cleaned(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 5
+        sess = _bare_session(engine)
+        sess._session_end_status = "draw"
+        sess._end_reason = "dm_declaration"
+        sess._last_dm_narration = _STUB
+        snap = sess._build_end_state_snapshot(engine, None)
+        _assert_clean_resolution(snap["resolution"])
+
+    def test_dm_declaration_with_real_narration_is_preserved(self):
+        engine = MechanicsEngine(jsonl_logger=None)
+        engine.current_round = 5
+        sess = _bare_session(engine)
+        sess._session_end_status = "victory"
+        sess._end_reason = "dm_declaration"
+        sess._last_dm_narration = "The doors seal and the hall falls silent as the last echo fades."
+        snap = sess._build_end_state_snapshot(engine, None)
+        assert "doors seal" in snap["resolution"]
+
+
 class TestSessionEndsOnTerminalClock:
     def test_ends_with_terminal_outcome(self):
         engine = MechanicsEngine(jsonl_logger=None)

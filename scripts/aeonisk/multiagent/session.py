@@ -1733,6 +1733,13 @@ Generate narratives (numbered list only):"""
             # Check if all players defeated (TPK)
             if not combat_continues:
                 print("\n=== SESSION ENDED - TOTAL PARTY KILL ===")
+                # A TPK is a real ending: record it as a defeat and emit the
+                # end_state_snapshot so the renderer (and the continuation gate)
+                # know everyone died -- otherwise it exited with no snapshot and
+                # the dead were rendered giving an epilogue debrief.
+                self._session_end_status = 'defeat'
+                self._end_reason = 'tpk'
+                await self._check_end_conditions()
                 break
 
             # Run DM turn at end of round
@@ -1758,8 +1765,11 @@ Generate narratives (numbered list only):"""
             # Brief pause between rounds
             await asyncio.sleep(1)
 
-        # Mission debrief
-        await self._run_mission_debrief()
+        # Mission debrief -- skip on a TPK. Dead characters can't reflect, and
+        # their debriefs were rendering as an incoherent epilogue (killed party
+        # members still speaking after the scene that killed them).
+        if self._end_reason != 'tpk':
+            await self._run_mission_debrief()
 
         await self._end_session()
         
@@ -4942,7 +4952,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 None,
             )
             resolved_by_clock = term_clock.name if term_clock else None
-            resolution = (self._last_dm_narration or "").strip()[:400] or "Session ended by DM declaration."
+            resolution = self._synthesize_ending_resolution()
             round_num = mechanics.current_round
 
         return {
@@ -4955,6 +4965,48 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             'party': party,
             'state_summary': mechanics.get_state_summary(),
         }
+
+    @staticmethod
+    def _is_stub_narration(text: str) -> bool:
+        """True for the DM's game-state fallback narration (dm.py:7325,
+        'The situation evolves... (Clock X/Y | ...)') -- bookkeeping that must
+        never be handed to the renderer as the scene's resolution."""
+        import re
+        low = (text or "").lower()
+        if "situation evolves" in low:
+            return True
+        if re.search(r"\b\d+\s*/\s*\d+\b", text or ""):
+            return True
+        return False
+
+    def _synthesize_ending_resolution(self) -> str:
+        """Clean in-world resolution text for the non-terminal ending paths (TPK,
+        round-cap, DM declaration).
+
+        Terminal-clock endings render the clock's authored filled_consequence; the
+        other paths previously echoed self._last_dm_narration, which for cap endings
+        is the clock-stub ('The situation evolves... (clocks X/Y)'). That leaked the
+        bookkeeping straight into the rendered story (and a TPK had no resolution at
+        all). Give each path clean, observable in-world text instead.
+        """
+        reason = self._end_reason
+        outcome = self._session_end_status
+        if reason == "tpk":
+            return "The party was overcome at the scene -- none remained standing."
+        if reason == "round_cap":
+            if outcome == "victory":
+                return ("The scene reached its limit with the threat held off: the "
+                        "catastrophe never came, though nothing was fully settled.")
+            return ("Time ran out before the matter could resolve. The scene ends "
+                    "unsettled, its danger still present and its central question still open.")
+        # DM declaration: keep the DM's own narration unless it's a bookkeeping stub.
+        narr = (self._last_dm_narration or "").strip()
+        if narr and not self._is_stub_narration(narr):
+            return narr[:400]
+        return {
+            "victory": "The scene resolves in the party's favor.",
+            "defeat": "The scene resolves against the party.",
+        }.get(outcome, "The scene comes to an unsettled close.")
 
     def _resolve_at_round_cap(self):
         """
