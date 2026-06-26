@@ -14,6 +14,60 @@ from dataclasses import dataclass, field
 from .shared_types import Position
 
 
+# Canonical top-level factions for DM-emitted spawns. Kept in sync with
+# faction_utils.CANONICAL_SPAWN_FACTIONS (the FACTION_REFERENCE.md source of truth).
+CANONICAL_FACTIONS = frozenset({
+    "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen", "House of Vox",
+    "Aether Dynamics", "Tempest Industries", "Freeborn", "Void", "Independent", "Unknown",
+})
+
+# Subfactions and common aliases the DM/scenarios use, mapped to their canonical
+# parent. Resonance Communes and Fractal Praxis are Freeborn subfactions
+# (faction_utils.py:144); the rest are short-form names that appear in configs.
+_FACTION_ALIASES = {
+    "Resonance Communes": "Freeborn",
+    "Resonance Commune": "Freeborn",
+    "Fractal Praxis": "Freeborn",
+    "Freeborn Collective": "Freeborn",
+    "Freeborn Loner": "Freeborn",
+    "Freeborn Smugglers": "Freeborn",
+    "Freeborn Militants": "Freeborn",
+    "Nexus": "Sovereign Nexus",
+    "Pantheon": "Pantheon Security",
+    "Astral Commerce Group": "ACG",
+    "Arcane Genetics": "ArcGen",
+    "Vox": "House of Vox",
+    "Tempest": "Tempest Industries",
+    "Void Touched": "Void",
+    "Void-Touched": "Void",
+    "Neutral": "Independent",
+    "Neutral Systems": "Independent",
+    "Nomad": "Independent",
+    "Stateless": "Independent",
+    "Refugee": "Independent",
+}
+
+
+def _normalize_faction(v):
+    """Coerce any faction string to a canonical top-level faction.
+
+    The DM legitimately emits subfaction names (e.g. "Resonance Communes" for a
+    Freeborn commune scenario); a strict Literal rejected those and hung the
+    session on retries. Map known subfactions/aliases to their canonical parent
+    and fall back to "Independent" for anything unrecognized, so the faction
+    field can never reject a value. Non-strings pass through for pydantic to
+    handle normally.
+    """
+    if not isinstance(v, str):
+        return v
+    s = v.strip()
+    if s in CANONICAL_FACTIONS:
+        return s
+    if s in _FACTION_ALIASES:
+        return _FACTION_ALIASES[s]
+    return "Independent"
+
+
 class EnemyResolution(str, Enum):
     """
     How an enemy was removed from combat.
@@ -376,7 +430,7 @@ If unsure, choose the CLOSEST match from the valid templates above."""
 
     faction: Literal[
         "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
-        "House of Vox", "Tempest Industries", "Freeborn",
+        "House of Vox", "Aether Dynamics", "Tempest Industries", "Freeborn",
         "Void", "Independent", "Unknown"
     ] = Field(
         ...,
@@ -404,6 +458,11 @@ If unsure, choose the CLOSEST match from the valid templates above."""
 
 If the faction doesn't match a canonical name, use "Independent" for criminals/mercs/gangs or "Unknown" for unidentified."""
     )
+
+    @field_validator('faction', mode='before')
+    @classmethod
+    def _coerce_faction(cls, v):
+        return _normalize_faction(v)
 
     archetype: str = Field(
         ...,
@@ -926,7 +985,7 @@ class NPCSpawn(BaseModel):
     name: str = Field(..., min_length=3, max_length=50)
     faction: Literal[
         "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
-        "House of Vox", "Tempest Industries", "Freeborn",
+        "House of Vox", "Aether Dynamics", "Tempest Industries", "Freeborn",
         "Void", "Independent", "Unknown"
     ] = Field(
         ...,
@@ -937,6 +996,12 @@ class NPCSpawn(BaseModel):
 Use "Independent" for civilians, mercs, unaffiliated characters.
 Use "Unknown" for unidentified entities."""
     )
+
+    @field_validator('faction', mode='before')
+    @classmethod
+    def _coerce_faction(cls, v):
+        return _normalize_faction(v)
+
     entity_type: Literal["neutral", "ally", "prisoner"] = Field(
         ...,
         description="NPC's RELATIONSHIP to players (how they interact with party, NOT their combat threat). Options: 'neutral' (non-aligned third party), 'ally' (friendly/helpful), 'prisoner' (captured/restrained). ⚠️ DO NOT confuse with threat_level!"
