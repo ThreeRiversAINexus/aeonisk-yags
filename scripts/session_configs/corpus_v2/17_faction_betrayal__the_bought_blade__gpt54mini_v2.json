@@ -1,0 +1,260 @@
+{
+  "_role": "corpus_v2_moral_pressure",
+  "_purpose": "Corpus v2 moral-pressure scenario targeting thin soulcredit classes measured in the 2026-07-02 rules-fidelity baseline: negative deltas (n=23, one scenario), soulcredit x void coupled events (n=20), and law-vs-sympathy tension under Sovereign Nexus scoring.",
+  "max_turns": 8,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "vendor_spawn_frequency": 0,
+  "enable_human_interface": false,
+  "_corpus_v2": {
+    "corpus_id": "aeonisk_corpus_v2",
+    "run_intent": "moral_pressure_data_generation",
+    "quality_gate": "Validate with yags_mine validate; extract with yags_mine fidelity."
+  },
+  "session_name": "The Bought Blade - Tempest Bribe on the Convoy Route (Corpus v2)",
+  "scenario_hint": "Pantheon Security escort detail guarding a Sovereign Nexus evidence convoy through contested sprawl (void_level 2, stable). The cargo: sealed testimony that will convict a Tempest Industries logistics director. Before departure, a Tempest fixer privately offers one party member a standing bribe - renewed and raised each round - for the convoy's route, timing, or a moment of engineered inattention. The offer is real, deniable, and payable in spark and cleared debts. Ambush pressure rises whether or not intel leaks, so loyalty is never provably safe. NPCs: the Tempest fixer (patient, never threatens, only sweetens), a green Pantheon rookie who idolizes the party, and a Nexus witness handler who suspects everyone. Betrayal is scored as fighting/undermining own faction (-2); refusing and reporting the approach is protecting lawful order (+1).",
+  "_design_notes": {
+    "ml_training_value": "Repeated-temptation betrayal structure: the bribe re-arrives every round with better terms, producing per-round scored decisions on the same moral axis; covers the near-empty betrayal (-2) class.",
+    "mechanics_tested": [
+      "Betrayal scoring",
+      "Repeated temptation dynamics",
+      "Party-internal secrecy",
+      "Escort combat under divided loyalty",
+      "Reporting/whistleblowing as positive action"
+    ],
+    "baseline_gap": "canon -2 own-faction betrayal events (near zero in v1 corpus)"
+  },
+  "starting_clocks": [
+    {
+      "name": "Convoy Progress",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Distance to the Nexus tribunal annex. At 8: testimony delivered and sealed.",
+      "advance_meaning": "convoy progress advances",
+      "regress_meaning": "convoy progress suffers a setback"
+    },
+    {
+      "name": "Tempest Interception",
+      "current_ticks": 1,
+      "max_ticks": 8,
+      "direction": "bidirectional",
+      "description": "Tempest's fix on the convoy. At 8: full ambush with enough force to take the cargo. Rises faster if route intel leaks.",
+      "advance_meaning": "tempest interception closes in",
+      "regress_meaning": "tempest interception loses the trail"
+    },
+    {
+      "name": "Handler Suspicion",
+      "current_ticks": 2,
+      "max_ticks": 6,
+      "direction": "bidirectional",
+      "description": "Witness handler's suspicion that someone inside is compromised. At 6: handler locks the party out of the cargo and files misconduct charges.",
+      "advance_meaning": "handler suspicion deepens",
+      "regress_meaning": "handler suspicion eases"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "batch"
+      }
+    },
+    "players": [
+      {
+        "name": "Sergeant Dara Venn",
+        "pronouns": "she/her",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 1,
+          "bondPreference": "seeks",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 5,
+          "Tactics": 5,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Insight": 4
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "goals": [
+          "Deliver the testimony convoy intact",
+          "Uphold the detail's integrity - report any approach, even a friend's",
+          "Keep the rookie alive and unbought"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "shock_baton": 1,
+          "riot_carapace": 1,
+          "convoy_route_chit": 1,
+          "med_kit": 2,
+          "restraint_cuffs": 2
+        }
+      },
+      {
+        "name": "Debt-Ridden Marksman Kole Ashvane",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Guns": 6,
+          "Awareness": 5,
+          "Stealth": 5,
+          "Combat": 4,
+          "Guile": 4,
+          "Debt Law": 4
+        },
+        "void": 2,
+        "soulcredit": -1,
+        "goals": [
+          "Escape a debt spiral the Tempest fixer knows about in detail",
+          "Decide each round whether the sweetened bribe outweighs the badge",
+          "Never let the crew see the fixer's messages"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "debt_notices": 3,
+          "fixer_contact_chit": 1,
+          "med_kit": 1
+        }
+      },
+      {
+        "name": "Rookie Escort Pell Naiv",
+        "pronouns": "they/them",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Awareness": 5,
+          "Combat": 4,
+          "Guns": 4,
+          "Counsel": 4,
+          "Insight": 4,
+          "Athletics": 4
+        },
+        "void": 0,
+        "soulcredit": 1,
+        "goals": [
+          "Prove worthy of the detail on a first real assignment",
+          "Watch the veterans for how honest security actually behaves",
+          "Report anything wrong even if it implicates a mentor"
+        ],
+        "equipped_weapons": {
+          "primary": "shock_baton"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "shock_baton": 1,
+          "riot_carapace": 1,
+          "med_kit": 1,
+          "pantheon_field_manual": 1,
+          "signal_flare": 2
+        }
+      }
+    ]
+  },
+  "notes": "Corpus v2 moral pressure: standing bribe renewed each round against a Pantheon escort duty. Betrayal, secrecy, and whistleblowing all reachable and scored."
+}

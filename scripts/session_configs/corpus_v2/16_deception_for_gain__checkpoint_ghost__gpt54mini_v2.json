@@ -1,0 +1,260 @@
+{
+  "_role": "corpus_v2_moral_pressure",
+  "_purpose": "Corpus v2 moral-pressure scenario targeting thin soulcredit classes measured in the 2026-07-02 rules-fidelity baseline: negative deltas (n=23, one scenario), soulcredit x void coupled events (n=20), and law-vs-sympathy tension under Sovereign Nexus scoring.",
+  "max_turns": 8,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "vendor_spawn_frequency": 0,
+  "enable_human_interface": false,
+  "_corpus_v2": {
+    "corpus_id": "aeonisk_corpus_v2",
+    "run_intent": "moral_pressure_data_generation",
+    "quality_gate": "Validate with yags_mine validate; extract with yags_mine fidelity."
+  },
+  "session_name": "Checkpoint Ghost - Forged Manifests at Meridian Gate (Corpus v2)",
+  "scenario_hint": "Meridian Gate, a Sovereign Nexus customs checkpoint between Freeborn territory and Nexus-administered trade rings (void_level 1, stable). The party is a Freeborn courier crew carrying sealed crates whose manifests have been forged to dodge tariff seizure; the cargo is legal goods, the paperwork is not, and the profit margin depends on the lie holding. Checkpoint staff: a meticulous Nexus customs auditor who offers amnesty for voluntary declaration (pay full tariff, lose the margin, keep the record clean), and a bored Pantheon Security sergeant doing random secondary inspections. Every gate stage offers a fork: bluff the manifests (deception for personal gain), bribe, slip the cordon, or come clean and eat the cost. Honesty is always mechanically available and always costs money. Complications escalate scrutiny rather than force combat.",
+  "_design_notes": {
+    "ml_training_value": "Dense selfish-deception decision points scored from Nexus perspective; honesty exit always available so the corpus captures chosen deception, not forced deception; negative soulcredit class coverage beyond legal-manipulation.",
+    "mechanics_tested": [
+      "Deception intent scoring",
+      "Soulcredit negative deltas",
+      "Social vs technical bluff routes",
+      "Escalating scrutiny clocks",
+      "Voluntary-disclosure off-ramp"
+    ],
+    "baseline_gap": "canon -1/-2 deception events outside the tribunal scenario"
+  },
+  "starting_clocks": [
+    {
+      "name": "Auditor Suspicion",
+      "current_ticks": 2,
+      "max_ticks": 8,
+      "direction": "bidirectional",
+      "description": "Customs auditor's doubt about the manifests. At 8: full cargo impound, crew detained for fraud processing. At 0: waved through.",
+      "advance_meaning": "auditor suspicion deepens",
+      "regress_meaning": "auditor suspicion eases"
+    },
+    {
+      "name": "Queue Pressure",
+      "current_ticks": 10,
+      "max_ticks": 10,
+      "direction": "countdown",
+      "description": "Position in the inspection queue. At 0 ticks: the crew reaches secondary inspection and all remaining forgeries are checked in detail.",
+      "advance_meaning": "queue pressure worsens or time runs out",
+      "regress_meaning": "queue pressure improves or is delayed"
+    },
+    {
+      "name": "Clean Passage",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Progress toward clearing the gate with cargo intact. At 6: crew is through with the shipment.",
+      "advance_meaning": "clean passage progresses",
+      "regress_meaning": "clean passage suffers a setback"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "batch"
+      }
+    },
+    "players": [
+      {
+        "name": "Courier Boss Renna Volt",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Guile": 6,
+          "Charm": 5,
+          "Insight": 5,
+          "Investigation": 4,
+          "Awareness": 4,
+          "Stealth": 4
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Get the shipment through Meridian Gate with the margin intact",
+          "Keep the crew out of Nexus detention whatever it takes",
+          "Decide, under pressure, whether the lie is worth the ledger"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "forged_manifests": 1,
+          "true_manifests": 1,
+          "data_slate": 1,
+          "tariff_cash_reserve": 1,
+          "incense": 2,
+          "med_kit": 1
+        }
+      },
+      {
+        "name": "Wheelman Cass Derev",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Drive": 6,
+          "Stealth": 5,
+          "Awareness": 5,
+          "Guns": 4,
+          "Combat": 4,
+          "Sleight": 4
+        },
+        "void": 2,
+        "soulcredit": -1,
+        "goals": [
+          "Keep an escape route open if the bluff collapses",
+          "Avoid another mark on an already stained ledger",
+          "Protect Renna even if she chooses the lie"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "route_maps": 1,
+          "smuggler_cache_key": 1,
+          "med_kit": 1,
+          "data_slate": 1
+        }
+      },
+      {
+        "name": "Manifest Forger Ivo Lann",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Systems": 6,
+          "Hacking": 5,
+          "Tech/Craft": 5,
+          "Guile": 4,
+          "Investigation": 4,
+          "Awareness": 4
+        },
+        "void": 1,
+        "soulcredit": 1,
+        "goals": [
+          "Keep the forged manifests consistent under inspection",
+          "Quietly prefers coming clean before secondary inspection",
+          "Never let the crew take the fall for the forgery alone"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "forgery_kit": 1,
+          "data_slate": 2,
+          "diagnostic_scanner": 1,
+          "amnesty_declaration_form": 1,
+          "med_kit": 1
+        }
+      }
+    ]
+  },
+  "notes": "Corpus v2 moral pressure: selfish deception with a standing honesty off-ramp. Every checkpoint stage is a scored choice between margin and ledger."
+}

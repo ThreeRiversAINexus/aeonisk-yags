@@ -39,6 +39,11 @@ def get_all_session_configs():
         for config_file in ml_scenarios_dir.glob("*/*.json"):
             configs.append(config_file)
 
+    # Get corpus generation configs
+    corpus_v2_dir = SESSION_CONFIGS_DIR / "corpus_v2"
+    if corpus_v2_dir.exists():
+        configs.extend(corpus_v2_dir.glob("*.json"))
+
     return configs
 
 
