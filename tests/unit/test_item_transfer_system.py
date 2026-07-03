@@ -32,7 +32,7 @@ class TestItemTransferValidation:
             name="Ash Vex",
             faction="Freeborn",
             attributes={"intelligence": 4, "perception": 3},
-            skills={"Magick Theory": 4},
+            skills={"Magic Theory": 4},
             void_score=2,
             soulcredit=5,
             bonds=[],

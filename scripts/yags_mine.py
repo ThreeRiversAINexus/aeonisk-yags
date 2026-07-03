@@ -7,6 +7,7 @@ Usage:
     python scripts/yags_mine.py analyze <path> [options]
     python scripts/yags_mine.py discover <directory> [options]
     python scripts/yags_mine.py balance <path> [options]
+    python scripts/yags_mine.py cost <path> [options]
 
 Examples:
     # Validate single session
@@ -32,6 +33,7 @@ Examples:
     yags_mine.py balance bulk_output/ -a skills           # Skills only
     yags_mine.py balance bulk_output/ -a skills,weapons   # Multiple analyzers
     yags_mine.py balance bulk_output/ -f json -o report.json  # JSON export
+    yags_mine.py cost bulk_output/ --pricing-file pricing.json
 """
 
 import argparse
@@ -128,6 +130,9 @@ def cmd_discover(args: argparse.Namespace) -> int:
         complete_only=args.complete_only,
         min_rounds=args.min_rounds,
     )
+    for session in sessions:
+        session['score'] = discovery.calculate_interestingness(session)
+    sessions.sort(key=lambda s: s['score'], reverse=True)
 
     # Limit results
     if args.limit:
@@ -145,8 +150,8 @@ def cmd_discover(args: argparse.Namespace) -> int:
         for i, session in enumerate(sessions, 1):
             score = session.get('score', 0)
             rounds = session.get('rounds', 0)
-            complete = '✓' if session.get('is_complete') else '✗'
-            actions = session.get('total_actions', 0)
+            complete = '✓' if session.get('complete') else '✗'
+            actions = session.get('actions', 0)
             print(f"{i:3d}. {session['path'].name}")
             print(f"     Score: {score:.1f} | Rounds: {rounds} | Actions: {actions} | Complete: {complete}")
 
@@ -164,16 +169,19 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     # Import SessionAnalyzer from analyze_session
     from analyze_session import SessionAnalyzer
 
-    if path.is_file():
-        analyzer = SessionAnalyzer(path)
+    def print_analysis(analyzer: SessionAnalyzer) -> None:
         if args.mode == 'errors':
-            analyzer.print_error_analysis()
+            analyzer.print_errors()
         elif args.mode == 'void':
-            analyzer.print_void_analysis()
+            analyzer.print_void()
         elif args.mode == 'clocks':
-            analyzer.print_clock_analysis()
+            analyzer.print_clocks()
         else:
             analyzer.print_summary()
+
+    if path.is_file():
+        analyzer = SessionAnalyzer(path)
+        print_analysis(analyzer)
     else:
         # Directory: run analysis on all files
         files = sorted(path.rglob("session_*.jsonl") if args.recursive else path.glob("session_*.jsonl"))
@@ -183,10 +191,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             print(f"{'=' * 60}")
             try:
                 analyzer = SessionAnalyzer(f)
-                if args.mode == 'errors':
-                    analyzer.print_error_analysis()
-                else:
-                    analyzer.print_summary()
+                print_analysis(analyzer)
             except Exception as e:
                 print(f"Error analyzing {f}: {e}")
 
@@ -285,6 +290,28 @@ def cmd_balance(args: argparse.Namespace) -> int:
     else:
         formatter.format_multiple(results, sys.stdout)
 
+    return 0
+
+
+def cmd_cost(args: argparse.Namespace) -> int:
+    """Run token and cost reporting on session files."""
+    from cost_report import analyze_cost, print_text_report
+
+    path = Path(args.path)
+    if not path.exists():
+        print(f"Error: Path does not exist: {path}", file=sys.stderr)
+        return 1
+
+    report = analyze_cost(
+        path,
+        recursive=args.recursive,
+        pricing_file=Path(args.pricing_file) if args.pricing_file else None,
+    )
+
+    if args.format == 'json':
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print_text_report(report)
     return 0
 
 
@@ -434,6 +461,32 @@ def main():
         help='Show detailed error messages'
     )
 
+    # === COST ===
+    cost_parser = subparsers.add_parser(
+        'cost',
+        help='Report token usage and estimated cost by config, run, agent, and model'
+    )
+    cost_parser.add_argument(
+        'path',
+        help='Path to session file or bulk output directory'
+    )
+    cost_parser.add_argument(
+        '--pricing-file',
+        help='JSON file with per-model input_per_1m and output_per_1m prices'
+    )
+    cost_parser.add_argument(
+        '--format', '-f',
+        choices=['text', 'json'],
+        default='text',
+        help='Output format (default: text)'
+    )
+    cost_parser.add_argument(
+        '--recursive', '-r',
+        action='store_true',
+        default=True,
+        help='Search directories recursively (default: True)'
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -448,6 +501,8 @@ def main():
         return cmd_analyze(args)
     elif args.command == 'balance':
         return cmd_balance(args)
+    elif args.command == 'cost':
+        return cmd_cost(args)
     else:
         parser.print_help()
         return 1

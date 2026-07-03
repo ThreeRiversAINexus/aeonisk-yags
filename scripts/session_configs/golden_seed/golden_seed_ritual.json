@@ -1,0 +1,54 @@
+{
+  "_seed_doc": "Golden seed corpus: RITUAL/VOID archetype. 4 escalating rituals across 4 rounds, exercising void accumulation, offering consumption, and ritual-difficulty scaling. Cloned from session_config_ritual_progression_test.json.",
+  "session_name": "golden_seed_ritual",
+  "max_turns": 4,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "names_mcp": { "enabled": true, "from_pool": true },
+  "agents": {
+    "dm": {
+      "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 }
+    },
+    "players": [
+      {
+        "name": "Void Researcher Nova",
+        "pronouns": "she/her",
+        "faction": "Arcane Genetics",
+        "llm": { "provider": "openai", "model": "gpt-5-mini", "temperature": 0.7 },
+        "personality": { "riskTolerance": 8, "voidCuriosity": 9, "bondPreference": "neutral", "ritualConservatism": 1 },
+        "goals": [
+          "Test ritual void accumulation from minor to forbidden rituals",
+          "Round 1: Minor scrying ritual (DC 15) - expect +0-1 void",
+          "Round 2: Standard divination ritual (DC 18) - expect +1-2 void total",
+          "Round 3: Major void channeling ritual (DC 22) - expect +2-3 void total",
+          "Round 4: Forbidden communion ritual (DC 26) - expect +3-4 void total",
+          "Track void accumulation and offering consumption"
+        ],
+        "attributes": { "Strength": 2, "Agility": 3, "Endurance": 3, "Perception": 4, "Intelligence": 5, "Charm": 3, "Willpower": 5, "Size": 5, "Dexterity": 3 },
+        "skills": { "Ritual Lore": 5, "Void Lore": 5, "Astral Arts": 4, "Investigation": 4, "Awareness": 3, "Magic Theory": 4 },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Ritual Components": 8,
+          "Void Crystals": 4,
+          "Scrying Mirror": 1,
+          "Forbidden Tome": 1,
+          "Purification Crystals": 2,
+          "Channeling Rod": 1,
+          "Blood Offering": 2
+        },
+        "void": 0
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Ritual Research Expedition",
+    "location": "Isolated Research Sanctum",
+    "situation": "You've secured a quiet research space to conduct ritual experiments. Your goal is to test a sequence of escalating rituals to understand void accumulation mechanics. You have all the necessary components and offerings. The sanctum is stable (void_level 2/10), providing a controlled environment for your research.\n\nPlan:\n- Round 1: Minor scrying ritual (simple void peek, DC ~15)\n- Round 2: Standard divination ritual (deeper void contact, DC ~18)\n- Round 3: Major void channeling ritual (significant void manipulation, DC ~22)\n- Round 4: Forbidden communion ritual (dangerous void communion, DC ~26)\n\nCarefully observe how your personal void level changes after each ritual.",
+    "void_level": 2
+  },
+  "notes": "GOLDEN SEED: Ritual/void archetype - void progression mechanic across 4 escalating ritual DCs. Faction switched to Arcane Genetics (canonical Aeonisk faction) so MCP naming exercises that Line if any NPCs spawn."
+}

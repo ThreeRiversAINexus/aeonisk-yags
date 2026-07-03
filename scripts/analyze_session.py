@@ -83,7 +83,7 @@ EVENT_SCHEMAS = {
     },
     "enemy_spawn": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "template", "stats", "position", "tactics"],
-        "optional": ["count", "event_id", "parent_event_id", "correlation_id"]
+        "optional": ["count", "faction", "event_id", "parent_event_id", "correlation_id"]
     },
     "enemy_defeat": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "defeat_reason", "rounds_survived"],
@@ -124,6 +124,10 @@ EVENT_SCHEMAS = {
     "clock_removal": {
         "required": ["event_type", "ts", "session", "round"],
         "optional": ["data", "clock_name", "reason", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "clock_update": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
 
     # === Round Summary Events ===
@@ -491,7 +495,7 @@ class SessionDiscovery:
 
     def scan(self, complete_only: bool = False, min_rounds: int = 0) -> List[Dict[str, Any]]:
         """Scan directory for session files and extract metadata."""
-        jsonl_files = sorted(self.directory.glob("session_*.jsonl"))
+        jsonl_files = sorted(self.directory.rglob("session_*.jsonl"))
 
         for jsonl_file in jsonl_files:
             metadata = self._extract_metadata(jsonl_file)
@@ -547,7 +551,7 @@ class SessionDiscovery:
                         clocks = event.get('clocks', {})
                         metadata['clocks'].update(clocks.keys())
                     elif event_type == 'enemy_spawn':
-                        metadata['enemies_spawned'] += event.get('context', {}).get('count', 1)
+                        metadata['enemies_spawned'] += event.get('count', event.get('context', {}).get('count', 1))
                     elif event_type == 'enemy_defeat':
                         metadata['enemies_defeated'] += 1
                     elif event_type == 'round_synthesis':

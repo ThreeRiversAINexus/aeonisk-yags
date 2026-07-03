@@ -74,6 +74,46 @@ class ActionIntent(BaseModel):
 # BASE SCHEMA (Shared fields across all action-specific schemas)
 # ==============================================================================
 
+class AmbientSpeech(BaseModel):
+    """
+    Optional in-character speech that accompanies a real action.
+
+    This is narrative flavor only. It is not a second action, does not roll dice,
+    and cannot grant bonuses or change state by itself.
+    """
+
+    line: str = Field(
+        ...,
+        min_length=3,
+        max_length=180,
+        description="Short in-character spoken line, without mechanical commands"
+    )
+
+    target_type: Literal["party", "npc", "enemy", "crowd", "self"] = Field(
+        ...,
+        description="Who this line is aimed at: party, present NPC, enemy, crowd, or self"
+    )
+
+    target: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Target character or group name, if directed at someone specific"
+    )
+
+    delivery: Literal["spoken", "comms", "whisper"] = Field(
+        default="spoken",
+        description="How the line is delivered"
+    )
+
+    def to_dict(self) -> Dict[str, Optional[str]]:
+        return {
+            "line": self.line,
+            "target_type": self.target_type,
+            "target": self.target,
+            "delivery": self.delivery,
+        }
+
+
 class PlayerActionBase(BaseModel):
     """
     Base schema with fields shared across all action types.
@@ -154,6 +194,14 @@ class PlayerActionBase(BaseModel):
             "COMBAT ONLY: Target ID (tgt_xxxx) of the combatant you are watching. "
             "That combatant gets -2 to attack you; all others get +2 flanking. "
             "Choose the biggest threat. Leave null for non-combat situations."
+        )
+    )
+
+    ambient_speech: Optional[AmbientSpeech] = Field(
+        default=None,
+        description=(
+            "Optional short in-character line to party members, present NPCs, enemies, crowds, or self. "
+            "Flavor only: not a second action, no roll, no bonus, no state change."
         )
     )
 
@@ -974,6 +1022,14 @@ class PlayerAction(BaseModel):
         )
     )
 
+    ambient_speech: Optional[AmbientSpeech] = Field(
+        default=None,
+        description=(
+            "Optional short in-character line to party members, present NPCs, enemies, crowds, or self. "
+            "Flavor only: not a second action, no roll, no bonus, no state change."
+        )
+    )
+
     @field_validator('attribute')
     @classmethod
     def validate_attribute(cls, v: str) -> str:
@@ -1050,6 +1106,7 @@ class PlayerAction(BaseModel):
             'ritual_components': self.ritual_components,
             'situational_modifiers': self.situational_modifiers,
             'defence_token': self.defence_token,
+            'ambient_speech': self.ambient_speech.to_dict() if self.ambient_speech else None,
         }
 
 

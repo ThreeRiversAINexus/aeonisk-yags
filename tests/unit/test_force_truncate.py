@@ -206,7 +206,19 @@ class TestInjectForceTruncate:
             assert player["llm"]["force_truncate"] is True
 
     def test_injects_into_enemy_agents(self):
-        """force_truncate is injected into enemy agent LLM config."""
+        """force_truncate is injected into current enemy LLM config."""
+        from scripts.bulk_session_runner import inject_force_truncate
+
+        config = {
+            "agents": {
+                "enemies": {"llm": {"provider": "openai", "model": "gpt-5-mini"}},
+            }
+        }
+        result = inject_force_truncate(config)
+        assert result["agents"]["enemies"]["llm"]["force_truncate"] is True
+
+    def test_injects_into_legacy_enemy_agents(self):
+        """force_truncate is injected into legacy enemy_agents LLM config."""
         from scripts.bulk_session_runner import inject_force_truncate
 
         config = {
@@ -235,12 +247,14 @@ class TestInjectForceTruncate:
                 "players": [
                     {"name": "PC1", "llm": {"provider": "openai", "model": "gpt-5-mini"}},
                 ],
+                "enemies": {"llm": {"provider": "openai", "model": "gpt-5-mini"}},
                 "enemy_agents": {"llm": {"provider": "openai", "model": "gpt-5-mini"}},
             }
         }
         result = inject_force_truncate(config)
         assert result["agents"]["dm"]["llm"]["force_truncate"] is True
         assert result["agents"]["players"][0]["llm"]["force_truncate"] is True
+        assert result["agents"]["enemies"]["llm"]["force_truncate"] is True
         assert result["agents"]["enemy_agents"]["llm"]["force_truncate"] is True
 
 

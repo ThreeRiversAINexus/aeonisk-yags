@@ -60,11 +60,11 @@ def non_magic_character(base_character_data):
 
 
 @pytest.fixture
-def magick_theory_only_character(base_character_data):
-    """Character with Magick Theory but no Astral Arts (should skip ritual_requirements)."""
+def magic_theory_only_character(base_character_data):
+    """Character with Magic Theory but no Astral Arts (should skip ritual_requirements)."""
     character_data = base_character_data.copy()
     character_data["skills"] = {
-        "Magick Theory": 6,
+        "Magic Theory": 6,
         "Investigation": 5,
         "Systems": 4
     }
@@ -114,14 +114,14 @@ class TestConditionalSectionLoading:
         assert 'ritual_requirements_conditional' not in sections, \
             "Non-magic character should skip ritual_requirements"
 
-    def test_magick_theory_only_skips_ritual_requirements(self, magick_theory_only_character):
-        """Test that Magick Theory (analysis) without Astral Arts (casting) skips ritual_requirements."""
-        player = create_mock_player(magick_theory_only_character)
+    def test_magic_theory_only_skips_ritual_requirements(self, magic_theory_only_character):
+        """Test that Magic Theory (analysis) without Astral Arts (casting) skips ritual_requirements."""
+        player = create_mock_player(magic_theory_only_character)
         sections = player._get_required_player_sections()
 
         # Assert ritual_requirements_conditional is NOT included
         assert 'ritual_requirements_conditional' not in sections, \
-            "Magick Theory without Astral Arts should skip ritual_requirements"
+            "Magic Theory without Astral Arts should skip ritual_requirements"
 
     def test_all_characters_load_faction_reference(
         self, astral_arts_character, non_magic_character

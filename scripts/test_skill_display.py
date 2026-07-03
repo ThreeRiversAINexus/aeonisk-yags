@@ -15,7 +15,7 @@ test_character_skills = {
     "Astral Arts": 4,
     "Intimacy Ritual": 3,
     "Systems": 3,
-    "Magick Theory": 2,
+    "Magic Theory": 2,
     "Stealth": 2,
     "Brawl": 2
 }

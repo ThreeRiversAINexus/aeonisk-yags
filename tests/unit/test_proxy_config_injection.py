@@ -55,6 +55,19 @@ def make_openai_config():
 def make_config_with_enemies():
     """Config with enemy agents too."""
     config = make_openai_config()
+    config["agents"]["enemies"] = {
+        "llm": {
+            "provider": "openai",
+            "model": "gpt-5-mini",
+            "temperature": 0.5
+        }
+    }
+    return config
+
+
+def make_config_with_legacy_enemy_agents():
+    """Config with legacy enemy_agents LLM shape."""
+    config = make_openai_config()
     config["agents"]["enemy_agents"] = {
         "llm": {
             "provider": "openai",
@@ -104,6 +117,18 @@ class TestInjectProxyConfig:
         config = make_config_with_enemies()
         result = inject_proxy_config(config, "http://localhost:8000")
 
+        enemy_llm = result["agents"]["enemies"]["llm"]
+        assert enemy_llm["provider"] == "batch_proxy"
+        assert enemy_llm["underlying_provider"] == "openai"
+        assert enemy_llm["use_proxy"] is True
+
+    def test_switches_legacy_enemy_agent_provider(self):
+        """Legacy enemy_agents provider should still be switched if present."""
+        from bulk_session_runner import inject_proxy_config
+
+        config = make_config_with_legacy_enemy_agents()
+        result = inject_proxy_config(config, "http://localhost:8000")
+
         enemy_llm = result["agents"]["enemy_agents"]["llm"]
         assert enemy_llm["provider"] == "batch_proxy"
         assert enemy_llm["underlying_provider"] == "openai"
@@ -143,6 +168,38 @@ class TestInjectProxyConfig:
         dm_llm = result["agents"]["dm"]["llm"]
         assert dm_llm["provider"] == "batch_proxy"
         assert dm_llm["underlying_provider"] == "anthropic"
+
+    def test_preserves_existing_batch_proxy_underlying_provider(self):
+        """Pre-proxied mixed-provider configs should not be rewritten to batch_proxy."""
+        from bulk_session_runner import inject_proxy_config
+
+        config = make_openai_config()
+        config["agents"]["dm"]["llm"] = {
+            "provider": "batch_proxy",
+            "underlying_provider": "openai",
+            "model": "gpt-5.4-mini",
+        }
+        config["agents"]["players"][0]["llm"] = {
+            "provider": "batch_proxy",
+            "underlying_provider": "gemini",
+            "model": "gemini-3.5-flash",
+        }
+        config["agents"]["enemies"] = {
+            "llm": {
+                "provider": "batch_proxy",
+                "underlying_provider": "gemini",
+                "model": "gemini-3.5-flash",
+            }
+        }
+
+        result = inject_proxy_config(config, "http://localhost:8017", "direct")
+
+        assert result["agents"]["dm"]["llm"]["underlying_provider"] == "openai"
+        assert result["agents"]["players"][0]["llm"]["underlying_provider"] == "gemini"
+        assert result["agents"]["enemies"]["llm"]["underlying_provider"] == "gemini"
+        assert result["agents"]["dm"]["llm"]["proxy_strategy"] == "direct"
+        assert result["agents"]["players"][0]["llm"]["proxy_url"] == "http://localhost:8017"
+        assert result["agents"]["enemies"]["llm"]["proxy_url"] == "http://localhost:8017"
 
     def test_no_agents_key_is_noop(self):
         """Config without agents key should not crash."""

@@ -41,7 +41,8 @@
       "current_ticks": 2,
       "description": "The contested Bond is becoming unstable - if it ruptures uncontrolled, consequences",
       "advance_meaning": "visible distortions, pain for Matrons, void leakage",
-      "regress_meaning": "stabilization rituals, calm testimony, Bond strengthens"
+      "regress_meaning": "stabilization rituals, calm testimony, Bond strengthens",
+      "filled_consequence": "The Bond tears open in full view of the tribunal: a backlash of void-light arcs across the chamber, both Matrons cry out as the severed thread lashes the air, and the Codex lattice recoils overhead."
     },
     {
       "name": "Verdict Momentum",
@@ -49,15 +50,19 @@
       "current_ticks": 4,
       "description": "Which way the tribunal is leaning - starts neutral",
       "advance_meaning": "evidence favors severance (Halessan)",
-      "regress_meaning": "evidence favors preservation (Elaras)"
+      "regress_meaning": "evidence favors preservation (Elaras)",
+      "filled_consequence": "The Adjudicator rules for severance: the Bond is ordered cut, Halessan's petition is granted, and Elaras is stripped of her claim before the assembled court."
     },
     {
       "name": "Secret Exposure",
-      "max_ticks": 5,
-      "current_ticks": 1,
+      "max_ticks": 12,
+      "current_ticks": 0,
       "description": "How close the real truth is to coming out",
       "advance_meaning": "contradictions noted, Codex queries increase, someone cracks",
-      "regress_meaning": "deflection successful, attention diverted"
+      "regress_meaning": "deflection successful, attention diverted",
+      "filled_consequence": "The truth breaks open in the record: the ritual was altered and laundered through upper-office Nexus authority, and the name behind the sealed approval is spoken aloud before the Codex.",
+      "is_terminal_clock": true,
+      "terminal_outcome": "victory"
     },
     {
       "name": "Void Manifestation",
@@ -65,7 +70,8 @@
       "current_ticks": 0,
       "description": "Something is wrong with this Bond - void corruption building",
       "advance_meaning": "symptoms in pod-children worsen, shadows move, reality stutters",
-      "regress_meaning": "containment holds, symptoms explained away"
+      "regress_meaning": "containment holds, symptoms explained away",
+      "filled_consequence": "The void corruption manifests in open court: the pod-children's symptoms surge through the Bond, shadows peel off the walls, and something half-formed presses against the stuttering Codex lattice."
     }
   ],
 
@@ -123,7 +129,7 @@
     "dm": {
       "llm": {
         "provider": "openai",
-        "model": "gpt-5-mini",
+        "model": "gpt-5.4-mini",
         "temperature": 1.0
       }
     },
@@ -134,7 +140,7 @@
         "faction": "Sovereign Nexus",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.4-mini",
           "temperature": 1.0
         },
         "personality": {
@@ -187,7 +193,7 @@
         "faction": "Pantheon Security",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.4-mini",
           "temperature": 1.0
         },
         "personality": {
@@ -241,7 +247,7 @@
         "faction": "Resonance Communes",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.4-mini",
           "temperature": 1.0
         },
         "personality": {
@@ -293,7 +299,7 @@
         "faction": "Tempest Industries",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5-mini",
+          "model": "gpt-5.4-mini",
           "temperature": 1.0
         },
         "personality": {

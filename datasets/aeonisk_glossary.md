@@ -88,7 +88,7 @@ For Code Integration & AI Context
     -   Attribute: Willpower
     -   Type: Aeonisk
     -   Description: Channeling, resisting, and shaping spiritual energies in rituals. Core ritual skill.
--   **Magick_Theory:** (Renamed from Magick Theory)
+-   **Magic_Theory:**
     -   Attribute: Intelligence
     -   Type: Aeonisk
     -   Knowledge: true (Explicitly mark as knowledge)
@@ -139,7 +139,7 @@ For Code Integration & AI Context
 -   **Science:** (Example Knowledge skill)
     -   Attribute: Intelligence
     -   Type: Knowledge
-    -   Description: Understanding of the principles of the physical world (physics, chemistry, biology). Interacts with Magick Theory.
+    -   Description: Understanding of the principles of the physical world (physics, chemistry, biology). Interacts with Magic Theory.
 
 ## Character Generation
 

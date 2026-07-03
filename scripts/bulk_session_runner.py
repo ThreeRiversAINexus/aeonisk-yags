@@ -534,12 +534,23 @@ def modify_config_for_bulk_run(
 
 def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> None:
     """Switch a single LLM config dict to use batch_proxy provider."""
-    llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
+    if llm_config.get('provider') == 'batch_proxy':
+        llm_config['underlying_provider'] = llm_config.get('underlying_provider', 'openai')
+    else:
+        llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
     llm_config['provider'] = 'batch_proxy'
     llm_config['use_proxy'] = True
     llm_config['proxy_url'] = proxy_url
     llm_config['proxy_priority'] = 'normal'
     llm_config['proxy_strategy'] = proxy_strategy
+
+
+def _iter_enemy_llm_configs(agents: Dict):
+    """Yield current and legacy enemy LLM config dicts."""
+    for key in ('enemies', 'enemy_agents'):
+        enemy_config = agents.get(key)
+        if isinstance(enemy_config, dict) and isinstance(enemy_config.get('llm'), dict):
+            yield enemy_config['llm']
 
 
 def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> Dict:
@@ -571,9 +582,9 @@ def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'aut
         _switch_llm_to_proxy(player_llm, proxy_url, proxy_strategy)
         player['llm'] = player_llm
 
-    # Inject into enemy agents
-    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
-        _switch_llm_to_proxy(agents['enemy_agents']['llm'], proxy_url, proxy_strategy)
+    # Inject into enemy agents (current and legacy config shapes)
+    for enemy_llm in _iter_enemy_llm_configs(agents):
+        _switch_llm_to_proxy(enemy_llm, proxy_url, proxy_strategy)
 
     return config
 
@@ -601,9 +612,9 @@ def inject_force_truncate(config: Dict) -> Dict:
     for player in agents.get('players', []):
         player.setdefault('llm', {})['force_truncate'] = True
 
-    # Inject into enemy agents
-    if 'enemy_agents' in agents and 'llm' in agents['enemy_agents']:
-        agents['enemy_agents']['llm']['force_truncate'] = True
+    # Inject into enemy agents (current and legacy config shapes)
+    for enemy_llm in _iter_enemy_llm_configs(agents):
+        enemy_llm['force_truncate'] = True
 
     return config
 

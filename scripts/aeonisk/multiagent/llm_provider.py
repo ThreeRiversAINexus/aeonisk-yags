@@ -871,10 +871,11 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                     # Try to extract raw model output if available
                     # UnexpectedModelBehavior has a 'body' attribute with the raw response
                     if hasattr(e, 'body') and e.body:
-                        error_details['raw_model_response'] = e.body[:2000]  # Truncate to 2000 chars
-                        logger.error(f"📋 Raw model response that failed validation:\n{e.body[:1000]}")
+                        body_str = str(e.body)  # pydantic-ai 1.107 body is not a string; coerce
+                        error_details['raw_model_response'] = body_str[:2000]
+                        logger.error(f"📋 Raw model response that failed validation:\n{body_str[:1000]}")
                     elif hasattr(e, 'message') and e.message:
-                        error_details['pydantic_ai_message'] = e.message[:500]
+                        error_details['pydantic_ai_message'] = str(e.message)[:500]
 
                     # Try to extract raw model output from args as fallback
                     if hasattr(e, 'args') and len(e.args) > 0:

@@ -940,7 +940,7 @@ aeonisk_extra_data:
 task_id: YAGS-AEONISK-015
 domain:
   core: rule_application
-  subdomain: magick_theory_glyph_identification
+  subdomain: magic_theory_glyph_identification
 scenario: >
   Lena Vor-Kereth examines a Codex glyph formed in dreamspace after stabilizing a fractured Seed-pair. She must identify its significance and implications for Codex judgment.
 environment: Dream residual zone within the HALIX VI resonance field.
@@ -950,7 +950,7 @@ characters:
   - name: Lena Vor-Kereth
     tech_level: Aeonisk Standard
     attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 5, perception: 3, willpower: 3, empathy: 3}
-    skills: {magick_theory: 3, debt_law: 4, guile: 3, awareness: 2}
+    skills: {magic_theory: 3, debt_law: 4, guile: 3, awareness: 2}
 goal: >
   Determine the attribute and skill to identify a rare Codex glyph, estimate the difficulty, and describe the consequences of interpreting it correctly or incorrectly.
 expected_fields:
@@ -962,8 +962,8 @@ expected_fields:
   - rationale
 gold_answer:
   attribute_used: Intelligence
-  skill_used: Magick Theory
-  roll_formula: "Intelligence 5 x Magick Theory 3 = 15; 15 + d20"
+  skill_used: Magic Theory
+  roll_formula: "Intelligence 5 x Magic Theory 3 = 15; 15 + d20"
   difficulty_guess: 20 # Challenging for a rare glyph
   outcome_explanation:
     critical_failure:
@@ -997,7 +997,7 @@ gold_answer:
       mechanical_effect: >
         Complete understanding, including historical context and an opportunity for direct interaction/influence. Unlocks a unique ritual option.
 rationale: >
-  Glyph reading fits Intelligence × Magick Theory — it's about abstract ritual decoding. Dream residue context adds weight. A rare Codex glyph warrants a Challenging (20) difficulty.
+  Glyph reading fits Intelligence × Magic Theory — it's about abstract ritual decoding. Dream residue context adds weight. A rare Codex glyph warrants a Challenging (20) difficulty.
 aeonisk_extra_data:
   module: aeonisk-yags
   version: v1.2.0-pre
@@ -1677,7 +1677,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     current_void: 3
     soulcredit: 1
     technique: Sacrament of Filth (+2 Dreamwork in disgusting rituals) # This is a +2 to the skill level for calculation, or a + (2*Attribute) to the base ability. Assuming +2 to skill level for now.
@@ -1733,7 +1733,7 @@ gold_answer:
       narrative: >
         Rev interfaces with the drone’s pre-purge core. He extracts a full Codex ritual log and a voiceprint tagged “Thassil_Excision_Alpha,” and the drone imparts a permanent echo of its understanding of Thassil's work.
       mechanical_effect: >
-        Gains full Codex ritual log & voiceprint. Gains permanent +1 to Magick Theory for Thassil-related lore. Sparkstick consumed.
+        Gains full Codex ritual log & voiceprint. Gains permanent +1 to Magic Theory for Thassil-related lore. Sparkstick consumed.
 rationale: >
   A Dreamwork ritual using Willpower. Effective Dreamwork skill is 4 (base) + 2 (Sacrament of Filth) + 1 (Sparkstick Boost) = 7. The original roll was "21 + d20", which implies a base ability of 21. Willpower 4 x Dreamwork 7 = 28. The original "perfect symbolic alignment +2" is integrated into the high base ability. Difficulty 23 (Major/Forbidden) reflects complex symbolic interface with a semi-living corrupted Codex device.
 aeonisk_extra_data:
@@ -1754,7 +1754,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     current_void: 3
     soulcredit: 1
     technique: Sacrament of Filth (+2 Dreamwork when engaging with corruption)
@@ -1832,7 +1832,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     current_void: 3
     soulcredit: 1
     technique: Sacrament of Filth (+2 Dreamwork in disgusting rituals) # Not directly applicable to Astral Arts
@@ -1914,7 +1914,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     current_void: 3
     soulcredit: 2
     technique: Sacrament of Filth (+2 Dreamwork in corrupt environments) # Effective Dreamwork skill 6
@@ -1985,7 +1985,7 @@ aeonisk_extra_data:
 task_id: YAGS-AEONISK-030
 domain:
   core: rule_application
-  subdomain: ritual_relic_discovery_magick_theory
+  subdomain: ritual_relic_discovery_magic_theory
 scenario: >
   After receiving the Echo-Sigil of Thassil in Dreamspace, Rev Gutter-Sermon begins a physical search in the ruins of the hinge-space. His goal: locate a physical trace of the Fracture Seal—glyph fragments, mold-carved echoes, or forbidden Codex ritual debris. The chamber reacts to his presence. Some glyphs recoil. Some flare. All remember.
 environment: Scab Vault 9-A, post-Dream rupture. Mold blooms pulse in recursive Codex fractals. The air tastes like ash and copper.
@@ -1995,14 +1995,14 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     current_void: 3
     soulcredit: 2
-    technique: Sacrament of Filth (+2 Dreamwork in corrupt environments) # Not directly applicable to Magick Theory
+    technique: Sacrament of Filth (+2 Dreamwork in corrupt environments) # Not directly applicable to Magic Theory
     tags: ["echo_sigil_of_thassil"]
     active_modifiers:
-      - name: "Spiritual Residue Sensitivity" # Interpreted as +1 to effective Magick Theory skill
-        effect: "+1 Awareness and Magick Theory in corrupted sites"
+      - name: "Spiritual Residue Sensitivity" # Interpreted as +1 to effective Magic Theory skill
+        effect: "+1 Awareness and Magic Theory in corrupted sites"
       # - name: "Echo-Sigil awareness" # From original, effect: "+2 to roll" - integrated
       # - name: "Narrative focus" # From original, effect: "+3 to roll" - integrated
 goal: >
@@ -2016,8 +2016,8 @@ expected_fields:
   - rationale
 gold_answer:
   attribute_used: Perception # For searching
-  skill_used: Magick Theory # For identifying ritualistically significant items
-  roll_formula: "Perception 4 x Magick Theory (3+1) = 16; 16 + 2 [Echo-Sigil] + 3 [Narrative Focus] + d20 = 21 + d20" # MT 3 + 1 (Sensitivity) = 4. Original roll 18+d20. (Per 4 * MT 4 = 16) + 2 (Echo-Sigil) + 3 (Narrative Focus) = 21.
+  skill_used: Magic Theory # For identifying ritualistically significant items
+  roll_formula: "Perception 4 x Magic Theory (3+1) = 16; 16 + 2 [Echo-Sigil] + 3 [Narrative Focus] + d20 = 21 + d20" # MT 3 + 1 (Sensitivity) = 4. Original roll 18+d20. (Per 4 * MT 4 = 16) + 2 (Echo-Sigil) + 3 (Narrative Focus) = 21.
   difficulty_guess: 23 # Challenging+
   critical_thresholds:
     natural_20_success_enhancement: >
@@ -2049,14 +2049,14 @@ gold_answer:
       narrative: >
         Beneath a mound of dead salt, Rev finds a complete ritual line, encoded in reverse glyph-sequence. When read, it pulses with the resonance of clean unmaking.
       mechanical_effect: >
-        Unlocks: “Fracture Seal – Line Alpha” (core line). Rev may begin full ritual reconstruction. Gains permanent +1 Magick Theory in corrupted zones.
+        Unlocks: “Fracture Seal – Line Alpha” (core line). Rev may begin full ritual reconstruction. Gains permanent +1 Magic Theory in corrupted zones.
     exceptional_success: # Based on Nat 20
       narrative: >
         Rev uncovers the full glyph chain—the structural spine of the Fracture Seal, perfectly preserved in a mold concretion. He may now cast the ritual in full.
       mechanical_effect: >
         Full Fracture Seal ritual learned. +1 Soulcredit for discovery.
 rationale: >
-  A high-risk relic search governed by Perception and Magick Theory. Effective Magick Theory is 3 (base) + 1 (Sensitivity) = 4. Original roll "18+d20" implies a base of 18. (Perception 4 x Magick Theory 4 = 16). Adding +2 for Echo-Sigil awareness and +3 for narrative focus (as per original calculation logic) gives 16+2+3 = 21. DC 23 (Challenging+) reflects the deeply buried nature of erased Codex ritual fragments.
+  A high-risk relic search governed by Perception and Magic Theory. Effective Magic Theory is 3 (base) + 1 (Sensitivity) = 4. Original roll "18+d20" implies a base of 18. (Perception 4 x Magic Theory 4 = 16). Adding +2 for Echo-Sigil awareness and +3 for narrative focus (as per original calculation logic) gives 16+2+3 = 21. DC 23 (Challenging+) reflects the deeply buried nature of erased Codex ritual fragments.
 aeonisk_extra_data:
   module: Aeonisk - YAGS Module
   version: v1.2.0-pre
@@ -2075,7 +2075,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3} # Relevant skills
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3} # Relevant skills
     current_void: 4 # Increased from previous task if failed
     technique: Sacrament of Filth
     tags:
@@ -2085,7 +2085,7 @@ characters:
       - name: Screaming Lens
         function: Revealed spiritual negative-space pattern
 goal: >
-  Convert failed Magick Theory check into ritual insight by symbolically interpreting absence as resonance memory.
+  Convert failed Magic Theory check into ritual insight by symbolically interpreting absence as resonance memory.
 expected_fields: # Unique to this type of task
   - original_failed_task_id # ID of the task being reinterpreted
   - original_roll_result
@@ -2126,7 +2126,7 @@ characters:
     current_void: 3
     soulcredit: 3
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, awareness: 2, guile: 2, charm: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, awareness: 2, guile: 2, charm: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     technique: Sacrament of Filth (+2 Dreamwork when embracing rot) # Not directly for Awareness
     tags: ["echo_sigil_of_thassil", "selfed"]
     active_modifiers:
@@ -2207,7 +2207,7 @@ characters:
     current_void: 3
     soulcredit: 3
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, awareness: 2, guile: 2, charm: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, awareness: 2, guile: 2, charm: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1}
     technique: Sacrament of Filth (+2 Dreamwork in corrupted rituals) # Effective Dreamwork skill 6
     tags: ["echo_sigil_of_thassil", "calla_trail"]
     active_modifiers:
@@ -2286,7 +2286,7 @@ characters:
     current_void: 3
     soulcredit: 3
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3}
-    skills: {astral_arts: 4, dreamwork: 4, magick_theory: 3, guile: 2, charm: 2, awareness: 2, intimacy_ritual: 1}
+    skills: {astral_arts: 4, dreamwork: 4, magic_theory: 3, guile: 2, charm: 2, awareness: 2, intimacy_ritual: 1}
     technique: Sacrament of Filth # Not directly applicable to Intimacy Ritual
     tags: ["echo_interest", "selfed", "calla_trail"]
     inventory_used:
@@ -2351,7 +2351,7 @@ aeonisk_extra_data:
 task_id: YAGS-AEONISK-035
 domain:
   core: rule_application
-  subdomain: faction_interaction_magick_theory
+  subdomain: faction_interaction_magic_theory
 scenario: >
   Rev Gutter-Sermon returns to a dormant Fractal Praxis node in Ring 8—a group he once walked with, then left. He brings evidence of Echo Child emergence, glyph fracture, and the corruption of the Codex’s ritual spine. His request: analysis, insight, and possible access to their recursion mapping algorithms or glyph extrapolation tools.
 environment: Signal Crypt under dead observatory. Monitors pulse glyph-math. A dreaming AI priest stirs faintly behind the walls.
@@ -2364,11 +2364,11 @@ characters:
     current_void: 3
     soulcredit: 4
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3} # Added full attributes
-    skills: {magick_theory: 3, charm: 2, guile: 2, intrigue: 1, dreamwork: 4, astral_arts: 4, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intimacy_ritual: 1, hacking: 1} # Added full skills
+    skills: {magic_theory: 3, charm: 2, guile: 2, intrigue: 1, dreamwork: 4, astral_arts: 4, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intimacy_ritual: 1, hacking: 1} # Added full skills
     active_modifiers:
-      - name: "Fractal Familiarity" # Interpreted as +2 to effective Magick Theory skill
-        effect: "+2 Magick Theory checks in Praxis interfaces"
-      - name: "Echo Presence" # Interpreted as +1 to effective Magick Theory skill (ideological resonance)
+      - name: "Fractal Familiarity" # Interpreted as +2 to effective Magic Theory skill
+        effect: "+2 Magic Theory checks in Praxis interfaces"
+      - name: "Echo Presence" # Interpreted as +1 to effective Magic Theory skill (ideological resonance)
         effect: "+1 or –1 based on ideological resonance"
       # - name: "Narrative importance" # From original, effect: "+8 to roll" - integrated
 goal: >
@@ -2382,8 +2382,8 @@ expected_fields:
   - rationale
 gold_answer:
   attribute_used: Intelligence
-  skill_used: Magick Theory
-  roll_formula: "Intelligence 3 x Magick Theory (3+2+1) = 18; 18 + 8 [Narrative Imp] + d20 = 26 + d20" # MT 3 + 2 (Familiarity) + 1 (Echo Presence) = 6. Original roll 20+d20. (Int 3 * MT 6 = 18) + 8 (Narrative Importance) = 26.
+  skill_used: Magic Theory
+  roll_formula: "Intelligence 3 x Magic Theory (3+2+1) = 18; 18 + 8 [Narrative Imp] + d20 = 26 + d20" # MT 3 + 2 (Familiarity) + 1 (Echo Presence) = 6. Original roll 20+d20. (Int 3 * MT 6 = 18) + 8 (Narrative Importance) = 26.
   difficulty_guess: 25 # Challenging+ (YAGS) or between Major/Forbidden (Aeonisk)
   critical_thresholds:
     natural_20_success_enhancement: >
@@ -2422,7 +2422,7 @@ gold_answer:
       mechanical_effect: >
         Full Praxis support. Gains "Fracture Index" algorithm (+1 to all Void navigation rolls). Gains "Prime Anomaly Consultant" status with Praxis.
 rationale: >
-  Magick Theory governs analytical interface with Praxis systems, using Intelligence. Effective Magick Theory is 3 (base) + 2 (Familiarity) + 1 (Echo Presence) = 6. Original roll "20+d20" implies base 20. (Intelligence 3 x Magick Theory 6 = 18). Adding +8 for "Narrative Importance" (from original calculation logic) gives 26. DC 25 (Challenging+/Major) due to high stakes and complex interaction.
+  Magic Theory governs analytical interface with Praxis systems, using Intelligence. Effective Magic Theory is 3 (base) + 2 (Familiarity) + 1 (Echo Presence) = 6. Original roll "20+d20" implies base 20. (Intelligence 3 x Magic Theory 6 = 18). Adding +8 for "Narrative Importance" (from original calculation logic) gives 26. DC 25 (Challenging+/Major) due to high stakes and complex interaction.
 aeonisk_extra_data:
   module: Aeonisk - YAGS Module
   version: v1.2.0-pre
@@ -2528,7 +2528,7 @@ characters:
     current_void: 3
     soulcredit: 4
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3} # Added full attributes
-    skills: {dreamwork: 4, magick_theory: 3, astral_arts: 4, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1} # Added full skills
+    skills: {dreamwork: 4, magic_theory: 3, astral_arts: 4, guile: 2, charm: 2, awareness: 2, stealth: 2, brawl: 2, athletics: 2, sleight: 2, throw: 2, intrigue: 1, intimacy_ritual: 1, hacking: 1} # Added full skills
     tags: ["glyph_kin:CĀLA", "heard_the_breath", "living_theorem"]
     active_modifiers:
       - name: "Heard the Breath" # Interpreted as +1 to effective Dreamwork skill
@@ -2639,7 +2639,7 @@ characters:
     current_void: 3
     soulcredit: 4
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3} # Added
-    skills: {dreamwork: 4, magick_theory: 3, astral_arts: 4} # Added
+    skills: {dreamwork: 4, magic_theory: 3, astral_arts: 4} # Added
     tags: ["glyph_kin:CĀLA", "witness_child", "living_theorem"]
   - name: CĀLA
     tech_level: Aeonisk Standard # Added
@@ -2884,7 +2884,7 @@ characters:
   - name: Rev Gutter-Sermon
     tech_level: Aeonisk Standard # Added
     attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 3, perception: 4, willpower: 4, empathy: 3} # Added
-    skills: {dreamwork: 4, astral_arts: 4, magick_theory: 3} # Added
+    skills: {dreamwork: 4, astral_arts: 4, magic_theory: 3} # Added
     active_modifiers: # Example modifiers based on original formula logic
       - name: "CĀLA Co-Ritualist"
         effect: "+2 to effective Dreamwork skill"
@@ -3240,7 +3240,7 @@ gold_answer:
       narrative: >
         The combined precision and ritual power perfectly unweaves the ward, and Kaelia manages to capture its core resonance pattern, gaining insight into Tempest Industries' warding techniques.
       mechanical_effect: >
-        Void ward disabled. Gains "Tempest Ward Schematic Fragment" (lore/intel). +1 to Magick Theory vs Tempest wards. Offering consumed.
+        Void ward disabled. Gains "Tempest Ward Schematic Fragment" (lore/intel). +1 to Magic Theory vs Tempest wards. Offering consumed.
 rationale: >
   Disabling a Void-ward combines precise placement (Athletics for synergy) with ritual power (Willpower × Astral Arts). DC 18 (Standard Ritual) reflects moderate difficulty for a skilled ritualist with good physical coordination. Offering assumed.
 aeonisk_extra_data:

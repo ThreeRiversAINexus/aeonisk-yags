@@ -21,12 +21,7 @@ import yaml
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-try:
-    import tiktoken
-except ImportError:
-    print("WARNING: tiktoken not installed. Install with: pip install tiktoken")
-    print("Falling back to approximate token counting (1 token ≈ 4 characters)")
-    tiktoken = None
+from token_utils import count_text_tokens
 
 
 def count_tokens(text: str, model: str = "claude-3-5-sonnet-20241022") -> int:
@@ -40,13 +35,7 @@ def count_tokens(text: str, model: str = "claude-3-5-sonnet-20241022") -> int:
     Returns:
         Estimated token count
     """
-    if tiktoken is not None:
-        # Use cl100k_base encoding (closest to Claude)
-        encoding = tiktoken.get_encoding("cl100k_base")
-        return len(encoding.encode(text))
-    else:
-        # Fallback: approximate 1 token per 4 characters
-        return len(text) // 4
+    return count_text_tokens(text, model=model)
 
 
 def load_yaml_prompt(file_path: Path) -> Dict[str, Any]:

@@ -14,8 +14,57 @@ from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import Vendor, VendorType, create_standard_vendors
 from .prompt_loader import load_agent_prompt, compose_sections, load_modular_prompt
+from token_utils import count_chat_tokens, count_text_tokens
 
 logger = logging.getLogger(__name__)
+
+
+def format_filled_clocks_guidance(filled_clocks, critical_overflow: bool = False) -> str:
+    """
+    Build the synthesis guidance for clocks that filled this round.
+
+    Surfaces each clock's in-world consequence (always present -- see
+    SceneClock.effective_consequence) and instructs the DM to narrate it as an
+    event that HAS happened. This is the fix for the "DM walks back completions"
+    failure: previously the prompt listed only clock names and told the DM to
+    "change the scenario", so a filled bond-rupture clock got narrated as a
+    near-miss ("steadies instead of tearing apart") and the resolution never
+    landed. Now the authored consequence reaches the DM and the directive
+    forbids the near-miss.
+
+    Args:
+        filled_clocks: list of {clock_name, reason, consequence} dicts from
+            MechanicsEngine.get_and_clear_filled_clocks()
+        critical_overflow: True when a clock overflowed badly (raise urgency)
+    """
+    if not filled_clocks:
+        return ""
+
+    names = [f['clock_name'] for f in filled_clocks]
+    urgency = "🚨 EXTREME URGENCY 🚨" if critical_overflow else "⚠️  URGENT"
+
+    text = f"\n\n{urgency} **CLOCKS FILLED (Auto-removing):** {', '.join(names)}\n"
+    text += (
+        "These resolutions HAVE HAPPENED. Narrate each as an event that occurs "
+        "NOW -- not as a near-miss, not 'almost', not 'threatens to', not "
+        "'steadies instead'. Show the consequence landing, then let the scene move.\n\n"
+    )
+    text += "**What just happened (narrate each as fact):**\n"
+    for f in filled_clocks:
+        cons = (f.get('consequence') or '').strip()
+        if cons:
+            text += f"  • {f['clock_name']}: {cons}\n"
+    text += "\n"
+    text += "**For clocks with mechanical markers** (e.g., [SPAWN_ENEMY: ...]):\n"
+    text += "- Include the exact marker text from the consequence in your narration\n"
+    text += "- The marker will trigger automatically\n\n"
+    text += "**For narrative clocks** (no mechanical markers):\n"
+    text += "- Render the consequence above, then move the scene with a DM control marker:\n"
+    text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
+    text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
+    text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
+    text += "⚠️  A filled clock narrated as 'almost happened' or left without a scenario marker STALLS the story."
+    return text
 
 
 def _resolution_success(resolution) -> bool:
@@ -1229,6 +1278,7 @@ class AIDMAgent(Agent):
         llm_client: Optional[Any] = None,
         agent_prompt_logger: Optional[Any] = None,
         session_config: Optional[Dict[str, Any]] = None,
+        names_client: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -1242,6 +1292,7 @@ class AIDMAgent(Agent):
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
         self.session_config = session_config or {}  # Session config for persistent vendors, etc.
+        self.names_client = names_client  # Optional aeonisk-names-mcp client; None = LLM-named NPCs
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -1530,6 +1581,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 """
 
             # Add narrative style guidance if specified
+            dm_config = self.session_config.get('agents', {}).get('dm', {})
             narrative_style = dm_config.get('narrative_style', '')
             tone_guidance = dm_config.get('tone_guidance', '')
 
@@ -1680,7 +1732,9 @@ Apply this narrative style to:
                             clock.description,
                             clock.advance_meaning,
                             clock.regress_meaning,
-                            clock.filled_consequence
+                            clock.filled_consequence,
+                            getattr(clock, 'is_terminal_clock', False),
+                            getattr(clock, 'terminal_outcome', 'victory')
                         ))
 
                 else:
@@ -1755,7 +1809,8 @@ Apply this narrative style to:
                                 "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
                             )
 
-                            # Use rate-limited wrapper (already imported above)
+                            # Use rate-limited wrapper (import may be branch-scoped above)
+                            from .llm_provider import call_anthropic_with_retry
                             response = await call_anthropic_with_retry(
                                 client=self.llm_client,
                                 model=model,
@@ -1878,6 +1933,28 @@ Apply this narrative style to:
             self.shared_state.initialize_mechanics()
             mechanics = self.shared_state.get_mechanics_engine()
 
+            # If the session config supplies a TERMINAL starting clock, that clock is
+            # how the scene is meant to end -- it is authoritative. Suppress the DM's
+            # own scenario-generated clocks so they don't crowd out / orphan it (a live
+            # run showed the DM inventing differently-named clocks and never advancing
+            # the config's terminal clock, so the session ran to the round cap).
+            # Scoped to terminal configs only, so existing/golden sessions that use
+            # plain starting_clocks keep their current DM-adds-clocks behavior.
+            session_config = getattr(self.shared_state, 'session_config', None) or {}
+            config_clocks = session_config.get('starting_clocks', []) or []
+            config_has_terminal = any(c.get('is_terminal_clock') for c in config_clocks)
+            if config_has_terminal and scenario_data.get('clocks'):
+                print(
+                    f"[DM {self.agent_id}] Config provides a terminal starting clock; "
+                    f"using config clocks as authoritative and skipping "
+                    f"{len(scenario_data.get('clocks', []))} DM scenario clock(s)."
+                )
+                logger.info(
+                    "Terminal starting clock present in config -- suppressing DM "
+                    "scenario-generated clocks to keep the terminal clock authoritative."
+                )
+                scenario_data['clocks'] = []
+
             for clock_data in scenario_data.get('clocks', []):
                 clock_name = clock_data[0]
                 max_value = clock_data[1]
@@ -1885,10 +1962,13 @@ Apply this narrative style to:
                 advance_meaning = clock_data[3] if len(clock_data) > 3 else ""
                 regress_meaning = clock_data[4] if len(clock_data) > 4 else ""
                 filled_consequence = clock_data[5] if len(clock_data) > 5 else ""
+                is_terminal = clock_data[6] if len(clock_data) > 6 else False
+                terminal_outcome = clock_data[7] if len(clock_data) > 7 else "victory"
 
                 mechanics.create_scene_clock(
                     clock_name, max_value, description,
-                    advance_meaning, regress_meaning, filled_consequence
+                    advance_meaning, regress_meaning, filled_consequence,
+                    is_terminal=is_terminal, terminal_outcome=terminal_outcome
                 )
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 
@@ -4257,28 +4337,9 @@ Void Level: {self.current_scenario.void_level}/10"""
 
                 # Check for newly filled clocks
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
-                if filled_clocks:
-                    filled_names = [f['clock_name'] for f in filled_clocks]
-                    if critical_overflow:
-                        urgency = "🚨 EXTREME URGENCY 🚨"
-                    else:
-                        urgency = "⚠️  URGENT"
-                    filled_clocks_text = f"\n\n{urgency} **CLOCKS FILLED (Auto-removing):** {', '.join(filled_names)}\n"
-                    filled_clocks_text += "⚠️  **MANDATORY**: Filled clocks MUST trigger scenario changes!\n\n"
-                    filled_clocks_text += "**For clocks with mechanical markers** (e.g., [SPAWN_ENEMY: ...]):\n"
-                    filled_clocks_text += "- Include the exact marker text from filled_consequence in your narration\n"
-                    filled_clocks_text += "- The marker will trigger automatically\n\n"
-                    filled_clocks_text += "**For narrative clocks** (no mechanical markers):\n"
-                    filled_clocks_text += "- You MUST use a DM control marker to change the scenario:\n"
-                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
-                    filled_clocks_text += "    Examples:\n"
-                    filled_clocks_text += "      - Investigation clock fills → [ADVANCE_STORY: Magistrate's Office | Confrontation with the saboteur]\n"
-                    filled_clocks_text += "      - Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
-                    filled_clocks_text += "      - Same location → [ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]\n"
-                    filled_clocks_text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
-                    filled_clocks_text += "    Example: Corruption clock fills → [NEW_CLOCK: Void Manifestation | 4 | Entity taking form]\n"
-                    filled_clocks_text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
-                    filled_clocks_text += "⚠️  Narrative clocks that fill WITHOUT a scenario marker will stall the story!"
+                filled_clocks_text = format_filled_clocks_guidance(
+                    filled_clocks, critical_overflow=critical_overflow
+                )
 
         # Build enemy spawn instructions (always available if enabled)
         enemy_spawn_prompt = ""
@@ -4851,12 +4912,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    messages = [{"role": "user", "content": prompt}]
                     estimated_tokens = {
-                        'input': len(prompt) // 4,
-                        'output': len(synthesis_text) // 4,
+                        'input': count_chat_tokens(messages, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
+                        'output': count_text_tokens(synthesis_text, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
                     }
+                    estimated_tokens['total'] = estimated_tokens['input'] + estimated_tokens['output']
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=synthesis_text,
                         model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
                         temperature=self.llm_config.get('temperature', 1.0),
@@ -4869,10 +4932,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
                     try:
+                        messages = [{"role": "user", "content": prompt}]
                         estimated_tokens = {
-                            'input': len(prompt) // 4,
-                            'output': len(synthesis_text) // 4,
+                            'input': count_chat_tokens(messages, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
+                            'output': count_text_tokens(synthesis_text, self.llm_config.get('model', 'claude-3-5-sonnet-20241022')),
                         }
+                        estimated_tokens['total'] = estimated_tokens['input'] + estimated_tokens['output']
                         self.agent_prompt_logger.log_llm_call(
                             agent_id=self.agent_id,
                             round_num=round_num,
@@ -7306,7 +7371,8 @@ For **other actions** (flee, hide, assist, attack):
         target_id: str = "",
         previous_context: str = "",
         combatant_list: str = "",
-        session_context: str = ""
+        session_context: str = "",
+        action: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -7377,6 +7443,16 @@ For **other actions** (flee, hide, assist, attack):
                 prompt_parts.append(previous_context)
 
             prompt_parts.append(f"\nPlayer Action: {description}")
+            ambient_speech = action.get('ambient_speech') if isinstance(action, dict) else None
+            if isinstance(ambient_speech, dict) and ambient_speech.get('line'):
+                delivery = ambient_speech.get('delivery', 'spoken')
+                target = ambient_speech.get('target')
+                target_type = ambient_speech.get('target_type', 'self')
+                target_text = f" to {target}" if target else f" to {target_type}"
+                prompt_parts.append(
+                    "Ambient Speech (flavor only, do not roll or apply mechanics): "
+                    f"[{delivery}{target_text}] \"{ambient_speech['line']}\""
+                )
             prompt_parts.append(f"Action Type: {action_type}")
 
             # Add declared target explicitly so DM knows who the player is targeting
@@ -7548,6 +7624,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
             logger.debug("DM: No llm_provider available, will use legacy text generation")
             return None
+
+        # Bind mechanics up front: the targeting-correction path below references
+        # `mechanics` (for JSONL logging) before its first conditional assignment,
+        # which raised UnboundLocalError whenever a damage effect needed correction.
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
 
         try:
             from .structured_output_helpers import generate_dm_resolution_structured
@@ -7784,20 +7865,23 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                 # Log LLM call for replay (structured output path)
                 if self.llm_logger:
-                    # Note: We can't get exact token counts from pydantic-ai without modifying it,
-                    # but we can approximate based on text length for now
-                    estimated_input_tokens = len(prompt) // 4  # rough estimate: 1 token ~= 4 chars
-                    estimated_output_tokens = len(resolution_obj.narration) // 4
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ]
+                    estimated_input_tokens = count_chat_tokens(messages, model)
+                    estimated_output_tokens = count_text_tokens(resolution_obj.narration, model)
 
                     self.llm_logger._log_llm_call(
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
+                        messages=messages,
                         response=resolution_obj.narration,  # Log narration as response
                         model=model,
                         temperature=temperature,
-                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=current_round,
                         call_sequence=self.llm_logger.call_count
                     )
@@ -8595,7 +8679,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
             target_id=target_id,
             previous_context=previous_context,
             combatant_list=combatant_list,
-            session_context=session_context
+            session_context=session_context,
+            action=action
         )
 
         return prompt
@@ -8979,7 +9064,8 @@ When adjudicating:
             party_context=party_context,
             character_name=character_name if action else "The character",
             target_character=target_character if target_character else "",
-            target_id=target_id
+            target_id=target_id,
+            action=action
         )
 
         try:
@@ -9068,12 +9154,22 @@ When adjudicating:
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    messages = [
+                        {"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
+                        {"role": "user", "content": prompt}
+                    ]
+                    estimated_input_tokens = count_chat_tokens(messages, model)
+                    estimated_output_tokens = count_text_tokens(narration, model)
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=narration,
                         model=model,
                         temperature=temperature,
-                        tokens={'input': 0, 'output': 0},  # Token counts not available from UnifiedAIClient
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
@@ -9272,21 +9368,24 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
                 # Log LLM call for replay
                 if self.llm_logger:
-                    # Use actual token count if available, otherwise estimate
+                    messages = [{"role": "user", "content": prompt}]
                     if response.tokens_used:
-                        # tokens_used is total, estimate split
-                        estimated_input_tokens = len(prompt) // 4
-                        estimated_output_tokens = response.tokens_used - estimated_input_tokens
+                        estimated_input_tokens = count_chat_tokens(messages, model)
+                        estimated_output_tokens = max(response.tokens_used - estimated_input_tokens, 0)
                     else:
-                        estimated_input_tokens = len(prompt) // 4
-                        estimated_output_tokens = len(event_text) // 4
+                        estimated_input_tokens = count_chat_tokens(messages, model)
+                        estimated_output_tokens = count_text_tokens(event_text, model)
 
                     self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=messages,
                         response=event_text,
                         model=model,
                         temperature=self.llm_config.get('temperature', 1.0),
-                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        tokens={
+                            'input': estimated_input_tokens,
+                            'output': estimated_output_tokens,
+                            'total': estimated_input_tokens + estimated_output_tokens,
+                        },
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
@@ -9370,6 +9469,18 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         import logging
 
         logger = logging.getLogger(__name__)
+
+        # Canonicalize via aeonisk-names-mcp when wired in. Non-canon factions
+        # (Independent/Unknown/Void) and any failure path return None, letting
+        # the DM-generated NPCSpawn.name stand.
+        if self.names_client is not None:
+            mcp_name = self.names_client.generate_npc_name(
+                faction=npc_spawn.faction,
+                pronouns=getattr(npc_spawn, "pronouns", "they/them"),
+                context=f"npc_spawn:{npc_spawn.faction}",
+            )
+            if mcp_name:
+                npc_spawn.name = mcp_name
 
         # Generate unique agent_id with npc_ prefix
         # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)

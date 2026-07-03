@@ -207,7 +207,7 @@ This library addresses critical gaps in existing session configs:
 **Tactical:** Enabled (Void Manifestations + Panicked NPCs)
 
 **Characters:**
-- Ritualist Veyra Lune (Resonance Communes) - Astral Arts 6, Attunement 6, Magick Theory 5
+- Ritualist Veyra Lune (Resonance Communes) - Astral Arts 6, Attunement 6, Magic Theory 5
 - Containment Specialist Thane Kross (Tempest) - Systems 6, Attunement 5, Astral Arts 5, void 3
 - Spiritual Guide Sael Thren (Resonance Communes) - Counsel 6, Charm 5, Astral Arts 5
 
@@ -346,7 +346,7 @@ This library addresses critical gaps in existing session configs:
 
 **Characters:**
 - Expedition Pilot Arden Vex (Freeborn) - Pilot 6, Systems 5, Awareness 6, Investigation 5
-- Archaeologist Lyss Kain (Fractal Praxis) - Investigation 6, Science 6, Magick Theory 5, void 3
+- Archaeologist Lyss Kain (Fractal Praxis) - Investigation 6, Science 6, Magic Theory 5, void 3
 - Artifact Interface Specialist Kael Rift (Tempest) - Attunement 6, Astral Arts 6, Systems 5, void 4
 
 **Scenario:** Uncharted moon with pre-Covenant ruins. Team hired to survey, map, assess commercial/research value. Unknown challenges: unstable terrain, ancient security systems, alien ecosystem, artifacts with unpredictable effects, reality distortions. Discovery opportunities: technology, historical records, Seed deposits, void phenomena. Information control: what to report to Tempest? What to suppress? What to sell to highest bidder?

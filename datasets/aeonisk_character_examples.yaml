@@ -72,7 +72,7 @@ characters:
     # Knowledges & Aeonisk-only Skills
     knowledges:
       lore_navigation: 3    # Astronavigation lore
-      magick_theory: 2      # understanding ritual frameworks
+      magic_theory: 2      # understanding ritual frameworks
     
     standard_skills: # Combined Aeonisk and Standard skills here for clarity
       pilot: 3              # Halo-Runner piloting
@@ -185,7 +185,7 @@ standard_skills:
   drive: 1
 
 astral_skills:
-  magick_theory: 2
+  magic_theory: 2
   attunement: 2
 
 languages:
@@ -269,7 +269,7 @@ notes: >
     throw: 2
 
   knowledges:
-    magick_theory: 2
+    magic_theory: 2
 
   standard_skills:
     drone_operation: 2

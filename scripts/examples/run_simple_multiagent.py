@@ -47,7 +47,7 @@ class AeoniskCharacter:
     
     # Skills (Aeonisk-specific)
     astral_arts: int = 0  # Willpower skill - key for rituals
-    magick_theory: int = 0  # Intelligence
+    magic_theory: int = 0  # Intelligence
     intimacy_ritual: int = 0  # Empathy
     corporate_influence: int = 0  # Empathy
     debt_law: int = 0  # Intelligence
@@ -274,7 +274,7 @@ class SimpleAeoniskSession:
         # Assign skills based on origin
         if origin == 'Sovereign Nexus':
             char.astral_arts = random.randint(3, 6)
-            char.magick_theory = random.randint(2, 4)
+            char.magic_theory = random.randint(2, 4)
             char.intimacy_ritual = random.randint(2, 4)
         elif origin == 'Astral Commerce Group':
             char.corporate_influence = random.randint(3, 6)
@@ -285,7 +285,7 @@ class SimpleAeoniskSession:
             char.pilot = random.randint(2, 4)
             char.drone_operation = random.randint(2, 4)
         elif origin == 'Arcane Genetics':
-            char.magick_theory = random.randint(3, 5)
+            char.magic_theory = random.randint(3, 5)
             char.astral_arts = random.randint(2, 4)
         elif origin == 'Freeborn':
             char.astral_arts = random.randint(2, 5)
@@ -470,7 +470,7 @@ class SimpleAeoniskSession:
             research_types = ['void artifact analysis', 'corruption pattern study', 'void entity communication']
             research = random.choice(research_types)
             
-            success, roll, margin, result = character.make_skill_check('intelligence', 'magick_theory', 25)
+            success, roll, margin, result = character.make_skill_check('intelligence', 'magic_theory', 25)
             
             # Void research is risky
             void_gain = 0
@@ -605,7 +605,7 @@ class SimpleAeoniskSession:
                     'intelligence': c.intelligence, 'empathy': c.empathy, 'willpower': c.willpower
                 },
                 'skills': {
-                    'astral_arts': c.astral_arts, 'magick_theory': c.magick_theory,
+                    'astral_arts': c.astral_arts, 'magic_theory': c.magic_theory,
                     'intimacy_ritual': c.intimacy_ritual, 'corporate_influence': c.corporate_influence,
                     'debt_law': c.debt_law, 'pilot': c.pilot, 'drone_operation': c.drone_operation,
                     'athletics': c.athletics, 'awareness': c.awareness, 'brawl': c.brawl,

@@ -1,0 +1,8 @@
+{
+  "models": {
+    "gpt-5.4-mini": {
+      "input_per_1m": 0.375,
+      "output_per_1m": 2.25
+    }
+  }
+}

@@ -279,17 +279,10 @@ Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS
 - Note: Casual coordination ≠ forming a formal Bond (capital B)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
         elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
             dialogue_goal_text = f"""
@@ -303,17 +296,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
         else:
             dialogue_goal_text = f"""
@@ -325,17 +311,10 @@ Then the system will give you a FREE second action for your main task!
 - Working together ≠ formal Bonds (you can coordinate without commitment)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change.
 
-**HOW TO TRIGGER THE BONUS:**
-Declare a simple dialogue action using natural phrasing:
-- "Tell [name] about what I discovered"
-- "Ask [name] what they found"
-- "Share my findings with [name]"
-- "Inform [name] about [specific detail]"
-
-Then the system will give you a FREE second action for your main task!
+If you want talking to change behavior or grant an advantage, make `social` or `support` your main action.
 """
 
     void_warning = ""
@@ -438,7 +417,7 @@ DESCRIPTION: [1-2 sentence narrative]
 - When channeling or harmonizing with astral forces
 - When attempting to stabilize, contain, or seal void corruption
 - When using Astral Arts skill for active void manipulation (NOT just sensing/analyzing)
-- Analysis/study can often use Intelligence × Magick Theory instead (no offerings needed)
+- Analysis/study can often use Intelligence × Magic Theory instead (no offerings needed)
 
 **For Rituals** (Astral Arts), you MUST specify offerings:
 ```
@@ -456,16 +435,16 @@ COMPONENTS: [what materials: "blood offering" or "incense stick"]
 - If you're LOW on offerings, consider purchasing more from vendors!
 - Blood offerings and incense are commonly sold by ritual merchants
 
-**For Coordination Dialogue** (FREE ACTION that grants +2 bonus):
+**For Ambient Speech** (optional flavor beside your real action):
 ```
-INTENT: Tell [companion name] about [what I discovered]
-ATTRIBUTE: Empathy
-SKILL: Charm (or Counsel)
-ACTION_TYPE: social
-DESCRIPTION: I explain to [name] what I found about [topic]
-
-This will trigger a FREE second action where you do your main task!
+ambient_speech={
+  "line": "Keep your comms open; I am moving on the left side.",
+  "target_type": "party",
+  "target": "[companion name]",
+  "delivery": "comms"
+}
 ```
+Use `target_type` values: `party`, `npc`, `enemy`, `crowd`, or `self`.
 
 **For Vendor Interaction** (when a vendor is present):
 ```
@@ -513,7 +492,7 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 {'- Use void-manipulation tech if available' if personality.get('voidCuriosity', 5) > 6 else '- Use traditional, non-void methods'}
 
 **Skill Variety - Use Different Approaches:**
-- **ANALYZE void/rituals?** → Intelligence × Magick Theory (study, research, understand) - NO offerings needed
+- **ANALYZE void/rituals?** → Intelligence × Magic Theory (study, research, understand) - NO offerings needed
 - **MANIPULATE void?** → Willpower × Astral Arts (channel, harmonize, seal) - REQUIRES offerings!
 - **Investigation?** → Perception × Awareness or Intelligence × Investigation
 - **Technical Work?** → Intelligence × Systems or relevant technical skill
@@ -521,7 +500,7 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 - **Combat Analysis?** → Perception × Combat skill or Intelligence × Tactics
 
 **CRITICAL**: Don't waste offerings on analysis! Use:
-- Intelligence × Magick Theory → to understand/study void phenomena (no cost)
+- Intelligence × Magic Theory → to understand/study void phenomena (no cost)
 - Willpower × Astral Arts → to actively manipulate/channel void (requires offerings)
 - Perception × Attunement → to sense/detect void currents (no cost)
 
@@ -580,7 +559,7 @@ Based on the current situation, consider:
 3. **Social Inquiry**: Use Empathy × Social to question NPCs
 4. **Astral Sensing**: Use Willpower × Astral Arts to detect void/spiritual traces
 5. **Physical Search**: Use Perception × Awareness to explore new locations
-6. **Ritual Analysis**: Use Intelligence × Magick Theory to understand ritual mechanics
+6. **Ritual Analysis**: Use Intelligence × Magic Theory to understand ritual mechanics
 
 Choose an approach that:
 - Hasn't been tried recently by your character

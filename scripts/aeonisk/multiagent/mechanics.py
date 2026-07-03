@@ -47,7 +47,7 @@ def is_knowledge_skill(skill_name: Optional[str]) -> bool:
     Knowledge skills require training (skill >= 1) to attempt.
     Standard skills can be attempted untrained with d20 ÷ 2.
 
-    Knowledge skills: Magick Theory, Ritual Lore, Science, History, Area Lore,
+    Knowledge skills: Magic Theory, Ritual Lore, Science, History, Area Lore,
                       Void Theory, Debt Law
     """
     if not skill_name:
@@ -246,8 +246,15 @@ class JSONLLogger:
         self.current_parent_event_id = session_start_event["event_id"]  # Session start is parent of first events
 
     def _get_git_commit(self) -> Optional[str]:
-        """Get current git commit hash for version tracking."""
+        """Get current git commit hash for version tracking.
+
+        Appends '-dirty' when the working tree has uncommitted changes, so the stamp
+        cannot silently claim a clean commit that the running code did not match. A
+        bare short SHA therefore reliably means "generated from exactly that commit";
+        a '-dirty' suffix means the code had local modifications on top of it.
+        """
         import subprocess
+        repo_root = Path(__file__).parent.parent.parent.parent  # Go up to repo root
         try:
             # Get short commit hash (first 7 chars)
             result = subprocess.run(
@@ -255,10 +262,21 @@ class JSONLLogger:
                 capture_output=True,
                 text=True,
                 timeout=1,
-                cwd=Path(__file__).parent.parent.parent.parent  # Go up to repo root
+                cwd=repo_root
             )
             if result.returncode == 0:
-                return result.stdout.strip()
+                commit = result.stdout.strip()
+                # Flag a dirty working tree so the version stamp stays trustworthy
+                status = subprocess.run(
+                    ['git', 'status', '--porcelain'],
+                    capture_output=True,
+                    text=True,
+                    timeout=1,
+                    cwd=repo_root
+                )
+                if status.returncode == 0 and status.stdout.strip():
+                    commit += '-dirty'
+                return commit
         except Exception:
             pass
         return None
@@ -1721,6 +1739,8 @@ class SceneClock:
     filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
     timeout_rounds: int = 5  # Rounds until clock expires (default 5)
     allow_negative: bool = False  # If True, clock can go negative (for bidirectional trackers)
+    is_terminal: bool = False  # If True, filling this clock resolves the scene and ends the session
+    terminal_outcome: str = "victory"  # Session outcome when a terminal clock fills (victory/defeat/draw)
     _ever_filled: bool = field(default=False, init=False, repr=False)
     _rounds_alive: int = field(default=0, init=False, repr=False)  # Track how long clock has existed
 
@@ -1750,6 +1770,12 @@ class SceneClock:
 
         By default, clocks clamp at 0 (cannot go negative).
         If allow_negative=True, can go down to -maximum.
+
+        Clocks -- including terminal clocks -- are always regressable: the clock is a
+        two-way pressure gauge, not a ratchet. Convergence is enforced by the round-cap
+        backstop (which resolves any still-open terminal clock), NOT by making clocks
+        monotonic. Driving a DOOM terminal clock (terminal_outcome=defeat) to 0 is a
+        legitimate regression that also neutralises the threat -> victory.
         """
         if self.allow_negative:
             # Bidirectional tracker - can go negative
@@ -1764,6 +1790,37 @@ class SceneClock:
     def filled(self) -> bool:
         """Check if clock is filled."""
         return self.current >= self.maximum
+
+    @property
+    def effective_consequence(self) -> str:
+        """
+        The in-world consequence to narrate when this clock fills -- never empty.
+
+        Most authored configs leave filled_consequence blank, which made dramatic
+        completions meaningless. When it is unset we synthesize a consequence from
+        the clock's own advance_meaning (the authored sense of "filling"), then its
+        description, so the DM always receives concrete in-world text to render as
+        fact rather than improvising a near-miss.
+        """
+        authored = (self.filled_consequence or "").strip()
+        if authored:
+            return authored
+
+        advance = (self.advance_meaning or "").strip()
+        if advance:
+            text = advance[0].upper() + advance[1:]
+            if text[-1] not in ".!?":
+                text += "."
+            return text
+
+        desc = (self.description or "").strip()
+        if desc:
+            text = desc[0].upper() + desc[1:]
+            if text[-1] not in ".!?":
+                text += "."
+            return text
+
+        return f"{self.name} reaches its breaking point."
 
     @property
     def ever_filled(self) -> bool:
@@ -2100,6 +2157,13 @@ class MechanicsEngine:
 
         # Clock history - chronological timeline of all clock events
         self.clock_history: List[Dict[str, Any]] = []
+
+        # Terminal completion snapshot - set when a clock flagged is_terminal fills.
+        # The session loop reads this to end the session (with the declared outcome)
+        # instead of running to the round cap. Also the hook point for the
+        # resolve-then-leap continuation: it captures the resolving beat. First
+        # terminal clock to fill wins (one ending per session).
+        self.terminal_completion: Optional[Dict[str, Any]] = None
 
     def calculate_dc(
         self,
@@ -4501,7 +4565,9 @@ class MechanicsEngine:
         advance_meaning: str = "",
         regress_meaning: str = "",
         filled_consequence: str = "",
-        timeout_rounds: int = None
+        timeout_rounds: int = None,
+        is_terminal: bool = False,
+        terminal_outcome: str = "victory"
     ) -> SceneClock:
         """
         Create and register a scene clock with semantic metadata.
@@ -4514,6 +4580,8 @@ class MechanicsEngine:
             regress_meaning: What it means to regress (e.g., "Evidence destroyed")
             filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
             timeout_rounds: Rounds until clock expires (None = auto-calculated based on maximum)
+            is_terminal: If True, filling this clock resolves the scene and ends the session
+            terminal_outcome: Session outcome when a terminal clock fills (victory/defeat/draw)
         """
         # Auto-assign varied timeouts to prevent all clocks expiring simultaneously
         if timeout_rounds is None:
@@ -4534,10 +4602,44 @@ class MechanicsEngine:
             advance_meaning=advance_meaning,
             regress_meaning=regress_meaning,
             filled_consequence=filled_consequence,
-            timeout_rounds=timeout_rounds
+            timeout_rounds=timeout_rounds,
+            is_terminal=is_terminal,
+            terminal_outcome=terminal_outcome
         )
         self.scene_clocks[name] = clock
         return clock
+
+    def _record_terminal_completion(self, clock: 'SceneClock', reason: str = "", outcome_override: str = None):
+        """
+        Capture the resolving beat when a terminal clock reaches an end state.
+
+        Two triggers:
+          * a terminal clock FILLS  -> resolves with the clock's terminal_outcome
+            (a goal clock = victory/draw; a doom clock = defeat / catastrophe)
+          * a DOOM clock is driven to 0 -> threat neutralised, pass
+            outcome_override='victory' (aversion win)
+
+        Sets self.terminal_completion (a snapshot dict) the FIRST time any terminal
+        clock resolves; later ones are ignored so the session has exactly one ending.
+        The session loop reads this to declare session_end, and the resolve-then-leap
+        continuation reads it to know what beat resolved the chapter.
+        """
+        if not getattr(clock, 'is_terminal', False):
+            return
+        if self.terminal_completion is not None:
+            return  # one ending per session - first terminal clock wins
+
+        self.terminal_completion = {
+            'clock_name': clock.name,
+            'outcome': outcome_override or getattr(clock, 'terminal_outcome', 'victory'),
+            'filled_consequence': clock.filled_consequence,
+            'reason': reason or clock.filled_consequence,
+            'round': self.current_round,
+        }
+        logger.info(
+            f"🏁 TERMINAL CLOCK RESOLVED: {clock.name} -> session resolves "
+            f"({self.terminal_completion['outcome']})"
+        )
 
     def advance_clock(
         self,
@@ -4577,6 +4679,9 @@ class MechanicsEngine:
             # Trigger consequences (stores for DM synthesis)
             self._trigger_clock_consequences(clock_name, reason)
 
+            # A terminal clock filling resolves the scene -> signal session end
+            self._record_terminal_completion(clock, reason)
+
         return filled
 
     def _trigger_clock_consequences(self, clock_name: str, reason: str):
@@ -4591,9 +4696,16 @@ class MechanicsEngine:
         if not hasattr(self, '_filled_clocks_this_round'):
             self._filled_clocks_this_round = []
 
+        # Hand the DM the clock's in-world consequence (never empty) so the
+        # synthesis renders the resolution as fact instead of improvising a
+        # near-miss. Falls back to a synthesized consequence when unauthored.
+        clock = self.scene_clocks.get(clock_name)
+        consequence = clock.effective_consequence if clock else ""
+
         self._filled_clocks_this_round.append({
             'clock_name': clock_name,
-            'reason': reason
+            'reason': reason,
+            'consequence': consequence,
         })
 
     def get_and_clear_filled_clocks(self):
@@ -4724,9 +4836,24 @@ class MechanicsEngine:
                             "reasons": reasons,
                             "filled_consequence": clock.filled_consequence,
                             "advance_meaning": clock.advance_meaning,
-                            "regress_meaning": clock.regress_meaning
+                            "regress_meaning": clock.regress_meaning,
+                            "is_terminal": getattr(clock, 'is_terminal', False),
+                            "terminal_outcome": getattr(clock, 'terminal_outcome', None) if getattr(clock, 'is_terminal', False) else None
                         },
                         round_num=self.current_round
+                    )
+
+                # Terminal end-triggers (not regression blocks):
+                #  - any terminal clock FILLING resolves the scene with its outcome
+                #  - a DOOM clock (defeat-on-fill) driven down to 0 = threat
+                #    neutralised -> aversion victory
+                if after >= maximum:
+                    self._record_terminal_completion(clock, "; ".join(reasons))
+                elif (getattr(clock, 'is_terminal', False)
+                      and getattr(clock, 'terminal_outcome', '') == 'defeat'
+                      and before > 0 and after <= 0):
+                    self._record_terminal_completion(
+                        clock, "; ".join(reasons), outcome_override='victory'
                     )
 
         # Clear the queue

@@ -221,12 +221,15 @@ class TestEnemySpawnParameterMapping:
 
 
 class TestFactionValidation:
-    """Test that EnemySpawn and NPCSpawn enforce canonical faction names."""
+    """EnemySpawn and NPCSpawn normalize faction names to canonical values.
 
-    def test_enemy_spawn_rejects_non_canonical_faction(self):
-        """Non-canonical faction strings must be rejected by Pydantic validation."""
-        from pydantic import ValidationError
+    Non-canonical strings are COERCED (subfaction/alias -> parent, else
+    "Independent"), never rejected -- a rejected faction used to burn the DM's
+    retry loop and hang the session. See test_faction_normalization.py.
+    """
 
+    def test_enemy_spawn_coerces_non_canonical_faction(self):
+        """Non-canonical faction strings are coerced to a canonical value, not rejected."""
         bad_factions = [
             "Pantheon Crew",
             "ACG Security",
@@ -237,21 +240,27 @@ class TestFactionValidation:
             "Gang",
             "Corp",
         ]
+        valid = {
+            "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen", "House of Vox",
+            "Aether Dynamics", "Tempest Industries", "Freeborn", "Void",
+            "Independent", "Unknown",
+        }
         for bad_faction in bad_factions:
-            with pytest.raises(ValidationError):
-                EnemySpawn(
-                    template="grunt",
-                    faction=bad_faction,
-                    archetype="Enforcer",
-                    count=1,
-                    spawn_reason="Test spawn with non-canonical faction",
-                )
+            spawn = EnemySpawn(
+                template="grunt",
+                faction=bad_faction,
+                archetype="Enforcer",
+                count=1,
+                spawn_reason="Test spawn with non-canonical faction",
+            )
+            # never raises; lands on a canonical value (unrecognized -> Independent)
+            assert spawn.faction in valid
 
     def test_enemy_spawn_accepts_all_canonical_factions(self):
-        """All 10 canonical faction values must be accepted."""
+        """All 11 canonical faction values must be accepted."""
         canonical = [
             "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
-            "House of Vox", "Tempest Industries", "Freeborn",
+            "House of Vox", "Aether Dynamics", "Tempest Industries", "Freeborn",
             "Void", "Independent", "Unknown",
         ]
         for faction in canonical:
@@ -264,9 +273,8 @@ class TestFactionValidation:
             )
             assert spawn.faction == faction
 
-    def test_npc_spawn_rejects_non_canonical_faction(self):
-        """NPCSpawn must also reject non-canonical faction strings."""
-        from pydantic import ValidationError
+    def test_npc_spawn_coerces_non_canonical_faction(self):
+        """NPCSpawn also coerces non-canonical faction strings instead of rejecting."""
         from aeonisk.multiagent.schemas.story_events import NPCSpawn
 
         bad_factions = [
@@ -275,26 +283,31 @@ class TestFactionValidation:
             "Independent Civilian",
             "Freeborn Medical Corps",
         ]
+        valid = {
+            "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen", "House of Vox",
+            "Aether Dynamics", "Tempest Industries", "Freeborn", "Void",
+            "Independent", "Unknown",
+        }
         for bad_faction in bad_factions:
-            with pytest.raises(ValidationError):
-                NPCSpawn(
-                    name="Test NPC",
-                    faction=bad_faction,
-                    entity_type="neutral",
-                    threat_level="non_combatant",
-                    disposition="neutral",
-                    description="Test NPC for faction validation check",
-                    health=20,
-                    soak=0,
-                )
+            npc = NPCSpawn(
+                name="Test NPC",
+                faction=bad_faction,
+                entity_type="neutral",
+                threat_level="non_combatant",
+                disposition="neutral",
+                description="Test NPC for faction validation check",
+                health=20,
+                soak=0,
+            )
+            assert npc.faction in valid
 
     def test_npc_spawn_accepts_all_canonical_factions(self):
-        """NPCSpawn must accept all 10 canonical faction values."""
+        """NPCSpawn must accept all 11 canonical faction values."""
         from aeonisk.multiagent.schemas.story_events import NPCSpawn
 
         canonical = [
             "Sovereign Nexus", "Pantheon Security", "ACG", "ArcGen",
-            "House of Vox", "Tempest Industries", "Freeborn",
+            "House of Vox", "Aether Dynamics", "Tempest Industries", "Freeborn",
             "Void", "Independent", "Unknown",
         ]
         for faction in canonical:

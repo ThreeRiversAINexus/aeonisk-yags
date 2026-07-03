@@ -80,7 +80,7 @@ knowledges:
   # history: 0
   # science: 0
   # occult: 0
-  # magick_theory: 0 # Aeonisk
+  # magic_theory: 0 # Aeonisk
   # debt_law: 0      # Aeonisk
 
 languages: # Native language is 4 for free

@@ -102,11 +102,20 @@ def extract_narrative_elements(log_file: Path) -> List[Dict[str, Any]]:
                 # Player/tactical actions - full format
                 intent = action.get('intent', 'No intent specified')
                 description = action.get('description', '')
+                ambient_speech = action.get('ambient_speech')
+                speech_text = ""
+                if isinstance(ambient_speech, dict) and ambient_speech.get('line'):
+                    delivery = ambient_speech.get('delivery', 'spoken')
+                    target = ambient_speech.get('target')
+                    target_type = ambient_speech.get('target_type', 'self')
+                    target_text = f" to {target}" if target else f" to {target_type}"
+                    speech_text = f"\n**Ambient speech ({delivery}{target_text}):** \"{ambient_speech['line']}\"\n"
 
                 content = f"""#### {character_name} declares:
 **Intent:** {intent}
 
 {description if description else '*(No detailed description)*'}
+{speech_text}
 
 *Attribute:* {action.get('attribute', '?')} | *Skill:* {action.get('skill', '?')} | *Estimated DC:* {action.get('difficulty_estimate', '?')}
 """

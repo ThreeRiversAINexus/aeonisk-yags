@@ -168,17 +168,46 @@ def apply_intra_round_position_update(agent, new_position_str: str) -> None:
 
 
 # =============================================================================
-# NPC LLM CONFIG HELPER (Spec 11: Per-Role Model Configuration)
+# ROLE LLM CONFIG HELPERS (Spec 11: Per-Role Model Configuration)
 # =============================================================================
+
+def get_enemy_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Get enemy LLM config from session config with fallback chain.
+
+    Enemy LLM fallback chain: enemies -> legacy enemy_agents -> dm.
+
+    Args:
+        session_config: Full session configuration dict.
+
+    Returns:
+        LLM config dict, or None if no config found at any level.
+    """
+    agents = session_config.get('agents', {})
+
+    enemy_llm = agents.get('enemies', {}).get('llm')
+    if enemy_llm:
+        return enemy_llm
+
+    legacy_enemy_llm = agents.get('enemy_agents', {}).get('llm')
+    if legacy_enemy_llm:
+        return legacy_enemy_llm
+
+    dm_llm = agents.get('dm', {}).get('llm')
+    if dm_llm:
+        return dm_llm
+
+    return None
+
 
 def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Get NPC LLM config from session config with fallback chain.
 
-    NPC LLM fallback chain: npcs -> enemies -> dm.
+    NPC LLM fallback chain: npcs -> enemies -> legacy enemy_agents -> dm.
 
     1. agents.npcs.llm if present
     2. agents.enemies.llm if present (enemies and NPCs share a tier)
-    3. agents.dm.llm as final fallback
+    3. agents.enemy_agents.llm if present (legacy enemy config)
+    4. agents.dm.llm as final fallback
 
     Args:
         session_config: Full session configuration dict.
@@ -194,14 +223,9 @@ def get_npc_llm_config(session_config: Dict[str, Any]) -> Optional[Dict[str, Any
         return npc_llm
 
     # Fall back to enemy config (enemies and NPCs share a tier)
-    enemy_llm = agents.get('enemies', {}).get('llm')
+    enemy_llm = get_enemy_llm_config(session_config)
     if enemy_llm:
         return enemy_llm
-
-    # Final fallback to DM config
-    dm_llm = agents.get('dm', {}).get('llm')
-    if dm_llm:
-        return dm_llm
 
     return None
 
@@ -500,6 +524,8 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+        self._end_state_snapshot: Optional[Dict[str, Any]] = None  # Resolve-then-leap hook: set when a terminal clock resolves the scene
+        self._end_reason: Optional[str] = None  # How the session ended: terminal_clock | dm_declaration | round_cap
         self._fatal_error: Optional[str] = None  # Track fatal agent errors for graceful termination
 
         # Replay mode
@@ -820,6 +846,24 @@ class SelfPlayingSession:
         # Start the game session
         self.session_id = await self.coordinator.create_session(self.config)
 
+        # Attach aeonisk-names-mcp client to the DM if enabled (off by default).
+        # Done here — after self.session_id is set — so the reservation owner
+        # string can be session-scoped for later cleanup.
+        names_mcp_config = self.config.get('names_mcp') or {}
+        if names_mcp_config.get('enabled') and getattr(self, 'dm_agent', None):
+            try:
+                from .names_client import NamesClient
+                self.dm_agent.names_client = NamesClient(
+                    owner=f"yags:{self.session_id}",
+                    from_pool=names_mcp_config.get('from_pool', True),
+                )
+                logger.info(
+                    f"📛 Aeonisk-names MCP enabled for NPC naming "
+                    f"(from_pool={names_mcp_config.get('from_pool', True)})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize Aeonisk-names MCP client: {e}")
+
         # Initialize JSONL logger for machine-readable events
         from .mechanics import JSONLLogger
         output_dir = self.config.get('output_dir', './output')
@@ -856,7 +900,9 @@ class SelfPlayingSession:
                             description=clock.description,
                             advance_meaning=clock.advance_meaning,
                             regress_meaning=clock.regress_meaning,
-                            filled_consequence=clock.filled_consequence
+                            filled_consequence=clock.filled_consequence,
+                            is_terminal=getattr(clock, 'is_terminal_clock', False),
+                            terminal_outcome=getattr(clock, 'terminal_outcome', 'victory')
                         )
                         mechanics.scene_clocks[clock.name] = scene_clock
                         logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
@@ -958,7 +1004,9 @@ class SelfPlayingSession:
             force_scenario=force_scenario,
             llm_client=dm_llm_client,
             session_config=self.config,  # Pass full session config for persistent vendors
+            # names_client attached in start_session() after session_id is known
         )
+        self.dm_agent = dm_agent  # Held for post-init wiring (names_mcp, etc.)
         self.agents.append(dm_agent)
         await dm_agent.start()
 
@@ -1685,6 +1733,13 @@ Generate narratives (numbered list only):"""
             # Check if all players defeated (TPK)
             if not combat_continues:
                 print("\n=== SESSION ENDED - TOTAL PARTY KILL ===")
+                # A TPK is a real ending: record it as a defeat and emit the
+                # end_state_snapshot so the renderer (and the continuation gate)
+                # know everyone died -- otherwise it exited with no snapshot and
+                # the dead were rendered giving an epilogue debrief.
+                self._session_end_status = 'defeat'
+                self._end_reason = 'tpk'
+                await self._check_end_conditions()
                 break
 
             # Run DM turn at end of round
@@ -1696,6 +1751,11 @@ Generate narratives (numbered list only):"""
             # Check if we've completed enough rounds
             if round_count >= max_rounds:
                 print(f"\n=== Completed {round_count} rounds ===")
+                # Resolve any still-open scene by clock polarity (aversion victory for
+                # held-off doom clocks; draw otherwise) and emit the end_state_snapshot,
+                # so a cap ending still feeds the resolve-then-leap continuation.
+                self._resolve_at_round_cap()
+                await self._check_end_conditions()
                 break
 
             # Check for session end conditions
@@ -1705,8 +1765,11 @@ Generate narratives (numbered list only):"""
             # Brief pause between rounds
             await asyncio.sleep(1)
 
-        # Mission debrief
-        await self._run_mission_debrief()
+        # Mission debrief -- skip on a TPK. Dead characters can't reflect, and
+        # their debriefs were rendering as an incoherent epilogue (killed party
+        # members still speaking after the scene that killed them).
+        if self._end_reason != 'tpk':
+            await self._run_mission_debrief()
 
         await self._end_session()
         
@@ -1850,13 +1913,14 @@ Generate narratives (numbered list only):"""
             if mechanics and hasattr(mechanics, 'get_unclaimed_tokens'):
                 available_tokens = mechanics.get_unclaimed_tokens()
 
-            # Get DM's LLM config for enemy prompts
+            # Get enemy LLM config for legacy enemy prompt fallback.
             dm_agents = [a for a in self.agents if isinstance(a, AIDMAgent)]
             if dm_agents:
                 dm_agent = dm_agents[0]
+                enemy_llm_config = get_enemy_llm_config(self.config) or dm_agent.llm_config
 
-                # Create a simple wrapper for the DM's LLM functionality
-                class DMLLMClient:
+                # Create a simple wrapper for enemy fallback LLM functionality.
+                class EnemyFallbackLLMClient:
                     """
                     Wrapper for enemy LLM calls with logging support.
                     Each enemy gets its own instance to track call_sequence per agent.
@@ -1890,6 +1954,12 @@ Generate narratives (numbered list only):"""
                         # Log LLM call if logger is available
                         if self.jsonl_logger:
                             try:
+                                from token_utils import count_chat_tokens, count_text_tokens
+
+                                messages = [{"role": "user", "content": prompt}]
+                                model = self.llm_config.get('model', 'unknown')
+                                input_tokens = count_chat_tokens(messages, model)
+                                output_tokens = count_text_tokens(response_text, model)
                                 self.jsonl_logger.write_event({
                                     'event_type': 'llm_call',
                                     'ts': datetime.now(timezone.utc).isoformat(),
@@ -1898,13 +1968,14 @@ Generate narratives (numbered list only):"""
                                     'agent_id': self.agent_id,
                                     'agent_type': 'enemy',
                                     'call_sequence': self.call_sequence,
-                                    'prompt': [{"role": "user", "content": prompt}],  # Format as messages
+                                    'prompt': messages,
                                     'response': response_text,
-                                    'model': self.llm_config.get('model', 'unknown'),
+                                    'model': model,
                                     'temperature': temperature,
                                     'tokens': {
-                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
-                                        'output': 0  # LLMResponse doesn't separate input/output for basic generate()
+                                        'input': input_tokens,
+                                        'output': output_tokens,
+                                        'total': input_tokens + output_tokens,
                                     }
                                 })
                                 self.call_sequence += 1
@@ -1915,17 +1986,24 @@ Generate narratives (numbered list only):"""
                         # Also log to human-readable agent prompt log if enabled
                         if self.agent_prompt_logger:
                             try:
+                                from token_utils import count_chat_tokens, count_text_tokens
+
+                                messages = [{"role": "user", "content": prompt}]
+                                model = self.llm_config.get('model', 'unknown')
+                                input_tokens = count_chat_tokens(messages, model)
+                                output_tokens = count_text_tokens(response_text, model)
                                 self.agent_prompt_logger.log_llm_call(
                                     agent_id=self.agent_id,
                                     round_num=None,  # Enemy calls don't have round context
                                     call_sequence=self.call_sequence - 1,  # Already incremented above
                                     prompt=prompt,  # Full prompt text
                                     response=response_text,
-                                    model=self.llm_config.get('model', 'unknown'),
+                                    model=model,
                                     temperature=temperature,
                                     tokens={
-                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
-                                        'output': 0
+                                        'input': input_tokens,
+                                        'output': output_tokens,
+                                        'total': input_tokens + output_tokens,
                                     }
                                 )
                             except Exception as e:
@@ -1935,8 +2013,8 @@ Generate narratives (numbered list only):"""
                         return {"content": response_text}
 
                 # Create per-enemy LLM clients for proper logging
-                llm_client = DMLLMClient(
-                    dm_agent.llm_config,
+                llm_client = EnemyFallbackLLMClient(
+                    enemy_llm_config,
                     jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                     agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
                     session_id=self.session_id,
@@ -1986,8 +2064,8 @@ Generate narratives (numbered list only):"""
                 logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
                 if llm_client:
                     # Create per-enemy LLM client for proper logging
-                    enemy_llm_client = DMLLMClient(
-                        dm_agent.llm_config,
+                    enemy_llm_client = EnemyFallbackLLMClient(
+                        enemy_llm_config,
                         jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                         agent_id=agent.agent_id,
                         session_id=self.session_id,
@@ -2160,6 +2238,7 @@ Generate narratives (numbered list only):"""
 
                         # Collect all narrations first, filtering by awareness
                         all_narrations = []
+                        seen_narration_texts = set()
                         for player_agent in player_agents:
                             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
                                 # Filter narrations based on what this NPC can see
@@ -2175,7 +2254,8 @@ Generate narratives (numbered list only):"""
                                         narration_text.startswith(f"[{npc_name}] {npc_name}")
                                         for npc_name in npc_names
                                     )
-                                    if not is_npc_reasoning:
+                                    if not is_npc_reasoning and narration_text not in seen_narration_texts:
+                                        seen_narration_texts.add(narration_text)
                                         all_narrations.append(narration_text)
 
                         # Use NPC's memory to filter out already-seen events
@@ -4762,7 +4842,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 clock.description,
                 advance_meaning=clock.advance_meaning,
                 regress_meaning=clock.regress_meaning,
-                filled_consequence=clock.filled_consequence
+                filled_consequence=clock.filled_consequence,
+                is_terminal=getattr(clock, 'is_terminal_clock', False),
+                terminal_outcome=getattr(clock, 'terminal_outcome', 'victory')
             )
 
             # Set initial ticks if specified
@@ -4830,8 +4912,166 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Reset flag so we don't trigger again until new clocks appear
             self._had_active_clocks = False
 
+    def _build_end_state_snapshot(self, mechanics, terminal: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Capture the scene's resolving state when the session ends.
+
+        This is the hand-off point for the resolve-then-leap continuation: it records
+        how the chapter ended (outcome, the beat that resolved it, who is still standing,
+        environmental void, remaining clocks) so a future session can continue with
+        continuity after a time jump.
+
+        Works for BOTH ending paths: a terminal clock filling (``terminal`` given) or
+        the DM declaring session_end directly (``terminal`` None -- a live run showed
+        the DM declaring DRAW with the terminal clock one tick short of filling, which
+        otherwise produced no snapshot at all).
+        """
+        party = []
+        for agent in self.agents:
+            char = getattr(agent, 'character_state', None)
+            if char is None:
+                continue
+            party.append({
+                'name': getattr(char, 'name', None),
+                'faction': getattr(char, 'faction', None),
+                'is_defeated': getattr(char, 'is_defeated', False),
+                'void_score': getattr(char, 'void_score', None),
+            })
+
+        if terminal:
+            outcome = terminal['outcome']
+            resolved_by_clock = terminal['clock_name']
+            resolution = terminal.get('filled_consequence') or terminal.get('reason', '')
+            round_num = terminal.get('round', mechanics.current_round)
+        else:
+            # DM-declared ending: synthesize from the declared status + last narration,
+            # attributing it to a terminal clock if one was in play (often near-filled).
+            outcome = self._session_end_status
+            term_clock = next(
+                (c for c in mechanics.scene_clocks.values() if getattr(c, 'is_terminal', False)),
+                None,
+            )
+            resolved_by_clock = term_clock.name if term_clock else None
+            resolution = self._synthesize_ending_resolution()
+            round_num = mechanics.current_round
+
+        return {
+            'outcome': outcome,
+            'ended_by': self._end_reason or ('terminal_clock' if terminal else 'dm_declaration'),
+            'resolved_by_clock': resolved_by_clock,
+            'resolution': resolution,
+            'round': round_num,
+            'scene_void_level': getattr(mechanics, 'scene_void_level', None),
+            'party': party,
+            'state_summary': mechanics.get_state_summary(),
+        }
+
+    @staticmethod
+    def _is_stub_narration(text: str) -> bool:
+        """True for the DM's game-state fallback narration (dm.py:7325,
+        'The situation evolves... (Clock X/Y | ...)') -- bookkeeping that must
+        never be handed to the renderer as the scene's resolution."""
+        import re
+        low = (text or "").lower()
+        if "situation evolves" in low:
+            return True
+        if re.search(r"\b\d+\s*/\s*\d+\b", text or ""):
+            return True
+        return False
+
+    def _synthesize_ending_resolution(self) -> str:
+        """Clean in-world resolution text for the non-terminal ending paths (TPK,
+        round-cap, DM declaration).
+
+        Terminal-clock endings render the clock's authored filled_consequence; the
+        other paths previously echoed self._last_dm_narration, which for cap endings
+        is the clock-stub ('The situation evolves... (clocks X/Y)'). That leaked the
+        bookkeeping straight into the rendered story (and a TPK had no resolution at
+        all). Give each path clean, observable in-world text instead.
+        """
+        reason = self._end_reason
+        outcome = self._session_end_status
+        if reason == "tpk":
+            return "The party was overcome at the scene -- none remained standing."
+        if reason == "round_cap":
+            if outcome == "victory":
+                return ("The scene reached its limit with the threat held off: the "
+                        "catastrophe never came, though nothing was fully settled.")
+            return ("Time ran out before the matter could resolve. The scene ends "
+                    "unsettled, its danger still present and its central question still open.")
+        # DM declaration: keep the DM's own narration unless it's a bookkeeping stub.
+        narr = (self._last_dm_narration or "").strip()
+        if narr and not self._is_stub_narration(narr):
+            return narr[:400]
+        return {
+            "victory": "The scene resolves in the party's favor.",
+            "defeat": "The scene resolves against the party.",
+        }.get(outcome, "The scene comes to an unsettled close.")
+
+    def _resolve_at_round_cap(self):
+        """
+        Resolve any still-open scene when the round cap is reached, by clock polarity.
+
+        Convergence backstop -- the honest, non-coercive alternative to forcing clocks
+        to complete or to be monotonic (clocks stay fully regressable):
+          * an un-filled DOOM clock (terminal_outcome=defeat) => the catastrophe was
+            held off for the whole scene => victory by aversion
+          * an un-filled GOAL clock (victory/draw) => the resolution wasn't reached in
+            time => draw (unresolved); we do NOT fabricate a win
+          * no terminal clock at all => draw
+
+        Sets _session_end_status + _end_reason so _check_end_conditions emits the
+        end_state_snapshot (the continuation hook) for cap endings too.
+        """
+        if self._session_end_status:
+            return  # already resolved by a terminal clock / DM declaration this round
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
+        if not mechanics:
+            self._session_end_status = 'draw'
+            self._end_reason = 'round_cap'
+            return
+
+        terminals = [c for c in mechanics.scene_clocks.values() if getattr(c, 'is_terminal', False)]
+        doom_unfilled = [
+            c for c in terminals
+            if getattr(c, 'terminal_outcome', '') == 'defeat' and not c.filled
+        ]
+        if doom_unfilled:
+            self._session_end_status = 'victory'  # catastrophe averted -- they held the line
+            print(f"\n🛡️  Round cap reached with doom clock(s) held off → victory by aversion")
+        else:
+            self._session_end_status = 'draw'  # ran out of time to resolve
+        self._end_reason = 'round_cap'
+
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
+        # Emit the end-state snapshot (the resolve-then-leap hook) on ANY meaningful
+        # ending -- a terminal clock filling OR the DM declaring session_end directly.
+        # (A live run showed the DM declaring DRAW with the terminal clock at 7/8, one
+        # tick short: terminal-only gating produced no snapshot at all, so continuation
+        # couldn't fire.) A terminal clock filling also adopts its outcome if the DM
+        # hasn't declared one.
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            terminal = getattr(mechanics, 'terminal_completion', None)
+            if terminal and not self._session_end_status:
+                self._session_end_status = terminal['outcome']
+            if (terminal or self._session_end_status) and not self._end_state_snapshot:
+                if not self._end_reason:
+                    self._end_reason = 'terminal_clock' if terminal else 'dm_declaration'
+                self._end_state_snapshot = self._build_end_state_snapshot(mechanics, terminal)
+                how = (
+                    f"TERMINAL CLOCK '{terminal['clock_name']}' RESOLVED THE SCENE"
+                    if terminal else "DM DECLARED SESSION END"
+                )
+                print(f"\n🏁 {how} → ending session ({self._session_end_status})")
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event(
+                        event_type="end_state_snapshot",
+                        data=self._end_state_snapshot,
+                        round_num=mechanics.current_round
+                    )
+
         # Check if DM declared session end
         if self._session_end_status:
             print(f"\n🎬 DM DECLARED SESSION {self._session_end_status.upper()}")
@@ -5469,6 +5709,118 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         return entity_lifecycle_result
 
+    def _resolve_speech_target_agent_id(self, target: Optional[str]) -> Optional[str]:
+        """Resolve an ambient speech target to a permanent agent_id when possible."""
+        if not target:
+            return None
+
+        if self.shared_state:
+            direct = self.shared_state.get_agent_by_id(target)
+            if direct is not None:
+                return getattr(direct, 'agent_id', target)
+
+            mapper = self.shared_state.get_target_id_mapper()
+            if mapper and target.startswith('tgt_'):
+                target_entity = mapper.resolve_target(target)
+                if target_entity is not None:
+                    return (
+                        getattr(target_entity, 'agent_id', None)
+                        or getattr(target_entity, 'vendor_id', None)
+                        or getattr(target_entity, 'object_id', None)
+                    )
+
+        return target if target.startswith(('player_', 'npc_', 'enemy_')) else None
+
+    def _party_agent_ids(self, include_speaker: bool = True, speaker_id: Optional[str] = None) -> List[str]:
+        """Return active PC agent IDs for party-directed speech."""
+        if not self.shared_state:
+            return []
+
+        ids = []
+        for player in getattr(self.shared_state, 'player_agents', []) or []:
+            agent_id = getattr(player, 'agent_id', None)
+            if not agent_id:
+                continue
+            if not include_speaker and speaker_id and agent_id == speaker_id:
+                continue
+            if getattr(player, 'is_alive', True) and not getattr(player, '_permanently_dead', False):
+                ids.append(agent_id)
+        return ids
+
+    def _ambient_speech_aware_agents(self, speaker_id: str, ambient_speech: Dict[str, Any]) -> List[str]:
+        """
+        Compute aware_agents for non-mechanical ambient speech.
+
+        Empty list follows the existing awareness convention: public to everyone.
+        Populated list limits visibility to those agent IDs.
+        """
+        delivery = ambient_speech.get('delivery', 'spoken')
+        target_type = ambient_speech.get('target_type', 'self')
+        target = ambient_speech.get('target')
+        target_agent_id = self._resolve_speech_target_agent_id(target)
+
+        if delivery == 'whisper':
+            aware = [speaker_id]
+            if target_agent_id and target_agent_id != speaker_id:
+                aware.append(target_agent_id)
+            return aware
+
+        if delivery == 'comms':
+            if target_type == 'party':
+                return self._party_agent_ids(include_speaker=True, speaker_id=speaker_id)
+            if target_agent_id:
+                return [agent_id for agent_id in [speaker_id, target_agent_id] if agent_id]
+            return [speaker_id]
+
+        if target_type == 'self':
+            return [speaker_id]
+
+        # Spoken speech in the scene is public by default; targeted spoken
+        # speech remains public so nearby actors can plausibly overhear.
+        return []
+
+    def _format_ambient_speech_entry(
+        self,
+        speaker_name: str,
+        ambient_speech: Dict[str, Any],
+    ) -> str:
+        """Format ambient speech as a concise context line for later actors."""
+        line = ambient_speech.get('line', '').strip()
+        delivery = ambient_speech.get('delivery', 'spoken')
+        target_type = ambient_speech.get('target_type', 'self')
+        target = ambient_speech.get('target')
+
+        target_text = target or target_type
+        return f'[{speaker_name}, {delivery} to {target_text}] "{line}"'
+
+    def _publish_ambient_speech_context(self, speaker_id: str, action_payload: Dict[str, Any]) -> None:
+        """Add ambient speech to the existing visibility-filtered narration stream."""
+        ambient_speech = action_payload.get('ambient_speech')
+        if not isinstance(ambient_speech, dict) or not ambient_speech.get('line'):
+            return
+
+        speaker_name = action_payload.get('character_name') or action_payload.get('character') or speaker_id
+        entry = NarrationEntry(
+            text=self._format_ambient_speech_entry(speaker_name, ambient_speech),
+            aware_agents=self._ambient_speech_aware_agents(speaker_id, ambient_speech),
+        )
+
+        stored_count = 0
+        for player_agent in getattr(self.shared_state, 'player_agents', []) or []:
+            if not hasattr(player_agent, 'recent_narrations'):
+                continue
+            player_agent.recent_narrations.append(entry)
+            if len(player_agent.recent_narrations) > 20:
+                player_agent.recent_narrations.pop(0)
+            stored_count += 1
+
+        logger.debug(
+            "Ambient speech context stored from %s (aware=%s, player_buffers=%s)",
+            speaker_id,
+            entry.aware_agents,
+            stored_count,
+        )
+
     def _handle_action_declared(self, message: Message):
         """Buffer ACTION_DECLARED messages during declaration phase."""
         if message.type != MessageType.ACTION_DECLARED:
@@ -5582,6 +5934,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         action_intent = message.payload.get('intent', 'unknown')[:60]
         is_free = message.payload.get('is_free_action', False)
         logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
+
+        self._publish_ambient_speech_context(agent_id, message.payload)
 
         # Store defence_token on agent from player declaration (Spec 04)
         defence_token = message.payload.get('defence_token')

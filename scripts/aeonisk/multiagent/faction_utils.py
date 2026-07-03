@@ -34,7 +34,10 @@ ANTI_NEXUS_FACTIONS = {
 }
 
 NEUTRAL_FACTIONS = {
-    "Freeborn", "Nomad", "Stateless", "Refugee", "Independent"
+    "Freeborn", "Nomad", "Stateless", "Refugee", "Independent",
+    # Freeborn subfactions (schemas normalize these to "Freeborn", but accept
+    # them here too so direct alliance checks on raw values stay correct).
+    "Resonance Communes", "Fractal Praxis",
 }
 
 

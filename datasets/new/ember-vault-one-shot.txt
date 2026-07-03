@@ -12,7 +12,7 @@ characters:
   - name: Vere Soltra
     tech_level: Aeonisk Standard
     attributes: {willpower: 4, perception: 4, agility: 4, intelligence: 4, empathy: 2, strength: 2, dexterity: 3, health: 3}
-    skills: {astral_arts: 3, stealth: 4, awareness: 3, magick_theory: 2, guile: 2, drone_operation: 2}
+    skills: {astral_arts: 3, stealth: 4, awareness: 3, magic_theory: 2, guile: 2, drone_operation: 2}
     current_void: 3
     soulcredit: -1
 goal: >
@@ -97,7 +97,7 @@ gold_answer:
       mechanical_effect: Partial clarity. No mechanical insight. +1 Void.
     good_success:
       narrative: She sees the severed tether and part of the hand that pulled it.
-      mechanical_effect: +1 Magick Theory bonus for one related task.
+      mechanical_effect: +1 Magic Theory bonus for one related task.
     excellent_success:
       narrative: The echo’s thread names its thief in flash-vision.
       mechanical_effect: Identity revealed. +1 Soulcredit for intent clarity.
@@ -160,7 +160,7 @@ gold_answer:
       mechanical_effect: Fully attuned. Void stable. One free ritual reroll gained.
     exceptional_success:
       narrative: Vere’s echo fuses with the Seed, granting her clarity of the Vault’s design.
-      mechanical_effect: +1 Soulcredit. +2 to next Astral Arts or Magick Theory check. Void reduced by 1.
+      mechanical_effect: +1 Soulcredit. +2 to next Astral Arts or Magic Theory check. Void reduced by 1.
   rationale: Margin of failure is –1. Near miss under Void Spike; Bond softened the blow.
 aeonisk_extra_data:
   module: Aeonisk - YAGS Module

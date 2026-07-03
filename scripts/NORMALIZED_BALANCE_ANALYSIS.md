@@ -81,7 +81,7 @@ Delta:    +60.7% ⚠️
 - **Guile (89.6%)** - Deception/stealth moderately reliable
 
 #### Problematic Skills:
-- **Magick Theory (34.6% overall)** - Only succeeds at ability 20+
+- **Magic Theory (34.6% overall)** - Only succeeds at ability 20+
   - At ability -2: 10% success (1/10)
   - At ability 20+: 100% success (6/6)
   - **Interpretation:** Magic is gated behind skill investment (intentional?)
@@ -118,7 +118,7 @@ Characters attempting actions with skill_val=0 (and thus -5 unskilled penalty) h
    - Implement partial success mechanics ("you don't convince them, but they hesitate")
    - Alternative: This may be intentional difficulty to reflect setting's corporate dystopia
 
-3. **Magick Theory Accessibility**
+3. **Magic Theory Accessibility**
    - Current data shows magic is effectively gated behind ability 20+ investment
    - If this is intentional (magic is rare/hard), document in design docs
    - If not, consider lower-DC magic tasks for beginners

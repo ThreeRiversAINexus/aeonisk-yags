@@ -158,12 +158,12 @@ class TestOutcomeModifiersDisplay:
             outcome_tier=SuccessTier.EXCELLENT,
         )
 
-        # Synergy from Magick Theory assisting Awareness
-        modifiers = {"synergy_magick_theory": 2}
+        # Synergy from Magic Theory assisting Awareness
+        modifiers = {"synergy_magic_theory": 2}
         formatted = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers)
 
         assert "Modifiers:" in formatted
-        assert "synergy" in formatted.lower() or "magick_theory" in formatted
+        assert "synergy" in formatted.lower() or "magic_theory" in formatted
         assert "+2" in formatted
 
     def test_format_resolution_with_coordination_bonus(self):

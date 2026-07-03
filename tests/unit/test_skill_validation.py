@@ -227,7 +227,7 @@ class TestKnownNonCanonicalSkills:
         ("Observation", "Awareness"),
         ("Engineering", "Tech/Craft"),
         ("Meditation", "Discipline"),
-        ("Magic Theory", "Magick Theory"),
+        ("Magick Theory", "Magic Theory"),
     ])
     def test_non_canonical_mappings(self, non_canonical, canonical):
         """Test that non-canonical skills map to correct canonical skills."""

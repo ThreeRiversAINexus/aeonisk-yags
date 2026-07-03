@@ -1,0 +1,280 @@
+{
+  "_role": "golden_dataset_smoke_bulk",
+  "_purpose": "Small 2-round golden dataset smoke run using aeonisk-llm-proxy. DM uses OpenAI gpt-5.4-mini; player and enemy agents use Gemini gemini-3.5-flash.",
+  "session_name": "golden_dataset_smoke_gpt54mini_gemini35flash",
+  "max_turns": 2,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "force_combat": true,
+  "enable_human_interface": false,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 3,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "vendor_spawn_frequency": 1,
+  "scenario_hint": "Golden dataset smoke scenario. A small Freeborn salvage team reaches a contested undercity waystation where a neutral supply trader is selling scarce medkits and void scanners. A Pantheon reclamation patrol arrives to seize the same cache. Run a focused two-round scene that includes vendor interaction pressure, enemy-agent tactical decisions, targeting, resource tradeoffs, and mechanically grounded consequences.",
+  "scenario": {
+    "theme": "salvage_market_ambush",
+    "location": "Undercity Waystation K-17",
+    "situation": "The team has minutes to buy supplies and secure a sealed cache before Pantheon reclamation drones and enforcers take control of the market concourse.",
+    "void_level": 4,
+    "environmental_factors": [
+      "Crowded vendor stalls provide partial cover",
+      "A sealed salvage cache hums with unstable void residue",
+      "Neutral civilians scatter when weapons are drawn",
+      "Pantheon forces want the cache intact"
+    ]
+  },
+  "starting_clocks": [
+    {
+      "name": "Pantheon Lockdown",
+      "current_ticks": 1,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Pantheon forces are closing the waystation. At 6 ticks, blast doors seal and the cache is confiscated.",
+      "advance_meaning": "the lockdown tightens and escape routes close",
+      "regress_meaning": "the team disrupts or delays the lockdown"
+    },
+    {
+      "name": "Vendor Panic",
+      "current_ticks": 0,
+      "max_ticks": 4,
+      "direction": "progress",
+      "description": "The neutral vendor is close to fleeing. At 4 ticks, the vendor shutters the stall and evacuates.",
+      "advance_meaning": "the vendor loses confidence and prepares to leave",
+      "regress_meaning": "the team reassures or protects the vendor"
+    }
+  ],
+  "npc_spawns": [
+    {
+      "name": "Supply Trader Vex",
+      "faction": "Neutral",
+      "entity_type": "neutral",
+      "disposition": "wary",
+      "threat_level": "non_combatant",
+      "description": "A grizzled trader with cybernetic eyes and an ACG surplus coat, guarding a portable stall of medical supplies and salvage tools.",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Charm": 4,
+        "Appraise": 4,
+        "Awareness": 3
+      },
+      "is_vendor": true,
+      "vendor_inventory": [
+        {
+          "name": "Medkit",
+          "description": "Standard emergency medical supplies.",
+          "price_drip": 5,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Void Scanner",
+          "description": "Handheld detector for unstable void residue.",
+          "price_drip": 8,
+          "price_grain": 1,
+          "item_type": "tool"
+        },
+        {
+          "name": "Shock Baton",
+          "description": "Nonlethal close-range weapon useful for disabling patrol units.",
+          "price_drip": 7,
+          "item_type": "weapon"
+        }
+      ],
+      "vendor_greeting": "Buy fast. Pantheon is already sweeping the lower levels.",
+      "vendor_type": "human_trader",
+      "accepts_purchases": true
+    }
+  ],
+  "initial_enemies": [
+    {
+      "name": "Pantheon Reclamation Patrol",
+      "faction": "Pantheon Security",
+      "template": "tactical_soldier",
+      "count": 2,
+      "position": "Near-Enemy",
+      "tactics": "secure_cache_and_suppress",
+      "description": "Armored reclamation troops using stun carbines and lockout tags to seize contraband salvage."
+    },
+    {
+      "name": "Survey Drone",
+      "faction": "Pantheon Security",
+      "template": "drone",
+      "count": 1,
+      "position": "Far-Enemy",
+      "tactics": "mark_targets_and_call_lockdown",
+      "description": "A hovering survey drone projecting target boxes and transmitting lockdown telemetry."
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://127.0.0.1:8017",
+        "proxy_priority": "normal",
+        "proxy_strategy": "direct"
+      }
+    },
+    "enemies": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gemini-3.5-flash",
+        "temperature": 0.8,
+        "max_tokens": 3000,
+        "underlying_provider": "gemini",
+        "use_proxy": true,
+        "proxy_url": "http://127.0.0.1:8017",
+        "proxy_priority": "normal",
+        "proxy_strategy": "direct"
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Mercer",
+        "pronouns": "they/them",
+        "faction": "Freeborn Salvage Crew",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 0.9,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://127.0.0.1:8017",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 5,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Investigation": 5,
+          "Systems": 5,
+          "Awareness": 4,
+          "Stealth": 4,
+          "Guns": 3,
+          "Charm": 3
+        },
+        "void": 2,
+        "soulcredit": 1,
+        "energy_purse": {
+          "breath": 8,
+          "drip": 12,
+          "grain": 2,
+          "spark": 1
+        },
+        "goals": [
+          "Buy or barter for a void scanner before the vendor flees",
+          "Open the salvage cache without worsening the void residue",
+          "Keep civilians and the vendor out of the line of fire"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "data_slate": 1,
+          "med_kit": 1
+        }
+      },
+      {
+        "name": "Mira Vale",
+        "pronouns": "she/her",
+        "faction": "Freeborn Salvage Crew",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gemini-3.5-flash",
+          "temperature": 0.9,
+          "max_tokens": 3000,
+          "underlying_provider": "gemini",
+          "use_proxy": true,
+          "proxy_url": "http://127.0.0.1:8017",
+          "proxy_priority": "normal",
+          "proxy_strategy": "direct"
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "protective",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 3,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Guns": 5,
+          "Combat": 5,
+          "Athletics": 4,
+          "Awareness": 4,
+          "Intimidation": 4,
+          "Counsel": 3
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "energy_purse": {
+          "breath": 10,
+          "drip": 9,
+          "grain": 1,
+          "spark": 0
+        },
+        "goals": [
+          "Hold Pantheon forces away from the vendor and cache",
+          "Use nonlethal force where possible to avoid civilian escalation",
+          "Extract Ash, the cache, and useful supplies before lockdown"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "pistol"
+        ],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "shock_baton": 1,
+          "basic_armor": 1,
+          "med_kit": 1
+        }
+      }
+    ]
+  },
+  "_bulk_run_command": ".venv/bin/python scripts/bulk_session_runner.py --config scripts/session_configs/bulk_api/golden_dataset_smoke_gpt54mini_gemini35flash.json --runs 2 --workers 1 --output-dir bulk_output/golden_dataset_smoke --progress --show-errors"
+}

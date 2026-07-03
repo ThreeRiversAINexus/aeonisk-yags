@@ -916,11 +916,6 @@ class AIPlayerAgent(Agent):
         from .skill_mapping import normalize_skill, get_character_skill_value
         from .action_router import ActionRouter
 
-        # Get other player names for inter-party action detection
-        other_players = []
-        if self.shared_state:
-            other_players = self.shared_state.get_other_players(self.agent_id)
-
         # Only check if action intent mentions "ritual" explicitly
         router = ActionRouter()
         is_explicit_ritual = router.is_explicit_ritual(action_declaration.intent)
@@ -948,64 +943,10 @@ class AIPlayerAgent(Agent):
                 # Try again with simpler action
                 action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
-        # Detect if this is inter-party communication (free action)
-        # This includes dialogue (Charm/Counsel) and social rituals (Intimacy Ritual)
-        is_dialogue_action = (action_declaration.attribute == 'Empathy' and action_declaration.skill in ['Charm', 'Counsel'])
-        is_intimacy_ritual = (action_declaration.skill == 'Intimacy Ritual')
+        # Ambient speech is carried inside the main action. Do not auto-upgrade
+        # social/party-targeted actions into a second free action; if a player
+        # wants a mechanical result from talking, that is their main action.
         is_free_action = False
-
-        logger.debug(f"Free action check: is_dialogue={is_dialogue_action}, attr={action_declaration.attribute}, skill={action_declaration.skill}")
-        logger.debug(f"Other players: {other_players}")
-        logger.debug(f"Intent: {action_declaration.intent}")
-
-        if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
-            # Check if action targets a party member using target field
-            target_agent_id = None
-            target_name = None
-
-            if action_declaration.target:
-                # Resolve target using target_id_mapper
-                target_id_mapper = self.shared_state.target_id_mapper
-                if target_id_mapper:
-                    # Try to resolve target ID to agent
-                    target_agent = target_id_mapper.resolve_target(action_declaration.target)
-                    if target_agent:
-                        # Check if target is a player (has character_state)
-                        if hasattr(target_agent, 'character_state'):
-                            target_agent_id = target_agent.agent_id
-                            target_name = target_agent.character_state.name
-                        # Also check by agent_id against registered players
-                        elif hasattr(target_agent, 'agent_id'):
-                            for player in self.shared_state.registered_players:
-                                if player['agent_id'] == target_agent.agent_id:
-                                    target_agent_id = target_agent.agent_id
-                                    target_name = player['name']
-                                    break
-
-                # If not found via mapper, check if target is a direct name match
-                if not target_agent_id:
-                    for player in self.shared_state.registered_players:
-                        if player['name'].lower() == action_declaration.target.lower():
-                            target_agent_id = player['agent_id']
-                            target_name = player['name']
-                            break
-
-            # If targeting a party member, grant free action + coordination bonus
-            if target_agent_id and target_agent_id != self.agent_id and target_name:
-                is_free_action = True
-
-                if is_intimacy_ritual:
-                    print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
-                else:
-                    print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
-
-                # Grant coordination bonus (inter-party dialogue inherently shares information)
-                self.shared_state.grant_coordination_bonus(
-                    from_agent=self.agent_id,
-                    from_name=self.character_state.name,
-                    to_name=target_name,
-                    reason="coordinated information sharing"
-                )
 
         # Convert to dict and add character-specific data
         action = action_declaration.to_dict()
@@ -1040,71 +981,6 @@ class AIPlayerAgent(Agent):
         # Display character declaration in console (for visibility during declaration phase)
         print(f"[{self.character_state.name}] {action_declaration.description}")
         print(f"   └─ {action_declaration.get_summary()}")
-
-        # If this was a free action (inter-party dialogue), generate a second action
-        if is_free_action and not self.free_action_used:
-            self.free_action_used = True
-            print(f"[{self.character_state.name}] Free action used - requesting main action...")
-            await asyncio.sleep(0.5)  # Small delay for readability
-
-            try:
-                # Generate main action (excluding dialogue to avoid infinite loop)
-                if self.llm_config:
-                    main_action = await self._generate_llm_action_structured(recent_intents, exclude_dialogue=True)
-                else:
-                    main_action = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity, exclude_dialogue=True)
-            except Exception as e:
-                logger.error(f"Failed to generate main action after free action: {e}")
-                return  # Skip second action on error
-
-            logger.debug(f"Main action generated: {main_action.intent}")
-
-            # Apply same normalization as first action
-            # Only check if action intent mentions "ritual" explicitly
-            is_explicit_ritual_main = router.is_explicit_ritual(main_action.intent)
-            if is_explicit_ritual_main or main_action.action_type == 'ritual':
-                main_action.is_ritual = True
-                main_action.action_type = 'ritual'
-
-            # Normalize skill name ONLY if it's an alias
-            if main_action.skill:
-                original_skill = main_action.skill
-                normalized_skill = normalize_skill(main_action.skill)
-                if normalized_skill != original_skill:
-                    main_action.skill = normalized_skill
-
-            # Convert and send
-            main_action_dict = main_action.to_dict()
-            main_action_dict['attribute_value'] = self.character_state.attributes.get(main_action.attribute, 3)
-            main_action_dict['skill_value'] = get_character_skill_value(
-                self.character_state.skills,
-                main_action.skill,
-                fallback_value=0
-            )
-            main_action_dict['character'] = self.character_state.name
-            main_action_dict['agent_id'] = self.agent_id
-            main_action_dict['faction'] = self.character_state.faction
-            main_action_dict['is_free_action'] = False
-            main_action_dict['initiative'] = self.current_initiative
-
-            if main_action.is_ritual or main_action.action_type == 'ritual':
-                main_action_dict['has_offering'] = self.character_state.has_offering()
-                main_action_dict['has_primary_tool'] = self.character_state.has_focus()
-            else:
-                main_action_dict['has_offering'] = False
-                main_action_dict['has_primary_tool'] = False
-
-            logger.debug(f"Sending main action: {main_action_dict['intent']}")
-            self.send_message_sync(
-                MessageType.ACTION_DECLARED,
-                None,
-                main_action_dict
-            )
-
-            # Display main action declaration in console (for visibility during declaration phase)
-            print(f"[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
-            print(f"   └─ {main_action.get_summary()}")
-            logger.info(f"{self.character_state.name} completed 2-action turn (free + main)")
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
@@ -1636,8 +1512,8 @@ Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS
 - Note: Casual coordination ≠ forming a formal Bond (capital B)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change."""
             elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
                 dialogue_goal_text = f"""**🎯 HOW TO ACHIEVE YOUR GOALS:**
 Advancing corporate interests requires COORDINATION and INFORMATION.
@@ -1648,8 +1524,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change."""
             else:
                 dialogue_goal_text = f"""**🎯 COORDINATION STRATEGY:**
 - Talk to {party_members_str} about what you've learned
@@ -1658,8 +1534,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Working together ≠ formal Bonds (you can coordinate without commitment)
 
 **IMPORTANT**:
-- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+- Add ambient speech when natural: one short line to a party member, present NPC, enemy, crowd, or yourself.
+- Ambient speech is flavor only: no roll, no bonus, no second action, no state change."""
 
         # Build risk/void curiosity guidance
         risk_tolerance = self.personality.get('riskTolerance', 5)
@@ -1951,7 +1827,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             dialogue_goal_text = ""
             if other_players:
                 party_members_str = ", ".join(other_players)
-                dialogue_goal_text = f"\n💬 Coordinate with {party_members_str} (dialogue is a FREE ACTION!)"
+                dialogue_goal_text = f"\n💬 Add ambient speech to {party_members_str} when natural (flavor only, no bonus)."
 
             # Check for failure loop warning
             failure_loop_warning = ""
@@ -2716,6 +2592,11 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             # Action-specific fields (may be None for non-applicable action types)
             target=getattr(action_details, 'target', None),
             target_position=getattr(action_details, 'target_position', None),
+            ambient_speech=(
+                action_details.ambient_speech.to_dict()
+                if getattr(action_details, 'ambient_speech', None)
+                else None
+            ),
             vendor_id=getattr(action_details, 'vendor_id', None),
             item_id=getattr(action_details, 'item_id', None),
             transfer_target=getattr(action_details, 'transfer_target', None),

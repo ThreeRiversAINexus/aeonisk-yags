@@ -168,6 +168,7 @@ sections:
         difficulty_justification: str,  # Why that difficulty?
         action_type: ActionType,    # explore|investigate|ritual|social|combat|technical|attune
         target: Optional[str],      # Target ID (tgt_xxxx) if targeting someone
+        ambient_speech: Optional[AmbientSpeech],  # Short flavor-only line, not an action
         # ... other fields for rituals, positioning, etc.
     )
     ```
@@ -198,7 +199,7 @@ sections:
     **Movement:** Athletics, Climbing, Running, Stealth, Swimming
     **Social:** Charm, Corporate Influence, Counsel, Guile, Insight, Intimacy Ritual
     **Technical:** Drone Operation, Drive, Hacking, Pilot, Sleight, Systems, Tech/Craft
-    **Knowledge:** Area Lore, Debt Law, History, Magick Theory, Ritual Lore, Science, Void Lore
+    **Knowledge:** Area Lore, Debt Law, History, Magic Theory, Ritual Lore, Science, Void Lore
     **Investigation:** Attunement, Awareness, Investigation
     **Ritual:** Astral Arts, Dreamwork
     **Survival:** Resistance
@@ -207,6 +208,26 @@ sections:
     NOTE: All actions require a skill. Unskilled attempts use d20÷2 (very difficult!)
 
     **Total: 43 skills across 8 attributes**
+
+    ## 💬 AMBIENT SPEECH SIDECAR
+
+    You may include `ambient_speech` when it naturally fits the moment:
+    - Use one short in-character line to a party member, present NPC, enemy, crowd, or yourself.
+    - It may be spoken aloud, sent over comms, or whispered.
+    - It is flavor only: it is NOT a second action, does NOT roll dice, grants NO bonus, and changes NO state.
+    - Do not use it to persuade, intimidate, command, rally, extract information, or force behavior.
+    - If you want speech to have mechanical consequences, choose `action_type: social` or `support` as your main action.
+
+    Example:
+    ```python
+    ambient_speech={
+      "line": "Keep your channel open. If that fever spikes, I need to know immediately.",
+      "target_type": "party",
+      "target": "Sanctuary Vael",
+      "delivery": "comms"
+    }
+    ```
+    `target_type` may be `party`, `npc`, `enemy`, `crowd`, or `self`.
 
     **⚠️ SKILL SELECTION GUIDANCE - Match Skill to Action Intent:**
 
@@ -384,33 +405,25 @@ sections:
     Reaching Void 10 means losing character control - you become unpredictable/hostile!
 
     **CRITICAL - No Offerings Needed For:**
-    - Intelligence × Magick Theory → analyze/study void phenomena
+    - Intelligence × Magic Theory → analyze/study void phenomena
     - Perception × Attunement → sense/detect void currents
     - Analysis and sensing don't consume offerings!
   coordination_dialogue: |-
-    **For Coordination Dialogue** (FREE ACTION that grants +2 bonus):
+    **For Ambient Speech** (optional flavor beside your real action):
     ```
-    INTENT: Tell [companion name] about [what I discovered]
-    ATTRIBUTE: Empathy
-    SKILL: Charm
-    DIFFICULTY: 10
-    JUSTIFICATION: Easy - sharing information with willing ally
-    ACTION_TYPE: social
-    DESCRIPTION: I explain to [name] what I found about [topic]
+    ambient_speech={
+      "line": "Keep your comms open; I am moving on the left side.",
+      "target_type": "party",
+      "target": "[companion name]",
+      "delivery": "comms"
+    }
     ```
 
     **IMPORTANT**:
-    - Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-    - **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
-
-    **HOW TO TRIGGER THE BONUS:**
-    Declare a simple dialogue action using natural phrasing:
-    - "Tell [name] about what I discovered"
-    - "Ask [name] what they found"
-    - "Share my findings with [name]"
-    - "Inform [name] about [specific detail]"
-
-    This will trigger a FREE second action where you do your main task!
+    - Ambient speech is not an action and does not grant bonuses.
+    - Use it for personality, warnings, quick comms, or brief NPC color.
+    - `target_type` can be `party`, `npc`, `enemy`, `crowd`, or `self`.
+    - If you want a real outcome from talking, make `social` or `support` your main action.
   vendor_interaction: |-
     **For Vendor Interaction** (when a vendor is present):
     ```
@@ -576,7 +589,7 @@ sections:
     - ⚠️ **WARNING**: Void magic always gives +1 Void and -1 to -2 Soulcredit!
 
     **CREATIVE/ENVIRONMENTAL:**
-    - **Magick Analysis**: Intelligence × Magick Theory (find weaknesses, +2 ally damage)
+    - **Magic Analysis**: Intelligence × Magic Theory (find weaknesses, +2 ally damage)
       Example: "Analyze enemy's defensive matrix"
     - **Astral Environment**: Willpower × Astral Arts (collapse structures, 5-15 AoE)
       Example: "Destabilize void-tainted support beams"
@@ -590,7 +603,7 @@ sections:
     - **Environmental**: Awareness/Systems (trigger hazards, 10-15 AoE)
 
     **Non-Combat Skills:**
-    - **ANALYZE void/rituals**: Intelligence × Magick Theory (NO offerings needed!)
+    - **ANALYZE void/rituals**: Intelligence × Magic Theory (NO offerings needed!)
     - **Investigation**: Perception × Awareness or Intelligence × Investigation
     - **Technical Work**: Intelligence × Systems or relevant technical skill
     - **Social Interaction**: Empathy × Charm/Counsel, or Empathy × Corporate Influence
@@ -673,8 +686,8 @@ conditional_sections:
     - Note: Casual coordination ≠ forming a formal Bond (capital B)
 
     **IMPORTANT**:
-    - Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-    - **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+    - Include ambient speech when natural, but it is flavor only and grants no bonus.
+    - Use `social` or `support` as your main action if you need a mechanical result from talking.
   goal_dialogue_corporate: |-
     **🎯 HOW TO ACHIEVE YOUR GOALS:**
     Advancing corporate interests requires COORDINATION and INFORMATION.
@@ -685,8 +698,8 @@ conditional_sections:
     - Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
 
     **IMPORTANT**:
-    - Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-    - **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+    - Include ambient speech when natural, but it is flavor only and grants no bonus.
+    - Use `social` or `support` as your main action if you need a mechanical result from talking.
   goal_dialogue_default: |-
     **🎯 COORDINATION STRATEGY:**
     - Talk to {party_members} about what you've learned
@@ -695,8 +708,8 @@ conditional_sections:
     - Working together ≠ formal Bonds (you can coordinate without commitment)
 
     **IMPORTANT**:
-    - Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
-    - **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+    - Include ambient speech when natural, but it is flavor only and grants no bonus.
+    - Use `social` or `support` as your main action if you need a mechanical result from talking.
   risk_guidance_high: |-
     - Take bold, proactive actions
     - Not afraid of difficult checks

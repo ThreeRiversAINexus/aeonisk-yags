@@ -387,8 +387,8 @@ SKILL_DATABASE: Dict[str, SkillInfo] = {
         note="Use for rituals involving emotions or Bonds, NOT void manipulation. Can use Willpower if very intense."
     ),
 
-    "Magick Theory": SkillInfo(
-        name="Magick Theory",
+    "Magic Theory": SkillInfo(
+        name="Magic Theory",
         attribute="Intelligence",
         description="Knowledge of glyphs, ritual systems, sacred mechanics, Aeons",
         use_cases=["Analyzing rituals", "Researching glyphs", "Understanding ritual mechanics", "Academic study"],

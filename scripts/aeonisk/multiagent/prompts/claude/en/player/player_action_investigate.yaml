@@ -116,12 +116,12 @@ content: |-
       difficulty_justification="DC 17: Complex void patterns, requires occult interpretation",
       action_type=ActionType.INVESTIGATE,
       target="tgt_artifact",
-      situational_modifiers={"synergy_magick_theory": 2}  # +2 synergy from Magick Theory assisting Awareness
+      situational_modifiers={"synergy_magic_theory": 2}  # +2 synergy from Magic Theory assisting Awareness
   )
   ```
 
   💡 **Hybrid Actions:** When a secondary skill logically assists your primary skill, use `situational_modifiers`
-  to add a +2 synergy bonus. Example: Using Magick Theory knowledge to enhance Awareness checks on void artifacts.
+  to add a +2 synergy bonus. Example: Using Magic Theory knowledge to enhance Awareness checks on void artifacts.
 
   **Example 5: Environmental Discovery (Leyline Plant Search)**
   ```python

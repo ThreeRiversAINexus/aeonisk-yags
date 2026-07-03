@@ -68,7 +68,7 @@ class AeoniskCharacter:
     stealth: int = 2
     throw: int = 2
     astral_arts: int = 0
-    magick_theory: int = 0
+    magic_theory: int = 0
     intimacy_ritual: int = 0
     corporate_influence: int = 0
     debt_law: int = 0
@@ -102,8 +102,8 @@ class AeoniskCharacter:
     def get_relevant_skills_for_action(self, action_type: str, situation_context: Dict[str, Any]) -> List[tuple]:
         """Get relevant skills for an action type, considering character's actual skill levels."""
         skill_mappings = {
-            'investigate': [('awareness', 'perception'), ('magick_theory', 'intelligence'), ('corporate_influence', 'empathy')],
-            'ritual_attempt': [('astral_arts', 'willpower'), ('magick_theory', 'intelligence')],
+            'investigate': [('awareness', 'perception'), ('magic_theory', 'intelligence'), ('corporate_influence', 'empathy')],
+            'ritual_attempt': [('astral_arts', 'willpower'), ('magic_theory', 'intelligence')],
             'negotiate': [('charm', 'empathy'), ('corporate_influence', 'empathy'), ('guile', 'empathy')],
             'stealth': [('stealth', 'agility'), ('sleight', 'dexterity')],
             'confront': [('brawl', 'agility'), ('melee', 'dexterity'), ('charm', 'empathy')],
@@ -463,7 +463,7 @@ def generate_character(faction: str, family_line: str) -> AeoniskCharacter:
     if 'ritual' in specialty or 'harmony' in specialty:
         char.willpower = min(5, char.willpower + 1)
         char.astral_arts = random.randint(4, 6)
-        char.magick_theory = random.randint(2, 4)
+        char.magic_theory = random.randint(2, 4)
     elif 'enforcement' in specialty or 'tactical' in specialty:
         char.perception = min(5, char.perception + 1)
         char.awareness = random.randint(3, 5)
@@ -480,7 +480,7 @@ def generate_character(faction: str, family_line: str) -> AeoniskCharacter:
         char.stealth = random.randint(2, 4)
     elif 'bio' in specialty or 'genetic' in specialty:
         char.intelligence = min(5, char.intelligence + 1)
-        char.magick_theory = random.randint(3, 5)
+        char.magic_theory = random.randint(3, 5)
     elif 'intelligence' in specialty:
         char.perception = min(5, char.perception + 1)
         char.intelligence = min(5, char.intelligence + 1)
