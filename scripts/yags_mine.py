@@ -380,6 +380,100 @@ def cmd_fidelity(args: argparse.Namespace) -> int:
     return 0 if per_file_errors == 0 else 1
 
 
+def _read_jsonl(path: Path) -> List[dict]:
+    records = []
+    with path.open() as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                records.append(json.loads(line))
+    return records
+
+
+def cmd_fidelity_eval(args: argparse.Namespace) -> int:
+    """Render prompts, emit provider batch files, estimate cost, or score."""
+    from datamine import fidelity_harness as harness
+    from datamine.rules_fidelity import write_items
+
+    items_path = Path(args.items)
+    if not items_path.exists():
+        print(f"Error: Items file does not exist: {items_path}", file=sys.stderr)
+        return 1
+    items = _read_jsonl(items_path)
+    prompts = [harness.render_item(item) for item in items]
+
+    if args.mode == 'render':
+        if not args.output:
+            print("Error: render mode requires --output", file=sys.stderr)
+            return 1
+        write_items(prompts, args.output)
+        print(f"Wrote {len(prompts)} prompts to {args.output}", file=sys.stderr)
+        return 0
+
+    if args.mode == 'batchfile':
+        if not args.output or not args.model:
+            print("Error: batchfile mode requires --output and --model",
+                  file=sys.stderr)
+            return 1
+        if args.provider == 'anthropic':
+            lines = [harness.to_anthropic_batch_line(p, args.model,
+                                                     args.max_tokens)
+                     for p in prompts]
+        else:
+            lines = [harness.to_openai_batch_line(p, args.model,
+                                                  args.max_tokens)
+                     for p in prompts]
+        write_items(lines, args.output)
+        print(f"Wrote {len(lines)} {args.provider} batch requests to "
+              f"{args.output}", file=sys.stderr)
+        return 0
+
+    if args.mode == 'estimate':
+        if not args.model or not args.pricing_file:
+            print("Error: estimate mode requires --model and --pricing-file",
+                  file=sys.stderr)
+            return 1
+        pricing = json.loads(Path(args.pricing_file).read_text())
+        est = harness.estimate_run(prompts, args.model, pricing,
+                                   max_output_tokens=args.max_tokens)
+        print(json.dumps(est, indent=2))
+        return 0
+
+    if args.mode == 'score':
+        if not args.responses:
+            print("Error: score mode requires --responses", file=sys.stderr)
+            return 1
+        raw = _read_jsonl(Path(args.responses))
+        if args.responses_format == 'openai-batch':
+            responses = harness.responses_from_openai_batch(raw)
+        elif args.responses_format == 'anthropic-batch':
+            responses = harness.responses_from_anthropic_batch(raw)
+        else:
+            responses = {r['item_id']: r['response'] for r in raw}
+        report = harness.score_items(items, responses)
+        if args.format == 'json':
+            print(json.dumps(report, indent=2))
+        else:
+            print(f"\n{'=' * 60}")
+            print(f"RULES-FIDELITY SCORE: {args.responses}")
+            print(f"{'=' * 60}")
+            for task, entry in report['tasks'].items():
+                print(f"\n{task}  (n={entry['n']}, answered={entry['answered']}, "
+                      f"missing={entry['missing']})")
+                print(f"  all-correct: {entry['all_correct']:.1%}")
+                for field_name, acc in entry['field_accuracy'].items():
+                    print(f"  {field_name}: {acc:.1%}")
+                for field_name, acc in (entry.get('direction_accuracy') or {}).items():
+                    print(f"  {field_name} (direction): {acc:.1%}")
+                for slice_name, s in sorted((entry.get('slices') or {}).items()):
+                    print(f"  [{slice_name}] n={s['n']} "
+                          f"all-correct={s['all_correct']:.1%}")
+        return 0
+
+    print(f"Error: Unknown mode '{args.mode}'", file=sys.stderr)
+    return 1
+
+
 def cmd_cost(args: argparse.Namespace) -> int:
     """Run token and cost reporting on session files."""
     from cost_report import analyze_cost, print_text_report
@@ -582,6 +676,61 @@ def main():
         help='Output format for stats (default: text)'
     )
 
+    # === FIDELITY-EVAL ===
+    fidelity_eval_parser = subparsers.add_parser(
+        'fidelity-eval',
+        help='Render prompts, emit provider batch files, estimate cost, or score model responses for fidelity items'
+    )
+    fidelity_eval_parser.add_argument(
+        'mode',
+        choices=['render', 'batchfile', 'estimate', 'score'],
+        help='render: items -> prompts | batchfile: items -> provider batch requests | estimate: token/cost estimate | score: grade responses'
+    )
+    fidelity_eval_parser.add_argument(
+        'items',
+        help='Eval items JSONL (from: yags_mine.py fidelity)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--output', '-o',
+        help='Output JSONL path (render/batchfile modes)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--model',
+        help='Model id (batchfile/estimate modes)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--provider',
+        choices=['openai', 'anthropic'],
+        default='openai',
+        help='Batch file dialect (batchfile mode, default: openai)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--max-tokens',
+        type=int,
+        default=300,
+        help='Max output tokens per request (default: 300)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--pricing-file',
+        help='JSON file with per-model input_per_1m/output_per_1m (estimate mode)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--responses',
+        help='Model responses JSONL (score mode)'
+    )
+    fidelity_eval_parser.add_argument(
+        '--responses-format',
+        choices=['plain', 'openai-batch', 'anthropic-batch'],
+        default='plain',
+        help='Responses file dialect (score mode, default: plain {item_id,response})'
+    )
+    fidelity_eval_parser.add_argument(
+        '--format', '-f',
+        choices=['text', 'json'],
+        default='text',
+        help='Score report format (default: text)'
+    )
+
     # === COST ===
     cost_parser = subparsers.add_parser(
         'cost',
@@ -624,6 +773,8 @@ def main():
         return cmd_balance(args)
     elif args.command == 'fidelity':
         return cmd_fidelity(args)
+    elif args.command == 'fidelity-eval':
+        return cmd_fidelity_eval(args)
     elif args.command == 'cost':
         return cmd_cost(args)
     else:
