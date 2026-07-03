@@ -332,21 +332,25 @@ def score_items(
 # --- Provider batch files ---------------------------------------------------
 
 def to_openai_batch_line(prompt: Dict[str, str], model: str,
-                         max_tokens: int = 300) -> Dict[str, Any]:
+                         max_tokens: int = 300,
+                         reasoning_effort: Optional[str] = None) -> Dict[str, Any]:
     """One line of an OpenAI Batch API input file (/v1/chat/completions)."""
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": prompt["system"]},
+            {"role": "user", "content": prompt["user"]},
+        ],
+        "max_completion_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
+    }
+    if reasoning_effort:
+        body["reasoning_effort"] = reasoning_effort
     return {
         "custom_id": prompt["item_id"],
         "method": "POST",
         "url": "/v1/chat/completions",
-        "body": {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": prompt["system"]},
-                {"role": "user", "content": prompt["user"]},
-            ],
-            "max_completion_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
-        },
+        "body": body,
     }
 
 
