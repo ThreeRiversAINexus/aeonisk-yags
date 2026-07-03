@@ -1,0 +1,78 @@
+{
+  "tasks": {
+    "roll_resolution": {
+      "n": 421,
+      "answered": 421,
+      "missing": 0,
+      "all_correct": 0.9714964370546318,
+      "field_accuracy": {
+        "ability": 0.997624703087886,
+        "total": 0.9928741092636579,
+        "margin": 0.9928741092636579,
+        "success": 0.9833729216152018,
+        "tier": 0.9738717339667459
+      },
+      "slices": {
+        "skilled": {
+          "n": 300,
+          "all_correct": 0.9733333333333334
+        },
+        "tier:good": {
+          "n": 77,
+          "all_correct": 0.961038961038961
+        },
+        "tier:moderate": {
+          "n": 51,
+          "all_correct": 0.9607843137254902
+        },
+        "unskilled": {
+          "n": 121,
+          "all_correct": 0.9669421487603306
+        },
+        "tier:failure": {
+          "n": 125,
+          "all_correct": 0.984
+        },
+        "tier:excellent": {
+          "n": 47,
+          "all_correct": 0.9787234042553191
+        },
+        "tier:critical_failure": {
+          "n": 13,
+          "all_correct": 0.8461538461538461
+        },
+        "tier:exceptional": {
+          "n": 78,
+          "all_correct": 1.0
+        },
+        "tier:marginal": {
+          "n": 30,
+          "all_correct": 0.9333333333333333
+        }
+      }
+    },
+    "soulcredit_adjudication": {
+      "n": 430,
+      "answered": 430,
+      "missing": 0,
+      "all_correct": 0.6906976744186046,
+      "field_accuracy": {
+        "soulcredit_delta": 0.7697674418604651,
+        "void_delta": 0.8860465116279069
+      },
+      "direction_accuracy": {
+        "soulcredit_delta": 0.8162790697674419,
+        "void_delta": 0.9
+      }
+    },
+    "damage_soak": {
+      "n": 29,
+      "answered": 29,
+      "missing": 0,
+      "all_correct": 1.0,
+      "field_accuracy": {
+        "dealt": 1.0
+      }
+    }
+  }
+}
