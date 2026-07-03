@@ -7,6 +7,7 @@ Usage:
     python scripts/yags_mine.py analyze <path> [options]
     python scripts/yags_mine.py discover <directory> [options]
     python scripts/yags_mine.py balance <path> [options]
+    python scripts/yags_mine.py fidelity <path> [options]
     python scripts/yags_mine.py cost <path> [options]
 
 Examples:
@@ -34,6 +35,10 @@ Examples:
     yags_mine.py balance bulk_output/ -a skills,weapons   # Multiple analyzers
     yags_mine.py balance bulk_output/ -f json -o report.json  # JSON export
     yags_mine.py cost bulk_output/ --pricing-file pricing.json
+
+    # Extract rules-fidelity eval items (benchmark ground truth)
+    yags_mine.py fidelity bulk_output/ -o eval_items.jsonl
+    yags_mine.py fidelity session.jsonl --tasks roll,soulcredit -f json
 """
 
 import argparse
@@ -293,6 +298,88 @@ def cmd_balance(args: argparse.Namespace) -> int:
     return 0
 
 
+TASK_ALIASES = {
+    'roll': 'roll_resolution',
+    'damage': 'damage_soak',
+    'soulcredit': 'soulcredit_adjudication',
+}
+
+
+def cmd_fidelity(args: argparse.Namespace) -> int:
+    """Extract rules-fidelity eval items from session JSONL files."""
+    from datamine.rules_fidelity import ALL_TASKS, extract_from_file, write_items
+
+    path = Path(args.path)
+    if not path.exists():
+        print(f"Error: Path does not exist: {path}", file=sys.stderr)
+        return 1
+
+    tasks = None
+    if args.tasks:
+        tasks = set()
+        for name in args.tasks.split(','):
+            name = name.strip().lower()
+            name = TASK_ALIASES.get(name, name)
+            if name not in ALL_TASKS:
+                print(f"Error: Unknown task '{name}'. "
+                      f"Available: {', '.join(sorted(ALL_TASKS))}", file=sys.stderr)
+                return 1
+            tasks.add(name)
+
+    if path.is_file():
+        files = [path]
+    else:
+        files = sorted(path.rglob("*.jsonl") if args.recursive else path.glob("*.jsonl"))
+    if not files:
+        print(f"Error: No JSONL files found at {path}", file=sys.stderr)
+        return 1
+
+    all_items = []
+    all_quarantined = []
+    per_file_errors = 0
+    for session_path in files:
+        try:
+            result = extract_from_file(session_path, tasks=tasks)
+            all_items.extend(result.items)
+            all_quarantined.extend(result.quarantined)
+        except Exception as e:
+            per_file_errors += 1
+            print(f"  Error extracting {session_path.name}: {e}", file=sys.stderr)
+
+    by_task = {}
+    for item in all_items:
+        by_task[item['task']] = by_task.get(item['task'], 0) + 1
+    stats = {
+        'files': len(files),
+        'file_errors': per_file_errors,
+        'items': len(all_items),
+        'items_by_task': by_task,
+        'quarantined': len(all_quarantined),
+    }
+
+    if args.output:
+        write_items(all_items, args.output)
+        print(f"Wrote {len(all_items)} items to {args.output}", file=sys.stderr)
+    if args.quarantine_output and all_quarantined:
+        write_items(all_quarantined, args.quarantine_output)
+        print(f"Wrote {len(all_quarantined)} quarantined records to "
+              f"{args.quarantine_output}", file=sys.stderr)
+
+    if args.format == 'json':
+        print(json.dumps(stats, indent=2))
+    else:
+        print(f"\n{'=' * 60}")
+        print(f"RULES-FIDELITY EXTRACTION: {path}")
+        print(f"{'=' * 60}")
+        print(f"Files:        {stats['files']} ({per_file_errors} errors)")
+        print(f"Items:        {stats['items']}")
+        for task, count in sorted(by_task.items()):
+            print(f"  {task}: {count}")
+        print(f"Quarantined:  {stats['quarantined']} (log/rules mismatches, excluded)")
+
+    return 0 if per_file_errors == 0 else 1
+
+
 def cmd_cost(args: argparse.Namespace) -> int:
     """Run token and cost reporting on session files."""
     from cost_report import analyze_cost, print_text_report
@@ -461,6 +548,40 @@ def main():
         help='Show detailed error messages'
     )
 
+    # === FIDELITY ===
+    fidelity_parser = subparsers.add_parser(
+        'fidelity',
+        help='Extract rules-fidelity eval items (roll math, damage/soak, soulcredit adjudication) from session JSONL'
+    )
+    fidelity_parser.add_argument(
+        'path',
+        help='Path to session file or directory of JSONL files'
+    )
+    fidelity_parser.add_argument(
+        '--tasks',
+        help='Comma-separated tasks: roll,damage,soulcredit (default: all)'
+    )
+    fidelity_parser.add_argument(
+        '--output', '-o',
+        help='Write eval items to this JSONL file'
+    )
+    fidelity_parser.add_argument(
+        '--quarantine-output',
+        help='Write quarantined (log/rules mismatch) records to this JSONL file'
+    )
+    fidelity_parser.add_argument(
+        '--recursive', '-r',
+        action='store_true',
+        default=True,
+        help='Search directories recursively (default: True)'
+    )
+    fidelity_parser.add_argument(
+        '--format', '-f',
+        choices=['text', 'json'],
+        default='text',
+        help='Output format for stats (default: text)'
+    )
+
     # === COST ===
     cost_parser = subparsers.add_parser(
         'cost',
@@ -501,6 +622,8 @@ def main():
         return cmd_analyze(args)
     elif args.command == 'balance':
         return cmd_balance(args)
+    elif args.command == 'fidelity':
+        return cmd_fidelity(args)
     elif args.command == 'cost':
         return cmd_cost(args)
     else:

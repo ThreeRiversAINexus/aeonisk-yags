@@ -116,3 +116,51 @@ def test_cmd_discover_reports_scores_actions_and_completion(tmp_path, capsys):
     assert "Score: 122.0" in output
     assert "Actions: 1" in output
     assert "Complete:" in output
+
+
+def test_cmd_fidelity_extracts_items_from_directory(tmp_path, capsys):
+    """Fidelity command should extract eval items and write them to JSONL."""
+    import json
+
+    session_file = tmp_path / "golden_test.jsonl"
+    event = {
+        "event_type": "action_resolution",
+        "session": "abc12345-feed-face-cafe-000000000000",
+        "round": 1, "phase": "adjudicate", "agent": "Tester",
+        "action": "Strike",
+        "context": {"action_type": "combat", "faction": "Freeborn",
+                    "description": "swing", "is_ritual": False,
+                    "damage_effects": []},
+        "roll": {"attr": "Agility", "attr_val": 4, "skill": "Combat",
+                 "skill_val": 5, "ability": 20, "d20": 8,
+                 "modifiers": None, "modifier_total": None,
+                 "total": 28, "dc": 18, "margin": 10,
+                 "tier": "good", "success": True},
+        "economy": {"void_delta": 0, "soulcredit_delta": 1,
+                    "soulcredit_reasons": ["protected a bystander"]},
+    }
+    session_file.write_text(json.dumps(event) + "\n")
+    output = tmp_path / "items.jsonl"
+
+    args = argparse.Namespace(
+        path=str(tmp_path), tasks=None, output=str(output),
+        quarantine_output=None, recursive=True, format="json",
+    )
+    assert yags_mine.cmd_fidelity(args) == 0
+
+    items = [json.loads(line) for line in output.read_text().strip().split("\n")]
+    tasks = {item["task"] for item in items}
+    assert tasks == {"roll_resolution", "soulcredit_adjudication"}
+    stats = json.loads(capsys.readouterr().out)
+    assert stats["items"] == 2
+    assert stats["quarantined"] == 0
+
+
+def test_cmd_fidelity_rejects_unknown_task(tmp_path):
+    session_file = tmp_path / "s.jsonl"
+    session_file.write_text("")
+    args = argparse.Namespace(
+        path=str(session_file), tasks="bogus", output=None,
+        quarantine_output=None, recursive=True, format="text",
+    )
+    assert yags_mine.cmd_fidelity(args) == 1
