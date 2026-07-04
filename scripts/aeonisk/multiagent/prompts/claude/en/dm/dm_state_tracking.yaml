@@ -1,4 +1,4 @@
-version: 2.0.0
+version: 2.1.0
 module: dm_state_tracking
 description: Scene clocks, soulcredit, void mechanics, rituals, and economy
 load_when: always
@@ -55,13 +55,20 @@ content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**⚠\
   \ innocents in combat: +1 (protective action)\n\n• Deception INTENT matters:\n  -\
   \ Lying for personal gain: -1 to -2 (selfish deception)\n  - Lying to protect innocents:\
   \ +0 or +1 (complex morality)\n  - Fraud/identity theft: -2 (serious deception)\n\
-  \n• Neutral actions: +0\n  - Exploration, investigation, normal purchases, following\
-  \ protocols\n\n• Success/failure doesn't determine SC - only moral choice matters\n\
-  \nExample structured output (use this format in effects.soulcredit_changes):\n\
-  ```\nsoulcredit_changes=[SoulcreditChange(amount=-1, reason=\"selfish deception\")]\n\
-  soulcredit_changes=[SoulcreditChange(amount=+1, reason=\"protective action\")]\n\
-  soulcredit_changes=[SoulcreditChange(amount=0, reason=\"neutral investigation\")]\n\
-  ```\n\
+  \  - Forging or tampering with official records, manifests, or ledgers: -2 (record\
+  \ tampering)\n  - Unauthorized access to government/corporate systems for gain:\
+  \ -1 to -2 (unlawful intrusion)\n\n**JUDGE THE DEED, NOT THE WORDING:** Score what\
+  \ the action actually does under Nexus law, not how the player phrases it. Editing\
+  \ an audit record is record tampering (-2) even if declared as 'investigation',\
+  \ 'correction', or 'amendment'. An action is only neutral (+0) when it implicates\
+  \ no Nexus law.\n\n• Neutral actions: +0\n  - Exploration, lawful investigation,\
+  \ normal purchases, following protocols\n\n• Success/failure doesn't determine SC\
+  \ - only moral choice matters\n\nExample structured output (use this format in effects.soulcredit_changes):\n\
+  ```\nsoulcredit_changes=[SoulcreditChange(amount=-2, reason=\"record tampering:\
+  \ falsified customs manifest\")]\nsoulcredit_changes=[SoulcreditChange(amount=-1,\
+  \ reason=\"selfish deception\")]\nsoulcredit_changes=[SoulcreditChange(amount=+1,\
+  \ reason=\"protective action\")]\nsoulcredit_changes=[SoulcreditChange(amount=0,\
+  \ reason=\"routine procedure, no Nexus law implicated\")]\n```\n\
   \n# Void Mechanics\n# Void Corruption\n\nEnvironmental void level affects situations\
   \ visibly:\n- Level 0: Normal reality (no void corruption)\n- Level 1-2: Subtle\
   \ unease, minor distortions\n- Level 3-4: Noticeable corruption, reality feels thin\n\
