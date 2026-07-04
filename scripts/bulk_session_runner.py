@@ -42,7 +42,13 @@ Usage:
         --runs 10 \\
         --workers 4 \\
         --proxy http://localhost:8000 \\
-        --direct
+        --strategy direct
+
+    # Preview effective routing + validation without launching anything
+    python scripts/bulk_session_runner.py \\
+        --configs config1.json config2.json \\
+        --proxy http://localhost:8000 \\
+        --dry-run
 
     # Resume failed runs (replay enabled by default - saves API cost)
     python scripts/bulk_session_runner.py \\
@@ -82,7 +88,10 @@ Options:
     --workers N             Parallel workers (default: 4)
     --output-dir DIR        Output directory (default: bulk_output/)
     --proxy URL             Batch proxy URL (e.g., http://localhost:8000)
-    --direct                Force direct mode through proxy (no batching)
+    --strategy MODE         Explicit proxy strategy override (auto/direct/batch).
+                            Omitted = each config's own proxy_strategy is honored.
+    --direct                Deprecated alias for --strategy direct
+    --dry-run               Validate + print effective routing, then exit
     --resume                Resume from --run-dir, skip completed sessions.
                             Config loaded from metadata.json in run directory.
                             By default uses replay (cached LLM calls) to save cost.
@@ -113,6 +122,17 @@ import requests
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add scripts/ so the aeonisk package is importable
+sys.path.insert(0, str(Path(__file__).parent))
+
+from aeonisk.multiagent.launch_config import (
+    LOG_LEVEL_CHOICES,
+    PROXY_STRATEGY_CHOICES,
+    apply_proxy_overrides,
+    effective_routing_report,
+    iter_agent_llm_configs,
+    validate_session_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -485,7 +505,7 @@ def modify_config_for_bulk_run(
     run_id: int,
     output_path: str,
     proxy_url: Optional[str] = None,
-    proxy_strategy: str = 'auto',
+    proxy_strategy: Optional[str] = None,
     force_truncate: bool = False
 ) -> Dict:
     """
@@ -496,7 +516,9 @@ def modify_config_for_bulk_run(
         run_id: Unique run identifier
         output_path: Output JSONL path for this run
         proxy_url: Optional proxy URL to inject
-        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
+        proxy_strategy: Explicit proxy routing strategy override
+            ('auto', 'direct', 'batch'). None means honor the config's
+            own proxy_strategy — never overwrite it with a default.
         force_truncate: If True, inject force_truncate into all agent LLM configs
 
     Returns:
@@ -518,9 +540,10 @@ def modify_config_for_bulk_run(
     output_dir_path = str(Path(output_path).parent)
     modified['output_dir'] = output_dir_path
 
-    # If proxy_url provided, inject into all agent LLM configs
-    if proxy_url:
-        modified = inject_proxy_config(modified, proxy_url, proxy_strategy)
+    # Apply explicitly-passed proxy flags; unset flags never touch config
+    # values (see launch_config precedence contract)
+    if proxy_url or proxy_strategy:
+        apply_proxy_overrides(modified, proxy_url, proxy_strategy)
 
     # If force_truncate, inject into all agent LLM configs
     if force_truncate:
@@ -532,60 +555,16 @@ def modify_config_for_bulk_run(
     return modified
 
 
-def _switch_llm_to_proxy(llm_config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> None:
-    """Switch a single LLM config dict to use batch_proxy provider."""
-    if llm_config.get('provider') == 'batch_proxy':
-        llm_config['underlying_provider'] = llm_config.get('underlying_provider', 'openai')
-    else:
-        llm_config['underlying_provider'] = llm_config.get('provider', 'openai')
-    llm_config['provider'] = 'batch_proxy'
-    llm_config['use_proxy'] = True
-    llm_config['proxy_url'] = proxy_url
-    llm_config['proxy_priority'] = 'normal'
-    llm_config['proxy_strategy'] = proxy_strategy
-
-
-def _iter_enemy_llm_configs(agents: Dict):
-    """Yield current and legacy enemy LLM config dicts."""
-    for key in ('enemies', 'enemy_agents'):
-        enemy_config = agents.get(key)
-        if isinstance(enemy_config, dict) and isinstance(enemy_config.get('llm'), dict):
-            yield enemy_config['llm']
-
-
-def inject_proxy_config(config: Dict, proxy_url: str, proxy_strategy: str = 'auto') -> Dict:
+def inject_proxy_config(config: Dict, proxy_url: str,
+                        proxy_strategy: Optional[str] = None) -> Dict:
     """
     Inject proxy configuration into all agents' LLM configs.
 
-    Switches provider to batch_proxy and saves the original provider
-    as underlying_provider so BatchProxyProvider knows which API to use.
-
-    Args:
-        config: Session config dict
-        proxy_url: Proxy server URL
-        proxy_strategy: Proxy routing strategy ('auto', 'direct', 'batch')
-
-    Returns:
-        Modified config dict
+    Thin wrapper around launch_config.apply_proxy_overrides, kept for
+    backward compatibility. proxy_strategy=None honors each agent's
+    config value instead of overwriting it.
     """
-    agents = config.get('agents', {})
-
-    # Inject into DM
-    if 'dm' in agents:
-        dm_llm = agents['dm'].get('llm', {})
-        _switch_llm_to_proxy(dm_llm, proxy_url, proxy_strategy)
-        agents['dm']['llm'] = dm_llm
-
-    # Inject into players
-    for player in agents.get('players', []):
-        player_llm = player.get('llm', {})
-        _switch_llm_to_proxy(player_llm, proxy_url, proxy_strategy)
-        player['llm'] = player_llm
-
-    # Inject into enemy agents (current and legacy config shapes)
-    for enemy_llm in _iter_enemy_llm_configs(agents):
-        _switch_llm_to_proxy(enemy_llm, proxy_url, proxy_strategy)
-
+    apply_proxy_overrides(config, proxy_url, proxy_strategy)
     return config
 
 
@@ -602,21 +581,73 @@ def inject_force_truncate(config: Dict) -> Dict:
     Returns:
         Modified config dict
     """
-    agents = config.get('agents', {})
-
-    # Inject into DM
-    if 'dm' in agents:
-        agents['dm'].setdefault('llm', {})['force_truncate'] = True
-
-    # Inject into players
-    for player in agents.get('players', []):
-        player.setdefault('llm', {})['force_truncate'] = True
-
-    # Inject into enemy agents (current and legacy config shapes)
-    for enemy_llm in _iter_enemy_llm_configs(agents):
-        enemy_llm['force_truncate'] = True
+    for _label, llm_config in iter_agent_llm_configs(config):
+        llm_config['force_truncate'] = True
 
     return config
+
+
+def preflight_configs(
+    config_paths: List,
+    proxy_url: Optional[str],
+    proxy_strategy: Optional[str],
+    skip_validation: bool = False
+) -> bool:
+    """
+    Validate configs and log the effective LLM routing per unique config.
+
+    Logs explicit flag overrides at WARNING (a flag changing a config
+    value) and the final per-agent routing at INFO, so nothing about how
+    requests will route is silent. Returns False if any config fails
+    validation or cannot be loaded.
+    """
+    import copy as _copy
+
+    all_ok = True
+    for config_path in dict.fromkeys(str(c) for c in config_paths):
+        name = Path(config_path).name
+        try:
+            config = load_session_config(config_path)
+        except Exception as e:
+            logger.error(f"✗ {name}: failed to load config: {e}")
+            all_ok = False
+            continue
+
+        if not skip_validation:
+            errors = validate_session_config(config, path=config_path)
+            if errors:
+                logger.error(f"✗ {name}: {len(errors)} validation error(s):")
+                for err in errors:
+                    logger.error(f"    {err}")
+                all_ok = False
+                continue
+
+        preview = _copy.deepcopy(config)
+        changes = apply_proxy_overrides(preview, proxy_url, proxy_strategy)
+        for line in changes:
+            logger.warning(f"  OVERRIDE {line}")
+
+        logger.info(f"Effective routing for {name}:")
+        for line in effective_routing_report(preview):
+            logger.info(line)
+
+        proxied_strategies = [
+            llm.get('proxy_strategy') or 'auto'
+            for _label, llm in iter_agent_llm_configs(preview)
+            if llm.get('provider') == 'batch_proxy' or llm.get('use_proxy')
+        ]
+        if any(s in ('auto', 'batch') for s in proxied_strategies):
+            logger.warning(
+                f"  {name}: strategy auto/batch may route requests to the "
+                f"provider batch queue (minutes-per-request latency); pass "
+                f"--strategy direct for interactive-speed sessions")
+
+    if all_ok:
+        logger.info(
+            "Per-run mutations: session_name += _run_NNNN; output_dir → "
+            "run_NNNN/; enable_human_interface=False; random_seed = "
+            "run_id*1000 unless set in config")
+    return all_ok
 
 
 def run_single_session(
@@ -628,7 +659,7 @@ def run_single_session(
     use_stored_config: bool = False,
     session_timeout: int = 90000,
     attempt_replay: bool = False,
-    proxy_strategy: str = 'auto',
+    proxy_strategy: Optional[str] = None,
     force_truncate: bool = False
 ) -> RunResult:
     """
@@ -1534,15 +1565,34 @@ def main():
         '--log-level',
         type=str,
         default='INFO',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'LLM', 'TRACE'],
+        choices=LOG_LEVEL_CHOICES,
         help='Log level for sessions (default: INFO)'
+    )
+    parser.add_argument(
+        '--strategy',
+        type=str,
+        default=None,
+        choices=list(PROXY_STRATEGY_CHOICES),
+        help='Explicitly override each config\'s proxy_strategy '
+             '(auto/direct/batch). When omitted, the strategy in each '
+             'session config is honored — the runner never substitutes '
+             'a default. Overrides are logged per agent.'
     )
     parser.add_argument(
         '--direct',
         action='store_true',
-        help='Force direct API mode through proxy (no batching). '
-             'Requests still route through the proxy but are sent to the '
-             'upstream API immediately instead of being queued for batch processing.'
+        help='Deprecated alias for --strategy direct.'
+    )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Validate configs, print the effective per-agent LLM routing '
+             'and run matrix, then exit without launching any session.'
+    )
+    parser.add_argument(
+        '--skip-validation',
+        action='store_true',
+        help='Skip session config preflight validation (not recommended)'
     )
     parser.add_argument(
         '--skip-health-check',
@@ -1654,11 +1704,21 @@ def main():
         if not args.config and not args.configs:
             parser.error("Must provide either --config, --configs, or --regenerate-fixtures")
 
+    # Resolve proxy strategy from explicit flags only. None means "honor
+    # each config's own proxy_strategy" — the runner must never substitute
+    # a default for a value the config already chose.
+    if args.direct and args.strategy and args.strategy != 'direct':
+        parser.error(f"--direct conflicts with --strategy {args.strategy}")
+    proxy_strategy = 'direct' if args.direct else args.strategy
+
     # Setup logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+
+    if args.direct:
+        logger.warning("--direct is deprecated; use --strategy direct")
 
     # Import UUID and datetime for directory naming
     import uuid
@@ -1729,6 +1789,17 @@ def main():
                 logger.error(f"Config file not found: {config_path}")
                 sys.exit(1)
 
+        # Preflight: validation + effective routing banner
+        if config_paths and not preflight_configs(
+                config_paths, args.proxy, proxy_strategy,
+                args.skip_validation):
+            sys.exit(1)
+
+        if args.dry_run:
+            logger.info("DRY RUN: resume preflight complete, exiting "
+                        "without launching sessions")
+            sys.exit(0)
+
     else:
         # Normal mode: use command-line configs
         if args.configs:
@@ -1743,6 +1814,20 @@ def main():
             if not config_path.exists():
                 logger.error(f"Config file not found: {config_path}")
                 sys.exit(1)
+
+        # Preflight: validation + effective routing banner (before any
+        # directories are created, so --dry-run is side-effect free)
+        if not preflight_configs(config_paths, args.proxy, proxy_strategy,
+                                 args.skip_validation):
+            sys.exit(1)
+
+        if args.dry_run:
+            logger.info(
+                f"DRY RUN: would launch {len(config_paths) * runs_per_config} "
+                f"session(s) ({len(config_paths)} config(s) × "
+                f"{runs_per_config} run(s)) across {args.workers} workers "
+                f"into {args.output_dir}/")
+            sys.exit(0)
 
         # Create new timestamped bulk run directory
         timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
@@ -1809,10 +1894,8 @@ def main():
     logger.info(f"Starting bulk run: {total_runs} sessions across {args.workers} workers")
     logger.info(f"Output directory: {output_dir}")
     if args.proxy:
-        proxy_strategy = 'direct' if args.direct else 'auto'
-        logger.info(f"Proxy URL: {args.proxy} (strategy: {proxy_strategy})")
-    else:
-        proxy_strategy = 'auto'
+        logger.info(f"Proxy URL: {args.proxy} "
+                    f"(strategy: {proxy_strategy or 'per-config'})")
     if args.resume and not args.no_replay:
         logger.info(f"🔄 Replay enabled: will try cached LLM replay before fresh restart")
     elif args.resume and args.no_replay:
