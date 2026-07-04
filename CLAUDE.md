@@ -168,6 +168,12 @@ python scripts/bulk_session_runner.py \
   --proxy http://localhost:8000 \
   --output-dir bulk_output/
 
+# Preview effective routing + validate configs WITHOUT launching anything
+python scripts/bulk_session_runner.py \
+  --configs config1.json config2.json \
+  --proxy http://localhost:8000 \
+  --dry-run
+
 # Resume failed runs
 python scripts/bulk_session_runner.py \
   --config session_config.json \
@@ -182,9 +188,23 @@ python scripts/bulk_session_runner.py \
   --output-dir bulk_output/
 ```
 
+**Flag vs config precedence (IMPORTANT):** the session config JSON is
+authoritative. CLI flags only take effect when explicitly passed, and every
+override of a config value is logged per agent. In particular, `--proxy`
+alone does NOT touch `proxy_strategy` — each config's own strategy is
+honored. To force a strategy across all configs, pass
+`--strategy direct|batch|auto` (`--direct` is a deprecated alias). Every
+launch prints an "Effective routing" banner showing each agent's
+provider/model/strategy and where the strategy came from; `--dry-run` shows
+it without launching. Configs are validated at launch
+(`launch_config.validate_session_config`, same checks as the unit tests);
+`--skip-validation` bypasses (needed for some legacy configs under
+`session_configs/experiment/` and `session_configs/openai/`).
+
 **Orchestrator Features:**
 - Parallel execution via ProcessPoolExecutor (subprocess-based, crash isolation)
 - Automatic proxy health check before execution
+- Preflight config validation + effective-routing banner (see above)
 - Resume capability (skip completed runs)
 - Aggregated statistics (success rate, tokens, throughput)
 - Per-run output isolation (prevents JSONL collisions)

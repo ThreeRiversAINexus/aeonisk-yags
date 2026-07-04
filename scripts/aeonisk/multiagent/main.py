@@ -12,6 +12,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from .session import SelfPlayingSession, EXAMPLE_CONFIG
+from .launch_config import (
+    LOG_LEVEL_CHOICES,
+    effective_routing_report,
+    validate_session_config,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -79,6 +84,16 @@ def create_example_config(output_path: str):
         sys.exit(1)
 
 
+def _load_config_data(config_path: str) -> dict:
+    """Load a session config file (JSON or YAML) without side effects."""
+    path = Path(config_path)
+    with open(path, 'r') as f:
+        if path.suffix in ('.yaml', '.yml'):
+            import yaml
+            return yaml.safe_load(f)
+        return json.load(f)
+
+
 async def run_session(config_path: str, random_seed: int = None, log_agents_separately: bool = False):
     """Run a self-playing session."""
     if not Path(config_path).exists():
@@ -117,8 +132,14 @@ def main():
     parser.add_argument(
         '--log-level',
         default='INFO',
-        choices=['TRACE', 'DEBUG', 'LLM', 'INFO', 'WARNING', 'ERROR'],
+        choices=LOG_LEVEL_CHOICES,
         help='Set logging level (TRACE=ultra-verbose, DEBUG=detailed, LLM=API calls only, INFO=standard)'
+    )
+
+    parser.add_argument(
+        '--skip-validation',
+        action='store_true',
+        help='Skip session config preflight validation (not recommended)'
     )
 
     parser.add_argument(
@@ -181,6 +202,30 @@ def main():
         if result:
             print(f"\nReplay completed: {result.get('status', 'unknown')}")
         return
+
+    # Preflight: validate config and show effective LLM routing before
+    # any agent starts, so misrouted strategies are visible immediately.
+    if Path(args.config).exists():
+        try:
+            config_data = _load_config_data(args.config)
+        except Exception as e:
+            print(f"Failed to parse configuration {args.config}: {e}")
+            sys.exit(1)
+
+        if not args.skip_validation:
+            errors = validate_session_config(config_data, path=args.config)
+            if errors:
+                print(f"Configuration failed validation "
+                      f"({len(errors)} error(s)):")
+                for err in errors:
+                    print(f"  ✗ {err}")
+                print("Use --skip-validation to run anyway.")
+                sys.exit(1)
+
+        print("Effective LLM routing:")
+        for line in effective_routing_report(config_data):
+            print(line)
+        print()
 
     # Run session
     print("=== Aeonisk Multi-Agent Self-Playing System ===")

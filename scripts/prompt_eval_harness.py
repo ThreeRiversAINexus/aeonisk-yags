@@ -2643,6 +2643,23 @@ class SelfJudge:
 # CLI
 # ---------------------------------------------------------------------------
 
+def resolve_proxy_strategy(args) -> Optional[str]:
+    """Resolve the proxy strategy from explicit flags.
+
+    Precedence: --strategy > --batch > --direct. When --proxy is set with
+    no strategy flag, defaults to 'direct' — the harness is interactive,
+    so it must never silently fall back to the batch queue. Returns None
+    when no proxy is in play.
+    """
+    if getattr(args, "strategy", None):
+        return args.strategy
+    if getattr(args, "batch", False):
+        return "batch"
+    if getattr(args, "direct", False):
+        return "direct"
+    return "direct" if getattr(args, "proxy", None) else None
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="Prompt Evaluation Harness - replay DM resolution calls with swapped prompt modules",
@@ -2696,8 +2713,12 @@ Examples:
 
     # Proxy
     parser.add_argument("--proxy", type=str, default=None, help="Proxy URL (e.g., http://localhost:8000)")
-    parser.add_argument("--batch", action="store_true", help="Use proxy in batch mode (50%% cost savings)")
-    parser.add_argument("--direct", action="store_true", help="Use proxy in direct mode (immediate)")
+    parser.add_argument(
+        "--strategy", type=str, default=None, choices=["auto", "direct", "batch"],
+        help="Proxy routing strategy. Default when --proxy is set: direct "
+             "(never silently falls back to the batch queue).")
+    parser.add_argument("--batch", action="store_true", help="Alias for --strategy batch (50%% cost savings)")
+    parser.add_argument("--direct", action="store_true", help="Alias for --strategy direct (immediate)")
 
     # Filters
     parser.add_argument("--action-type", type=str, default=None, help="Filter by action type (combat, investigate, ...)")
@@ -2807,7 +2828,7 @@ def _create_output_dir(
         "scorers": args.scorers,
         "workers": args.workers,
         "proxy": args.proxy,
-        "proxy_strategy": "batch" if args.batch else ("direct" if args.proxy else None),
+        "proxy_strategy": resolve_proxy_strategy(args),
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
         "save_prompts": args.save_prompts,
@@ -2867,9 +2888,9 @@ def main(argv=None):
         classifier_config = goal_data.get("classifier")
 
     # Determine proxy strategy for classifier
-    proxy_strategy_for_cls = None
+    proxy_strategy_for_cls = resolve_proxy_strategy(args)
     if args.proxy:
-        proxy_strategy_for_cls = "batch" if args.batch else "direct"
+        print(f"Proxy: {args.proxy} (strategy: {proxy_strategy_for_cls})")
 
     # --- Extract cases (classifier-first when active) ---
     use_classifier = (args.classify_intent or classifier_config) and not args.self_judge
@@ -3076,9 +3097,7 @@ def main(argv=None):
     # --- Common setup for eval modes ---
 
     # Determine proxy strategy
-    proxy_strategy = None
-    if args.proxy:
-        proxy_strategy = "batch" if args.batch else "direct"
+    proxy_strategy = resolve_proxy_strategy(args)
 
     request_delay = args.request_delay
     if request_delay is None:

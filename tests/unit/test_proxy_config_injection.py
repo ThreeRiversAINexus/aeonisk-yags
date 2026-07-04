@@ -145,16 +145,30 @@ class TestInjectProxyConfig:
         assert dm_llm["model"] == "gpt-5-mini"
         assert dm_llm["temperature"] == 0.7
 
-    def test_sets_default_proxy_priority_and_strategy(self):
-        """Should set default proxy_priority and proxy_strategy."""
+    def test_does_not_invent_priority_or_strategy(self):
+        """Injection without explicit strategy/priority must not set them:
+        the config's values (or the provider defaults) stay authoritative.
+
+        Regression: 2026-07-04, --proxy without --direct stomped every
+        config's proxy_strategy 'direct' with 'auto'."""
         from bulk_session_runner import inject_proxy_config
 
         config = make_openai_config()
         result = inject_proxy_config(config, "http://localhost:8000")
 
         dm_llm = result["agents"]["dm"]["llm"]
-        assert dm_llm["proxy_priority"] == "normal"
-        assert dm_llm["proxy_strategy"] == "auto"
+        assert "proxy_priority" not in dm_llm
+        assert "proxy_strategy" not in dm_llm
+
+    def test_preserves_config_strategy_when_none_passed(self):
+        """A config that chose its strategy keeps it through injection."""
+        from bulk_session_runner import inject_proxy_config
+
+        config = make_openai_config()
+        config["agents"]["dm"]["llm"]["proxy_strategy"] = "direct"
+        result = inject_proxy_config(config, "http://localhost:8000")
+
+        assert result["agents"]["dm"]["llm"]["proxy_strategy"] == "direct"
 
     def test_handles_anthropic_provider(self):
         """Should work with anthropic provider too."""
