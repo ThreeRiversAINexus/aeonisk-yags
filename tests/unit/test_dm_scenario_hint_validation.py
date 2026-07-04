@@ -307,6 +307,53 @@ class TestRetryLogic:
         pass
 
 
+class TestRealValidatorLocationAlternatives:
+    """Tests against the REAL dm.py validator (not the mock above).
+
+    Regression: 2026-07-04 corpus pilot, scenario 19 — hint mentioned
+    'ArcGen', the DM generated location 'Arcane Genetics Debt Registry
+    Annex', and validation failed 3x because it demanded the literal
+    token 'arcgen'. Named entities must accept their spelled-out and
+    abbreviated forms interchangeably.
+    """
+
+    @staticmethod
+    def _validate(scenario, hint):
+        from scripts.aeonisk.multiagent.dm import AIDMAgent
+        dm = AIDMAgent.__new__(AIDMAgent)
+        return dm._validate_scenario_against_hint(scenario, hint)
+
+    def test_spelled_out_location_satisfies_abbreviated_hint(self):
+        scenario = make_test_scenario(
+            location="Arcane Genetics Debt Registry Annex, Aeonisk Prime")
+        hint = "ArcGen debt registry after hours, severance bargain"
+
+        is_valid, violations = self._validate(scenario, hint)
+        assert is_valid, f"violations: {violations}"
+
+    def test_abbreviated_location_satisfies_spelled_out_hint(self):
+        scenario = make_test_scenario(location="ArcGen Tower, sublevel 3")
+        hint = "Arcane Genetics corporate scenario"
+
+        is_valid, violations = self._validate(scenario, hint)
+        assert is_valid, f"violations: {violations}"
+
+    def test_unrelated_location_still_rejected(self):
+        scenario = make_test_scenario(location="Random Dockside Warehouse")
+        hint = "ArcGen debt registry scenario"
+
+        is_valid, violations = self._validate(scenario, hint)
+        assert not is_valid
+        assert any("arcgen" in v.lower() for v in violations)
+
+    def test_single_keyword_requirements_still_enforced(self):
+        scenario = make_test_scenario(location="Terminus Outpost Mining Station")
+        hint = "Terminus Outpost mining station scenario"
+
+        is_valid, violations = self._validate(scenario, hint)
+        assert is_valid, f"violations: {violations}"
+
+
 # Integration test helper (to be run manually against real LLM)
 
 class TestRealScenarioGeneration:
