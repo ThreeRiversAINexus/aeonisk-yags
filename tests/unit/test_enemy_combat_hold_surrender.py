@@ -67,3 +67,47 @@ class TestPanickedMoraleBehavior:
         action = _get_panicked_action(enemy)
         assert action == "FLEE"  # fight_to_death still uses default FLEE in panic override
         # (fight_to_death is handled at morale check level - they never GET panicked)
+
+
+class TestExecuteSurrender:
+    """Regression: 2026-07-04 corpus wave 1, run 11 crashed mid-combat.
+
+    _execute_surrender called resolution_state.add_shared_intel(), a method
+    that has never existed on ResolutionState (intel lives on the manager's
+    SharedIntel pool), and marked the enemy defeated instead of surrendered
+    (surrendered enemies stay present for NPC conversion; defeated are
+    removed).
+    """
+
+    def _run_surrender(self):
+        from scripts.aeonisk.multiagent.enemy_combat import EnemyCombatManager
+        from scripts.aeonisk.multiagent.tactical_resolution import ResolutionState
+
+        manager = EnemyCombatManager()
+        manager.current_round = 3
+        enemy = _make_enemy()
+        declaration = MagicMock()
+        declaration.reasoning = "Outnumbered and wounded, drops weapon"
+        state = ResolutionState()
+
+        result = manager._execute_surrender(enemy, declaration, state)
+        return manager, enemy, state, result
+
+    def test_surrender_does_not_crash_and_reports_success(self):
+        _, enemy, _, result = self._run_surrender()
+        assert result['surrender'] is True
+        assert result['result'] == 'success'
+        assert enemy.is_prisoner is True
+        assert enemy.is_active is False
+
+    def test_surrendered_not_defeated_in_resolution_state(self):
+        _, enemy, state, _ = self._run_surrender()
+        assert state.is_surrendered(enemy.agent_id)
+        assert enemy.agent_id not in state.defeated
+
+    def test_surrender_recorded_in_shared_intel_pool(self):
+        manager, enemy, _, _ = self._run_surrender()
+        assert any(
+            enemy.name in item.intel and "surrender" in item.intel.lower()
+            for item in manager.shared_intel.intel_pool
+        )
