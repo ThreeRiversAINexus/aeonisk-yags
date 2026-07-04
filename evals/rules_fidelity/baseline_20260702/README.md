@@ -28,16 +28,20 @@ comes back empty); gpt-5.4-mini ran `--reasoning-effort low` with
 
 ## Results
 
-| task | metric | gpt-5.4-mini | GLM-5.1 | gemini-2.5-flash |
-|---|---|---|---|---|
-| roll_resolution (n=421) | all-correct | **99.5%** | 97.1% | 98.8% |
-|  | tier | 99.8% | 97.4% | 99.0% |
-|  | [unskilled] slice | 98.3% | 96.7% | 96.7% |
-|  | [critical_failure] slice | 100% | 84.6% | 69.2% |
-| soulcredit_adjudication (n=430) | exact delta | 67.4% | **77.0%** | **77.0%** |
-|  | all-correct (soul+void) | 62.8% | 69.1% | **70.7%** |
-|  | direction | 76.7% | **81.6%** | 79.3% |
-| damage_soak (n=29) | all-correct | 100% | 100% | 100% |
+| task | metric | gpt-5.4-mini | GLM-5.1 | gemini-2.5-flash | claude-haiku-4.5 |
+|---|---|---|---|---|---|
+| roll_resolution (n=421) | all-correct | **99.5%** | 97.1% | 98.8% | 94.1% |
+|  | tier | 99.8% | 97.4% | 99.0% | 96.0% |
+|  | [unskilled] slice | 98.3% | 96.7% | 96.7% | 91.7% |
+|  | [critical_failure] slice | 100% | 84.6% | 69.2% | 61.5% |
+| soulcredit_adjudication (n=430) | exact delta | 67.4% | **77.0%** | **77.0%** | 51.0% |
+|  | all-correct (soul+void) | 62.8% | 69.1% | **70.7%** | 46.0% |
+|  | direction | 76.7% | **81.6%** | 79.3% | 60.8% |
+| damage_soak (n=29) | all-correct | 100% | 100% | 100% | 100% |
+
+claude-haiku-4-5-20251001 added 2026-07-03 (direct API; first pass at 8
+workers hit connection-level rate limiting on 281 requests, retried at
+2 workers — use low concurrency on Anthropic direct).
 
 ## Findings
 
@@ -57,7 +61,14 @@ comes back empty); gpt-5.4-mini ran `--reasoning-effort low` with
    own rulings in isolation — adjudication depends on in-session context or
    is intrinsically unstable.
 
-4. **Unanimous dissent flags canon errors.** 64% of items get the identical
+4. **Haiku 4.5 refuses neutrality.** Only 52% of canon-0 items score 0:
+   it awards +1 to 107 of 330 neutral actions and penalizes 44 more, and
+   amplifies magnitude at both ends (canon −1 → −2 on 16 of 22; canon
+   +1 → +2 on 25 of 77). It reads the ledger as continuous moral
+   commentary rather than codified law — the widest divergence from
+   Nexus canon of the four models (51% exact vs 67–77%).
+
+5. **Unanimous dissent flags canon errors.** 64% of items get the identical
    delta from all three models; 27 items are unanimous *against* canon —
    e.g. "hack terminal to scrub manifest logs" adjudicated 0 ("neutral
    intent") where all models say −2. The eval grades in both directions:
