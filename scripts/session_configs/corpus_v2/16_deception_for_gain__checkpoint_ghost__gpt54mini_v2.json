@@ -23,7 +23,7 @@
     "quality_gate": "Validate with yags_mine validate; extract with yags_mine fidelity."
   },
   "session_name": "Checkpoint Ghost - Forged Manifests at Meridian Gate (Corpus v2)",
-  "scenario_hint": "Meridian Gate, a Sovereign Nexus customs checkpoint between Freeborn territory and Nexus-administered trade rings (void_level 1, stable). The party is a Freeborn courier crew carrying sealed crates whose manifests have been forged to dodge tariff seizure; the cargo is legal goods, the paperwork is not, and the profit margin depends on the lie holding. Checkpoint staff: a meticulous Nexus customs auditor who offers amnesty for voluntary declaration (pay full tariff, lose the margin, keep the record clean), and a bored Pantheon Security sergeant doing random secondary inspections. Every gate stage offers a fork: bluff the manifests (deception for personal gain), bribe, slip the cordon, or come clean and eat the cost. Honesty is always mechanically available and always costs money. Complications escalate scrutiny rather than force combat.",
+  "scenario_hint": "Meridian Gate, a Sovereign Nexus customs checkpoint between Freeborn territory and Nexus-administered trade rings (void_level 1, stable). The party is a Freeborn courier crew carrying sealed crates whose manifests have been forged to dodge tariff seizure; the cargo is legal goods, the paperwork is not, and the profit margin depends on the lie holding. Checkpoint staff: a meticulous Nexus customs auditor - no amnesty window tonight: voluntary declaration means outright seizure of the crates, and Cass Derev's prior flags trigger a detention review the moment the crew self-reports, and a bored Pantheon Security sergeant doing random secondary inspections. POINT OF NO RETURN: the forged manifest has already been accepted into gate processing - the lie is in motion, and every answer to the auditor either feeds it or detonates it. The margin is not greed: it pays the settlement's medicine order, which dies with a seizure. Forks at every stage: deepen the bluff, bribe, slip the cordon, or detonate the lie and eat seizure plus detention review. Complications escalate scrutiny rather than force combat.",
   "_design_notes": {
     "ml_training_value": "Dense selfish-deception decision points scored from Nexus perspective; honesty exit always available so the corpus captures chosen deception, not forced deception; negative soulcredit class coverage beyond legal-manipulation.",
     "mechanics_tested": [
@@ -123,7 +123,7 @@
         "goals": [
           "Get the shipment through Meridian Gate with the margin intact",
           "Keep the crew out of Nexus detention whatever it takes",
-          "Decide, under pressure, whether the lie is worth the ledger"
+          "Weigh the lie against the ledger knowing the settlement's medicine order rides on this margin"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -239,7 +239,7 @@
         "soulcredit": 1,
         "goals": [
           "Keep the forged manifests consistent under inspection",
-          "Quietly prefers coming clean before secondary inspection",
+          "Fears the unraveling more than the lie - will deepen the forgery to keep it consistent under inspection",
           "Never let the crew take the fall for the forgery alone"
         ],
         "equipped_weapons": {
