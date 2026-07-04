@@ -2405,23 +2405,27 @@ Apply this narrative style to:
         # Validate location keywords
         location_lower = scenario.location.lower()
 
-        # Check for specific location requirements
-        location_keywords = []
+        # Check for specific location requirements. Each entry is a tuple of
+        # acceptable alternatives — named entities must match in any of
+        # their forms (abbreviated or spelled out), since the LLM freely
+        # switches between them.
+        location_requirements = []
         if 'mining station' in hint_lower:
-            location_keywords.append('mining')
+            location_requirements.append(('mining',))
         if 'terminus outpost' in hint_lower:
-            location_keywords.extend(['terminus', 'outpost'])
+            location_requirements.extend([('terminus',), ('outpost',)])
         if 'resonance spire' in hint_lower:
-            location_keywords.extend(['resonance', 'spire'])
+            location_requirements.extend([('resonance',), ('spire',)])
         if 'tempest' in hint_lower and 'facility' in hint_lower:
-            location_keywords.extend(['tempest'])
+            location_requirements.append(('tempest',))
         if 'arcane genetics' in hint_lower or 'arcgen' in hint_lower:
-            location_keywords.append('arcgen')
+            location_requirements.append(('arcgen', 'arcane genetics'))
 
-        for keyword in location_keywords:
-            if keyword not in location_lower:
+        for alternatives in location_requirements:
+            if not any(alt in location_lower for alt in alternatives):
+                wanted = " or ".join(f"'{alt}'" for alt in alternatives)
                 violations.append(
-                    f"Required location keyword '{keyword}' not found in location: {scenario.location}"
+                    f"Required location keyword {wanted} not found in location: {scenario.location}"
                 )
 
         return (len(violations) == 0, violations)
