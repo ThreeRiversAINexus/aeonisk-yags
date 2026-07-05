@@ -15,6 +15,7 @@ from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
 from .schemas.story_events import NarrativeMemory
+from .party_context import render_party_capabilities, render_party_chatter
 from .schemas.shared_types import Bond
 from .awareness import NarrationEntry
 
@@ -342,6 +343,12 @@ class AIPlayerAgent(Agent):
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
         # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
         self.declared_actions_this_round: Dict[str, Tuple[str, str, Optional[str], Optional[str], str, int]] = {}
+        # Party chatter: party-directed ambient speech, rendered as a
+        # dedicated prompt block (this_round = heard from slower teammates
+        # during the current declaration phase; rotated by session at
+        # round start alongside declared_actions_this_round)
+        self.party_chatter_this_round: List[Tuple[str, str]] = []
+        self.party_chatter_last_round: List[Tuple[str, str]] = []
 
         # Persistent narrative memory (tracks journey across session)
         self.narrative_memory = NarrativeMemory(
@@ -825,6 +832,15 @@ class AIPlayerAgent(Agent):
         if intent or description:
             self.declared_actions_this_round[character_name] = (description, intent, target, weapon, reasoning, initiative)
             logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative}, target={target})")
+
+        # Party-directed ambient speech gets its own salient buffer so it
+        # renders as a dedicated chatter block instead of drowning in the
+        # narration stream (only from PCs, not enemies/NPCs)
+        from .party_context import is_party_chatter
+        ambient = action.get('ambient_speech')
+        if action.get('agent_type') not in ('npc', 'enemy') and is_party_chatter(ambient):
+            self.party_chatter_this_round.append(
+                (character_name, ambient['line'].strip()))
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
@@ -1909,6 +1925,19 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "recent_events": self.last_round_synthesis if self.last_round_synthesis else "Round starting...",
                 # NEW: What allies/enemies have declared THIS round (tactical coordination)
                 "declared_actions_this_round": declared_actions_text,
+                # Party context: teammate capabilities for task routing +
+                # dedicated chatter block (see party_context.py)
+                "party_capabilities": (
+                    render_party_capabilities(
+                        self.agent_id,
+                        getattr(self.shared_state, 'player_agents', None) or [])
+                    if getattr(self.shared_state, 'party_capabilities_enabled', True)
+                    else ""),
+                "party_chatter": (
+                    render_party_chatter(self.party_chatter_last_round,
+                                         self.party_chatter_this_round)
+                    if getattr(self.shared_state, 'party_chat_enabled', True)
+                    else ""),
                 # NEW: Recent action outcomes (detailed narrations)
                 "recent_action_outcomes": recent_outcomes_text,
                 # Unified entity awareness (allies + enemies + NPCs)
@@ -2157,6 +2186,19 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "situational_factors": self._format_situational_factors(),
                 # NEW: What allies/enemies have declared THIS round (tactical coordination)
                 "declared_actions_this_round": declared_actions_text,
+                # Party context: teammate capabilities for task routing +
+                # dedicated chatter block (see party_context.py)
+                "party_capabilities": (
+                    render_party_capabilities(
+                        self.agent_id,
+                        getattr(self.shared_state, 'player_agents', None) or [])
+                    if getattr(self.shared_state, 'party_capabilities_enabled', True)
+                    else ""),
+                "party_chatter": (
+                    render_party_chatter(self.party_chatter_last_round,
+                                         self.party_chatter_this_round)
+                    if getattr(self.shared_state, 'party_chat_enabled', True)
+                    else ""),
                 # NEW: Recent action outcomes (detailed narrations)
                 "recent_action_outcomes": recent_outcomes_text,
                 # Weapon loadout (so LLM knows what weapons are available)

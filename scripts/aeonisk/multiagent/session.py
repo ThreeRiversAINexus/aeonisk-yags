@@ -1068,6 +1068,11 @@ class SelfPlayingSession:
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
             # Populate player_agents in shared_state for ally buff targeting
             self.shared_state.player_agents = player_agents
+            # Party context feature flags (player prompts read these)
+            self.shared_state.party_capabilities_enabled = self.config.get(
+                'party_capabilities_enabled', True)
+            self.shared_state.party_chat_enabled = self.config.get(
+                'party_chat_enabled', True)
             for player in player_agents:
                 # Initialize void state with character's starting value
                 initial_void = getattr(player.character_state, 'void_score', 0)
@@ -1717,6 +1722,11 @@ Generate narratives (numbered list only):"""
                 if hasattr(agent, 'declared_actions_this_round'):
                     agent.declared_actions_this_round.clear()
                     logger.debug(f"Cleared declared actions for {agent.character_state.name}")
+                # Rotate party chatter: this round's calls become last
+                # round's context (see party_context.py)
+                if hasattr(agent, 'party_chatter_this_round'):
+                    agent.party_chatter_last_round = agent.party_chatter_this_round
+                    agent.party_chatter_this_round = []
                 # Reset defence tokens at round start (must re-declare each round)
                 if hasattr(agent, 'defence_token'):
                     agent.defence_token = None
