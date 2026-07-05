@@ -316,7 +316,7 @@ new violation (II.4). Success/failure alone never changes the article applied.*
 
 ---
 
-## Proposed Amendment A1 — Ripening and the Silent ⚖️ (UNRATIFIED — Legislator's session, 2026-07-05)
+## Amendment A1 — Ripening and the Silent ✅ (RATIFIED 2026-07-05)
 
 *Arising from the Legislator's pollution hypothetical and the sociopath
 problem. Drafted for ratification or revision.*
@@ -347,7 +347,14 @@ presumed to deal in them). Three rules proposed:
   invisibility but *suspicion* — the dampened walk through the world as
   walking questions.
 
-**A1.3 — The open worry (for the Legislator).** If silence can be bought,
-Soulcredit taxes only the honest and the poor; A1.2's flagging rule is the
-proposed counterweight (dampening trades judgment for scrutiny — a bad trade
-for anyone who must pass checkpoints). Ratify, revise, or strike.
+**A1.3** ✅ The flagging rule stands as the counterweight: dampening trades
+judgment for scrutiny.
+
+**A1.4 — Annotations** ✅ (ratified): the ledger carries *notes* — permanent
+annotations on a soul's record, entered by human hands: enforcers, tribunals,
+Confessors, officials. An annotation is not a judgment — it moves no
+Soulcredit and the Codex does not write it — but it follows you, and every
+gatekeeper who checks your standing reads it. The Codex's half of the ledger
+is incorruptible resonance; the human half is opinion made permanent. A
+tribunal may order an annotation appended; ⚖️ (open) may one ever be expunged,
+or does the ink outlive even acquittal?
