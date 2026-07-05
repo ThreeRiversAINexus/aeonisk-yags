@@ -804,6 +804,24 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_difficulty_assessment(self, round_num: int,
+                                  assessments: List[Dict[str, Any]],
+                                  changes: List[str]):
+        """Log the DM's round-batch difficulty/framing assessment.
+
+        Each assessment entry carries the DM's ruling alongside the
+        player's counterfactual estimate for calibration analysis.
+        """
+        event = {
+            "event_type": "difficulty_assessment",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "assessments": assessments,
+            "changes": changes
+        }
+        self._write_event(event)
+
     def log_action_declaration(self, player_id: str, character_name: str, initiative: int, action: Dict[str, Any], round_num: int):
         """Log individual action declaration."""
         event = {

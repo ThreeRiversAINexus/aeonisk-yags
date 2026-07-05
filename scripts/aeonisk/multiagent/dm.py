@@ -4100,6 +4100,75 @@ Void Level: {self.current_scenario.void_level}/10"""
                 reasoning=f"Conversion check failed: {str(e)}"
             )
 
+    async def assess_round_actions(self, declarations: List[Dict[str, Any]],
+                                   scene_context: str,
+                                   round_number: int):
+        """One batch call per round: authoritative difficulty per declared
+        action, plus attribute/skill ratification.
+
+        The DM assesses blind to the players' difficulty_estimates - the
+        estimates stay in the declaration events as counterfactuals, and
+        showing them here would just re-anchor the assessment on them.
+
+        Returns RoundAssessment, or None on any failure (callers fall
+        back to the calculate_dc category table - never stall a session
+        on this call).
+        """
+        from .round_assessment import RoundAssessment
+
+        if not self.llm_provider or not declarations:
+            return None
+
+        try:
+            prompt_path = os.path.join(
+                os.path.dirname(__file__),
+                "prompts/claude/en/dm/dm_round_assessment.yaml"
+            )
+            with open(prompt_path, 'r') as f:
+                prompt_data = yaml.safe_load(f)
+
+            decl_lines = []
+            for action in declarations:
+                name = (action.get('character_name')
+                        or action.get('character') or 'Unknown')
+                skill = action.get('skill') or 'no skill (unskilled)'
+                ritual = " [RITUAL - engine floors at 22]" \
+                    if action.get('is_ritual') else ""
+                decl_lines.append(
+                    f"- {name}: \"{action.get('intent', '')}\" "
+                    f"(framed as {action.get('attribute')} × {skill}){ritual}"
+                )
+
+            prompt = prompt_data['round_assessment_prompt'].format(
+                scene_context=scene_context or "No additional scene context",
+                declarations="\n".join(decl_lines)
+            )
+
+            assessment: RoundAssessment = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=RoundAssessment,
+                system_prompt=(
+                    "You are the DM assessing action difficulty from "
+                    "fiction and stakes before dice are rolled."),
+                max_tokens=2000,
+                temperature=self.llm_config.get('temperature', 1.0),
+                llm_logger=self.llm_logger,
+                current_round=round_number
+            )
+
+            if self.llm_logger:
+                self.llm_logger.call_count += 1
+
+            logger.info(
+                f"DM round assessment: "
+                f"{[(a.character_name, a.difficulty) for a in assessment.assessments]}")
+            return assessment
+
+        except Exception as e:
+            logger.warning(f"DM round assessment failed (falling back to "
+                           f"category table): {e}")
+            return None
+
     async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None, expired_clocks=None, entity_lifecycle_result=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
@@ -5764,11 +5833,12 @@ For **other actions** (flee, hide, assist, attack):
                     coordination_from = bonus_info['from']
                     print(f"💡 {action.get('character', 'Character')} receives +{coordination_bonus} coordination bonus from {coordination_from}!")
 
-            # Calculate DC: the player's structured difficulty_estimate is
-            # the authoritative proposal, floored by calculate_dc guardrails
+            # Calculate DC: the DM's round-batch assessment is the
+            # authoritative proposal, floored by calculate_dc guardrails;
+            # absent assessment falls back to the category table
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
             is_inter_party = action.get('is_free_action', False)  # Free actions are inter-party
-            proposed_dc = action.get('difficulty_estimate')
+            proposed_dc = action.get('dm_assessed_difficulty')
             difficulty = mechanics.calculate_dc(
                 intent=intent,
                 action_type=action_type,
@@ -6715,10 +6785,11 @@ For **other actions** (flee, hide, assist, attack):
             attribute_value = action.get('attribute_value', 3)
             skill_value = action.get('skill_value', 0)
 
-            # Calculate DC: the player's structured difficulty_estimate is
-            # the authoritative proposal, floored by calculate_dc guardrails
+            # Calculate DC: the DM's round-batch assessment is the
+            # authoritative proposal, floored by calculate_dc guardrails;
+            # absent assessment falls back to the category table
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
-            proposed_dc = action.get('difficulty_estimate')
+            proposed_dc = action.get('dm_assessed_difficulty')
             difficulty = mechanics.calculate_dc(
                 intent=intent,
                 action_type=action_type,

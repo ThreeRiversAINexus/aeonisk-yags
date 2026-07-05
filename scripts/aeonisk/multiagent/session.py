@@ -1772,7 +1772,75 @@ Generate narratives (numbered list only):"""
             await self._run_mission_debrief()
 
         await self._end_session()
-        
+
+    async def _run_dm_assessment_phase(self, mechanics) -> None:
+        """DM rules on all declared player actions in one batch call.
+
+        Merges the DM's difficulty (and any attribute/skill reframe) into
+        the buffered action dicts consumed by the resolution phase, and
+        logs a difficulty_assessment event pairing each ruling with the
+        player's counterfactual estimate. No-op on any failure.
+        """
+        from .round_assessment import apply_assessments
+
+        dm_agent = getattr(self, 'dm_agent', None)
+        if dm_agent is None or not self._declared_actions:
+            return
+
+        declarations = []
+        for buffered_list in self._declared_actions.values():
+            for buffered in buffered_list:
+                action = buffered.get('action')
+                if isinstance(action, dict):
+                    declarations.append(action)
+        if not declarations:
+            return
+
+        # Light scene context: void level + active clocks
+        context_bits = []
+        if mechanics:
+            context_bits.append(f"Scene void level: {getattr(mechanics, 'scene_void_level', 0)}")
+            clocks = getattr(mechanics, 'scene_clocks', None) or {}
+            for name, clock in list(clocks.items())[:6]:
+                current = getattr(clock, 'current_ticks', getattr(clock, 'current', '?'))
+                maximum = getattr(clock, 'max_ticks', getattr(clock, 'max', '?'))
+                context_bits.append(f"Clock '{name}': {current}/{maximum}")
+        scene_context = "\n".join(context_bits)
+
+        round_num = mechanics.current_round if mechanics else 0
+        assessment = await dm_agent.assess_round_actions(
+            declarations, scene_context, round_num)
+        if assessment is None:
+            return
+
+        # Character sheets for reframe value lookups
+        character_sheets = {}
+        for agent in self.agents:
+            state = getattr(agent, 'character_state', None)
+            if state is not None:
+                character_sheets[state.name] = (
+                    getattr(state, 'attributes', {}) or {},
+                    getattr(state, 'skills', {}) or {},
+                )
+
+        changes = apply_assessments(self._declared_actions, assessment,
+                                    character_sheets)
+        for line in changes:
+            print(f"⚖️  DM assessment: {line}")
+
+        if mechanics and mechanics.jsonl_logger:
+            estimates = {a.get('character_name'): a.get('difficulty_estimate')
+                         for a in declarations}
+            mechanics.jsonl_logger.log_difficulty_assessment(
+                round_num=round_num,
+                assessments=[
+                    {**ruling.model_dump(),
+                     "player_estimate": estimates.get(ruling.character_name)}
+                    for ruling in assessment.assessments
+                ],
+                changes=changes,
+            )
+
     async def _run_initiative_round(self) -> bool:
         """
         Run a round with proper tactical flow:
@@ -2547,6 +2615,14 @@ Generate narratives (numbered list only):"""
                         print(f"[{agent.name}] unable to act this round")
 
         self._in_declaration_phase = False
+
+        # DM ASSESSMENT PHASE: one batch call per round rules the
+        # authoritative difficulty (and ratifies attribute/skill framing)
+        # for every declared player action, before any dice roll. Player
+        # estimates stay in declaration events as counterfactuals. Any
+        # failure falls back to calculate_dc's category table.
+        if self.config.get('dm_assessment_enabled', True):
+            await self._run_dm_assessment_phase(mechanics)
 
         # PHASE 2: RESOLUTION (execute in descending initiative order)
         print("\n=== Resolution Phase ===")
