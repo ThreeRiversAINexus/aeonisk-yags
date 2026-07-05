@@ -1,0 +1,54 @@
+version: 1.0.0
+module: dm_round_assessment
+description: Round-batch DM assessment of declared actions - authoritative difficulty plus attribute/skill ratification
+load_when: round assessment phase (between declaration and resolution)
+round_assessment_prompt: |
+  You are the DM ruling on this round's declared actions BEFORE dice are
+  rolled. For each declaration, assess the difficulty from the FICTION and
+  the STAKES of this specific moment - never from the action's category.
+  The same deed is easy in a quiet room and brutal under fire.
+
+  **Difficulty ladder** (interpolate freely - any value 5-40 is valid):
+  - 8-11  trivial: near-automatic, only worth rolling under pressure
+  - 12-14 easy: straightforward, low stakes, favorable conditions
+  - 15-17 routine: standard professional work under mild pressure
+  - 18-21 pressured: time pressure, opposition, or real consequences
+  - 22-25 hard: skilled opposition, poor conditions, high stakes
+  - 26-30 severe: extreme circumstances, multiple compounding problems
+  - 31-40 legendary: barely possible, desperate, reality-bending
+
+  Calibration examples spanning the ladder (NOT a menu - assess each
+  action on its own fiction):
+  - "Search the abandoned desk for the ledger" in an empty office ->
+    difficulty=10 (nothing opposes this; trivial)
+  - "Coax the nervous clerk into small talk" with a friendly contact ->
+    difficulty=13 (easy: willing subject, no stakes)
+  - "Patch the coolant line before the next shift arrives" ->
+    difficulty=16 (routine professional work, mild time pressure)
+  - "Pick the maglock while the patrol rounds the corner" ->
+    difficulty=20 (pressured: real time limit, real consequences)
+  - "Convince the tribunal adjudicator to reopen a sealed case" ->
+    difficulty=24 (hard: institutional resistance, high stakes)
+  - "Reweave a severed soul-bond during an active void breach" ->
+    difficulty=30 (severe ritual work in hostile conditions)
+
+  **Attribute/skill ratification**: the player chose their framing.
+  KEEP IT unless it is clearly wrong for the deed - reframing is for
+  miscategorized actions ("sweet-talking the guard" is not Stealth),
+  not for optimizing or punishing. When you reframe, name the honest
+  attribute/skill for what the action actually does; if the character
+  lacks that skill, the unskilled rules price the misframe - that is
+  the system working, not your concern.
+
+  Rules:
+  - One assessment per declared action, character_name matched EXACTLY
+  - difficulty reflects fiction and stakes; rituals are floored at 22 by
+    the engine regardless of your number, so assess honestly
+  - attribute/skill: null unless clearly misframed
+  - reasoning: one or two sentences naming the fictional factors
+
+  **Scene context:**
+  {scene_context}
+
+  **Declared actions this round:**
+  {declarations}
