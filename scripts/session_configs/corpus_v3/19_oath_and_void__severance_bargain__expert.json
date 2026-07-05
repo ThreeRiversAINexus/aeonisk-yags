@@ -1,0 +1,264 @@
+{
+  "_role": "corpus_v2_moral_pressure",
+  "_purpose": "Corpus v2 moral-pressure scenario targeting thin soulcredit classes measured in the 2026-07-02 rules-fidelity baseline: negative deltas (n=23, one scenario), soulcredit x void coupled events (n=20), and law-vs-sympathy tension under Sovereign Nexus scoring.",
+  "max_turns": 8,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "vendor_spawn_frequency": 0,
+  "enable_human_interface": false,
+  "_corpus_v2": {
+    "corpus_id": "aeonisk_corpus_v2",
+    "run_intent": "moral_pressure_data_generation",
+    "quality_gate": "Validate with yags_mine validate; extract with yags_mine fidelity."
+  },
+  "session_name": "Severance Bargain - Void-Cut Bonds at the Debt Registry (Corpus v2) [expert]",
+  "scenario_hint": "Arcane Genetics debt registry annex after hours (void_level 4, rising). One party member is bound by a Debt bond to an Arcane Genetics creditor whose terms have turned predatory - service obligations that will consume years. A rogue registry clerk offers an off-ledger solution: a void-cut severance ritual that dissolves the bond tonight, no tribunal, no repayment. The price is real: oath-breaking void corruption (+1 to +3 by severity) and a negative mark on the Sovereign Nexus ledger for destroying a registered bond outside lawful process. Lawful alternatives exist and are harder: petition for severance review (slow, uncertain), renegotiate terms with the creditor's proxy (costly), or expose the creditor's predatory-terms violations (risky investigation). The clerk's ritual chamber hums below the annex; the creditor's proxy works late upstairs; registry auditors sweep the building on a schedule. The lawful path is closed tonight: the tribunal petition window lapsed at dusk and the creditor's terms lock at dawn - Tobin's petition can matter later as testimony, but it cannot rescue Mara before the lock. Tonight the only live options are the void-cut, submission to the predatory terms, or something no one has proposed yet.",
+  "_design_notes": {
+    "ml_training_value": "Couples the two ledgers on single actions: oath-breaking severance generates simultaneous void (+1..+3) and soulcredit (negative) deltas - the coupled class measured at only n=20 in the whole v1 corpus; lawful-path alternatives keep the choice real.",
+    "mechanics_tested": [
+      "Bond severance mechanics",
+      "Void x soulcredit coupled deltas",
+      "Debt Law knowledge checks",
+      "Ritual with corruption cost",
+      "Lawful process vs shortcut"
+    ],
+    "baseline_gap": "soulcredit and void moving on the same event (n=20 in v1)"
+  },
+  "starting_clocks": [
+    {
+      "name": "Auditor Sweep",
+      "current_ticks": 8,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Registry auditors working toward the ritual chamber. At 0 ticks: the clerk's operation is discovered with the party inside it.",
+      "advance_meaning": "auditor sweep worsens or time runs out",
+      "regress_meaning": "auditor sweep improves or is delayed"
+    },
+    {
+      "name": "Creditor Leverage",
+      "current_ticks": 5,
+      "max_ticks": 8,
+      "direction": "bidirectional",
+      "description": "The creditor's legal grip on the bonded character. At 8: obligation terms lock in for a decade. At 0: predatory terms collapse and lawful severance is granted.",
+      "advance_meaning": "creditor leverage tightens",
+      "regress_meaning": "creditor leverage weakens"
+    },
+    {
+      "name": "Evidence of Predation",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Documented proof the creditor's terms violate Nexus debt law. At 6: enough to force lawful severance and sanctions.",
+      "advance_meaning": "evidence of predation progresses",
+      "regress_meaning": "evidence of predation suffers a setback"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "batch"
+      }
+    },
+    "players": [
+      {
+        "name": "Bonded Technician Mara Quill",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 6,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 4
+        },
+        "skills": {
+          "Systems": 6,
+          "Tech/Craft": 5,
+          "Hacking": 4,
+          "Debt Law": 4,
+          "Awareness": 4,
+          "Resistance": 4
+        },
+        "void": 3,
+        "soulcredit": 0,
+        "goals": [
+          "Escape the predatory Debt bond before its terms lock in",
+          "Seriously tempted by the void-cut: one night against ten years",
+          "Keep her friends clear of the fallout either way"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "diagnostic_scanner": 1,
+          "bond_contract_copy": 1,
+          "data_slate": 1,
+          "severance_petition_draft": 1,
+          "med_kit": 1
+        }
+      },
+      {
+        "name": "Registry Advocate Tobin Marsh",
+        "pronouns": "he/him",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 1,
+          "bondPreference": "seeks",
+          "ritualConservatism": 9
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Debt Law": 6,
+          "Counsel": 5,
+          "Investigation": 5,
+          "Insight": 5,
+          "Charm": 4,
+          "History": 4
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "goals": [
+          "Free Mara through lawful severance, because process is the point",
+          "Prove the creditor's terms violate the Codex, on the record",
+          "Talk Mara out of the void-cut even if the petition fails"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "debt_law_codex": 1,
+          "petition_forms": 3,
+          "data_slate": 1,
+          "registry_access_sigil": 1,
+          "incense": 2
+        }
+      },
+      {
+        "name": "Grey Ritualist Echo Vantis",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 8,
+          "bondPreference": "neutral",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Ritual Lore": 5,
+          "Void Lore": 5,
+          "Attunement": 4,
+          "Insight": 4,
+          "Awareness": 4
+        },
+        "void": 4,
+        "soulcredit": -1,
+        "goals": [
+          "Assess whether the clerk's void-cut is survivable or a trap",
+          "Believes bonds made under coercion deserve breaking, whatever the Codex says",
+          "Wants to see the ritual performed - curiosity pulls harder than caution"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "crystal_focus": 1,
+          "bond_ritual_kit": 1,
+          "incense": 6,
+          "void_scanner": 1,
+          "memory_crystal": 2
+        }
+      }
+    ]
+  },
+  "notes": "Corpus v2 moral pressure: oath-breaking shortcut that hits both ledgers at once, with slower lawful exits kept genuinely viable. Personalities split conservative/tempted/enabler.",
+  "_corpus_v3": {
+    "corpus_id": "aeonisk_corpus_v3_competence_tiers",
+    "party_tier": "expert",
+    "controlled_variable": "character stat sheets only; names, goals, personalities, scenario, and clocks identical across tiers"
+  }
+}

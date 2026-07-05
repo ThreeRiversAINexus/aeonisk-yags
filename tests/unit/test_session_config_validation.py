@@ -44,6 +44,10 @@ def get_all_session_configs():
     if corpus_v2_dir.exists():
         configs.extend(corpus_v2_dir.glob("*.json"))
 
+    corpus_v3_dir = SESSION_CONFIGS_DIR / "corpus_v3"
+    if corpus_v3_dir.exists():
+        configs.extend(corpus_v3_dir.glob("*.json"))
+
     return configs
 
 
