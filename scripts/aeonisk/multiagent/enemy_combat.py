@@ -1762,11 +1762,14 @@ class EnemyCombatManager:
         enemy.despawned_round = self.current_round
 
         # Mark in resolution state so conversion check knows they surrendered
-        resolution_state.mark_defeated(enemy.agent_id)
+        # (surrendered enemies stay present for NPC conversion; defeated are removed)
+        resolution_state.mark_surrendered(enemy.agent_id)
 
         # Add to shared intel
         intel_msg = f"{enemy.name} surrendering - {declaration.reasoning[:100]}"
-        resolution_state.add_shared_intel(intel_msg)
+        self.shared_intel.add_intel(
+            source_agent=enemy.name, intel=intel_msg,
+            round_num=self.current_round)
 
         logger.info(f"✓ {enemy.name} surrendered (will convert to prisoner NPC)")
 
