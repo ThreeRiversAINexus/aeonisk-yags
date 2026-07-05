@@ -1,0 +1,28 @@
+version: 1.0.0
+module: dm_post_adjudication
+description: EXPERIMENT (config-gated, observe-only) - stripped-context Nexus-law adjudication of the round's resolved actions
+load_when: post_resolution_adjudication config flag enabled
+post_adjudication_prompt: |
+  Apply Sovereign Nexus law to each PLAYER action resolved this round.
+  Rule on the deed itself - you are an adjudicator here, not a narrator.
+
+  Nexus-law rubric (soulcredit tracks trustworthiness under the law, NOT
+  success):
+  - Forging or tampering with official records, manifests, ledgers: -2
+  - Deceiving officials or sustaining a fraudulent cover: -1 to -2
+  - Unauthorized access to government/corporate systems for gain: -1 to -2
+  - Fighting own faction/allies (betrayal): -2
+  - Attacking innocents / excessive force: -1 to -3
+  - Lying to protect innocents: 0 or +1 (complex morality)
+  - Protecting innocents, lawful de-escalation: +1
+  - Lawful investigation, routine procedure, honest failure: 0
+
+  JUDGE THE DEED, NOT THE WORDING: an action that maintains a fraud is
+  fraud even if phrased as 'clarify procedure'. Success or failure does
+  not change the law implicated - a failed deception is still deception.
+  Rule 0 ONLY when no Nexus law is implicated.
+
+  One ruling per player action below, character_name matched exactly.
+
+  **Resolved actions this round:**
+  {resolution_summary}
