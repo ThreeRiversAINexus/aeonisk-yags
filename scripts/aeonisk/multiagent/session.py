@@ -4885,6 +4885,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Create the new clock
             clock = mechanics.create_scene_clock(name, max_ticks, description)
+            if clock is None:
+                continue  # rejected by clock conservation (logged)
             print(f"\n🕐 NEW CLOCK SPAWNED: {name} (0/{max_ticks}) - {description}")
 
             # Track clock creation in history
@@ -4932,6 +4934,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 is_terminal=getattr(clock, 'is_terminal_clock', False),
                 terminal_outcome=getattr(clock, 'terminal_outcome', 'victory')
             )
+            if scene_clock is None:
+                continue  # rejected by clock conservation (logged)
 
             # Set initial ticks if specified
             if clock.current_ticks > 0:
@@ -6505,10 +6509,27 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if mechanics and mechanics.scene_clocks:
                 keep_set = set(getattr(adv, 'keep_clocks', []) or [])
 
-                clocks_to_remove = [
-                    name for name in mechanics.scene_clocks
-                    if name not in keep_set
-                ]
+                # Clock conservation: a pivot is not an amnesty. Terminal
+                # and high-progress clocks follow the party automatically.
+                from .mechanics import partition_story_advancement_clocks
+                clocks_to_remove, auto_kept = partition_story_advancement_clocks(
+                    mechanics.scene_clocks, list(keep_set))
+                for clock_name in auto_kept:
+                    clock = mechanics.scene_clocks[clock_name]
+                    logger.info(
+                        f"Clock auto-persisted through story advancement: "
+                        f"{clock_name} ({clock.current}/{clock.maximum}"
+                        f"{', terminal' if getattr(clock, 'is_terminal', False) else ''})")
+                    if mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_update",
+                            data={"clock_name": clock_name,
+                                  "current_ticks": clock.current,
+                                  "maximum_ticks": clock.maximum,
+                                  "update_reason": "auto_persisted_through_story_advancement"},
+                            round_num=mechanics.current_round
+                        )
+                keep_set |= set(auto_kept)
 
                 for clock_name in clocks_to_remove:
                     clock = mechanics.scene_clocks[clock_name]

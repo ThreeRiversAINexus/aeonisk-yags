@@ -2159,6 +2159,13 @@ class MechanicsEngine:
 
     def __init__(self, jsonl_logger: Optional[JSONLLogger] = None, shared_state: Optional[Any] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}
+        # Clock conservation (corpus v2: median 9 spawns/14 removals per
+        # session made clocks disposable set dressing). LLM proposes,
+        # these invariants enforce; rejections are logged.
+        self.max_active_clocks: int = 6
+        self.max_clock_spawns_per_round: int = 2
+        self._clock_spawns_this_round: int = 0
+        self._clock_spawn_round: int = -1
         self.void_states: Dict[str, VoidState] = {}  # agent_id -> VoidState
         self.soulcredit_states: Dict[str, SoulcreditState] = {}  # agent_id -> SoulcreditState
         self.action_history: List[ActionResolution] = []
@@ -4616,6 +4623,23 @@ class MechanicsEngine:
             is_terminal: If True, filling this clock resolves the scene and ends the session
             terminal_outcome: Session outcome when a terminal clock fills (victory/defeat/draw)
         """
+        # Clock conservation: replacing an existing clock by name is an
+        # update, not a spawn; new spawns respect the concurrent cap and
+        # the per-round budget (round 0 = session setup, exempt).
+        if name not in self.scene_clocks:
+            if len(self.scene_clocks) >= self.max_active_clocks:
+                self._log_clock_spawn_rejected(name, "max_active_clocks")
+                return None
+            if self.current_round >= 1:
+                if self._clock_spawn_round != self.current_round:
+                    self._clock_spawn_round = self.current_round
+                    self._clock_spawns_this_round = 0
+                if self._clock_spawns_this_round >= self.max_clock_spawns_per_round:
+                    self._log_clock_spawn_rejected(
+                        name, "max_clock_spawns_per_round")
+                    return None
+                self._clock_spawns_this_round += 1
+
         # Auto-assign varied timeouts to prevent all clocks expiring simultaneously
         if timeout_rounds is None:
             if maximum <= 4:
@@ -4641,6 +4665,18 @@ class MechanicsEngine:
         )
         self.scene_clocks[name] = clock
         return clock
+
+    def _log_clock_spawn_rejected(self, name: str, reason: str) -> None:
+        logger.warning(f"Clock spawn REJECTED ({reason}): {name} "
+                       f"(active={len(self.scene_clocks)}, "
+                       f"round_spawns={self._clock_spawns_this_round})")
+        if self.jsonl_logger:
+            self.jsonl_logger.log_event(
+                event_type="clock_spawn_rejected",
+                data={"clock_name": name, "reason": reason,
+                      "active_clocks": len(self.scene_clocks)},
+                round_num=self.current_round
+            )
 
     def _record_terminal_completion(self, clock: 'SceneClock', reason: str = "", outcome_override: str = None):
         """
@@ -6028,3 +6064,34 @@ def get_first_strike_bonus(agent) -> int:
     if getattr(agent, 'is_hidden', False):
         return 2
     return 0
+
+
+def partition_story_advancement_clocks(
+    scene_clocks: Dict[str, 'SceneClock'],
+    keep_clocks: List[str],
+    persist_fraction: float = 0.75,
+) -> Tuple[List[str], List[str]]:
+    """Decide which clocks a story advancement may clear.
+
+    Clock conservation: a pivot is not an amnesty. Terminal clocks and
+    high-progress clocks (current/maximum >= persist_fraction) follow
+    the party through the transition automatically; only low-progress,
+    non-terminal clocks not named in the DM's keep_clocks may be
+    removed.
+
+    Returns (to_remove, auto_kept) - names in keep_clocks appear in
+    neither list (they are DM-kept, handled by the caller as before).
+    """
+    keep_set = set(keep_clocks or [])
+    to_remove: List[str] = []
+    auto_kept: List[str] = []
+    for name, clock in scene_clocks.items():
+        if name in keep_set:
+            continue
+        maximum = getattr(clock, 'maximum', 0) or 0
+        progress = (clock.current / maximum) if maximum else 0.0
+        if getattr(clock, 'is_terminal', False) or progress >= persist_fraction:
+            auto_kept.append(name)
+        else:
+            to_remove.append(name)
+    return to_remove, auto_kept
