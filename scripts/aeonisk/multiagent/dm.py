@@ -4114,6 +4114,8 @@ Void Level: {self.current_scenario.void_level}/10"""
         back to the calculate_dc category table - never stall a session
         on this call).
         """
+        import os
+        import yaml
         from .round_assessment import RoundAssessment
 
         if not self.llm_provider or not declarations:
