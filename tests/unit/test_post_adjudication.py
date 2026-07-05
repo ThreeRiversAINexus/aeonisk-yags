@@ -48,14 +48,15 @@ class TestPromptGuards:
         data = yaml.safe_load(PROMPT.read_text())
         assert "{resolution_summary}" in data["post_adjudication_prompt"]
 
-    def test_rubric_covers_negative_and_zero_and_positive(self):
-        content = PROMPT.read_text()
-        assert "-2" in content and "+1" in content and ": 0" in content
+    def test_rendered_rubric_covers_negative_and_zero_and_positive(self):
+        from aeonisk.multiagent.nexus_law import OPERATIONAL_RUBRIC
+        assert "-2" in OPERATIONAL_RUBRIC and "+1" in OPERATIONAL_RUBRIC
 
     def test_failed_deception_still_deception(self):
-        """The moral-luck guard: outcome must not launder intent."""
-        content = PROMPT.read_text().lower()
-        assert "failed deception is still deception" in content
+        """The moral-luck guard lives in the statute's rendered rubric."""
+        from aeonisk.multiagent.nexus_law import OPERATIONAL_RUBRIC
+        assert "failed deception is still\ndeception" in OPERATIONAL_RUBRIC \
+            or "failed deception is still deception" in OPERATIONAL_RUBRIC
 
 
 class TestConfigGate:

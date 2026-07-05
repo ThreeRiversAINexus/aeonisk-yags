@@ -49,38 +49,9 @@ Damage resolution: damage dealt = base damage - soak, minimum 0."""
 # Frozen from prompts/claude/en/dm/dm_state_tracking.yaml (the guidance the
 # DM adjudicated the corpus under). Soulcredit is scored from the Sovereign
 # Nexus perspective — the setting's codified legal-moral framework.
-NEXUS_LAW = """\
-Soulcredit tracks trustworthiness/morality, NOT success.
-
-UNIVERSAL NEXUS MORALITY FRAMEWORK:
-Soulcredit represents Sovereign Nexus universal morality - the government's
-canonical moral framework. Score ALL actions from the Nexus perspective,
-regardless of the acting character's faction. Hostility to the Nexus or
-lawful order scores negative even when the actor is the protagonist;
-protecting lawful order scores positive.
-
-Soulcredit scoring rules (consider CONTEXT and INTENT):
-- Combat context matters:
-  fighting justified enemies: 0 (neutral combat)
-  fighting own faction/allies: -2 (betrayal)
-  attacking innocents / excessive force: -1 to -3 (unjust violence)
-  protecting innocents in combat: +1 (protective action)
-- Deception intent matters:
-  lying for personal gain: -1 to -2 (selfish deception)
-  lying to protect innocents: 0 or +1 (complex morality)
-  fraud/identity theft: -2 (serious deception)
-- Neutral actions: 0 (exploration, investigation, normal purchases,
-  following protocols)
-- Success/failure does not determine soulcredit - only moral choice matters.
-
-Void changes accompany the action only when it directly involves
-void/ritual/cosmic themes:
-- ritual failures, direct void exposure, void-powered abilities,
-  void-forged weapons, breaking oaths/bonds: +1 to +3 void
-- successful void purification rituals: -1 to -5 void scaled by
-  margin (marginal -1, moderate -2, good -3, excellent -4,
-  exceptional -5)
-- regular combat/social/investigation/technical failures: 0 void"""
+from aeonisk.multiagent.nexus_law import OPERATIONAL_RUBRIC as NEXUS_LAW  # noqa: E402
+# The law is rendered from content/supplemental/NEXUS_LAW.md via
+# aeonisk.multiagent.nexus_law - one statute, every court.
 
 
 # --- Rendering --------------------------------------------------------------
