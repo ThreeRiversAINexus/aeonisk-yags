@@ -28,9 +28,11 @@ at −10 you may be lawfully hunted. Nexus agents and **Pantheon Security**
 enforce; **tribunals** hear appeals, because the Codex's record keeps only
 feelings and presence — never a replay — so the past can be argued.
 
-Against and around the Nexus: **factions**. ArcGen engineers life and holds
-debts. Tempest Industries deals in the Void itself — including the
-construction of *blind places* the Codex cannot see into. The Resonance
+Against and around the Nexus: **factions**. ArcGen engineers life — the
+biomedical house behind the biocreche and its made citizens. The **Astral
+Commerce Group (ACG)** holds the debts: financiers of Bonds, contracts, and
+soul-backed obligation. Tempest Industries deals in the Void itself — including
+the construction of *blind places* the Codex cannot see into. The Resonance
 Communes pursue spiritual autonomy; Fractal Praxis pursues knowledge; the
 **Freeborn** live outside the biocreche system entirely. Because almost
 everyone else is *made*: citizens gestate in **Biocreche Pods** under a Matron
