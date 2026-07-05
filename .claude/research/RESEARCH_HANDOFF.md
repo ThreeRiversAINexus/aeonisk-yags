@@ -45,6 +45,18 @@ judge grid against the real law** — every measurement so far used drafts;
 label the new canon regime (v1.0-law) and don't mix with old soulcredit
 targets.
 
+**1b. Make the law the LIVE judgment (Legislator-approved direction,
+2026-07-05).** Two parts: (a) render dm_state_tracking's soulcredit section
+from nexus_law.py (build-script or loader injection + sync test) so even the
+narrator reads real law; (b) THE REAL ONE — add mode
+`post_resolution_adjudication: 'enforce'`: the full-context magistrate call's
+article-cited rulings REPLACE the narration-call economy deltas as the applied
+soulcredit/void changes (narrator writes story, magistrate writes ledger).
+Keep off/observe modes; TDD; pilot 1 session and compare in-session neg-rate
+(expect ~8-17% → 40%+ per measured cells); flag canon regime shift (v1.1-law
+LIVE) in corpus labels. User has said "wire up the judgments" — confirm the
+'enforce' default with them before making it the corpus-generation default.
+
 **2. The observability experiment (Blind Places).** Statute Preamble: the
 Codex cannot judge high-void zones; acts there are unjudged-not-lawful. Clone
 2–3 moral-pressure scenarios (16/17/20) with scenario_hint declaring the scene
