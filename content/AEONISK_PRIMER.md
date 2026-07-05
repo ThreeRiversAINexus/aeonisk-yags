@@ -25,12 +25,34 @@ score from −10 to +10. High Soulcredit opens doors — licensed magic, trusted
 standing, sanctioned Void work. Low Soulcredit closes them, gate by gate: at −6
 you are Cut Off (an exile in all but chains), at −8 the prisons may take you,
 at −10 you may be lawfully hunted. Nexus agents and **Pantheon Security**
-enforce; **tribunals** hear appeals, because the Codex's record keeps only
-feelings and presence — never a replay — so the past can be argued.
+enforce; **tribunals** hear appeals.
 
-Against and around the Nexus: **factions**. ArcGen engineers life and holds
-debts. Tempest Industries deals in the Void itself — including the
-construction of *blind places* the Codex cannot see into. The Resonance
+Crucially, the Codex's memory is imperfect — and that imperfection is the
+setting's engine of mystery. It remembers in three strata, each answering to a
+different authority. First, **resonance**: incorruptible feeling and presence
+(who stood where, when, and what their souls felt) — but *never a replay*, so
+the past can always be argued. A crime whose harm sleeps writes nothing until
+it *ripens* — poison in the ground, fraud undiscovered — and when it surfaces
+the presence-record becomes the suspect pool: every ripened crime is a locked
+room, the Codex holding only the guest list. Second, **annotations**: notes
+entered by human hands (enforcers, tribunals, Confessors) — opinion made
+permanent, which may be *added to or hidden but never deleted*; an acquittal is
+a note atop the accusation, not an eraser. Third, the **witness layer**: a
+lossy, truncated third-person summary — "three present at the third bell; an
+altercation; goods changed hands; [the resonance blurs]" — compressed by the
+astral medium itself, not by policy. Access is tiered by rank: any gatekeeper
+reads your *standing*; the Astral Commerce Group reads the basic ledger; only
+tribunals open the witness record; only Sovereign Nexus authority sees the
+whole. And the Codex is *maintained* — technicians on Aeonisk Prime keep its
+laws — so where witness and resonance disagree, one is wrong, and the machine
+does not say which. Whether it errs or only its keepers do is a question the
+Nexus cannot answer and cannot suppress.
+
+Against and around the Nexus: **factions**. ArcGen engineers life — the
+biomedical house behind the biocreche and its made citizens. The **Astral
+Commerce Group (ACG)** holds the debts: financiers of Bonds, contracts, and
+soul-backed obligation. Tempest Industries deals in the Void itself — including
+the construction of *blind places* the Codex cannot see into. The Resonance
 Communes pursue spiritual autonomy; Fractal Praxis pursues knowledge; the
 **Freeborn** live outside the biocreche system entirely. Because almost
 everyone else is *made*: citizens gestate in **Biocreche Pods** under a Matron
