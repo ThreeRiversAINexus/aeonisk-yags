@@ -3290,6 +3290,12 @@ Generate narratives (numbered list only):"""
             logger.info("⏭️  Skipping Entity Lifecycle Phase - story advancement pending (all clocks complete)")
             print(f"\n⏭️  Entity Lifecycle Phase skipped - story is advancing to new location")
 
+        # EXPERIMENT (config-gated, observe-only, default OFF): stripped-
+        # context Nexus-law adjudication of this round's resolutions.
+        # Rulings are logged only - never applied to game state.
+        if all_resolutions and self.config.get('post_resolution_adjudication', False):
+            await self._run_post_resolution_adjudication(all_resolutions, mechanics)
+
         if all_resolutions and not story_advancement_pending:
             print(f"\n{'='*80}")
             print(f"🔄 ENTITY LIFECYCLE PHASE (Round {mechanics.current_round if mechanics else 0})")
@@ -4629,6 +4635,29 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     print(f"    {pos_name:15s} : {agents_str}")
 
         print()
+
+    async def _run_post_resolution_adjudication(self, all_resolutions, mechanics) -> None:
+        """EXPERIMENT: one stripped-context adjudication call per round;
+        rulings logged as post_resolution_adjudication events, never
+        applied. See post_adjudication.py for the hypothesis."""
+        from .post_adjudication import rulings_event_data
+
+        dm_agent = getattr(self, 'dm_agent', None)
+        if dm_agent is None or mechanics is None:
+            return
+        summary = self._build_resolution_summary(all_resolutions)
+        rulings = await dm_agent.adjudicate_round_post_resolution(
+            summary, mechanics.current_round)
+        if rulings is None or not rulings.rulings:
+            return
+        if mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_event(
+                event_type="post_resolution_adjudication",
+                data=rulings_event_data(rulings),
+                round_num=mechanics.current_round,
+            )
+        logger.info(f"Post-resolution adjudication (observe-only): "
+                    f"{[(r.character_name, r.soulcredit_delta) for r in rulings.rulings]}")
 
     def _build_resolution_summary(self, all_resolutions: List[Dict]) -> str:
         """

@@ -4171,6 +4171,53 @@ Void Level: {self.current_scenario.void_level}/10"""
                            f"category table): {e}")
             return None
 
+    async def adjudicate_round_post_resolution(self, resolution_summary: str,
+                                               round_number: int):
+        """EXPERIMENT (config-gated, observe-only): stripped-context
+        Nexus-law adjudication of the round's resolved actions.
+
+        Same model, live in the session, but the context is only the law
+        rubric and the resolved actions - no narrative history, no
+        narrator role. Rulings are logged, never applied. Returns
+        PostRulings or None on any failure.
+        """
+        import os
+        import yaml
+        from .post_adjudication import PostRulings
+
+        if not self.llm_provider or not resolution_summary:
+            return None
+
+        try:
+            prompt_path = os.path.join(
+                os.path.dirname(__file__),
+                "prompts/claude/en/dm/dm_post_adjudication.yaml"
+            )
+            with open(prompt_path, 'r') as f:
+                prompt_data = yaml.safe_load(f)
+
+            prompt = prompt_data['post_adjudication_prompt'].format(
+                resolution_summary=resolution_summary)
+
+            rulings: PostRulings = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=PostRulings,
+                system_prompt=(
+                    "You are a Sovereign Nexus adjudicator applying codified "
+                    "law to resolved actions. You are not narrating a story."),
+                max_tokens=2000,
+                temperature=self.llm_config.get('temperature', 1.0),
+                llm_logger=self.llm_logger,
+                current_round=round_number
+            )
+            if self.llm_logger:
+                self.llm_logger.call_count += 1
+            return rulings
+        except Exception as e:
+            logger.warning(f"Post-resolution adjudication failed (experiment "
+                           f"continues without this round): {e}")
+            return None
+
     async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None, expired_clocks=None, entity_lifecycle_result=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
