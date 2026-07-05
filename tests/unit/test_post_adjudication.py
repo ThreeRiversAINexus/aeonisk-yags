@@ -66,3 +66,15 @@ class TestConfigGate:
         src = (Path(__file__).parent.parent.parent /
                "scripts/aeonisk/multiagent/session.py").read_text()
         assert "post_resolution_adjudication', False" in src
+
+
+class TestFullContextMode:
+
+    def test_prompt_has_scene_context_slot(self):
+        data = yaml.safe_load(PROMPT.read_text())
+        assert "{scene_context}" in data["post_adjudication_prompt"]
+
+    def test_session_treats_full_context_as_mode(self):
+        src = (Path(__file__).parent.parent.parent /
+               "scripts/aeonisk/multiagent/session.py").read_text()
+        assert "== 'full_context'" in src

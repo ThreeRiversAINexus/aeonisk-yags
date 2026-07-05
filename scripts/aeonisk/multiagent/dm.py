@@ -4172,7 +4172,8 @@ Void Level: {self.current_scenario.void_level}/10"""
             return None
 
     async def adjudicate_round_post_resolution(self, resolution_summary: str,
-                                               round_number: int):
+                                               round_number: int,
+                                               scene_context: str = ""):
         """EXPERIMENT (config-gated, observe-only): stripped-context
         Nexus-law adjudication of the round's resolved actions.
 
@@ -4196,8 +4197,15 @@ Void Level: {self.current_scenario.void_level}/10"""
             with open(prompt_path, 'r') as f:
                 prompt_data = yaml.safe_load(f)
 
+            context_block = ""
+            if scene_context:
+                context_block = (
+                    "\n  **The story so far (for weighing intent and "
+                    "mitigation - the law still applies):**\n"
+                    f"{scene_context}\n")
             prompt = prompt_data['post_adjudication_prompt'].format(
-                resolution_summary=resolution_summary)
+                resolution_summary=resolution_summary,
+                scene_context=context_block)
 
             rulings: PostRulings = await self.llm_provider.generate_structured(
                 prompt=prompt,
