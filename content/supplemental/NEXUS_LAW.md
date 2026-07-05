@@ -356,5 +356,32 @@ Confessors, officials. An annotation is not a judgment — it moves no
 Soulcredit and the Codex does not write it — but it follows you, and every
 gatekeeper who checks your standing reads it. The Codex's half of the ledger
 is incorruptible resonance; the human half is opinion made permanent. A
-tribunal may order an annotation appended; ⚖️ (open) may one ever be expunged,
-or does the ink outlive even acquittal?
+tribunal may order an annotation appended. ✅ (ratified): annotations may be
+*added to* or *hidden*, never deleted — the wrong information, once written,
+must remain written, and correction is a new layer atop the error. Acquittal
+is an annotation upon the accusation, not an eraser. The ink outlives
+everything; only its visibility answers to authority.
+
+---
+
+## Proposed Amendment A2 — The Witness Layer ⚖️ (UNRATIFIED — under the Legislator's consideration)
+
+*The Legislator's proposal, held for ratification: a third stratum of the
+ledger — objective event summaries.*
+
+**A2.1** Beyond resonance and annotation, the Codex MAY retain a *witness
+record*: a third-person summary of events — incomplete, truncated, compressed
+by the astral medium itself. Not redacted by policy; lossy by nature. It reads
+like a damaged deposition: "three present at the third bell; an altercation;
+goods changed hands; [the resonance blurs]."
+**A2.2** Access is tiered: any gatekeeper may read *standing*; the Astral
+Commerce Group — stewards of contract, Bond, and debt — may review Soulcredit
+and the basic ledger; the witness record opens only to tribunals; the full
+record only to Sovereign Nexus authority.
+**A2.3** The witness record is evidence, never verdict: it supplements
+testimony at tribunal, it does not replace judgment.
+**A2.4** The Codex is *maintained*: technicians on Aeonisk Prime keep its
+laws. Where the witness record conflicts with resonance, one of them is wrong
+— and the Codex does not say which. Whether the machine errs, or only its
+keepers, is a question the Nexus does not permit and cannot suppress.
+
