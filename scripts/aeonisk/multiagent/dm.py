@@ -5764,16 +5764,19 @@ For **other actions** (flee, hide, assist, attack):
                     coordination_from = bonus_info['from']
                     print(f"💡 {action.get('character', 'Character')} receives +{coordination_bonus} coordination bonus from {coordination_from}!")
 
-            # Calculate DC
+            # Calculate DC: the player's structured difficulty_estimate is
+            # the authoritative proposal, floored by calculate_dc guardrails
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
             is_inter_party = action.get('is_free_action', False)  # Free actions are inter-party
+            proposed_dc = action.get('difficulty_estimate')
             difficulty = mechanics.calculate_dc(
                 intent=intent,
                 action_type=action_type,
                 is_ritual=is_ritual_action,
                 is_extreme=action.get('is_extreme', False),
                 is_multi_stage=action.get('is_multi_stage', False),
-                is_inter_party=is_inter_party
+                is_inter_party=is_inter_party,
+                proposed_dc=proposed_dc
             )
 
             # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)
@@ -6712,14 +6715,17 @@ For **other actions** (flee, hide, assist, attack):
             attribute_value = action.get('attribute_value', 3)
             skill_value = action.get('skill_value', 0)
 
-            # Calculate DC using mechanics engine (don't trust player estimate)
+            # Calculate DC: the player's structured difficulty_estimate is
+            # the authoritative proposal, floored by calculate_dc guardrails
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
+            proposed_dc = action.get('difficulty_estimate')
             difficulty = mechanics.calculate_dc(
                 intent=intent,
                 action_type=action_type,
                 is_ritual=is_ritual_action,
                 is_extreme=action.get('is_extreme', False),
-                is_multi_stage=action.get('is_multi_stage', False)
+                is_multi_stage=action.get('is_multi_stage', False),
+                proposed_dc=proposed_dc
             )
 
             # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)

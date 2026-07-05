@@ -2172,7 +2172,8 @@ class MechanicsEngine:
         is_ritual: bool = False,
         is_extreme: bool = False,
         is_multi_stage: bool = False,
-        is_inter_party: bool = False
+        is_inter_party: bool = False,
+        proposed_dc: Optional[int] = None
     ) -> int:
         """
         Calculate appropriate DC for an action based on context.
@@ -2189,14 +2190,28 @@ class MechanicsEngine:
             is_extreme: Whether this is extreme/dangerous
             is_multi_stage: Whether this requires multiple stages
             is_inter_party: Whether this is communication between party members
+            proposed_dc: LLM-assessed difficulty (player's structured
+                difficulty_estimate). Authoritative within floors; None or
+                <=0 falls back to the category table.
 
         Returns:
             Calculated DC (10-40 range)
         """
         intent_lower = intent.lower()
 
+        # LLM-proposed difficulty: when a proposal is present it is
+        # authoritative within one-directional guardrails - proposals may
+        # raise difficulty freely but can never drop below the floor that
+        # keeps priced mechanics priced (rituals stay CHALLENGING+). The
+        # category table below only answers when no proposal is given.
+        # Corpus v2 (2026-07-04) showed the table alone yields 91% DC 18:
+        # skilled rolls succeed 98%, unskilled 0% - dice as pure theater.
+        if proposed_dc and proposed_dc > 0:
+            floor = (Difficulty.CHALLENGING.value if is_ritual
+                     else Difficulty.TRIVIAL.value)
+            base_dc = max(proposed_dc, floor)
         # Inter-party communication is usually easy unless environmental factors
-        if is_inter_party and action_type == "social":
+        elif is_inter_party and action_type == "social":
             # Check for environmental complications
             if any(kw in intent_lower for kw in ['shout', 'scream', 'distant', 'far away', 'across', 'noise', 'chaos', 'combat']):
                 base_dc = Difficulty.ROUTINE.value  # 18 - complicated communication
