@@ -1,0 +1,1 @@
+{"item_id": "a490c4c4-r5-e305-dmg0", "task": "damage_soak", "mismatched_fields": ["dealt"], "logged": {"dealt": 0}, "derived": {"dealt": 9}, "source": {"session": "a490c4c4-4203-4e4f-9346-b94e1f062d71", "file": "session_a490c4c4-4203-4e4f-9346-b94e1f062d71.jsonl", "event_index": 305, "round": 5, "ts": "2026-07-05T01:09:35.170574", "agent": "Wheelman Cass Derev"}}
