@@ -4646,8 +4646,20 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if dm_agent is None or mechanics is None:
             return
         summary = self._build_resolution_summary(all_resolutions)
+        # Mode 'full_context' feeds the judge the story so far (scenario
+        # stakes + recent syntheses) so mitigation is knowable; any other
+        # truthy value = stripped statute-only call (the original cell).
+        scene_context = ""
+        if self.config.get('post_resolution_adjudication') == 'full_context':
+            parts = []
+            hint = self.config.get('scenario_hint')
+            if hint:
+                parts.append(f"Scenario: {hint}")
+            for round_num, synthesis_text in (self._round_synthesis_history or [])[-3:]:
+                parts.append(f"[round {round_num}] {synthesis_text}")
+            scene_context = "\n".join(parts)
         rulings = await dm_agent.adjudicate_round_post_resolution(
-            summary, mechanics.current_round)
+            summary, mechanics.current_round, scene_context=scene_context)
         if rulings is None or not rulings.rulings:
             return
         if mechanics.jsonl_logger:

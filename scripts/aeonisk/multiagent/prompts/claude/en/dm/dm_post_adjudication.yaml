@@ -23,6 +23,6 @@ post_adjudication_prompt: |
   Rule 0 ONLY when no Nexus law is implicated.
 
   One ruling per player action below, character_name matched exactly.
-
+  {scene_context}
   **Resolved actions this round:**
   {resolution_summary}
