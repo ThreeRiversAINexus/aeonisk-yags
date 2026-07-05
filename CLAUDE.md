@@ -732,6 +732,8 @@ python -m pytest tests/unit/test_session_config_validation.py -v
 - Current: Inline character definitions only
 
 **Session Config Features:**
+- `party_capabilities_enabled` (default true) - player prompts include teammates' top skills/attributes so agents can route tasks; `party_chat_enabled` (default true) - party-directed ambient speech renders as a dedicated "Party chatter" block (same-round for faster declarers, carried into next round)
+- `dm_assessment_enabled` (default true) - one DM call per round rules authoritative difficulty + ratifies attribute/skill framing before dice; player difficulty_estimate stays a logged counterfactual
 - `starting_clocks` - Load pre-configured scene clocks at session start
 - `initial_enemies` - Spawn enemies at session start without DM prompting
 - Environmental void_level updates via `StoryAdvancement.new_void_level`

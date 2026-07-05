@@ -81,6 +81,9 @@ content: |-
   - Position: {position}
   {weapon_inventory}
 
+  {party_capabilities}
+  {party_chatter}
+
   {declared_actions_this_round}
 
   **Entities Present:**

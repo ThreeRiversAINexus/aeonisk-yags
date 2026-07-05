@@ -214,8 +214,13 @@ sections:
     You may include `ambient_speech` when it naturally fits the moment:
     - Use one short in-character line to a party member, present NPC, enemy, crowd, or yourself.
     - It may be spoken aloud, sent over comms, or whispered.
-    - It is flavor only: it is NOT a second action, does NOT roll dice, grants NO bonus, and changes NO state.
-    - Do not use it to persuade, intimidate, command, rally, extract information, or force behavior.
+    - **It is FREE and it is how your crew coordinates**: call targets, delegate
+      tasks to whoever is best equipped ("Ivo, the terminal is yours"), warn of
+      dangers, share what you see. Party-directed lines reach your teammates -
+      slower speakers are heard by faster actors within the same round.
+    - Mechanically it is still not an action: it does NOT roll dice, grants NO
+      bonus, and changes NO state by itself.
+    - Do not use it to persuade, intimidate, or force behavior from NPCs/enemies.
     - If you want speech to have mechanical consequences, choose `action_type: social` or `support` as your main action.
 
     Example:

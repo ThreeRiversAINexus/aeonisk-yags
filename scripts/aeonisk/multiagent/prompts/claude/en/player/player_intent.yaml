@@ -50,6 +50,9 @@ content: |-
   - Altars: {altar_availability}
   - Vendors: {vendor_status}
 
+  {party_capabilities}
+  {party_chatter}
+
   **Recent Context:**
   {recent_events}
   {recent_action_outcomes}
