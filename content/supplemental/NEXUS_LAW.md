@@ -1,5 +1,5 @@
 # Codex Nexum: The Law of the Sovereign Nexus
-### v1.0 — RATIFIED by the Legislator, 2026-07-05
+### v1.1 — RATIFIED (v1.0 statute + Amendments A1, A2), 2026-07-05
 *(One deferred item: Appendix A's reserved +2/+3 tier awaits definition through practice.)*
 
 *Consolidates the three drifting rubric copies (dm_state_tracking,
@@ -364,10 +364,9 @@ everything; only its visibility answers to authority.
 
 ---
 
-## Proposed Amendment A2 — The Witness Layer ⚖️ (UNRATIFIED — under the Legislator's consideration)
+## Amendment A2 — The Witness Layer ✅ (RATIFIED 2026-07-05)
 
-*The Legislator's proposal, held for ratification: a third stratum of the
-ledger — objective event summaries.*
+*A third stratum of the ledger — objective event summaries.*
 
 **A2.1** Beyond resonance and annotation, the Codex MAY retain a *witness
 record*: a third-person summary of events — incomplete, truncated, compressed

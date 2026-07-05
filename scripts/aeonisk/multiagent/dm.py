@@ -4203,7 +4203,9 @@ Void Level: {self.current_scenario.void_level}/10"""
                     "\n  **The story so far (for weighing intent and "
                     "mitigation - the law still applies):**\n"
                     f"{scene_context}\n")
+            from .nexus_law import OPERATIONAL_RUBRIC
             prompt = prompt_data['post_adjudication_prompt'].format(
+                law_rubric=OPERATIONAL_RUBRIC,
                 resolution_summary=resolution_summary,
                 scene_context=context_block)
 
