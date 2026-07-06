@@ -106,6 +106,15 @@ class PurchaseValidation:
 
 
 @dataclass
+class CheckpointAccess:
+    """Result of a checkpoint / sector access check (Codex Nexum VIII.1-VIII.2)."""
+    is_allowed: bool
+    checkpoint_name: str = ""
+    sc_blocked: bool = False
+    failure_reason: Optional[str] = None
+
+
+@dataclass
 class TransferValidation:
     """
     Result of pre-transfer validation check.
@@ -3164,6 +3173,36 @@ class MechanicsEngine:
             player_currency=player_currency,
             surplus=surplus
         )
+
+    def validate_checkpoint_access(self, character_state: Any, checkpoint: Any) -> 'CheckpointAccess':
+        """Gate access to a checkpoint / sector on Soulcredit standing (VIII.1).
+
+        Nexus-aligned checkpoints check the ledger and apply the universal
+        Cut-Off (SC <= -6, VIII.2). Any checkpoint may set its own
+        soulcredit_requirement floor. Non-aligned checkpoints with no
+        requirement do not ask. The holder knows their own SC; the checkpoint
+        is where it becomes public — a ledger read.
+        """
+        from .energy_economy import is_nexus_aligned, SOULCREDIT_CUT_OFF
+        character_sc = getattr(character_state, 'soulcredit', 0)
+        name = getattr(checkpoint, 'name', 'checkpoint')
+        aligned = is_nexus_aligned(getattr(checkpoint, 'faction', None))
+
+        if aligned and character_sc <= SOULCREDIT_CUT_OFF:
+            return CheckpointAccess(
+                is_allowed=False, checkpoint_name=name, sc_blocked=True,
+                failure_reason=f"Cut Off (VIII.2): Soulcredit {character_sc} is "
+                               f"-6 or below — {name} reads the ledger and denies "
+                               f"passage; you are locked out of polite society")
+
+        req = getattr(checkpoint, 'soulcredit_requirement', 0)
+        if req and character_sc < req:
+            return CheckpointAccess(
+                is_allowed=False, checkpoint_name=name, sc_blocked=True,
+                failure_reason=f"Standing insufficient: {name} requires Soulcredit "
+                               f"≥ {req} (have {character_sc})")
+
+        return CheckpointAccess(is_allowed=True, checkpoint_name=name)
 
     def validate_transfer(
         self,

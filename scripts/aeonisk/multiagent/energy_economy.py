@@ -542,6 +542,25 @@ def is_nexus_aligned(faction: Optional[str]) -> bool:
     return faction.strip().lower() in NEXUS_ALIGNED_FACTIONS
 
 
+# Codex Nexum VIII.2: Soulcredit -6 and under is Cut Off from polite society.
+SOULCREDIT_CUT_OFF = -6
+
+
+@dataclass
+class Checkpoint:
+    """A gated checkpoint / sector / service access point (VIII.1).
+
+    Nexus-aligned checkpoints check the ledger and apply the universal Cut-Off
+    (SC <= -6). Any checkpoint may set its own soulcredit_requirement (a
+    standing floor to pass); 0 means no explicit requirement.
+    """
+    checkpoint_id: str
+    name: str
+    faction: str
+    soulcredit_requirement: int = 0
+    description: str = ""
+
+
 class Vendor:
     """
     Represents a trader/merchant that characters can encounter.

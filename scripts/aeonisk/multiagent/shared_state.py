@@ -242,6 +242,9 @@ class SharedState:
     # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
     current_vendors: List[Any] = field(default_factory=list)
 
+    # Gated checkpoints / sectors present in the scenario (VIII.1 access gate)
+    current_checkpoints: List[Any] = field(default_factory=list)
+
     # Current altars present in the scenario (ritual infrastructure for attunement)
     current_altars: List[Altar] = field(default_factory=list)
 
@@ -719,6 +722,20 @@ Generate something DIFFERENT from these recent scenarios.
         for vendor in self.current_vendors:
             if vendor.name == vendor_name:
                 return vendor
+        return None
+
+    def add_checkpoint(self, checkpoint: Any) -> None:
+        """Add a gated checkpoint to the scene (dedup by checkpoint_id)."""
+        for existing in self.current_checkpoints:
+            if existing.checkpoint_id == checkpoint.checkpoint_id:
+                return
+        self.current_checkpoints.append(checkpoint)
+
+    def get_checkpoint_by_id(self, checkpoint_id: str) -> Optional[Any]:
+        """Get a gated checkpoint by its id, or None."""
+        for cp in self.current_checkpoints:
+            if getattr(cp, 'checkpoint_id', None) == checkpoint_id:
+                return cp
         return None
 
     def get_npc_by_id(self, npc_id: str) -> Optional[Any]:

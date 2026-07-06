@@ -511,6 +511,9 @@ class SelfPlayingSession:
         # Initialize persistent vendors from config
         self._initialize_persistent_vendors()
 
+        # Initialize gated checkpoints from config (VIII.1 access gate)
+        self._initialize_checkpoints()
+
         # Initialize persistent altars from config
         self._initialize_persistent_altars()
 
@@ -695,6 +698,35 @@ class SelfPlayingSession:
             logger.info(f"Initialized persistent vendor: {vendor.name} ({vendor_type_str}) with {len(inventory_items)} items, vendor_id={vendor.vendor_id}")
 
         print(f"✓ Loaded {len(persistent_vendors_config)} persistent vendor(s)")
+
+    def _initialize_checkpoints(self):
+        """Initialize gated checkpoints from config['starting_checkpoints'].
+
+        Each entry: {checkpoint_id?, name, faction, soulcredit_requirement?,
+        description?}. Nexus-aligned checkpoints gate on standing (VIII.1) and
+        apply the universal Cut-Off (VIII.2). Enforced deterministically when a
+        player action carries a checkpoint_id; surfaced to the DM otherwise.
+        """
+        checkpoints_config = self.config.get('starting_checkpoints', [])
+        if not checkpoints_config:
+            return
+
+        from .energy_economy import Checkpoint
+
+        for cp in checkpoints_config:
+            checkpoint = Checkpoint(
+                checkpoint_id=cp.get('checkpoint_id') or f"cp_{cp['name'].lower().replace(' ', '_')}",
+                name=cp['name'],
+                faction=cp.get('faction', 'Neutral'),
+                soulcredit_requirement=cp.get('soulcredit_requirement', 0),
+                description=cp.get('description', ''),
+            )
+            self.shared_state.add_checkpoint(checkpoint)
+            logger.info(f"Initialized checkpoint: {checkpoint.name} "
+                        f"({checkpoint.faction}, SC≥{checkpoint.soulcredit_requirement}), "
+                        f"id={checkpoint.checkpoint_id}")
+
+        print(f"✓ Loaded {len(checkpoints_config)} checkpoint(s)")
 
     def _initialize_persistent_altars(self):
         """
@@ -6185,6 +6217,39 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             'failure_reason': f"Validation error: {str(e)}",
                             'executed': False
                         }
+
+        # PRE-VALIDATE CHECKPOINT ACCESS (before DM sees the action)
+        # If a player action targets passing a gated checkpoint, the Soulcredit
+        # gate (VIII.1/VIII.2) is authoritative: the result is stashed for the
+        # DM to narrate, so a Cut-Off actor cannot be waved through.
+        checkpoint_id = action_payload.get('checkpoint_id')
+        if checkpoint_id and self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+            checkpoint = self.shared_state.get_checkpoint_by_id(checkpoint_id)
+            if player_agent and checkpoint:
+                access = mechanics.validate_checkpoint_access(
+                    player_agent.character_state, checkpoint)
+                action_payload['checkpoint_validation'] = {
+                    'checkpoint_name': access.checkpoint_name,
+                    'is_allowed': access.is_allowed,
+                    'sc_blocked': access.sc_blocked,
+                    'failure_reason': access.failure_reason,
+                }
+                if not access.is_allowed:
+                    logger.warning(f"Checkpoint access DENIED for {agent_id} at "
+                                   f"{access.checkpoint_name}: {access.failure_reason}")
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event(
+                        event_type="checkpoint_access",
+                        data={
+                            'player_id': agent_id,
+                            'character_name': player_agent.character_state.name,
+                            'checkpoint_id': checkpoint_id,
+                            **action_payload['checkpoint_validation'],
+                        },
+                        round_num=mechanics.current_round,
+                    )
 
         # PRE-VALIDATE AND EXECUTE TRANSFER ACTIONS (before DM sees them)
         # Similar to purchases - prevents phantom transfers where DM narrates success but mechanics fail

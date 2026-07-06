@@ -1,0 +1,192 @@
+{
+  "_seed_doc": "Golden seed corpus: COMBAT archetype. Faction skirmish exercising free targeting, IFF, damage, void changes, enemy AI. Cloned from session_config_combat.json; LLMs switched to gpt-5-mini, names_mcp enabled. Enemy faction changed from 'Local Criminal Syndicate' (not in EnemySpawn enum) to 'Freeborn' for canon compatibility.",
+  "session_name": "SC CONSEQUENCES DEMO \u2014 enforce + Debtbreaker lock + vendor/checkpoint gate",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "multiagent_output/sc_demo",
+  "force_combat": true,
+  "names_mcp": {
+    "enabled": true,
+    "from_pool": true
+  },
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "initial_enemies": [
+    {
+      "name": "Street Gang",
+      "template": "Grunt",
+      "faction": "Freeborn",
+      "archetype": "Thug",
+      "count": 3,
+      "position": "Near-Enemy",
+      "spawn_reason": "Territorial ambush against intruders",
+      "tactics": "aggressive_melee"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Enforcer Kael Dren",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "temperature": 0.7
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 9
+        },
+        "goals": [
+          "Investigate void-related crimes and neutralize threats",
+          "Track down illegal dissolution advocacy",
+          "Maintain order through force when necessary"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Charm": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Investigation": 4,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Intimidation": 4,
+          "Guns": 5,
+          "Brawl": 4,
+          "Melee": 4
+        },
+        "equipped_weapons": {
+          "primary": "debtbreaker_sidearm",
+          "sidearm": null
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "restraint_cuffs": 2,
+          "med_kit": 1
+        },
+        "soulcredit": -3
+      },
+      {
+        "name": "Drifter Sable",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "temperature": 0.7
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Stay off the Nexus grid and avoid ledger tracking",
+          "Survive by any means necessary",
+          "Keep independence from corporate entanglements"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Charm": 2,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Stealth": 5,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Pilot": 3,
+          "Guns": 5,
+          "Melee": 4
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "void_cloak": 1,
+          "med_kit": 1
+        }
+      }
+    ]
+  },
+  "notes": "SC-consequences demo. Player 0 starts Cut-Off-adjacent (SC -3): the Debtbreaker locks on attack, the Pantheon dispensary refuses them, and Meridian Gate denies passage. Enforce mode keeps the ledger live as the scene plays out.",
+  "post_resolution_adjudication": "enforce",
+  "_design_notes": "Exercises the full Soulcredit-consequence stack: (1) enforce mode (magistrate writes the ledger, v1.1-law-LIVE); (2) contract-gear lock \u2014 player 0 wields the Debtbreaker Sidearm and starts at SC -3, so it clicks dead when they attack; (3) vendor access gate \u2014 the Pantheon Security dispensary (Nexus-aligned) refuses service at SC <= -2 and gates the licensed focus at SC >= +6; (4) checkpoint gate \u2014 Meridian Gate (Sovereign Nexus) denies at its standing floor. Contrived, short.",
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_pantheon_disp",
+      "name": "Pantheon Security Dispensary",
+      "faction": "Pantheon Security",
+      "vendor_type": "human_trader",
+      "greeting": "Standing verification required. State your requisition.",
+      "inventory": [
+        {
+          "name": "Med Kit",
+          "description": "Restores 15 HP",
+          "item_id": "itm_medkit",
+          "price_drip": 5
+        },
+        {
+          "name": "Licensed Void Focus",
+          "description": "Sanctioned ritual focus (Trusted only)",
+          "item_id": "itm_void_focus",
+          "price_spark": 3,
+          "soulcredit_requirement": 6
+        }
+      ]
+    }
+  ],
+  "starting_checkpoints": [
+    {
+      "checkpoint_id": "cp_meridian",
+      "name": "Meridian Gate",
+      "faction": "Sovereign Nexus",
+      "soulcredit_requirement": -2,
+      "description": "Sovereign Nexus security checkpoint; reads the Codex ledger before passage."
+    }
+  ]
+}
