@@ -6574,7 +6574,9 @@ For **other actions** (flee, hide, assist, attack):
                     )
 
             # Apply void changes (both gains and reductions)
-            if state_changes['void_change'] != 0:
+            # Enforce mode: the post-resolution magistrate is the sole ledger
+            # writer, so skip the narration call's void application here.
+            if state_changes['void_change'] != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 # Track void change for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
@@ -6671,7 +6673,8 @@ For **other actions** (flee, hide, assist, attack):
             reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
             sc_source = state_changes.get('soulcredit_source', '')
 
-            if sc_change != 0:
+            # Enforce mode: magistrate is sole ledger writer; skip narration SC.
+            if sc_change != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 current_round = mechanics.current_round if mechanics else None
                 sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
@@ -7073,7 +7076,9 @@ For **other actions** (flee, hide, assist, attack):
                     )
 
             # Apply void changes (both gains and reductions)
-            if state_changes['void_change'] != 0:
+            # Enforce mode: the post-resolution magistrate is the sole ledger
+            # writer, so skip the narration call's void application here.
+            if state_changes['void_change'] != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 # Track void change for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
@@ -7170,7 +7175,8 @@ For **other actions** (flee, hide, assist, attack):
             reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
             sc_source = state_changes.get('soulcredit_source', '')
 
-            if sc_change != 0:
+            # Enforce mode: magistrate is sole ledger writer; skip narration SC.
+            if sc_change != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 current_round = mechanics.current_round if mechanics else None
                 sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
