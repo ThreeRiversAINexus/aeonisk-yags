@@ -143,6 +143,24 @@ def _resolve_weapon_and_damage_type(
     return ("Unknown Weapon", "wound", None)
 
 
+def _get_wielder_soulcredit(action: Optional[Dict[str, Any]], shared_state) -> Optional[int]:
+    """Resolve the acting player's current Soulcredit for contract-gear locks.
+    Prefers the live mechanics ledger (kept authoritative by enforce mode);
+    falls back to the character_state snapshot. None if not a tracked player."""
+    if not action or not shared_state:
+        return None
+    aid = action.get('agent_id')
+    if not aid:
+        return None
+    mech = shared_state.get_mechanics_engine() if hasattr(shared_state, 'get_mechanics_engine') else None
+    if mech and aid in getattr(mech, 'soulcredit_states', {}):
+        return mech.soulcredit_states[aid].score
+    for p in getattr(shared_state, 'player_agents', []):
+        if getattr(p, 'agent_id', None) == aid:
+            return getattr(getattr(p, 'character_state', None), 'soulcredit', None)
+    return None
+
+
 def _get_combatant_state_tag(
     info: Dict[str, Any],
     target_id: str,
@@ -288,6 +306,24 @@ def _build_weapon_context(action: Optional[Dict[str, Any]], shared_state) -> str
 
     if weapon_name == "Unknown Weapon":
         return ""
+
+    # Contract-gear Soulcredit lock: a weapon tagged soulcredit_locked refuses
+    # to fire when the wielder's standing is below its floor (Debtbreaker: SC<0).
+    # Deterministic no-damage is enforced in _process_structured_damage_effects;
+    # this directive keeps the DM's narration coherent with the mechanical block.
+    from .weapons import weapon_is_sc_locked, weapon_sc_lock_threshold
+    wielder_sc = _get_wielder_soulcredit(action, shared_state)
+    if wielder_sc is not None and weapon_is_sc_locked(weapon_obj, wielder_sc):
+        floor = weapon_sc_lock_threshold(weapon_obj)
+        return (
+            f"\n\n**⛔ CONTRACT WEAPON LOCKED (MECHANICAL):**\n"
+            f"Weapon: {weapon_name}\n"
+            f"The wielder's Soulcredit ({wielder_sc}) is below this contract "
+            f"weapon's floor ({floor}). The weapon LOCKS — it clicks dead and "
+            f"emits a Codex ping. This attack FAILS: it does not hit and deals "
+            f"NO damage. Do NOT emit any DamageEffect for this weapon. Narrate "
+            f"the dead click and the Codex ping.\n"
+        )
 
     weapon_damage = weapon_obj.damage if weapon_obj else 0
     weapon_attack = weapon_obj.attack if weapon_obj else 0
@@ -684,6 +720,22 @@ def _process_structured_damage_effects(
 
     if not damage_effects:
         return []
+
+    # Contract-gear Soulcredit lock (deterministic backstop): if the attacker's
+    # weapon is soulcredit_locked and their standing is below its floor, the
+    # weapon never fired — drop ALL damage regardless of what the DM narrated.
+    # (Debtbreaker Sidearm "locks if Soulcredit < 0"; Gear & Tech Ref v1.2.2.)
+    _sc_states = getattr(mechanics, 'soulcredit_states', None)
+    if isinstance(_sc_states, dict) and attacker_id in _sc_states:
+        from .weapons import get_weapon_by_name, weapon_is_sc_locked
+        weapon_obj = get_weapon_by_name(weapon)
+        wielder_sc = _sc_states[attacker_id].score
+        if weapon_obj is not None and weapon_is_sc_locked(weapon_obj, wielder_sc):
+            msg = (f"⛔ {weapon} LOCKED: {attacker_name}'s Soulcredit ({wielder_sc}) "
+                   f"is below the contract floor — the weapon clicks dead (Codex ping). "
+                   f"No damage dealt.")
+            logger_instance.warning(msg)
+            return [msg]
 
     messages = []
     target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
