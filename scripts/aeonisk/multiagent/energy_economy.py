@@ -476,6 +476,7 @@ class VendorItem(BaseModel):
     price_hollow: int = Field(0, ge=0, description="Cost in Hollow currency (illicit void energy)")
     seed_barter: bool = Field(False, description="Can trade attuned seeds for this item")
     item_type: str = Field("consumable", description="Item category: consumable, food, tool, seed, offering, exchange, prop, equipment")
+    soulcredit_requirement: int = Field(0, description="Minimum Soulcredit standing to buy this item (sanctioned/licensed gear). Enforced only at Nexus-aligned vendors (VIII.1). 0 = no standing gate.")
 
     model_config = ConfigDict(
         validate_assignment=True,  # Validate on attribute assignment
@@ -519,6 +520,26 @@ class VendorItem(BaseModel):
         if self.seed_barter:
             prices.append("1 Attuned Seed")
         return " or ".join(prices) if prices else "Free"
+
+
+# Nexus-aligned institutions gate service on Soulcredit standing (Codex Nexum
+# VIII.1 / VI.1). Freeborn, Tempest-adjacent, and Independent markets do not ask.
+# Names are normalized (lowercased, stripped) before lookup; aliases included.
+NEXUS_ALIGNED_FACTIONS = frozenset({
+    "sovereign nexus", "nexus",
+    "arcane genetics", "arcgen",
+    "pantheon security", "pantheon",
+    "astral commerce group", "acg",
+    "aether dynamics", "aethyr dynamics",
+})
+
+
+def is_nexus_aligned(faction: Optional[str]) -> bool:
+    """True if a vendor/institution of this faction checks the Codex ledger
+    before serving (VIII.1). Unknown/empty factions are treated as unaligned."""
+    if not faction:
+        return False
+    return faction.strip().lower() in NEXUS_ALIGNED_FACTIONS
 
 
 class Vendor:

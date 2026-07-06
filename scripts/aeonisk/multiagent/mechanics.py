@@ -3069,6 +3069,35 @@ class MechanicsEngine:
         # Check Soulcredit threshold
         character_sc = getattr(character_state, 'soulcredit', 0)
 
+        # VIII.1 — the Gates: Nexus-aligned institutions check the Codex ledger.
+        # Soulcredit -2 and under is cut off from their markets; per-item
+        # soulcredit_requirement gates sanctioned/licensed gear. Freeborn /
+        # Tempest / Independent markets do not ask. (The buyer knows their own
+        # SC; the gate is where it becomes public — a ledger read.)
+        from .energy_economy import is_nexus_aligned
+        if is_nexus_aligned(getattr(vendor, 'faction', None)):
+            if character_sc <= -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low: {vendor.name} reads the "
+                                   f"Codex ledger and refuses service ({character_sc} "
+                                   f"is -2 or below — cut off from Nexus-aligned markets)",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+            item_req = getattr(item, 'soulcredit_requirement', 0)
+            if item_req and character_sc < item_req:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Standing insufficient: {item.name} requires "
+                                   f"Soulcredit ≥ {item_req} (have {character_sc}); "
+                                   f"the gate reads your ledger and declines",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+
         # Handle both VendorType enum (legacy) and string (NPC vendors)
         vendor_type_str = vendor.vendor_type.value if hasattr(vendor.vendor_type, 'value') else str(vendor.vendor_type) if vendor.vendor_type else None
 
