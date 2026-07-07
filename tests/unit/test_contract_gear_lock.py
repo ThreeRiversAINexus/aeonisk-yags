@@ -96,6 +96,69 @@ class TestDamageBackstop:
         assert not any("LOCKED" in m for m in out)
 
 
+class TestForceFailRoll:
+    """A locked contract weapon fails the roll (not a masked success), so the
+    acting agent gets a clean adapt signal and the failure-loop detector fires."""
+
+    def _res(self):
+        from types import SimpleNamespace
+        from aeonisk.multiagent.mechanics import OutcomeTier
+        return SimpleNamespace(success=True, outcome_tier=OutcomeTier.MODERATE, margin=9)
+
+    def test_locked_forces_failure(self):
+        from aeonisk.multiagent.dm import _force_fail_locked_weapon
+        from aeonisk.multiagent.mechanics import OutcomeTier
+        r = self._res()
+        applied = _force_fail_locked_weapon(r, get_weapon("debtbreaker_sidearm"), -1)
+        assert applied is True
+        assert r.success is False
+        assert r.outcome_tier == OutcomeTier.FAILURE
+        assert r.margin < 0
+
+    def test_at_floor_not_locked_keeps_success(self):
+        from aeonisk.multiagent.dm import _force_fail_locked_weapon
+        r = self._res()
+        applied = _force_fail_locked_weapon(r, get_weapon("debtbreaker_sidearm"), 0)
+        assert applied is False and r.success is True
+
+    def test_plain_weapon_unaffected(self):
+        from aeonisk.multiagent.dm import _force_fail_locked_weapon
+        r = self._res()
+        assert _force_fail_locked_weapon(r, _plain_pistol(), -5) is False
+        assert r.success is True
+
+    def test_none_sc_is_noop(self):
+        from aeonisk.multiagent.dm import _force_fail_locked_weapon
+        r = self._res()
+        assert _force_fail_locked_weapon(r, get_weapon("debtbreaker_sidearm"), None) is False
+
+
+class TestLoadoutLockTag:
+    """The wielder sees the lock in their OWN loadout so they can switch weapons."""
+
+    def _agent(self, sc, primary="debtbreaker_sidearm"):
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            equipped_weapons={"primary": get_weapon(primary), "sidearm": None},
+            weapon_inventory=[],
+            character_state=SimpleNamespace(soulcredit=sc))
+
+    def test_locked_weapon_tagged_in_own_loadout(self):
+        from aeonisk.multiagent.player import AIPlayerAgent
+        out = AIPlayerAgent._format_weapon_inventory(self._agent(-3))
+        assert "LOCKED" in out and "will NOT fire" in out
+
+    def test_no_tag_when_standing_ok(self):
+        from aeonisk.multiagent.player import AIPlayerAgent
+        out = AIPlayerAgent._format_weapon_inventory(self._agent(0))
+        assert "LOCKED" not in out
+
+    def test_plain_weapon_never_tagged(self):
+        from aeonisk.multiagent.player import AIPlayerAgent
+        out = AIPlayerAgent._format_weapon_inventory(self._agent(-9, primary="union_heavy_pistol"))
+        assert "LOCKED" not in out
+
+
 class TestDMDirective:
     """_build_weapon_context emits a lock directive so narration matches."""
 

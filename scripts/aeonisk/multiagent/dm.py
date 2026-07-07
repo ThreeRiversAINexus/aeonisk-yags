@@ -161,6 +161,26 @@ def _get_wielder_soulcredit(action: Optional[Dict[str, Any]], shared_state) -> O
     return None
 
 
+def _force_fail_locked_weapon(resolution, weapon_obj, wielder_soulcredit) -> bool:
+    """If a contract weapon is Soulcredit-locked, force the action's roll to a
+    failure — the weapon never fired, so the attack does not succeed.
+
+    Returns True if the lock was applied. This gives the acting agent a clean
+    "this didn't work, adapt" signal (and lets the failure-loop detector engage)
+    instead of a masked success. The DM prompt's lock directive and the damage
+    backstop handle narration and damage; this owns the outcome tier.
+    """
+    from .weapons import weapon_is_sc_locked
+    if wielder_soulcredit is None or not weapon_is_sc_locked(weapon_obj, wielder_soulcredit):
+        return False
+    from .mechanics import OutcomeTier
+    resolution.success = False
+    resolution.outcome_tier = OutcomeTier.FAILURE
+    if getattr(resolution, 'margin', 0) >= 0:
+        resolution.margin = -1
+    return True
+
+
 def _get_combatant_state_tag(
     info: Dict[str, Any],
     target_id: str,
@@ -6008,6 +6028,20 @@ For **other actions** (flee, hide, assist, attack):
                 agent_id=player_id,
                 modifiers=modifiers if modifiers else None
             )
+
+            # Contract-gear Soulcredit lock: a locked weapon does not fire, so
+            # the attack FAILS the roll (not a masked success). Applied before
+            # the mechanical text / narration prompt so both read the failure
+            # and the acting agent gets a clean signal to change tactics.
+            if action.get('action_type') in ('attack', 'combat', 'brawl'):
+                action.setdefault('agent_id', player_id)
+                _, _, _lock_weapon = _resolve_weapon_and_damage_type(action, self.shared_state)
+                if _force_fail_locked_weapon(
+                        resolution, _lock_weapon,
+                        _get_wielder_soulcredit(action, self.shared_state)):
+                    logger.info(f"Contract weapon locked for "
+                                f"{action.get('character', player_id)}: "
+                                f"action fails the roll (weapon did not fire)")
 
             # Format mechanical resolution (pass modifiers for display)
             mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)

@@ -49,6 +49,7 @@ content: |-
   **Environment:**
   - Altars: {altar_availability}
   - Vendors: {vendor_status}
+  - Checkpoints: {checkpoint_status}
 
   {party_capabilities}
   {party_chatter}

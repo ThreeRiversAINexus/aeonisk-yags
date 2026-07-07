@@ -88,3 +88,30 @@ class TestSharedStateStorage:
         ss.add_checkpoint(cp)
         assert ss.get_checkpoint_by_id("cp_meridian") is cp
         assert ss.get_checkpoint_by_id("nope") is None
+
+
+class TestSurfacing:
+    """Checkpoints must be visible + routable so the gate fires in free play."""
+
+    def test_explore_action_accepts_checkpoint_id(self):
+        from aeonisk.multiagent.schemas.player_action import ExploreAction
+        a = ExploreAction(
+            intent="Move through Meridian Gate to the trade ring",
+            description="Approach the checkpoint and present credentials for passage.",
+            attribute="Perception", skill="Awareness",
+            difficulty_estimate=15, difficulty_justification="routine passage",
+            checkpoint_id="cp_meridian")
+        assert a.checkpoint_id == "cp_meridian"
+
+    def test_format_lists_gate_with_id(self):
+        from types import SimpleNamespace
+        from aeonisk.multiagent.player import AIPlayerAgent
+        ss = SimpleNamespace(current_checkpoints=[_cp(faction="Sovereign Nexus", req=-2, cid="cp_meridian")])
+        out = AIPlayerAgent._format_checkpoint_status(SimpleNamespace(shared_state=ss))
+        assert "cp_meridian" in out and "Meridian Gate" in out and "checkpoint_id" in out
+
+    def test_format_none_when_empty(self):
+        from types import SimpleNamespace
+        from aeonisk.multiagent.player import AIPlayerAgent
+        stub = SimpleNamespace(shared_state=SimpleNamespace(current_checkpoints=[]))
+        assert "No gated checkpoints" in AIPlayerAgent._format_checkpoint_status(stub)

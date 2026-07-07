@@ -258,6 +258,14 @@ class ExploreAction(PlayerActionBase):
         description="Desired tactical position after movement (if applicable)"
     )
 
+    checkpoint_id: Optional[str] = Field(
+        default=None,
+        description="Set to a checkpoint's ID (cp_xxxx from the environment) when "
+                    "this move attempts to pass through that gated checkpoint. The "
+                    "gate reads the Codex ledger (Soulcredit standing) and may deny "
+                    "passage."
+    )
+
 
 class InvestigateAction(PlayerActionBase):
     """
