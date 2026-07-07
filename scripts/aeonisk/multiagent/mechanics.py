@@ -3187,16 +3187,26 @@ class MechanicsEngine:
         character_sc = getattr(character_state, 'soulcredit', 0)
         name = getattr(checkpoint, 'name', 'checkpoint')
         aligned = is_nexus_aligned(getattr(checkpoint, 'faction', None))
-
-        if aligned and character_sc <= SOULCREDIT_CUT_OFF:
-            return CheckpointAccess(
-                is_allowed=False, checkpoint_name=name, sc_blocked=True,
-                failure_reason=f"Cut Off (VIII.2): Soulcredit {character_sc} is "
-                               f"-6 or below — {name} reads the ledger and denies "
-                               f"passage; you are locked out of polite society")
-
         req = getattr(checkpoint, 'soulcredit_requirement', 0)
-        if req and character_sc < req:
+
+        if aligned:
+            # Nexus-aligned gates require clean standing to walk through lawfully:
+            # any negative Soulcredit is refused (floor 0), and an explicit
+            # positive requirement raises the bar (e.g. +6 Trusted for a
+            # restricted sector). SC <= -6 is the deeper Cut-Off tier (VIII.2).
+            floor = max(0, req)
+            if character_sc < floor:
+                if character_sc <= SOULCREDIT_CUT_OFF:
+                    reason = (f"Cut Off (VIII.2): Soulcredit {character_sc} is -6 or "
+                              f"below — {name} denies passage; locked out of polite society")
+                else:
+                    reason = (f"Standing insufficient: {name} requires Soulcredit ≥ "
+                              f"{floor} (have {character_sc}); the gate reads your "
+                              f"ledger and refuses passage")
+                return CheckpointAccess(is_allowed=False, checkpoint_name=name,
+                                        sc_blocked=True, failure_reason=reason)
+        elif req and character_sc < req:
+            # Non-aligned gates only ask when they set an explicit requirement.
             return CheckpointAccess(
                 is_allowed=False, checkpoint_name=name, sc_blocked=True,
                 failure_reason=f"Standing insufficient: {name} requires Soulcredit "

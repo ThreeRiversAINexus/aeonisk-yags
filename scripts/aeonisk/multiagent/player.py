@@ -2682,6 +2682,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             ),
             vendor_id=getattr(action_details, 'vendor_id', None),
             item_id=getattr(action_details, 'item_id', None),
+            checkpoint_id=getattr(action_details, 'checkpoint_id', None),
             transfer_target=getattr(action_details, 'transfer_target', None),
             transfer_currency=getattr(action_details, 'transfer_currency', None),
             transfer_items=getattr(action_details, 'transfer_items', None),

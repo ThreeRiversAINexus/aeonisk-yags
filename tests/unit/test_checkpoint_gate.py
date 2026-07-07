@@ -43,10 +43,14 @@ class TestCutOff:
             res = mech.validate_checkpoint_access(_char(sc), cp)
             assert res.is_allowed is False and res.sc_blocked is True
 
-    def test_aligned_allows_above_cutoff_when_no_requirement(self):
+    def test_aligned_requires_clean_standing(self):
+        """A Nexus-aligned gate (req 0) demands non-negative standing — any
+        negative Soulcredit is refused lawful passage, not just SC <= -6."""
         mech = MechanicsEngine()
         cp = _cp()
-        for sc in (-5, 0, 3):
+        for sc in (-1, -3, -5):
+            assert mech.validate_checkpoint_access(_char(sc), cp).is_allowed is False
+        for sc in (0, 3):
             assert mech.validate_checkpoint_access(_char(sc), cp).is_allowed is True
 
 
@@ -115,3 +119,39 @@ class TestSurfacing:
         from aeonisk.multiagent.player import AIPlayerAgent
         stub = SimpleNamespace(shared_state=SimpleNamespace(current_checkpoints=[]))
         assert "No gated checkpoints" in AIPlayerAgent._format_checkpoint_status(stub)
+
+    def test_action_declaration_serializes_checkpoint_id(self):
+        """The emitted checkpoint_id must survive into the payload the hook reads."""
+        from aeonisk.multiagent.action_schema import ActionDeclaration
+        ad = ActionDeclaration(
+            intent="Pass Meridian Gate", description="Approach and present the manifest for passage.",
+            attribute="Perception", skill="Awareness", difficulty_estimate=12,
+            difficulty_justification="routine passage",
+            character_name="Vale Orne", agent_id="p1", action_type="explore",
+            checkpoint_id="cp_meridian")
+        assert ad.to_dict().get("checkpoint_id") == "cp_meridian"
+
+
+class TestDMDirective:
+    """The DM must be told the verdict so it can gate passage in narration."""
+
+    def test_denied_directive_forces_alternate_path(self):
+        from aeonisk.multiagent.dm import _build_checkpoint_context
+        action = {"checkpoint_validation": {
+            "checkpoint_name": "Meridian Gate", "is_allowed": False,
+            "sc_blocked": True, "failure_reason": "Cut Off (VIII.2): Soulcredit -7"}}
+        out = _build_checkpoint_context(action)
+        assert "DENIED" in out and "Meridian Gate" in out
+        assert "walk-through" in out and ("bribe" in out or "deceive" in out)
+
+    def test_allowed_directive_opens_passage(self):
+        from aeonisk.multiagent.dm import _build_checkpoint_context
+        action = {"checkpoint_validation": {
+            "checkpoint_name": "Meridian Gate", "is_allowed": True}}
+        out = _build_checkpoint_context(action)
+        assert "passage is open" in out.lower() or "clears them" in out
+
+    def test_no_context_without_checkpoint(self):
+        from aeonisk.multiagent.dm import _build_checkpoint_context
+        assert _build_checkpoint_context({"action_type": "combat"}) == ""
+        assert _build_checkpoint_context(None) == ""

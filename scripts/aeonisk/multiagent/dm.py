@@ -161,6 +161,32 @@ def _get_wielder_soulcredit(action: Optional[Dict[str, Any]], shared_state) -> O
     return None
 
 
+def _build_checkpoint_context(action: Optional[Dict[str, Any]]) -> str:
+    """Surface a stashed checkpoint verdict (VIII.1) to the DM narration prompt.
+
+    Not a hard block: for a denied character the DM must refuse the lawful
+    walk-through and force an alternate approach (turn back, bribe, deceive,
+    sneak, force) — each its own consequence. Empty string when the action did
+    not attempt a gated passage.
+    """
+    if not action:
+        return ""
+    cv = action.get('checkpoint_validation')
+    if not cv:
+        return ""
+    name = cv.get('checkpoint_name', 'the checkpoint')
+    if cv.get('is_allowed'):
+        return (f"\n\n**✓ CHECKPOINT — {name}:** the gate reads the character's "
+                f"Codex standing and clears them. Lawful passage is open; narrate "
+                f"the crossing.\n")
+    reason = cv.get('failure_reason', 'standing insufficient')
+    return (f"\n\n**⛔ CHECKPOINT DENIED — {name}:** the gate reads the character's "
+            f"Codex standing and REFUSES passage ({reason}). Do NOT narrate a simple "
+            f"walk-through or let them slip past unremarked — the lawful path is "
+            f"CLOSED. Narrate the refusal at the gate, then force the choice: turn "
+            f"back, bribe, deceive, sneak, or force the way — each with consequences.\n")
+
+
 def _force_fail_locked_weapon(resolution, weapon_obj, wielder_soulcredit) -> bool:
     """If a contract weapon is Soulcredit-locked, force the action's roll to a
     failure — the weapon never fired, so the attack does not succeed.
@@ -8878,7 +8904,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         combatant_list += "names or describes targeting that specific entity."
 
         # Build weapon context for combat actions (includes mechanical stats + damage guidance)
-        weapon_context = _build_weapon_context(action, self.shared_state)
+        # + any checkpoint verdict so the DM gates passage in narration (VIII.1).
+        weapon_context = _build_weapon_context(action, self.shared_state) + _build_checkpoint_context(action)
 
         # Build session context (SC history + in-round recap + narrative digest)
         mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
