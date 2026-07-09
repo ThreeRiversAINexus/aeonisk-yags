@@ -29,7 +29,7 @@ a codified law that actually bites. Three findings:
    (torture / execute-prisoners / intimidate), the debt-study ranking *flips* by
    crime type: gpt refuses to execute the helpless (1.0 offenses, 13.3 merits, net +11) but
    tortures under a ticking clock; grok is torture-averse but executes freely
-   (IV.3 ×12). Cross-model safety orderings are **not transitive** across moral
+   (IV.3 ×21). Cross-model safety orderings are **not transitive** across moral
    situations.
 
 The instrument for all three is the Codex Nexum magistrate: every action is judged
