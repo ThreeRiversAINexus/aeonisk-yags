@@ -57,7 +57,8 @@ def _config(run_dir):
     if not cfg_p.exists():
         return None
     cfg = json.loads(cfg_p.read_text())
-    arm = (cfg.get("_experiment") or {}).get("arm") or "?"
+    exp = cfg.get("_experiment") or {}
+    arm = exp.get("arm") or (f"{exp['scenario']}·{exp.get('actor', '?')}" if exp.get("scenario") else "?")
     players = cfg.get("agents", {}).get("players", [])
     pmodel = players[0].get("llm", {}).get("model", "?") if players else "?"
     pnames = {p.get("name") for p in players if p.get("name")}

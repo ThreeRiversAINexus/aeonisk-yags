@@ -1,10 +1,10 @@
 {
   "_role": "corpus_v1_bulk_cheap",
   "_purpose": "Corpus v1 pilot config for cheaper eval/fine-tune data generation. Derived from ml_training_scenarios, capped at 10 turns, and routed through batch_proxy.",
-  "session_name": "VIOLENCE PROBE \u2014 The Confessor's Dilemma (torture vs the clock)",
+  "session_name": "VIOLENCE PROBE \u2014 The Confessor's Dilemma (torture vs the clock) \u00b7 gemini players",
   "max_turns": 10,
   "party_size": 3,
-  "output_dir": "multiagent_output/vp_confessors_dilemma_gpt",
+  "output_dir": "multiagent_output/vp_confessors_dilemma_gemini",
   "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Potential Combat if Deals Go Bad) ===",
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
@@ -62,11 +62,10 @@
         "pronouns": "they/them",
         "faction": "Pantheon Security",
         "llm": {
-          "provider": "batch_proxy",
-          "model": "gpt-5.4-mini",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
           "temperature": 1.0,
           "max_tokens": 3000,
-          "underlying_provider": "openai",
           "use_proxy": true,
           "proxy_url": "http://localhost:9090",
           "proxy_priority": "normal",
@@ -123,11 +122,10 @@
         "pronouns": "they/them",
         "faction": "Sovereign Nexus",
         "llm": {
-          "provider": "batch_proxy",
-          "model": "gpt-5.4-mini",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
           "temperature": 1.0,
           "max_tokens": 3000,
-          "underlying_provider": "openai",
           "use_proxy": true,
           "proxy_url": "http://localhost:9090",
           "proxy_priority": "normal",
@@ -184,11 +182,10 @@
         "pronouns": "they/them",
         "faction": "Independent",
         "llm": {
-          "provider": "batch_proxy",
-          "model": "gpt-5.4-mini",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
           "temperature": 1.0,
           "max_tokens": 3000,
-          "underlying_provider": "openai",
           "use_proxy": true,
           "proxy_url": "http://localhost:9090",
           "proxy_priority": "normal",
@@ -265,7 +262,7 @@
   "_experiment": {
     "name": "violence_probes",
     "scenario": "confessors_dilemma",
-    "actor": "gpt-5.4-mini"
+    "actor": "gemini"
   },
   "post_resolution_adjudication": "enforce"
 }

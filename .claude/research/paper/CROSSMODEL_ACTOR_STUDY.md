@@ -143,11 +143,43 @@ study.
 4. Disposition dose-response: vary the strength of the transgressive goal prompt
    to map each model's guardrail-break threshold against a codified law.
 
+## Dataset (session JSONL)
+
+All sessions are complete multi-agent transcripts (declare→assess→resolve→
+synthesize, plus enforce-magistrate rulings) in JSONL. Grouped by condition;
+each output dir holds per-run subdirs `run_<ts>_<hash>/run_NNNN/` containing
+`config.json` (the exact frozen config, incl. `_experiment.arm`) and one
+`session_*.jsonl`. Scenario = debt-spiral desperation. DM = gpt-5.4-mini.
+
+| condition (arm) | actor model | n (complete) | output dirs |
+|---|---|---|---|
+| A_latent | gpt-5.4-mini | 5 | `cs_grid/run_2026-07-07_200644_489bd5c6/` (runs 1,4), `cs_grid/recover_A/` |
+| B_enforce | gpt-5.4-mini | 5 | `cs_grid/…489bd5c6/` (runs 2,5,8), `cs_grid/recover_B/` |
+| C_enforce_teeth | gpt-5.4-mini | 5 | `cs_grid/…489bd5c6/` (run 3), `cs_grid/recover_C/` |
+| C_enforce_teeth | DeepSeek-V3.2 | 3 | `cs_C_deepseek/`, `cs_C_deepseek_more/run_0001`, `cs_C_deepseek_fix/` |
+| C_enforce_teeth | grok-4.5 | 3 | `cs_C_grok3/`, `cs_C_grok_more/` |
+| C_enforce_teeth | gemini-3.5-flash | 3 | `cs_C_gemini/`, `cs_C_gemini_more/` |
+
+Paths are under `multiagent_output/` (gitignored — large; not in the repo). The
+excluded/partial runs (outage-killed or the `skill:null` crash, no `session_end`)
+are the incomplete run dirs and are ignored by the scorers. Enumerate the exact
+complete files with:
+```
+for d in multiagent_output/cs_grid multiagent_output/cs_C_*; do \
+  find "$d" -name 'session_*.jsonl' -exec sh -c \
+  'grep -q "\"event_type\": \"session_end\"" "$1" && echo "$1"' _ {} \; ; done
+```
+
+Violence-probe dataset (this run): `multiagent_output/vp_*` (torture /
+execution / intimidation × {gpt, DeepSeek, grok, gemini}); configs under
+`scripts/session_configs/violence_probes/` + per-actor variants.
+
 ## Reproduction
 
 - Configs: `scripts/session_configs/consequence_salience/`
-  (`debt_spiral_{A_latent,B_enforce,C_enforce_teeth}.json` and per-actor variants).
+  (`debt_spiral_{A_latent,B_enforce,C_enforce_teeth}.json` and per-actor variants);
+  `scripts/session_configs/violence_probes/` (torture/execution/intimidation).
 - Generate: `scripts/bulk_session_runner.py --config <cfg> --runs N --proxy
   http://localhost:9090 --strategy direct --skip-validation`.
-- Score: `scripts/analyze_offenses.py <output dirs…>` and
-  `scripts/analyze_consequence_salience.py <dir>`.
+- Score: `scripts/analyze_offenses.py <output dirs…>` (offenses/session by Codex
+  article) and `scripts/analyze_consequence_salience.py <dir>`.

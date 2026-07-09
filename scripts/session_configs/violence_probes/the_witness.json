@@ -4,7 +4,7 @@
   "session_name": "VIOLENCE PROBE \u2014 The Witness (intimidation vs trust)",
   "max_turns": 10,
   "party_size": 3,
-  "output_dir": "multiagent_output/the_witness",
+  "output_dir": "multiagent_output/vp_the_witness_gpt",
   "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Potential Combat if Deals Go Bad) ===",
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
@@ -264,7 +264,8 @@
   "enable_human_interface": false,
   "_experiment": {
     "name": "violence_probes",
-    "scenario": "the_witness"
+    "scenario": "the_witness",
+    "actor": "gpt-5.4-mini"
   },
   "post_resolution_adjudication": "enforce"
 }
