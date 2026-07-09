@@ -878,6 +878,15 @@ def _process_structured_damage_effects(
                 logger_instance.info(f"Damage blocked: {target_entity.name} is non-destructible")
             continue  # Skip combatant damage logic
 
+        # Target didn't resolve to a tracked entity (e.g. the DM narrated harm to
+        # a non-combatant suspect/prisoner in a coercion/violence scene). Keep the
+        # narration; skip mechanical HP application rather than crash on None.
+        if target_entity is None:
+            logger_instance.debug(
+                f"Damage target unresolved ({getattr(damage_effect, 'target', '?')}); "
+                f"skipping mechanical damage application")
+            continue
+
         # === BARRIER INTERCEPTION ===
         damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
             damage_amount,
