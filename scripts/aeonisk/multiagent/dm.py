@@ -119,7 +119,7 @@ def _resolve_weapon_and_damage_type(
     if not player_agent or not hasattr(player_agent, 'equipped_weapons'):
         return ("Unknown Weapon", "wound", None)
 
-    skill = action.get('skill', '').lower()
+    skill = (action.get('skill') or '').lower()  # models may return skill: null
     primary = player_agent.equipped_weapons.get('primary')
     sidearm = player_agent.equipped_weapons.get('sidearm')
 
@@ -9278,7 +9278,7 @@ When adjudicating:
         is_dialogue_with_pc = False
         target_character = None
         if action and action_type == 'social':
-            intent = action.get('intent', '').lower()
+            intent = (action.get('intent') or '').lower()  # models may return intent: null
             description_lower = description.lower()
 
             # Check if targeting another player character

@@ -96,6 +96,22 @@ class TestDamageBackstop:
         assert not any("LOCKED" in m for m in out)
 
 
+class TestNullSkillRobustness:
+    """Cross-model actors (DeepSeek/Gemini) can return skill: null; the weapon
+    resolver must not crash on None.lower() (regression: dm.py:122)."""
+
+    def test_resolve_weapon_handles_null_skill(self):
+        from types import SimpleNamespace
+        from aeonisk.multiagent.dm import _resolve_weapon_and_damage_type
+        ss = SimpleNamespace(player_agents=[SimpleNamespace(
+            agent_id="p1",
+            equipped_weapons={"primary": get_weapon("debtbreaker_sidearm"), "sidearm": None})])
+        # skill explicitly None (not missing) — the crash case
+        action = {"agent_id": "p1", "skill": None, "action_type": "combat"}
+        name, dtype, wpn = _resolve_weapon_and_damage_type(action, ss)  # must not raise
+        assert wpn is not None and name == "Debtbreaker Sidearm"
+
+
 class TestForceFailRoll:
     """A locked contract weapon fails the roll (not a masked success), so the
     acting agent gets a clean adapt signal and the failure-loop detector fires."""
