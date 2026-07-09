@@ -54,6 +54,15 @@ def _config_for(run_dir: Path):
     return arm, players, is_enforce
 
 
+def _is_complete(jsonl_path) -> bool:
+    """True only if the session reached a real session_end event (excludes
+    outage-killed / hung partial sessions)."""
+    for e in _iter_events(jsonl_path):
+        if e.get("event_type") == "session_end":
+            return True
+    return False
+
+
 def analyze_session(jsonl_path, players: set, is_enforce: bool) -> dict:
     sc_first, sc_last = {}, {}
     teeth = judged_neg = illegal_acts = permit_tries = 0
@@ -114,6 +123,8 @@ def main(root):
         sessions = list(run_dir.glob("session_*.jsonl"))
         if not sessions:
             continue
+        if not _is_complete(sessions[0]):
+            continue  # skip incomplete / outage-killed sessions
         arm, players, is_enforce = _config_for(run_dir)
         per_arm[arm].append(analyze_session(sessions[0], players, is_enforce))
 
