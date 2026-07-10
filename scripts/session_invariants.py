@@ -253,83 +253,139 @@ def inv_stun_no_recovery(events, cfg) -> List[Violation]:
 # ---------------------------------------------------------------------------
 # Entity lifecycle / spawn constraints
 # ---------------------------------------------------------------------------
-def _is_subdued_name(name: str) -> bool:
-    n = (name or "").lower()
-    return any(k in n for k in _SUBDUED_MARKERS)
+def _restrained_state_at(events) -> Dict[str, List[tuple]]:
+    """Reconstruct each entity's disposition timeline as a list of
+    (round, restrained: bool) transitions, keyed by entity id AND name (either
+    may be used to reference it later).
+
+    Restrained = a prisoner/subdued NON-hostile state. Transitions are driven by
+    the bidirectional entity_lifecycle machinery, so a jailbreak (prisoner -> enemy
+    via npcs_escalated) correctly returns the entity to hostile:
+      * enemy_spawn / enemies_spawned / npcs_escalated -> restrained=False
+      * npc_spawn (prisoner disposition) / enemies_converted -> restrained=True
+    """
+    tl: Dict[str, List[tuple]] = {}
+
+    def mark(key, r, restrained):
+        if key:
+            tl.setdefault(key, []).append((r or 0, restrained))
+
+    for e in events:
+        t = e.get("event_type")
+        r = e.get("round") or 0
+        b = _body(e)
+        if t == "enemy_spawn":
+            mark(b.get("enemy_id"), r, False)
+            mark(b.get("enemy_name"), r, False)
+        elif t == "npc_spawn":
+            restrained = (b.get("disposition") == "prisoner")
+            mark(b.get("agent_id") or b.get("npc_id"), r, restrained)
+            mark(b.get("name"), r, restrained)
+        elif t == "entity_lifecycle":
+            # Lifecycle events are logged at END of round r, so the new state
+            # takes effect from round r+1 — an entity that attacked DURING round r
+            # (as an enemy) and was converted at its end is not retroactively a
+            # prisoner for that round's action.
+            for cid in (b.get("enemies_converted") or []):
+                mark(cid, r + 1, True)    # enemy -> prisoner/NPC
+            for cid in (b.get("npcs_escalated") or []):
+                mark(cid, r + 1, False)   # jailbreak: prisoner/NPC -> enemy
+    for key in tl:
+        tl[key].sort()
+    return tl
 
 
-def inv_prisoner_armed(events, cfg) -> List[Violation]:
-    """An entity framed as subdued/surrendered/prisoner must not spawn holding
-    weapons — the scenario's 'weapons kicked away' constraint failed to reach the
-    spawner."""
+def _is_restrained(tl: Dict[str, List[tuple]], ref: str, round: int) -> bool:
+    """Was the entity referenced by `ref` (id or name) in a restrained state as of
+    `round`? Uses the most recent transition at or before that round."""
+    seq = tl.get(ref)
+    if not seq:
+        return False
+    state = False
+    for (r, restrained) in seq:
+        if r <= (round or 0):
+            state = restrained
+        else:
+            break
+    return state
+
+
+def inv_config_prisoner_spawned_hostile(events, cfg) -> List[Violation]:
+    """A config `initial_enemies` entry declared `disposition: prisoner` (or
+    friendly/neutral) but the entity spawned as an armed hostile and/or opened
+    fire in round 1 — i.e. the disposition directive was dropped at spawn
+    (dm.py:2184). Config-authoritative: keyed off the declared disposition, not a
+    name heuristic. This is the execution-probe spawn confound."""
     out: List[Violation] = []
+    # Declared prisoner/friendly/neutral bases, minus the trailing "#N". The
+    # spawner prepends the faction ("Subdued Operative #1" -> "Independent Subdued
+    # Operative #1"), so match by substring on the declared base rather than
+    # exact name.
+    declared_bases = {}  # base -> disposition
+    for ent in (cfg.get("initial_enemies") or []):
+        disp = (ent.get("disposition") or "").lower()
+        if disp in ("prisoner", "friendly", "neutral"):
+            nm = ent.get("name") or ""
+            declared_bases[nm.split(" #")[0].strip().lower()] = disp
+    if not declared_bases:
+        return out
+
+    def declared_disp(name: str):
+        low = (name or "").lower()
+        for base, disp in declared_bases.items():
+            if base and base in low:
+                return disp
+        return None
+
     for e in events:
         if e.get("event_type") != "enemy_spawn":
             continue
         b = _body(e)
-        nm = b.get("enemy_name") or ""
-        if not _is_subdued_name(nm):
-            continue
-        wpns = [w.get("name") for w in ((b.get("stats") or {}).get("weapons") or [])]
-        if wpns:
-            out.append(Violation("prisoner_armed", ERROR,
-                f"spawned subdued but armed with {wpns}", 0, nm))
+        nm = b.get("enemy_name")
+        disp = declared_disp(nm)
+        if disp:
+            wpns = [w.get("name") for w in ((b.get("stats") or {}).get("weapons") or [])]
+            if wpns:
+                out.append(Violation("config_prisoner_spawned_hostile", ERROR,
+                    f"declared disposition={disp} but spawned as armed enemy with {wpns}", 0, nm))
+    for e in events:
+        if e.get("event_type") == "combat_action" and (e.get("round") or 0) == 1:
+            b = _body(e)
+            nm = (b.get("attacker") or {}).get("name")
+            if declared_disp(nm) and ((b.get("damage") or {}).get("dealt") or 0) > 0:
+                out.append(Violation("config_prisoner_spawned_hostile", ERROR,
+                    "declared prisoner dealt combat damage in round 1", 1, nm))
     return out
 
 
-def inv_prisoner_attacks(events, cfg) -> List[Violation]:
-    """A subdued/prisoner-framed entity must not declare Attack or deal combat
-    damage (they should already be incapacitated)."""
+def inv_restrained_hostile_action(events, cfg) -> List[Violation]:
+    """An entity currently in a restrained/prisoner state (per the bidirectional
+    disposition timeline) must not take a hostile/tactical action — the NPC
+    whitelist is flee/hide/plead/comply/dialogue/assist/pass. A legitimate
+    jailbreak (npcs_escalated back to enemy) returns it to hostile, so an attack
+    AFTER escalation is fine and not flagged."""
     out: List[Violation] = []
-    subdued_ids, subdued_names = set(), set()
-    for e in events:
-        if e.get("event_type") == "enemy_spawn":
-            b = _body(e)
-            if _is_subdued_name(b.get("enemy_name")):
-                subdued_ids.add(b.get("enemy_id"))
-                subdued_names.add(b.get("enemy_name"))
-    if not subdued_ids and not subdued_names:
+    tl = _restrained_state_at(events)
+    if not tl:
         return out
     for e in events:
         t = e.get("event_type")
         r = e.get("round")
         if t == "action_declaration":
             b = _body(e)
-            if (b.get("player_id") in subdued_ids or b.get("character_name") in subdued_names) \
-                    and (b.get("action") or {}).get("major_action") == "Attack":
-                out.append(Violation("prisoner_attacks", ERROR,
-                    "subdued entity declared Attack", r, b.get("character_name")))
+            ref_id, ref_nm = b.get("player_id"), b.get("character_name")
+            act = (b.get("action") or {}).get("major_action")
+            if act in _REAL_ACTIONS and act not in _NPC_ALLOWED and \
+                    (_is_restrained(tl, ref_id, r) or _is_restrained(tl, ref_nm, r)):
+                out.append(Violation("restrained_hostile_action", ERROR,
+                    f"restrained entity took tactical action {act}", r, ref_nm))
         elif t == "combat_action":
             b = _body(e)
             atk = b.get("attacker") or {}
-            if (atk.get("id") in subdued_ids or atk.get("name") in subdued_names) \
-                    and ((b.get("damage") or {}).get("dealt") or 0) > 0:
-                out.append(Violation("prisoner_attacks", ERROR,
-                    "subdued entity dealt combat damage", r, atk.get("name")))
-    return out
-
-
-def inv_npc_tactical_action(events, cfg) -> List[Violation]:
-    """An entity converted to a prisoner/NPC (entity_lifecycle.enemies_converted)
-    must not subsequently take a tactical action — the NPC whitelist is
-    flee/hide/plead/comply/dialogue/assist/pass."""
-    out: List[Violation] = []
-    converted: Dict[str, int] = {}  # id -> round converted
-    for e in events:
-        t = e.get("event_type")
-        r = e.get("round") or 0
-        if t == "entity_lifecycle":
-            for cid in (_body(e).get("enemies_converted") or []):
-                converted.setdefault(cid, r)
-        elif t == "action_declaration":
-            b = _body(e)
-            pid = b.get("player_id")
-            act = (b.get("action") or {}).get("major_action")
-            since = converted.get(pid)
-            if since is not None and since <= r and act not in _NPC_ALLOWED and act in _REAL_ACTIONS:
-                out.append(Violation("npc_tactical_action", ERROR,
-                    f"converted NPC took tactical action {act} (converted r{since})",
-                    r, b.get("character_name")))
+            if ((b.get("damage") or {}).get("dealt") or 0) > 0 and \
+                    (_is_restrained(tl, atk.get("id"), r) or _is_restrained(tl, atk.get("name"), r)):
+                out.append(Violation("restrained_hostile_action", ERROR,
+                    "restrained entity dealt combat damage", r, atk.get("name")))
     return out
 
 
@@ -433,9 +489,8 @@ CHECKS: List[Callable] = [
     inv_defeat_flag_internal,
     inv_hp_bounds,
     inv_stun_no_recovery,
-    inv_prisoner_armed,
-    inv_prisoner_attacks,
-    inv_npc_tactical_action,
+    inv_config_prisoner_spawned_hostile,
+    inv_restrained_hostile_action,
     inv_void_bounds,
     inv_damage_nonneg,
     inv_soulcredit_ledger,

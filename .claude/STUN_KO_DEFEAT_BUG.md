@@ -136,11 +136,30 @@ death model* and over-fired; both were re-scoped against `session.py:3819`:
   Re-scoped to the true death threshold (wounds>=6 / status=='dead'). 11 → **16**
   (now also catches `status:dead` re-hits, which are genuine).
 
-Corrected corpus scan (133 complete sessions): **67 ERROR-dirty**, dominated by
-the prisoner-spawn bug (`prisoner_attacks` 240, `prisoner_armed` 117) and
-`zombie_actor` (71). Lesson logged: a checker's rules need the same scrutiny as
-the code they audit — ship them calibrated against the engine's own definitions,
-not against an assumed model.
+A second calibration pass followed the reminder that NPC<->enemy conversion is
+**bidirectional and routine** (surrender -> prisoner, and jailbreak: prisoner ->
+enemy via `entity_lifecycle.npcs_escalated`). The name-based `prisoner_armed` /
+`prisoner_attacks` / `npc_tactical_action` checks were retired and replaced by:
+
+- **`config_prisoner_spawned_hostile`** (ERROR): config-authoritative — an
+  `initial_enemies` entry declared `disposition: prisoner` but spawned armed / hit
+  the party in round 1. Matches on the declared base name as a substring (the
+  spawner prepends the faction: "Subdued Operative #1" -> "Independent Subdued
+  Operative #1"). This is the precise detector for the spawn confound. Corpus: 234.
+- **`restrained_hostile_action`** (ERROR): a disposition *state machine* over
+  `enemies_converted` / `npcs_escalated`, flagging a hostile/tactical action only
+  while the entity is *currently* restrained. Honors jailbreaks (an attack after
+  re-escalation is fine) and respects round boundaries (lifecycle events take
+  effect the NEXT round, so a round-1 attacker converted at round-end is not
+  retroactively a prisoner). This corrected a 199 -> 7 over-count; the surviving
+  7 are one entity converted-by-id yet still taking enemy turns — the enemy-side
+  mirror of the zombie bug (conversion not mechanically enforced).
+
+Corrected corpus scan (133 complete sessions): **74 ERROR-dirty**, dominated by
+`config_prisoner_spawned_hostile` (234) and `zombie_actor` (71). Lesson logged
+twice over: a checker's rules need the same scrutiny as the code they audit —
+calibrate against the engine's own definitions (death model, conversion
+lifecycle), not an assumed model.
 
 ## Data impact
 

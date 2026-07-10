@@ -122,26 +122,55 @@ class TestLifeStateInvariants:
         assert "hp_exceeds_max" in fired(check(ev))
 
 
-class TestEntityLifecycleInvariants:
-    def test_prisoner_spawned_armed(self):
-        ev = [spawn("g1", "Independent Subdued Operative #1", weapons=("Pistol", "Baton"))]
-        assert "prisoner_armed" in fired(check(ev))
+def escalate(round, ids_):
+    return {"event_type": "entity_lifecycle", "round": round, "npcs_escalated": list(ids_)}
 
-    def test_prisoner_attacks_round_one(self):
-        ev = [spawn("g1", "Subdued Operative #1", weapons=("Baton",)),
-              declare(1, "g1", "Subdued Operative #1", major="Attack")]
-        assert "prisoner_attacks" in fired(check(ev))
 
-    def test_converted_npc_taking_tactical_action(self):
-        # after conversion to prisoner NPC, Attack is off the NPC whitelist
+class TestConfigPrisonerSpawnConfound:
+    def test_declared_prisoner_spawned_armed(self):
+        cfg = {"initial_enemies": [{"name": "Subdued Operative #1",
+                                    "disposition": "prisoner"}]}
+        ev = [spawn("g1", "Subdued Operative #1", weapons=("Pistol", "Baton"))]
+        assert "config_prisoner_spawned_hostile" in fired(check(ev, cfg))
+
+    def test_declared_prisoner_attacks_round_one(self):
+        cfg = {"initial_enemies": [{"name": "Subdued Operative #1",
+                                    "disposition": "prisoner"}]}
+        ev = [spawn("g1", "Subdued Operative #1", weapons=()),
+              combat(1, "Subdued Operative #1", "Vane", dealt=9)]
+        assert "config_prisoner_spawned_hostile" in fired(check(ev, cfg))
+
+    def test_no_config_disposition_is_silent(self):
+        # ordinary hostile enemy, no prisoner intent declared -> nothing to flag
+        ev = [spawn("g1", "ACG Enforcer", weapons=("Pistol",)),
+              combat(1, "ACG Enforcer", "Vane", dealt=9)]
+        assert "config_prisoner_spawned_hostile" not in fired(check(ev))
+
+
+class TestRestrainedHostileAction:
+    def test_converted_prisoner_attacks(self):
+        # enemy converted to prisoner in r1, then attacks r2 with no escalation
         ev = [spawn("g1", "Operative", weapons=()),
               convert(1, ["g1"]),
               declare(2, "g1", "Operative", major="Attack")]
-        assert "npc_tactical_action" in fired(check(ev))
+        assert "restrained_hostile_action" in fired(check(ev))
 
-    def test_unarmed_nonprisoner_is_silent(self):
-        ev = [spawn("g1", "ACG Enforcer", weapons=("Pistol",))]
-        assert "prisoner_armed" not in fired(check(ev))
+    def test_jailbreak_then_attack_is_silent(self):
+        # prisoner (converted r1) legitimately escalates back to enemy r2, then
+        # attacks r3 — this is a jailbreak, NOT a violation.
+        ev = [spawn("g1", "Operative", weapons=()),
+              convert(1, ["g1"]),
+              escalate(2, ["g1"]),
+              declare(3, "g1", "Operative", major="Attack"),
+              combat(3, "Operative", "Vane", dealt=9)]
+        assert "restrained_hostile_action" not in fired(check(ev))
+
+    def test_prisoner_may_plead(self):
+        # non-tactical NPC actions are always fine for a restrained entity
+        ev = [spawn("g1", "Operative", weapons=()),
+              convert(1, ["g1"]),
+              declare(2, "g1", "Operative", major="plead")]
+        assert "restrained_hostile_action" not in fired(check(ev))
 
 
 class TestEconomyInvariants:
