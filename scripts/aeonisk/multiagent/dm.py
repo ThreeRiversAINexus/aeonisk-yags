@@ -143,6 +143,20 @@ def _resolve_weapon_and_damage_type(
     return ("Unknown Weapon", "wound", None)
 
 
+def _targeting_trigger_reason(error: Optional[str]) -> str:
+    """Derive the `triggered_by` tag for targeting-validation logging.
+
+    `error` is None on the mechanical-correction success path
+    (validate_and_correct_targeting returns (True, corrected, None)), so a bare
+    `':' in error` there raised `TypeError: argument of type 'NoneType' is not
+    iterable` and killed the whole session over a metrics log. Treat a missing
+    or colon-less error as 'unknown'.
+    """
+    if error and ':' in error:
+        return error.split(':')[0]
+    return 'unknown'
+
+
 def _get_wielder_soulcredit(action: Optional[Dict[str, Any]], shared_state) -> Optional[int]:
     """Resolve the acting player's current Soulcredit for contract-gear locks.
     Prefers the live mechanics ledger (kept authoritative by enforce mode);
@@ -8040,7 +8054,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=correction.corrected_target,
                                     correction_method='llm_inference',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=True,
                                     confidence=correction.confidence,
                                     reasoning=correction.reasoning,
@@ -8064,7 +8078,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=None,
                                     correction_method='failed',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=False,
                                     error=str(llm_error),
                                     declared_target=action.get('target'),
@@ -8087,7 +8101,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=corrected_effect.target,
                                     correction_method='mechanical',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=True,
                                     declared_target=action.get('target'),
                                     effect_type='damage',
@@ -8282,6 +8296,18 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             underlying_error = None
             if hasattr(e, '__cause__') and e.__cause__:
                 underlying_error = f"{type(e.__cause__).__name__}: {str(e.__cause__)}"
+            else:
+                # Bare exceptions (e.g. a TypeError from unguarded `x in None`
+                # in the resolution-processing chain) carry no __cause__; the
+                # traceback is the only way to locate the failing line.
+                import traceback
+                tb = traceback.extract_tb(e.__traceback__)
+                if tb:
+                    frame = tb[-1]
+                    underlying_error = (
+                        f"{error_type} at {frame.filename.split('/')[-1]}:"
+                        f"{frame.lineno} in {frame.name}(): {frame.line}"
+                    )
 
             logger.error(
                 f"❌ DM: Structured output failed:\n"
