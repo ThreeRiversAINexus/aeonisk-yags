@@ -3856,6 +3856,7 @@ Generate narratives (numbered list only):"""
                             conditions=[],  # TODO: Add condition tracking
                             is_defeated=(death_state != "alive"),
                             death_state=death_state,
+                            stuns=stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
                             energy=energy_data,
                             seeds=seeds_data
                         )
@@ -3901,6 +3902,7 @@ Generate narratives (numbered list only):"""
                                 conditions=[],  # TODO: Add condition tracking for enemies
                                 is_defeated=(enemy_death_state != "alive"),
                                 death_state=enemy_death_state,  # NEW: Track death vs unconscious
+                                stuns=enemy_stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
                                 agent='enemy'  # Add agent field to identify this as enemy state
                             )
 

@@ -1030,7 +1030,8 @@ class JSONLLogger:
         death_state: str = "alive",
         agent: str = 'player',
         energy: Dict[str, int] = None,
-        seeds: Dict[str, int] = None
+        seeds: Dict[str, int] = None,
+        stuns: int = 0
     ):
         """
         Log character state snapshot (typically at round end).
@@ -1047,10 +1048,13 @@ class JSONLLogger:
             position: Tactical position (e.g., "Near-PC")
             conditions: List of active conditions (debuffs, buffs)
             is_defeated: Whether character is defeated
-            death_state: "alive", "unconscious" (0 HP, wounds < 6), or "dead" (wounds >= 6)
+            death_state: "alive", "unconscious" (0 HP, wounds < 6, or stuns >= 6), or "dead" (wounds >= 6)
             agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
             energy: Currency amounts {"breath": 5, "drip": 10, "grain": 3, "spark": 2, "hollow": 0}
             seeds: Seed counts {"raw": 2, "attuned": 1, "hollow": 0}
+            stuns: Stun count (separate from wounds; >= 6 is the Beaten/KO threshold that
+                   drives death_state="unconscious"). Logged so a stun-KO snapshot is
+                   diagnosable — without it, is_defeated=True at full health looks impossible.
         """
         event = {
             "event_type": "character_state",
@@ -1068,6 +1072,7 @@ class JSONLLogger:
             "conditions": conditions or [],
             "is_defeated": is_defeated,
             "death_state": death_state,  # NEW: Track death vs unconscious
+            "stuns": stuns,  # Separate from wounds; >= 6 drives stun-KO (Beaten threshold)
             "agent": agent,
             "energy": energy or {},
             "seeds": seeds or {}
