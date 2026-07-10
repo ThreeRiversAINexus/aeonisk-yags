@@ -22,12 +22,14 @@ def cstate(round, name, health=26, max_health=26, wounds=0, stuns=0,
             "is_defeated": is_defeated, "death_state": death_state,
             "void_score": void, "soulcredit": sc, "agent": agent}
 
-def combat(round, atk, dfn, dealt=5, health_after=20, stuns_after=0, alive=True, did=None):
+def combat(round, atk, dfn, dealt=5, health_after=20, stuns_after=0, alive=True,
+           did=None, wounds_after=1, status="active"):
     return {"event_type": "combat_action", "round": round,
             "attacker": {"id": atk, "name": atk}, "defender": {"id": did or dfn, "name": dfn},
             "damage": {"dealt": dealt, "damage_type": "wound"},
             "defender_state_after": {"health": health_after, "max_health": 30,
-                                     "wounds": 1, "stuns": stuns_after, "alive": alive}}
+                                     "wounds": wounds_after, "stuns": stuns_after,
+                                     "alive": alive, "status": status}}
 
 def declare(round, pid, name, major="Attack", target="tgt_x"):
     return {"event_type": "action_declaration", "round": round, "player_id": pid,
@@ -85,18 +87,30 @@ class TestLifeStateInvariants:
               combat(3, "Vane", "Grunt", dealt=9)]
         assert "zombie_actor" not in fired(check(ev))
 
-    def test_defeat_state_disagreement_stuns(self):
-        ev = [combat(1, "Grunt", "Vane", stuns_after=6, alive=True)]  # KO threshold but alive
+    def test_defeat_state_disagreement_dead_but_active(self):
+        # past the wound-death threshold yet still reported able to act
+        ev = [combat(1, "Vane", "Grunt", wounds_after=6, status="active")]
         assert "defeat_state_disagreement" in fired(check(ev))
 
-    def test_defeat_state_disagreement_zero_hp(self):
-        ev = [combat(1, "Vane", "Grunt", health_after=0, alive=True)]
+    def test_defeat_state_disagreement_not_alive_but_active(self):
+        ev = [combat(1, "Vane", "Grunt", alive=False, status="active")]
         assert "defeat_state_disagreement" in fired(check(ev))
 
-    def test_dead_targetable(self):
-        ev = [combat(1, "Vane", "Grunt", dealt=20, health_after=0, did="g1"),
-              combat(2, "Vane", "Grunt", dealt=9, health_after=0, did="g1")]
+    def test_defeat_state_silent_on_stun_ko(self):
+        # a stun-KO'd defender IS alive (just unconscious) — must NOT fire here
+        ev = [combat(1, "Grunt", "Vane", stuns_after=12, alive=True, status="active")]
+        assert "defeat_state_disagreement" not in fired(check(ev))
+
+    def test_dead_targetable_fires_on_true_death(self):
+        ev = [combat(1, "Vane", "Grunt", dealt=20, wounds_after=6, did="g1"),
+              combat(2, "Vane", "Grunt", dealt=9, wounds_after=6, did="g1")]
         assert "dead_targetable" in fired(check(ev))
+
+    def test_dead_targetable_silent_on_unconscious(self):
+        # 0 HP but wounds < 6 = unconscious, not dead; a finishing blow is legal
+        ev = [combat(1, "Vane", "Grunt", dealt=20, health_after=0, wounds_after=3, did="g1"),
+              combat(2, "Vane", "Grunt", dealt=9, health_after=0, wounds_after=4, did="g1")]
+        assert "dead_targetable" not in fired(check(ev))
 
     def test_defeat_flag_internal_mismatch(self):
         # death_state unconscious but is_defeated False — self-contradictory snapshot

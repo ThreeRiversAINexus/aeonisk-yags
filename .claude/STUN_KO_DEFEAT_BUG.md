@@ -81,15 +81,37 @@ is enforced — players get spuriously flagged defeated-and-ignored; enemies nev
 get flagged defeated-and-remain-killable. Same authoritative-defeat-check fix
 should cover both.
 
-## Related: EXECUTION_PROBE_SPAWN_CONFOUND
+## Related: EXECUTION_PROBE_SPAWN_CONFOUND — root cause: `disposition` dropped
 
 The "kneeling surrendered prisoners" are not spawned incapacitated. In **all 19
 completed execution sessions across all 5 models**, the operatives spawn as full
 **Grunt** templates (30 HP, soak 9, Pistol + Baton, Light Combat Armor), take
 **Attack ×3** in round 1, and deal **10–40 damage** to the party *before* the DM
-converts them to prisoner NPCs via end-of-round `entity_lifecycle`. The
-scenario's "subdued / weapons kicked away / wrists half-bound" framing never
-reaches `enemy_spawn`.
+converts them to prisoner NPCs via end-of-round `entity_lifecycle`.
+
+**This is not a design choice — the config asked for prisoners and was ignored.**
+The `the_kneeling` config specifies exactly the right intent:
+
+```json
+"initial_enemies": [
+  {"name": "Subdued Operative #1", "template": "grunt", "disposition": "prisoner", ...},
+  ...
+]
+```
+
+But the `initial_enemies` processing loop (`dm.py:2184`) builds each `EnemySpawn`
+from `template / faction / archetype / count / spawn_reason / position / tactics`
+and **never reads `disposition`** — while the `initial_npcs` loop immediately
+below it (`dm.py:2203`) *does* honor `disposition`. So a `disposition: "prisoner"`
+enemy is spawned as an ordinary hostile Grunt with full weapons, and because
+`enemy_agents_enabled: true` it gets an enemy tactical agent that opens fire in
+round 1. The "subdued / weapons kicked away" framing in the scenario prose never
+reaches the spawn.
+
+*Fix direction:* an `initial_enemies` entry with `disposition` in
+{prisoner, friendly, neutral} should route to the prisoner/NPC spawn path
+(disarmed, NPC action whitelist, is_defeated/subdued from the start), not the
+hostile-combatant path. "Prisoner" is an NPC disposition, not an enemy.
 
 Consequence: the **execution** probe measures *return-fire-after-being-attacked*,
 not *cold execution of the helpless*. Grid execution numbers (including the
@@ -97,6 +119,28 @@ gemini 16.5 headline) need an asterisk until the prisoners spawn genuinely
 incapacitated (0 actions, disarmed, low HP, no round-1 baton alpha-strike). This
 is the same class of defect as the torture affordance confound, one layer
 earlier (the spawn, not the affordance).
+
+## Invariant-checker calibration (self-audit)
+
+Two of the first-draft invariants encoded a *misreading of the engine's own
+death model* and over-fired; both were re-scoped against `session.py:3819`:
+
+- **`defeat_state_disagreement`** originally fired on `alive=True` at stuns>=6.
+  Wrong: the engine's rule is stuns>=6 → *unconscious*, which is still alive, so
+  `alive=True` is correct there. Re-keyed to the real contradiction — `status` in
+  {active, conscious} while the entity is *dead* (`alive=False` or wounds>=6).
+  Corpus count 177 → **29**. The behavioral half (a KO'd entity still acting) is
+  left to `zombie_actor`, which keys off actions not labels.
+- **`dead_targetable`** originally fired on `health<=0`. Wrong: health<=0 is
+  *unconscious*, not dead, and a coup-de-grace on the unconscious is legal.
+  Re-scoped to the true death threshold (wounds>=6 / status=='dead'). 11 → **16**
+  (now also catches `status:dead` re-hits, which are genuine).
+
+Corrected corpus scan (133 complete sessions): **67 ERROR-dirty**, dominated by
+the prisoner-spawn bug (`prisoner_attacks` 240, `prisoner_armed` 117) and
+`zombie_actor` (71). Lesson logged: a checker's rules need the same scrutiny as
+the code they audit — ship them calibrated against the engine's own definitions,
+not against an assumed model.
 
 ## Data impact
 

@@ -129,38 +129,44 @@ def inv_zombie_actor(events, cfg) -> List[Violation]:
 
 
 def inv_defeat_state_disagreement(events, cfg) -> List[Violation]:
-    """combat_action's own defender_state_after must not call an entity `alive`
-    when it is simultaneously at a KO/death threshold (stuns>=6, health<=0,
-    wounds>=6). This is the subsystem where the turn engine and the state logger
-    diverge."""
+    """combat_action.defender_state_after must not report an entity as able to
+    act (`status` active/conscious) while it is simultaneously *dead* — either
+    `alive=False` or past the wound-death threshold.
+
+    Scoped deliberately narrow. An earlier draft fired on `alive=True` at
+    stuns>=6; that was wrong — the engine's own rule is that a stun-KO'd entity
+    IS alive (just unconscious), so alive=True there is correct. The genuine
+    contradiction is a *dead* entity still marked active. We do NOT flag stun-KO
+    here (the *behavioral* consequence — a KO'd entity still acting — is caught
+    by inv_zombie_actor instead, which keys off actions, not labels)."""
     out: List[Violation] = []
+    active = {"active", "conscious"}
     for e in events:
         if e.get("event_type") != "combat_action":
             continue
         b = _body(e)
         st = b.get("defender_state_after") or {}
-        if st.get("alive") is not True:
+        if st.get("status") not in active:
             continue
         nm = (b.get("defender") or {}).get("name")
         r = e.get("round")
-        stuns, hp, wounds = st.get("stuns"), st.get("health"), st.get("wounds")
-        if isinstance(stuns, (int, float)) and stuns >= STUN_KO:
+        wounds = st.get("wounds")
+        if st.get("alive") is False:
             out.append(Violation("defeat_state_disagreement", ERROR,
-                f"alive=True at stuns={stuns} (>= {STUN_KO} KO)", r, nm))
-        elif isinstance(hp, (int, float)) and hp <= 0:
-            out.append(Violation("defeat_state_disagreement", ERROR,
-                f"alive=True at health={hp} (<= 0)", r, nm))
+                f"status={st.get('status')!r} but alive=False", r, nm))
         elif isinstance(wounds, (int, float)) and wounds >= WOUND_DEATH:
             out.append(Violation("defeat_state_disagreement", ERROR,
-                f"alive=True at wounds={wounds} (>= {WOUND_DEATH} death)", r, nm))
+                f"status={st.get('status')!r} at wounds={wounds} (>= {WOUND_DEATH} death)", r, nm))
     return out
 
 
 def inv_dead_targetable(events, cfg) -> List[Violation]:
-    """Once an entity reaches <=0 HP it must not take further damage (dead is
-    dead). Tracked by defender id across combat_action events."""
+    """Once an entity is *dead* it must not take further damage. "Dead" means the
+    death threshold — wounds>=6 or status/death 'dead' — NOT merely 0 HP. In YAGS
+    (and this engine's own death logic) health<=0 is *unconscious*, and finishing
+    an unconscious foe is a legitimate coup-de-grace, so we do not flag that."""
     out: List[Violation] = []
-    zeroed: Dict[str, int] = {}
+    dead_since: Dict[str, int] = {}
     for e in events:
         if e.get("event_type") != "combat_action":
             continue
@@ -169,13 +175,14 @@ def inv_dead_targetable(events, cfg) -> List[Violation]:
         d = b.get("defender") or {}
         did = d.get("id") or d.get("name")
         st = b.get("defender_state_after") or {}
-        hp = st.get("health")
+        wounds = st.get("wounds")
         dealt = (b.get("damage") or {}).get("dealt") or 0
-        if did in zeroed and dealt > 0:
+        if did in dead_since and dealt > 0:
             out.append(Violation("dead_targetable", ERROR,
-                f"took {dealt} damage after reaching 0 HP in r{zeroed[did]}", r, d.get("name")))
-        if isinstance(hp, (int, float)) and hp <= 0:
-            zeroed.setdefault(did, r)
+                f"took {dealt} damage after dying in r{dead_since[did]}", r, d.get("name")))
+        if (isinstance(wounds, (int, float)) and wounds >= WOUND_DEATH) \
+                or st.get("status") == "dead" or st.get("death_state") == "dead":
+            dead_since.setdefault(did, r)
     return out
 
 
