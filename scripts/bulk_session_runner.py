@@ -115,7 +115,7 @@ import subprocess
 import threading
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple, Set, Any
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 import requests
@@ -429,6 +429,12 @@ class RunResult:
     error: Optional[str] = None
     total_tokens: Optional[int] = None
     total_rounds: Optional[int] = None
+    # Post-session mechanical integrity gate (scripts/session_invariants.py).
+    # A completed session can still be self-contradictory (stun-KO'd actor still
+    # acting, "subdued" prisoner spawned armed); quarantined flags that so the
+    # session is excluded from datasets even though it ran to completion.
+    quarantined: bool = False
+    violations: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -650,6 +656,34 @@ def preflight_configs(
     return all_ok
 
 
+def gate_session_invariants(jsonl_path: Path) -> List[Dict[str, Any]]:
+    """Run the mechanical-integrity checker on a completed session.
+
+    Returns the ERROR-severity violations as plain dicts (empty = clean). Also
+    writes a per-run `invariant_violations.json` sidecar next to the session so a
+    quarantined run is self-describing. Never raises — a checker failure must not
+    fail the run it is auditing (logged as a soft note instead).
+    """
+    try:
+        from scripts.session_invariants import check_file  # lazy: keep subprocess import cheap
+        violations = check_file(str(jsonl_path))
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning(f"Invariant checker failed on {jsonl_path.name}: {exc!r}")
+        return []
+    errors = [v for v in violations if v.severity == "error"]
+    if violations:
+        sidecar = jsonl_path.parent / "invariant_violations.json"
+        try:
+            with open(sidecar, "w") as fh:
+                json.dump([{"invariant": v.invariant, "severity": v.severity,
+                            "round": v.round, "entity": v.entity, "message": v.message}
+                           for v in violations], fh, indent=2)
+        except OSError:
+            pass
+    return [{"invariant": v.invariant, "severity": v.severity, "round": v.round,
+             "entity": v.entity, "message": v.message} for v in errors]
+
+
 def run_single_session(
     config_path: str,
     run_id: int,
@@ -660,7 +694,9 @@ def run_single_session(
     session_timeout: int = 90000,
     attempt_replay: bool = False,
     proxy_strategy: Optional[str] = None,
-    force_truncate: bool = False
+    force_truncate: bool = False,
+    check_invariants: bool = True,
+    fail_on_invariant: bool = False
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -794,14 +830,31 @@ def run_single_session(
                     f"(likely spurious shutdown error)"
                 )
 
+            # Post-session mechanical-integrity gate. The session RAN, but may be
+            # self-contradictory; quarantine it so it never silently enters a dataset.
+            error_violations = gate_session_invariants(actual_jsonl) if check_invariants else []
+            quarantined = bool(error_violations)
+            if quarantined:
+                inv_names = sorted({v["invariant"] for v in error_violations})
+                logger.warning(
+                    f"Run {run_id}: QUARANTINED — {len(error_violations)} invariant "
+                    f"violation(s): {', '.join(inv_names)} (see invariant_violations.json)"
+                )
+
             return RunResult(
                 run_id=run_id,
                 config_path=config_path,
                 output_path=str(actual_jsonl),
-                success=True,
+                # A quarantined run is not a usable success when gating is strict.
+                success=not (quarantined and fail_on_invariant),
                 duration_seconds=duration,
+                error=(f"Quarantined: invariant violations "
+                       f"({', '.join(sorted({v['invariant'] for v in error_violations}))})"
+                       if quarantined and fail_on_invariant else None),
                 total_tokens=total_tokens,
-                total_rounds=total_rounds
+                total_rounds=total_rounds,
+                quarantined=quarantined,
+                violations=error_violations or None
             )
         elif result.returncode == 0:
             # Exit code 0 but no session_end - partial completion
@@ -1472,6 +1525,13 @@ def write_summary_report(
                         'context': errors[-1].get('context', {})
                     })
 
+    # Aggregate the mechanical-integrity quarantine across the batch.
+    quarantined = [r for r in results if getattr(r, 'quarantined', False)]
+    inv_tally: Dict[str, int] = {}
+    for r in quarantined:
+        for v in (r.violations or []):
+            inv_tally[v['invariant']] = inv_tally.get(v['invariant'], 0) + 1
+
     report = {
         'metadata': {
             'command': ' '.join(sys.argv),
@@ -1483,6 +1543,11 @@ def write_summary_report(
             'resumed': args.resume
         },
         'statistics': asdict(stats),
+        'quarantine': {
+            'quarantined_runs': len(quarantined),
+            'invariant_tally': inv_tally,
+            'run_ids': [r.run_id for r in quarantined],
+        } if quarantined else None,
         'runs': [asdict(r) for r in results],
         'errored_sessions': errored_runs if errored_runs else None
     }
@@ -1491,6 +1556,21 @@ def write_summary_report(
         json.dump(report, f, indent=2)
 
     logger.info(f"Summary report written to: {report_path}")
+
+    # Standalone quarantine manifest — the exclude-list for downstream analysis.
+    if quarantined:
+        manifest_path = output_dir / "invariant_quarantine.json"
+        with open(manifest_path, 'w') as f:
+            json.dump({
+                'quarantined_runs': len(quarantined),
+                'total_runs': len(results),
+                'invariant_tally': inv_tally,
+                'sessions': [{'run_id': r.run_id, 'output_path': r.output_path,
+                              'violations': r.violations} for r in quarantined],
+            }, f, indent=2)
+        logger.warning(
+            f"QUARANTINE: {len(quarantined)}/{len(results)} completed sessions failed "
+            f"mechanical-integrity checks -> {manifest_path}")
 
 
 def main():
@@ -1614,6 +1694,19 @@ def main():
         '--show-errors',
         action='store_true',
         help='Print stderr from failed runs immediately'
+    )
+    parser.add_argument(
+        '--no-invariant-check',
+        action='store_true',
+        help='Skip the post-session mechanical-integrity gate '
+             '(scripts/session_invariants.py). By default every completed session '
+             'is checked and self-contradictory ones are quarantined.'
+    )
+    parser.add_argument(
+        '--fail-on-invariant',
+        action='store_true',
+        help='Treat a quarantined (invariant-violating) session as a failed run '
+             'rather than a completed-but-flagged one. Use in CI to hard-gate.'
     )
     parser.add_argument(
         '--session-timeout',
@@ -1943,7 +2036,9 @@ def main():
                     args.session_timeout,
                     attempt_replay,
                     proxy_strategy,
-                    force_truncate
+                    force_truncate,
+                    not args.no_invariant_check,
+                    args.fail_on_invariant
                 )
                 futures[future] = (config_path, run_id)
 
