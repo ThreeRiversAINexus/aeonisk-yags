@@ -2155,59 +2155,12 @@ Apply this narrative style to:
 
         scenario_setup_dict = None
         if initial_enemies_config or initial_npcs_config:
-            from .schemas.story_events import EnemySpawn, NPCSpawn
-            from .schemas.shared_types import Position
+            from .initial_spawns import build_initial_spawns
 
-            # Convert initial_enemies config dicts to EnemySpawn objects
-            enemy_spawns = []
-            for enemy_config in initial_enemies_config:
-                template_raw = enemy_config.get('template', 'grunt').lower()
-                template_map = {
-                    'grunt': 'Grunt',
-                    'elite': 'Elite',
-                    'boss': 'Boss'
-                }
-                template = template_map.get(template_raw, 'Grunt')
-
-                position_str = enemy_config.get('position', 'Far-Enemy')
-                position_map = {
-                    'Engaged': Position.ENGAGED,
-                    'Near-PC': Position.NEAR_PC,
-                    'Near-Enemy': Position.NEAR_ENEMY,
-                    'Far-PC': Position.FAR_PC,
-                    'Far-Enemy': Position.FAR_ENEMY,
-                    'Extreme-PC': Position.EXTREME_PC,
-                    'Extreme-Enemy': Position.EXTREME_ENEMY
-                }
-                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
-
-                enemy_spawn = EnemySpawn(
-                    template=template,
-                    faction=enemy_config.get('faction', 'Hostile'),
-                    archetype=enemy_config.get('archetype', enemy_config.get('name', 'Unknown Enemy')),
-                    count=enemy_config.get('count', 1),
-                    spawn_reason=enemy_config.get('spawn_reason', f"{enemy_config.get('name', 'Enemy')} present at scenario start"),
-                    initial_position=initial_position,
-                    custom_traits=enemy_config.get('tactics')
-                )
-                enemy_spawns.append(enemy_spawn)
-
-            # Convert initial_npcs config dicts to NPCSpawn objects
-            npc_spawns = []
-            for npc_config in initial_npcs_config:
-                npc_spawn = NPCSpawn(
-                    name=npc_config.get('name', 'Unknown NPC'),
-                    faction=npc_config.get('faction', 'Unknown'),
-                    entity_type=npc_config.get('entity_type', 'neutral'),
-                    threat_level=npc_config.get('threat_level', 'non_combatant'),
-                    disposition=npc_config.get('disposition', 'neutral'),
-                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
-                    health=npc_config.get('health', 20),
-                    soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {}),
-                    weapons=npc_config.get('weapons', [])
-                )
-                npc_spawns.append(npc_spawn)
+            # Honors disposition: a prisoner/friendly/neutral "enemy" routes to the
+            # disarmed NPC path instead of spawning as an armed combatant.
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
 
             # Serialize to dicts for JSON
             scenario_setup_dict = {
@@ -2387,69 +2340,12 @@ Apply this narrative style to:
         # Create scenario_setup object with initial_enemies and/or initial_npcs if specified
         scenario_setup_obj = None
         if initial_enemies_config or initial_npcs_config:
-            from types import SimpleNamespace
-            from .schemas.story_events import EnemySpawn, NPCSpawn
-            from .schemas.shared_types import Position  # Position Enum, not enemy_agent.Position class
+            from .initial_spawns import build_initial_spawns
 
-            # Convert initial_enemies config dicts to EnemySpawn objects
-            enemy_spawns = []
-            for enemy_config in initial_enemies_config:
-                # Map config template (lowercase) to schema template (capitalized)
-                template_raw = enemy_config.get('template', 'grunt').lower()
-                template_map = {
-                    'grunt': 'Grunt',
-                    'elite': 'Elite',
-                    'boss': 'Boss'
-                }
-                template = template_map.get(template_raw, 'Grunt')
-
-                # Map position string to Position enum
-                # Valid: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy
-                position_str = enemy_config.get('position', 'Far-Enemy')
-                position_map = {
-                    'Engaged': Position.ENGAGED,
-                    'Near-PC': Position.NEAR_PC,
-                    'Near-Enemy': Position.NEAR_ENEMY,
-                    'Far-PC': Position.FAR_PC,
-                    'Far-Enemy': Position.FAR_ENEMY,
-                    'Extreme-PC': Position.EXTREME_PC,
-                    'Extreme-Enemy': Position.EXTREME_ENEMY
-                }
-                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
-
-                # Extract/generate required fields
-                name = enemy_config.get('name', 'Unknown Enemy')
-                faction = enemy_config.get('faction', 'Hostile')
-                archetype = enemy_config.get('archetype', name)  # Default to name if not specified
-                spawn_reason = enemy_config.get('spawn_reason', f'{name} present at scenario start')
-
-                enemy_spawn = EnemySpawn(
-                    template=template,
-                    faction=faction,
-                    archetype=archetype,
-                    count=enemy_config.get('count', 1),
-                    spawn_reason=spawn_reason,
-                    initial_position=initial_position,
-                    custom_traits=enemy_config.get('tactics')  # Map tactics to custom_traits
-                )
-                enemy_spawns.append(enemy_spawn)
-
-            # Convert initial_npcs config dicts to NPCSpawn objects
-            npc_spawns = []
-            for npc_config in initial_npcs_config:
-                npc_spawn = NPCSpawn(
-                    name=npc_config.get('name', 'Unknown NPC'),
-                    faction=npc_config.get('faction', 'Unknown'),
-                    entity_type=npc_config.get('entity_type', 'neutral'),
-                    threat_level=npc_config.get('threat_level', 'non_combatant'),
-                    disposition=npc_config.get('disposition', 'neutral'),
-                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
-                    health=npc_config.get('health', 20),
-                    soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {}),
-                    weapons=npc_config.get('weapons', [])
-                )
-                npc_spawns.append(npc_spawn)
+            # Honors disposition: a prisoner/friendly/neutral "enemy" routes to the
+            # disarmed NPC path instead of spawning as an armed combatant.
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
 
             # Serialize Pydantic models to dicts for JSON serialization
             # (Message.to_json() uses json.dumps with default=str, which breaks objects)

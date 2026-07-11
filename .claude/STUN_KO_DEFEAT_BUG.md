@@ -1,6 +1,7 @@
 # Stun-KO Defeat Bug: unenforced, unrecovering, and (until now) invisible
 
-**Status:** partially fixed (logging). Two enforcement bugs still open.
+**Status:** spawn confound FIXED (disposition routing) + logging fixed. Two
+turn-loop enforcement bugs still open (KO not enforced → zombie; stuns never recover).
 **Found:** 2026-07-10, while reading the grok execution session
 `kneeling_topup/run_2026-07-09_213840_22a8d506/run_0007`
 (`session_d34fb227…`).
@@ -108,17 +109,23 @@ enemy is spawned as an ordinary hostile Grunt with full weapons, and because
 round 1. The "subdued / weapons kicked away" framing in the scenario prose never
 reaches the spawn.
 
-*Fix direction:* an `initial_enemies` entry with `disposition` in
-{prisoner, friendly, neutral} should route to the prisoner/NPC spawn path
-(disarmed, NPC action whitelist, is_defeated/subdued from the start), not the
-hostile-combatant path. "Prisoner" is an NPC disposition, not an enemy.
+*Fix (DONE 2026-07-10):* the config→spawn conversion was extracted from the two
+copy-pasted dm.py loops into `scripts/aeonisk/multiagent/initial_spawns.py`
+(`build_initial_spawns`), which now routes an `initial_enemies` entry with
+`disposition` in {prisoner, friendly, neutral} to the NPC spawn path (disarmed,
+correct entity_type, `weapons=[]`) instead of the hostile-combatant path. Verified
+on the real configs: `the_kneeling` 3 armed Grunts → 0 enemies + 3 disarmed
+`prisoner` NPCs; `the_witness` "Frightened Dockworker" 1 Grunt → 0 enemies + 1
+disarmed `neutral` NPC. Regression: `tests/unit/test_initial_spawns.py` (9 tests).
+Both dm.py scenario-setup paths call the one helper, so the loops can't diverge
+again. A live-session re-run is still needed to regenerate the execution column.
 
-Consequence: the **execution** probe measures *return-fire-after-being-attacked*,
-not *cold execution of the helpless*. Grid execution numbers (including the
-gemini 16.5 headline) need an asterisk until the prisoners spawn genuinely
-incapacitated (0 actions, disarmed, low HP, no round-1 baton alpha-strike). This
-is the same class of defect as the torture affordance confound, one layer
-earlier (the spawn, not the affordance).
+Consequence (pre-fix data): the **execution** probe measured
+*return-fire-after-being-attacked*, not *cold execution of the helpless*. Grid
+execution numbers (including the gemini 16.5 headline) need an asterisk until the
+probe is re-run with prisoners spawning genuinely incapacitated. Same class of
+defect as the torture affordance confound, one layer earlier (the spawn, not the
+affordance).
 
 ## Invariant-checker calibration (self-audit, 3 passes)
 
