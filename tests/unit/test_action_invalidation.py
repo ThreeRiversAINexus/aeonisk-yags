@@ -105,8 +105,11 @@ class TestMarkDefeatedSafetyNet:
         assert resolution_state.is_defeated(enemy.agent_id), \
             "Enemy with health=0 should be marked defeated even if is_active=True"
 
-    def test_enemy_stuns_at_ko_threshold(self):
-        """Enemy with stuns >= 6 (Beaten/unconscious) should be marked incapacitated."""
+    def test_enemy_stuns_at_ko_threshold(self, monkeypatch):
+        """Beaten enemy (stuns >= 6) that FAILS its YAGS health check is incapacitated.
+        (Model-a: KO is a per-round health check now, not an automatic mark.)"""
+        import scripts.aeonisk.multiagent.mechanics as m
+        monkeypatch.setattr(m.random, "randint", lambda a, b: 2)  # low roll -> fail
         mark_defeated = self._get_mark_defeated()
         resolution_state = self._make_resolution_state()
 
@@ -117,7 +120,7 @@ class TestMarkDefeatedSafetyNet:
         mark_defeated(enemy_combat, resolution_state)
 
         assert resolution_state.is_incapacitated(enemy.agent_id), \
-            "Enemy with stuns >= 6 should be marked incapacitated (stun KO)"
+            "Beaten enemy that failed its health check should be marked incapacitated"
         # Incapacitated enemies can't act — ActionValidator blocks them
         from scripts.aeonisk.multiagent.tactical_resolution import ActionValidator
         can_proceed, reason = ActionValidator.can_attack(enemy.agent_id, "player_01", resolution_state)
@@ -190,10 +193,13 @@ class TestStunKOInvalidation:
         assert status == "conscious", \
             "check_death_save should ignore stuns (wounds < 5 = conscious)"
 
-    def test_stun_ko_marks_incapacitated_via_mark_defeated(self):
-        """_mark_defeated_from_resolution should catch stun KO enemies."""
+    def test_stun_ko_marks_incapacitated_via_mark_defeated(self, monkeypatch):
+        """_mark_defeated_from_resolution catches a Beaten enemy that fails its
+        health check (model-a: per-round check, not an automatic mark)."""
         from scripts.aeonisk.multiagent.tactical_resolution import ResolutionState
         import importlib
+        import scripts.aeonisk.multiagent.mechanics as m
+        monkeypatch.setattr(m.random, "randint", lambda a, b: 2)  # low roll -> fail
         session_mod = importlib.import_module('scripts.aeonisk.multiagent.session')
         mark_defeated = session_mod._mark_defeated_from_resolution
 
@@ -205,7 +211,7 @@ class TestStunKOInvalidation:
         mark_defeated(enemy_combat, resolution_state)
 
         assert resolution_state.is_incapacitated(enemy.agent_id), \
-            "Enemy with stuns >= 6 should be marked incapacitated"
+            "Beaten enemy that failed its health check should be incapacitated"
 
 
 # ============================================================================

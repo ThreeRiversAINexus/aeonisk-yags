@@ -355,11 +355,46 @@ def _mark_defeated_from_resolution(
             logger.info(f"Marked {enemy.name} ({agent_id}) as defeated (health={health}, safety net)")
             continue
 
-        # Stun KO: stuns >= 6 means unconscious (YAGS Beaten threshold)
+        # YAGS Beaten/Fatal consciousness gate (model a, same as players): a
+        # Beaten (stuns>=6) or fatally wounded (wounds>=6) enemy must pass a Health
+        # check to act this round; fail -> incapacitated (ActionValidator then
+        # invalidates its action), pass -> acts while Beaten. Rolled at most ONCE
+        # per round via the ko_checked guard (this runs after every PC action).
         stuns = getattr(enemy, 'stuns', 0)
-        if isinstance(stuns, int) and stuns >= 6:
-            resolution_state.mark_incapacitated(agent_id)
-            logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
+        wounds = getattr(enemy, 'wounds', 0)
+        stuns = stuns if isinstance(stuns, (int, float)) else 0
+        wounds = wounds if isinstance(wounds, (int, float)) else 0
+        if (stuns >= 6 or wounds >= 6) and agent_id not in resolution_state.ko_checked:
+            from .mechanics import resolve_ko_check
+            resolution_state.ko_checked.add(agent_id)
+            result = resolve_ko_check(stuns, wounds, _ko_health_attr(enemy))
+            if not result['can_act']:
+                resolution_state.mark_incapacitated(agent_id)
+                logger.info(f"Beaten/Fatal KO: {enemy.name} ({agent_id}) failed health check "
+                            f"(stuns={stuns}, wounds={wounds}, total={result['total']} vs "
+                            f"DC {result['dc']}) - incapacitated this round")
+            else:
+                logger.info(f"Beaten/Fatal but conscious: {enemy.name} ({agent_id}) passed health "
+                            f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+
+
+def _ko_health_attr(entity) -> int:
+    """Toughness attribute for the KO health check, handling both entity shapes:
+    players expose it on `character_state.attributes['Health']` (as
+    Player.check_death_save reads it); enemies on `attributes['Endurance']` (the
+    Aeonisk YAGS Health-equivalent, per enemy_agent.py). Falls back to 3."""
+    cs = getattr(entity, 'character_state', None)
+    cs_attrs = getattr(cs, 'attributes', None)
+    if isinstance(cs_attrs, dict):
+        for k in ('Health', 'Endurance'):
+            if k in cs_attrs:
+                return cs_attrs[k]
+    attrs = getattr(entity, 'attributes', None)
+    if isinstance(attrs, dict):
+        for k in ('Endurance', 'Health'):
+            if k in attrs:
+                return attrs[k]
+    return 3
 
 
 def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
@@ -378,10 +413,8 @@ def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
     wounds = getattr(agent, 'wounds', 0) or 0
     if stuns < 6 and wounds < 6:
         return False
+    result = resolve_ko_check(stuns, wounds, _ko_health_attr(agent))
     cs = getattr(agent, 'character_state', None)
-    attrs = getattr(cs, 'attributes', None) or {}
-    health_attr = attrs.get('Health', 3) if isinstance(attrs, dict) else 3
-    result = resolve_ko_check(stuns, wounds, health_attr)
     name = getattr(cs, 'name', None) or getattr(agent, 'agent_id', '?')
     if not result['can_act']:
         resolution_state.mark_incapacitated(agent.agent_id)
