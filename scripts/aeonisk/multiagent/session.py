@@ -4026,21 +4026,23 @@ Generate narratives (numbered list only):"""
                 if expired:
                     logger.info(f"Conditions expired for {agent_id}: {', '.join(expired)}")
 
-        # End-of-round stun recovery (Aeonisk house rule): stuns bleed off so a
-        # Beaten combatant isn't frozen for the whole scene. Wounds are untouched
-        # (serious injury needs medical aid). Duck-typed on `.stuns` so it applies
-        # uniformly to players, enemies, and NPCs.
-        from .mechanics import recover_stuns
-        combatants = list(self.agents)
-        if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'enemy_agents'):
-            combatants += list(self.enemy_combat.enemy_agents)
-        for c in combatants:
-            old = getattr(c, 'stuns', 0) or 0
-            if old > 0:
-                new = recover_stuns(old)
-                c.stuns = new
-                nm = getattr(getattr(c, 'character_state', None), 'name', None) or getattr(c, 'name', '?')
-                logger.debug(f"Stun recovery: {nm} {old} -> {new}")
+        # End-of-round stun recovery. DISABLED by default (STUN_RECOVERY_PER_ROUND=0):
+        # "if you get clobbered it's over" — the Beaten health-check gate already
+        # governs acting-while-stunned, and stuns clear via a medic/heal action or
+        # scene end, not automatic decay (YAGS-faithful). Guarded so it's zero-cost
+        # when disabled; flip the constant >0 to re-enable per-round bleed-off.
+        from .mechanics import recover_stuns, STUN_RECOVERY_PER_ROUND
+        if STUN_RECOVERY_PER_ROUND > 0:
+            combatants = list(self.agents)
+            if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'enemy_agents'):
+                combatants += list(self.enemy_combat.enemy_agents)
+            for c in combatants:
+                old = getattr(c, 'stuns', 0) or 0
+                if old > 0:
+                    new = recover_stuns(old)
+                    c.stuns = new
+                    nm = getattr(getattr(c, 'character_state', None), 'name', None) or getattr(c, 'name', '?')
+                    logger.debug(f"Stun recovery: {nm} {old} -> {new}")
 
         # Clear the action buffer for next round
         self._declared_actions.clear()

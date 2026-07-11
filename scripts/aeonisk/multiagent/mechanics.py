@@ -5646,11 +5646,14 @@ def get_wound_effect(wounds: int) -> Dict[str, Any]:
 # corpus (death_state=='dead' <=> wounds>=6, exactly) and combat.md:419/469.
 KO_CHECK_THRESHOLD = 6
 
-# Aeonisk HOUSE RULE: stuns bleed off per round in combat. YAGS proper recovers
-# stuns over days ("after the battle"), but ~10-round scenes need faster recovery
-# so a Beaten combatant isn't frozen for the whole fight. Tunable. Wounds do NOT
-# recover this way — serious injury needs medical aid.
-STUN_RECOVERY_PER_ROUND = 2
+# Auto stun recovery per round. DEFAULT 0 (disabled) — "if you get clobbered it's
+# over." This is both YAGS-faithful (stuns recover over days, not mid-combat) and
+# unnecessary: the Beaten health-check gate (resolve_ko_check) already lets a
+# lightly-Beaten fighter act sporadically while a hard-clobbered one stays down,
+# via DC scaling — so decay would be redundant. Mid-fight stun recovery instead
+# comes from a medic/heal action (healing_applied, heal_type=stun) or scene end.
+# Left as a one-line lever: set >0 to re-enable per-round bleed-off.
+STUN_RECOVERY_PER_ROUND = 0
 
 
 def resolve_ko_check(stuns: int, wounds: int, health_attr: int,

@@ -56,15 +56,17 @@ class TestResolveKoCheck:
 
 
 class TestRecoverStuns:
-    def test_recovers_by_default_rate(self):
-        assert recover_stuns(12) == 12 - STUN_RECOVERY_PER_ROUND
+    def test_default_rate_is_disabled(self):
+        # auto-recovery is off by default ("if you get clobbered it's over")
+        assert STUN_RECOVERY_PER_ROUND == 0
+        assert recover_stuns(12) == 12  # no bleed-off at the default rate
 
     def test_floors_at_zero(self):
-        assert recover_stuns(1) == 0
-        assert recover_stuns(0) == 0
+        assert recover_stuns(1, per_round=2) == 0
+        assert recover_stuns(0, per_round=2) == 0
 
     def test_negative_or_bad_input_is_zero(self):
-        assert recover_stuns(-3) == 0
+        assert recover_stuns(-3, per_round=2) == 0
 
     def test_custom_rate(self):
         assert recover_stuns(10, per_round=4) == 6

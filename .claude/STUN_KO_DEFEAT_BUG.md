@@ -1,9 +1,10 @@
 # Stun-KO Defeat Bug: unenforced, unrecovering, and (until now) invisible
 
 **Status:** spawn confound FIXED (disposition routing); logging FIXED; player-side
-KO enforcement + per-round stun recovery FIXED (needs a live run to confirm the
-loop). Remaining: enemy-side KO/conversion gate (~4 enemy zombies + the 7
-restrained cases) and a live re-run of the execution column.
+KO enforcement FIXED and LIVE-VERIFIED; auto stun-recovery deliberately DISABLED
+(the Beaten health-check gate + medic actions cover it). Remaining: enemy-side
+KO/conversion gate (~4 enemy zombies + the 7 restrained cases) and a live re-run
+of the execution column.
 
 **Verified YAGS rules** (`converted_yagsbook/markdown/combat.md`): Beaten/Fatal
 threshold = 6 (combat.md matches the mined death model exactly); KO is NOT
@@ -74,19 +75,21 @@ red herrings; the stun track maxed out while his health barely moved.
    **LIVE-VERIFIED 2026-07-10** (combat session via llm-proxy): a player at 10
    stuns → `Beaten/Fatal KO ... failed health check (total=14 vs DC 40) -
    unconscious this round` → `Player auto-skip: attacker_incapacitated`. The exact
-   Hard Vane chain, now enforced end-to-end. NOTE: with the default −2/round
-   recovery the gate rarely triggers — mid-round stun spikes recover below Beaten
-   before the next turn-start (character_state logs pre-recovery); the gate only
-   fires when a player is Beaten AT their turn. This is correct per YAGS but means
-   recovery rate is the main lever on how often the gate is felt.
+   Hard Vane chain, now enforced end-to-end. (The smoke run that surfaced this used
+   a temporary −2/round recovery, which masked the gate — mid-round spikes recovered
+   below Beaten before the next turn-start; that finding is exactly why auto-recovery
+   was then disabled, see defect 2.)
 
 2. **Stuns never recover.** He sat at 12 stuns for nine rounds.
-   → *Fixed (2026-07-10):* `mechanics.recover_stuns` bleeds off
-   `STUN_RECOVERY_PER_ROUND` (2, tunable) at end of round for every combatant
-   (duck-typed on `.stuns`, wounds untouched). Aeonisk house rule — YAGS proper
-   recovers over days, but scene-length play needs faster bleed-off. With the model-
-   (a) gate a Beaten actor can already act on a passed check, so recovery mainly
-   governs how fast they drop below Beaten and stop needing checks.
+   → *Resolved by design (2026-07-11): NO automatic recovery.* `recover_stuns` +
+   the end-of-round hook exist but default to `STUN_RECOVERY_PER_ROUND = 0`
+   (disabled). Rationale: "if you get clobbered it's over." The Beaten health-check
+   gate already supplies the nuance recovery was meant to — DC scales as
+   `20 + 5·(stuns−6)`, so a lightly-Beaten fighter (DC 20) acts ~45%/round while a
+   hard-clobbered one (DC 40+) stays down — making auto-decay both redundant and
+   un-YAGS (stuns recover over days, not mid-combat). The real mid-fight recovery
+   vector is a medic/heal action (`healing_applied`, `heal_type=stun`) or scene
+   end. The lever remains: set the constant >0 to re-enable per-round bleed-off.
 
 3. **The snapshot omitted `stuns` (FIXED 2026-07-10).** `log_character_state`
    logged `health`, `wounds`, `is_defeated`, `death_state` — but not `stuns` —
