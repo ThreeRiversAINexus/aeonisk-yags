@@ -120,46 +120,67 @@ incapacitated (0 actions, disarmed, low HP, no round-1 baton alpha-strike). This
 is the same class of defect as the torture affordance confound, one layer
 earlier (the spawn, not the affordance).
 
-## Invariant-checker calibration (self-audit)
+## Invariant-checker calibration (self-audit, 3 passes)
 
-Two of the first-draft invariants encoded a *misreading of the engine's own
-death model* and over-fired; both were re-scoped against `session.py:3819`:
+The checker was calibrated three times; each pass corrected an *assumption* about
+the schema with something *measured* from it.
 
-- **`defeat_state_disagreement`** originally fired on `alive=True` at stuns>=6.
-  Wrong: the engine's rule is stuns>=6 → *unconscious*, which is still alive, so
-  `alive=True` is correct there. Re-keyed to the real contradiction — `status` in
-  {active, conscious} while the entity is *dead* (`alive=False` or wounds>=6).
-  Corpus count 177 → **29**. The behavioral half (a KO'd entity still acting) is
-  left to `zombie_actor`, which keys off actions not labels.
-- **`dead_targetable`** originally fired on `health<=0`. Wrong: health<=0 is
-  *unconscious*, not dead, and a coup-de-grace on the unconscious is legal.
-  Re-scoped to the true death threshold (wounds>=6 / status=='dead'). 11 → **16**
-  (now also catches `status:dead` re-hits, which are genuine).
+**Pass 1 — death-model misreading.** `defeat_state_disagreement` and
+`dead_targetable` first fired on `alive=True`-at-stuns and on `health<=0`. Both
+wrong: stuns→unconscious is still alive, and health<=0 is unconscious (a legal
+coup-de-grace target), not dead.
 
-A second calibration pass followed the reminder that NPC<->enemy conversion is
-**bidirectional and routine** (surrender -> prisoner, and jailbreak: prisoner ->
-enemy via `entity_lifecycle.npcs_escalated`). The name-based `prisoner_armed` /
-`prisoner_attacks` / `npc_tactical_action` checks were retired and replaced by:
+**Pass 2 — bidirectional conversion.** The name-based `prisoner_armed` /
+`prisoner_attacks` / `npc_tactical_action` checks were retired for two
+disposition-aware ones after the reminder that NPC<->enemy conversion is routine
+(surrender→prisoner, jailbreak prisoner→enemy via `npcs_escalated`):
 
 - **`config_prisoner_spawned_hostile`** (ERROR): config-authoritative — an
   `initial_enemies` entry declared `disposition: prisoner` but spawned armed / hit
-  the party in round 1. Matches on the declared base name as a substring (the
-  spawner prepends the faction: "Subdued Operative #1" -> "Independent Subdued
-  Operative #1"). This is the precise detector for the spawn confound. Corpus: 234.
-- **`restrained_hostile_action`** (ERROR): a disposition *state machine* over
-  `enemies_converted` / `npcs_escalated`, flagging a hostile/tactical action only
-  while the entity is *currently* restrained. Honors jailbreaks (an attack after
-  re-escalation is fine) and respects round boundaries (lifecycle events take
-  effect the NEXT round, so a round-1 attacker converted at round-end is not
-  retroactively a prisoner). This corrected a 199 -> 7 over-count; the surviving
-  7 are one entity converted-by-id yet still taking enemy turns — the enemy-side
-  mirror of the zombie bug (conversion not mechanically enforced).
+  the party in round 1. Substring-matches the declared base name (the spawner
+  prepends the faction: "Subdued Operative #1" → "Independent Subdued Operative
+  #1"). Precise detector for the spawn confound. Corpus: **234**.
+- **`restrained_hostile_action`** (ERROR): a disposition state machine over
+  `enemies_converted` / `npcs_escalated`; flags a hostile action only while the
+  entity is *currently* restrained, honoring jailbreaks and round-boundary timing
+  (lifecycle events take effect the NEXT round). 199 → **7**; the 7 are one entity
+  converted-by-id yet still taking enemy turns (enemy-side mirror of the zombie bug).
 
-Corrected corpus scan (133 complete sessions): **74 ERROR-dirty**, dominated by
-`config_prisoner_spawned_hostile` (234) and `zombie_actor` (71). Lesson logged
-twice over: a checker's rules need the same scrutiny as the code they audit —
-calibrate against the engine's own definitions (death model, conversion
-lifecycle), not an assumed model.
+**Pass 3 — the authoritative-oracle correction (schema mining).** Both Pass-1
+invariants still keyed off `combat_action.defender_state_after`, applying
+`character_state`'s clean threshold to a *different, transient* subsystem. Mining
+all 80k events (`scripts/schema_mine.py`) proved:
+
+- `character_state` is the ONE self-consistent life-state oracle:
+  `is_defeated == (death_state != 'alive')` with **0 exceptions** in 3949
+  snapshots, and `wounds>=6 ⟺ death_state=='dead'` exactly.
+- `combat_action.defender_state_after` is an instantaneous post-hit snapshot on a
+  different wound scale (status=active seen at wounds 9; conscious at alive=False).
+  **Every** apparent contradiction it raised — 17/17 cross-checkable — was
+  reconciled by the round-end `character_state`.
+
+Consequences:
+- `defeat_state_disagreement` was **deleted**: 0 real hits (the "29" it reported
+  were all transient snapshots char_state reconciles — a checker false positive,
+  not an engine bug).
+- `dead_targetable` re-keyed to the authoritative oracle (`character_state`
+  death_state=='dead' or `enemy_defeat` killed/unconscious for enemies without a
+  snapshot): 16 → **6** genuine re-hits.
+- `zombie_actor` reads the defeated flag from `character_state` (+ `healing_applied`
+  as the sanctioned revival) and keys hostile actions off the *mined* set
+  `{Attack, Suppress}` — `Cast`/`Ritual`/`Aim` never occur as `major_action`.
+  Corpus: **71** (complete sessions).
+
+The schema is now frozen as `scripts/schema_contract.json` and gated by
+`tests/unit/test_schema_drift.py`, which re-mines the live corpus and fails on any
+new event type, field, or enum value — so an assumption can no longer drift from
+the data unnoticed.
+
+Corrected corpus scan (133 complete sessions): **68 ERROR-dirty** —
+`config_prisoner_spawned_hostile` 234, `zombie_actor` 71, `restrained_hostile_action`
+7, `dead_targetable` 6. The lesson, now enforced mechanically: calibrate a
+checker against the corpus's *measured* schema (one authoritative oracle; mined
+enum sets), never an assumed model.
 
 ## Data impact
 

@@ -46,6 +46,15 @@ def adjud(round, applied, regime="enforce"):
     return {"event_type": "post_resolution_adjudication", "round": round,
             "regime": regime, "applied": applied}
 
+def enemy_defeat(round, name, reason="killed"):
+    return {"event_type": "enemy_defeat", "round": round, "enemy_name": name,
+            "enemy_id": name, "defeat_reason": reason}
+
+def heal(round, target_name, health=20):
+    return {"event_type": "healing_applied", "round": round, "target_name": target_name,
+            "target_id": target_name, "heal_type": "hp", "hp_restored": health,
+            "target_state_after": {"alive": True, "status": "active", "health": health}}
+
 def clean_session():
     """A minimal well-formed 2-round combat that should raise zero violations."""
     return [
@@ -87,29 +96,49 @@ class TestLifeStateInvariants:
               combat(3, "Vane", "Grunt", dealt=9)]
         assert "zombie_actor" not in fired(check(ev))
 
-    def test_defeat_state_disagreement_dead_but_active(self):
-        # past the wound-death threshold yet still reported able to act
-        ev = [combat(1, "Vane", "Grunt", wounds_after=6, status="active")]
-        assert "defeat_state_disagreement" in fired(check(ev))
+    def test_zombie_fires_on_suppress(self):
+        # Suppress is a real hostile major_action (Cast/Ritual/Aim never occur)
+        ev = [cstate(1, "Vane", is_defeated=True, death_state="unconscious"),
+              declare(2, "player_01", "Vane", major="Suppress")]
+        assert "zombie_actor" in fired(check(ev))
 
-    def test_defeat_state_disagreement_not_alive_but_active(self):
-        ev = [combat(1, "Vane", "Grunt", alive=False, status="active")]
-        assert "defeat_state_disagreement" in fired(check(ev))
+    def test_zombie_silent_on_nonhostile_action(self):
+        # a defeated entity may still be logged pleading/complying — not a zombie
+        ev = [cstate(1, "Vane", is_defeated=True, death_state="unconscious"),
+              declare(2, "player_01", "Vane", major="plead")]
+        assert "zombie_actor" not in fired(check(ev))
 
-    def test_defeat_state_silent_on_stun_ko(self):
-        # a stun-KO'd defender IS alive (just unconscious) — must NOT fire here
-        ev = [combat(1, "Grunt", "Vane", stuns_after=12, alive=True, status="active")]
-        assert "defeat_state_disagreement" not in fired(check(ev))
+    def test_zombie_silent_after_healing(self):
+        # healing_applied is the sanctioned un-defeat: acting after a heal is fine
+        ev = [cstate(1, "Vane", is_defeated=True, death_state="unconscious"),
+              heal(2, "Vane"),
+              combat(3, "Vane", "Grunt", dealt=9)]
+        assert "zombie_actor" not in fired(check(ev))
 
     def test_dead_targetable_fires_on_true_death(self):
-        ev = [combat(1, "Vane", "Grunt", dealt=20, wounds_after=6, did="g1"),
-              combat(2, "Vane", "Grunt", dealt=9, wounds_after=6, did="g1")]
+        # death is authoritative from character_state (death_state=dead), NOT from
+        # combat_action's transient wound scale
+        ev = [cstate(1, "Grunt", wounds=6, is_defeated=True, death_state="dead", agent="enemy"),
+              combat(2, "Vane", "Grunt", dealt=9)]
+        assert "dead_targetable" in fired(check(ev))
+
+    def test_dead_targetable_fires_via_enemy_defeat(self):
+        # enemies often lack character_state; enemy_defeat(killed) is authoritative
+        ev = [enemy_defeat(1, "Grunt", reason="killed"),
+              combat(2, "Vane", "Grunt", dealt=9)]
         assert "dead_targetable" in fired(check(ev))
 
     def test_dead_targetable_silent_on_unconscious(self):
-        # 0 HP but wounds < 6 = unconscious, not dead; a finishing blow is legal
-        ev = [combat(1, "Vane", "Grunt", dealt=20, health_after=0, wounds_after=3, did="g1"),
-              combat(2, "Vane", "Grunt", dealt=9, health_after=0, wounds_after=4, did="g1")]
+        # unconscious (not dead) — a finishing coup-de-grace is legal
+        ev = [cstate(1, "Grunt", health=0, wounds=3, is_defeated=True,
+                     death_state="unconscious", agent="enemy"),
+              combat(2, "Vane", "Grunt", dealt=9)]
+        assert "dead_targetable" not in fired(check(ev))
+
+    def test_dead_targetable_silent_same_round(self):
+        # the killing blow itself is not a re-hit; only strikes AFTER death count
+        ev = [cstate(2, "Grunt", wounds=6, is_defeated=True, death_state="dead", agent="enemy"),
+              combat(2, "Vane", "Grunt", dealt=9)]
         assert "dead_targetable" not in fired(check(ev))
 
     def test_defeat_flag_internal_mismatch(self):

@@ -57,14 +57,15 @@ from scripts.session_extract import (  # noqa: E402
 ERROR = "error"
 WARN = "warn"
 
-# Names that signal an entity is meant to be incapacitated/surrendered.
-_SUBDUED_MARKERS = ("subdued", "prisoner", "surrender", "captive", "kneel", "restrained")
-# YAGS: 6+ stuns is the Beaten/KO threshold; 6+ wounds is death.
+# YAGS: 6+ stuns is the Beaten/KO threshold. (Verified against 80k events: in
+# character_state, wounds>=6 <=> death_state=='dead', exactly — but the checker
+# reads death_state directly rather than re-deriving it from a threshold.)
 STUN_KO = 6
-WOUND_DEATH = 6
-# Actions a converted prisoner-NPC may take (CLAUDE.md NPC whitelist).
-_NPC_ALLOWED = {"flee", "hide", "plead", "comply", "dialogue", "assist", "pass", None}
-_REAL_ACTIONS = {"Attack", "Cast", "Ritual", "Aim"}
+# The hostile major_action values that ACTUALLY occur in the corpus (mined, not
+# assumed). Cast/Ritual/Aim never appear as major_action — rituals route through
+# action_type/is_ritual — so encoding them was fiction; Suppress is the one real
+# hostile action an earlier draft missed. Enforced by test_schema_drift.py.
+HOSTILE_ACTIONS = {"Attack", "Suppress"}
 
 
 @dataclass
@@ -93,96 +94,116 @@ def ids(violations: List[Violation]) -> List[str]:
 # ---------------------------------------------------------------------------
 # Life-state consistency
 # ---------------------------------------------------------------------------
-def inv_zombie_actor(events, cfg) -> List[Violation]:
-    """A defeated entity must not act again until revived. Keyed off BOTH the
-    declared action AND actual combat damage — the declaration alone missed the
-    real Hard Vane case (his major_action logged None while he still shot)."""
-    out: List[Violation] = []
-    defeated_since: Dict[str, int] = {}
+def _death_oracle(events):
+    """Authoritative life-state, from the ONE self-consistent oracle
+    (character_state) plus the authoritative lifecycle events. Returns:
+
+      dead_round:  name -> first round the entity is truly DEAD (character_state
+                   death_state=='dead', or enemy_defeat with reason killed/
+                   unconscious for enemies that carry no character_state).
+      defeated_tl: name -> sorted [(round, defeated: bool)] transitions, where
+                   defeated = is_defeated or death_state in (dead, unconscious),
+                   and a healing_applied that restores the target to alive is the
+                   sanctioned revival.
+
+    combat_action.defender_state_after is deliberately NOT consulted: it is a
+    transient mid-round snapshot on a different wound scale, and every apparent
+    contradiction it raised (17/17 checkable) was reconciled by the round-end
+    character_state. See memory project_jsonl_authoritative_oracle."""
+    dead_round: Dict[str, int] = {}
+    tl: Dict[str, List[tuple]] = {}
     for e in events:
         t = e.get("event_type")
-        r = e.get("round") or 0
+        b = _body(e)
+        r = e.get("round")
         if t == "character_state":
-            b = _body(e)
-            n = b.get("character_name")
-            if b.get("is_defeated") or b.get("death_state") in ("unconscious", "dead"):
-                defeated_since.setdefault(n, r)
-            else:
-                defeated_since.pop(n, None)  # revived
-        elif t == "combat_action":
-            b = _body(e)
+            nm = b.get("character_name")
+            ds = b.get("death_state")
+            defeated = bool(b.get("is_defeated")) or ds in ("dead", "unconscious")
+            tl.setdefault(nm, []).append((r or 0, defeated))
+            if ds == "dead" and nm not in dead_round:
+                dead_round[nm] = r
+        elif t == "enemy_defeat":
+            if b.get("defeat_reason") in ("killed", "unconscious"):
+                nm = b.get("enemy_name")
+                if nm and nm not in dead_round:
+                    dead_round[nm] = r
+        elif t == "healing_applied":
+            if (b.get("target_state_after") or {}).get("alive"):
+                nm = b.get("target_name")
+                if nm:
+                    tl.setdefault(nm, []).append((r or 0, False))  # revived
+    for k in tl:
+        # stable sort by round; a revival and a defeat logged in the same round
+        # keep insertion order (heals are logged after the state that prompted them)
+        tl[k].sort(key=lambda x: x[0])
+    return dead_round, tl
+
+
+def _defeated_at(tl, name, round) -> bool:
+    """Was `name` defeated as of `round`, per the authoritative timeline?"""
+    st = False
+    for (rr, dv) in tl.get(name, []):
+        if rr <= (round or 0):
+            st = dv
+        else:
+            break
+    return st
+
+
+def inv_zombie_actor(events, cfg) -> List[Violation]:
+    """A defeated entity must not act again until revived. The defeated state is
+    read from the authoritative oracle (character_state / enemy_defeat, with
+    healing_applied as revival) — never from combat_action's transient snapshot.
+    Keyed off BOTH a hostile declared action AND actual combat damage: the
+    declaration alone missed the real Hard Vane case (major_action logged None
+    while he still shot). 'Defeated as of the prior round' avoids flagging the
+    same-round killing/KO that is logged alongside its own resolution."""
+    out: List[Violation] = []
+    _, tl = _death_oracle(events)
+    if not tl:
+        return out
+    for e in events:
+        t = e.get("event_type")
+        b = _body(e)
+        r = e.get("round")
+        if t == "combat_action":
             atk = (b.get("attacker") or {}).get("name")
             dealt = (b.get("damage") or {}).get("dealt") or 0
-            since = defeated_since.get(atk)
-            if since is not None and since < r and dealt > 0:
+            if dealt > 0 and _defeated_at(tl, atk, (r or 0) - 1):
                 out.append(Violation("zombie_actor", ERROR,
-                    f"dealt {dealt} damage while defeated since r{since}", r, atk))
+                    f"dealt {dealt} damage while defeated", r, atk))
         elif t == "action_declaration":
-            b = _body(e)
-            n = b.get("character_name")
+            nm = b.get("character_name")
             act = (b.get("action") or {}).get("major_action")
-            since = defeated_since.get(n)
-            if since is not None and since < r and act in _REAL_ACTIONS:
+            if act in HOSTILE_ACTIONS and _defeated_at(tl, nm, (r or 0) - 1):
                 out.append(Violation("zombie_actor", ERROR,
-                    f"declared {act} while defeated since r{since}", r, n))
-    return out
-
-
-def inv_defeat_state_disagreement(events, cfg) -> List[Violation]:
-    """combat_action.defender_state_after must not report an entity as able to
-    act (`status` active/conscious) while it is simultaneously *dead* — either
-    `alive=False` or past the wound-death threshold.
-
-    Scoped deliberately narrow. An earlier draft fired on `alive=True` at
-    stuns>=6; that was wrong — the engine's own rule is that a stun-KO'd entity
-    IS alive (just unconscious), so alive=True there is correct. The genuine
-    contradiction is a *dead* entity still marked active. We do NOT flag stun-KO
-    here (the *behavioral* consequence — a KO'd entity still acting — is caught
-    by inv_zombie_actor instead, which keys off actions, not labels)."""
-    out: List[Violation] = []
-    active = {"active", "conscious"}
-    for e in events:
-        if e.get("event_type") != "combat_action":
-            continue
-        b = _body(e)
-        st = b.get("defender_state_after") or {}
-        if st.get("status") not in active:
-            continue
-        nm = (b.get("defender") or {}).get("name")
-        r = e.get("round")
-        wounds = st.get("wounds")
-        if st.get("alive") is False:
-            out.append(Violation("defeat_state_disagreement", ERROR,
-                f"status={st.get('status')!r} but alive=False", r, nm))
-        elif isinstance(wounds, (int, float)) and wounds >= WOUND_DEATH:
-            out.append(Violation("defeat_state_disagreement", ERROR,
-                f"status={st.get('status')!r} at wounds={wounds} (>= {WOUND_DEATH} death)", r, nm))
+                    f"declared {act} while defeated", r, nm))
     return out
 
 
 def inv_dead_targetable(events, cfg) -> List[Violation]:
-    """Once an entity is *dead* it must not take further damage. "Dead" means the
-    death threshold — wounds>=6 or status/death 'dead' — NOT merely 0 HP. In YAGS
-    (and this engine's own death logic) health<=0 is *unconscious*, and finishing
-    an unconscious foe is a legitimate coup-de-grace, so we do not flag that."""
+    """Once an entity is *dead* (authoritative: character_state death_state=='dead'
+    or enemy_defeat killed/unconscious) it must not take further damage. "Dead" is
+    NOT merely 0 HP — health<=0 is *unconscious*, and a coup-de-grace on the
+    unconscious is a legitimate finishing blow, so we do not flag that. Only
+    damage in a round strictly AFTER the death round counts (the killing blow
+    itself is not a re-hit)."""
     out: List[Violation] = []
-    dead_since: Dict[str, int] = {}
+    dead_round, _ = _death_oracle(events)
+    if not dead_round:
+        return out
     for e in events:
         if e.get("event_type") != "combat_action":
             continue
         b = _body(e)
         r = e.get("round")
-        d = b.get("defender") or {}
-        did = d.get("id") or d.get("name")
-        st = b.get("defender_state_after") or {}
-        wounds = st.get("wounds")
+        nm = (b.get("defender") or {}).get("name")
         dealt = (b.get("damage") or {}).get("dealt") or 0
-        if did in dead_since and dealt > 0:
+        dr = dead_round.get(nm)
+        if dr is not None and r is not None and r > dr and dealt > 0:
             out.append(Violation("dead_targetable", ERROR,
-                f"took {dealt} damage after dying in r{dead_since[did]}", r, d.get("name")))
-        if (isinstance(wounds, (int, float)) and wounds >= WOUND_DEATH) \
-                or st.get("status") == "dead" or st.get("death_state") == "dead":
-            dead_since.setdefault(did, r)
+                f"took {dealt} damage after dying in r{dr}", r, nm))
     return out
 
 
@@ -375,7 +396,7 @@ def inv_restrained_hostile_action(events, cfg) -> List[Violation]:
             b = _body(e)
             ref_id, ref_nm = b.get("player_id"), b.get("character_name")
             act = (b.get("action") or {}).get("major_action")
-            if act in _REAL_ACTIONS and act not in _NPC_ALLOWED and \
+            if act in HOSTILE_ACTIONS and \
                     (_is_restrained(tl, ref_id, r) or _is_restrained(tl, ref_nm, r)):
                 out.append(Violation("restrained_hostile_action", ERROR,
                     f"restrained entity took tactical action {act}", r, ref_nm))
@@ -484,7 +505,6 @@ def inv_round_contiguous(events, cfg) -> List[Violation]:
 # ---------------------------------------------------------------------------
 CHECKS: List[Callable] = [
     inv_zombie_actor,
-    inv_defeat_state_disagreement,
     inv_dead_targetable,
     inv_defeat_flag_internal,
     inv_hp_bounds,
