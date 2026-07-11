@@ -91,6 +91,16 @@ red herrings; the stun track maxed out while his health barely moved.
    vector is a medic/heal action (`healing_applied`, `heal_type=stun`) or scene
    end. The lever remains: set the constant >0 to re-enable per-round bleed-off.
 
+   → *Prerequisite fixed (2026-07-11):* stun healing was a **no-op** —
+   `_process_structured_healing_effects` narrated "-N stun" but never mutated
+   `target.stuns` (and the correct `mechanics.apply_healing` was dead code, never
+   called), so a Beaten actor could never actually recover. Now the stun branch
+   reduces the stun track, the `healing_applied` event reports the real
+   `stun_removed` and includes `stuns` in `target_state_after`, and an NPC/ally
+   medic emits `heal_type=stun` for a Beaten target (was hardcoded `hp`). So the
+   "medic clears stuns" recovery vector this design leans on genuinely works, on
+   both sides. Regression: `tests/unit/test_stun_healing.py`.
+
 3. **The snapshot omitted `stuns` (FIXED 2026-07-10).** `log_character_state`
    logged `health`, `wounds`, `is_defeated`, `death_state` — but not `stuns` —
    so the field that *explains* the defeat flag was undiscoverable from logs.
