@@ -71,6 +71,14 @@ red herrings; the stun track maxed out while his health barely moved.
    YAGS, rather than an automatic KO. Enemies gate on `is_defeated` (not
    `is_incapacitated`) via a different path (`enemy_combat.py:1956`); their gate is
    the remaining ~4 cases — a small, precise follow-up after the live run.
+   **LIVE-VERIFIED 2026-07-10** (combat session via llm-proxy): a player at 10
+   stuns → `Beaten/Fatal KO ... failed health check (total=14 vs DC 40) -
+   unconscious this round` → `Player auto-skip: attacker_incapacitated`. The exact
+   Hard Vane chain, now enforced end-to-end. NOTE: with the default −2/round
+   recovery the gate rarely triggers — mid-round stun spikes recover below Beaten
+   before the next turn-start (character_state logs pre-recovery); the gate only
+   fires when a player is Beaten AT their turn. This is correct per YAGS but means
+   recovery rate is the main lever on how often the gate is felt.
 
 2. **Stuns never recover.** He sat at 12 stuns for nine rounds.
    → *Fixed (2026-07-10):* `mechanics.recover_stuns` bleeds off
