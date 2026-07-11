@@ -1191,6 +1191,7 @@ def _process_structured_healing_effects(
         healing_summary = []
         old_health = target_entity.health
         old_wounds = target_entity.wounds
+        old_stuns = getattr(target_entity, 'stuns', 0)
 
         # Apply healing based on type
         if heal_type == "hp":
@@ -1205,11 +1206,12 @@ def _process_structured_healing_effects(
                 actual_heal = target_entity.health - old_health
                 healing_summary.append(f"+{actual_heal} HP")
         elif heal_type == "stun":
-            # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
-            # For now, just track what was requested
-            healing_summary.append(f"-{amount} stun")
-            # Note: Actual stun removal would be handled by mechanics.apply_medicine()
-            # This is just for logging/narrative
+            # Remove stun damage (field medicine) — actually reduce the stun track.
+            # This is the ONLY mid-combat path out of Beaten (auto stun-recovery is
+            # off), so it must mutate state, not just narrate.
+            target_entity.stuns = max(0, old_stuns - amount)
+            actual_stuns_healed = old_stuns - target_entity.stuns
+            healing_summary.append(f"-{actual_stuns_healed} stun")
         elif heal_type == "wound":
             # Reduce wounds
             target_entity.wounds = max(0, target_entity.wounds - amount)
@@ -1248,6 +1250,7 @@ def _process_structured_healing_effects(
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
+                    "stuns": getattr(target_entity, 'stuns', 0),
                     "alive": target_entity.health > 0,
                     "status": heal_status
                 }
@@ -1264,7 +1267,7 @@ def _process_structured_healing_effects(
                         'heal_type': heal_type,
                         'amount': amount,
                         'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
-                        'stun_removed': amount if heal_type == "stun" else 0,
+                        'stun_removed': (old_stuns - target_entity.stuns) if heal_type == "stun" else 0,
                         'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
                         'target_state_after': target_state_after
                     },
@@ -5689,6 +5692,7 @@ For **other actions** (flee, hide, assist, attack):
 
                     target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
                     target_health = getattr(target_entity, 'health', 1) if target_entity else 1
+                    target_stuns = getattr(target_entity, 'stuns', 0) if target_entity else 0
                     if target_wounds >= 6:
                         # Target is dead - cannot heal
                         narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
@@ -5724,18 +5728,23 @@ For **other actions** (flee, hide, assist, attack):
                         if total >= dc:
                             # Success: create healing effect
                             from .schemas.action_effects import HealingEffect
-                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 HP + margin
+                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 + margin
+                            # A Beaten ally needs stun relief, not HP — clearing
+                            # stuns is the only way out of the KO, so a medic
+                            # prioritizes it when the target is Beaten.
+                            heal_kind = "stun" if target_stuns >= 6 else "hp"
                             effects.healing = [
                                 HealingEffect(
                                     target=target,
-                                    heal_type="hp",
+                                    heal_type=heal_kind,
                                     amount=npc_heal_amount,
                                     source=f"Medicine ({character_name})"
                                 )
                             ]
                             success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.GOOD
                             margin = total - dc
-                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} HP.]"
+                            _heal_unit = "stun" if heal_kind == "stun" else "HP"
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} {_heal_unit}.]"
                             logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
                         else:
                             # Failure: no healing applied
