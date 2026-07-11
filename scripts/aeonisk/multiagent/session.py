@@ -362,6 +362,40 @@ def _mark_defeated_from_resolution(
             logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
 
 
+def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
+    """YAGS per-round consciousness gate (combat.md:419/469): if the agent is
+    Beaten (stuns>=6) or Fatally wounded (wounds>=6), roll the health check. On
+    failure they are unconscious THIS round — marked incapacitated in the
+    per-round ResolutionState so the existing skip path drops their action, and
+    they get a fresh check next round (ResolutionState is rebuilt each round). On
+    success they act normally despite being Beaten. This is a consciousness gate,
+    never a death roll (death is owned by Player.check_death_save at damage time).
+
+    Returns True if the agent was marked incapacitated.
+    """
+    from .mechanics import resolve_ko_check
+    stuns = getattr(agent, 'stuns', 0) or 0
+    wounds = getattr(agent, 'wounds', 0) or 0
+    if stuns < 6 and wounds < 6:
+        return False
+    cs = getattr(agent, 'character_state', None)
+    attrs = getattr(cs, 'attributes', None) or {}
+    health_attr = attrs.get('Health', 3) if isinstance(attrs, dict) else 3
+    result = resolve_ko_check(stuns, wounds, health_attr)
+    name = getattr(cs, 'name', None) or getattr(agent, 'agent_id', '?')
+    if not result['can_act']:
+        resolution_state.mark_incapacitated(agent.agent_id)
+        logger.info(
+            f"Beaten/Fatal KO: {name} failed health check "
+            f"(stuns={stuns}, wounds={wounds}, roll={result['roll']}, "
+            f"total={result['total']} vs DC {result['dc']}) - unconscious this round")
+        return True
+    logger.info(
+        f"Beaten/Fatal but conscious: {name} passed health check "
+        f"(total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+    return False
+
+
 def _check_condition_incapacitation(
     agent_id: str,
     mechanics,
@@ -2716,6 +2750,12 @@ Generate narratives (numbered list only):"""
                 # This feeds into the existing is_incapacitated() check below
                 _check_condition_incapacitation(agent.agent_id, mechanics, resolution_state)
 
+                # YAGS Beaten/Fatal consciousness gate: a stun-KO'd or fatally
+                # wounded player must pass a health check to act this round (else
+                # skipped as incapacitated). Fixes the "zombie" — Hard Vane acting
+                # while flagged unconscious. Enemies are gated separately (TODO).
+                _check_beaten_ko(agent, resolution_state)
+
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
                 player_skip_reason = None
@@ -3985,6 +4025,22 @@ Generate narratives (numbered list only):"""
                 expired = mechanics.tick_conditions(agent_id)
                 if expired:
                     logger.info(f"Conditions expired for {agent_id}: {', '.join(expired)}")
+
+        # End-of-round stun recovery (Aeonisk house rule): stuns bleed off so a
+        # Beaten combatant isn't frozen for the whole scene. Wounds are untouched
+        # (serious injury needs medical aid). Duck-typed on `.stuns` so it applies
+        # uniformly to players, enemies, and NPCs.
+        from .mechanics import recover_stuns
+        combatants = list(self.agents)
+        if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'enemy_agents'):
+            combatants += list(self.enemy_combat.enemy_agents)
+        for c in combatants:
+            old = getattr(c, 'stuns', 0) or 0
+            if old > 0:
+                new = recover_stuns(old)
+                c.stuns = new
+                nm = getattr(getattr(c, 'character_state', None), 'name', None) or getattr(c, 'name', '?')
+                logger.debug(f"Stun recovery: {nm} {old} -> {new}")
 
         # Clear the action buffer for next round
         self._declared_actions.clear()

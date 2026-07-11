@@ -5641,6 +5641,59 @@ def get_wound_effect(wounds: int) -> Dict[str, Any]:
     return WOUND_THRESHOLDS.get(wounds, WOUND_THRESHOLDS[0])
 
 
+# Beaten (stuns) / Fatal (wounds) threshold: the body has 5 injury levels; the
+# 6th triggers the YAGS "health check to remain conscious". Verified against the
+# corpus (death_state=='dead' <=> wounds>=6, exactly) and combat.md:419/469.
+KO_CHECK_THRESHOLD = 6
+
+# Aeonisk HOUSE RULE: stuns bleed off per round in combat. YAGS proper recovers
+# stuns over days ("after the battle"), but ~10-round scenes need faster recovery
+# so a Beaten combatant isn't frozen for the whole fight. Tunable. Wounds do NOT
+# recover this way — serious injury needs medical aid.
+STUN_RECOVERY_PER_ROUND = 2
+
+
+def resolve_ko_check(stuns: int, wounds: int, health_attr: int,
+                     roll: Optional[int] = None) -> Dict[str, Any]:
+    """YAGS 'health check to remain conscious enough to act', made each ROUND a
+    Beaten (stuns>=6) or Fatally wounded (wounds>=6) character wishes to act
+    (combat.md:419, 469).
+
+    This is a per-round *consciousness* gate, not a death roll: it never kills
+    (death at the moment of wounding is owned by Player.check_death_save). Pass ->
+    the actor may act this round though still Beaten/Fatal; fail -> unconscious
+    this round (they get a fresh check next round, since ResolutionState is rebuilt
+    each round).
+
+    DC = 20 + 5 * (worse-track-level - 6). Roll = Health*2 + d20 (the same
+    convention as check_death_save); a natural 1 auto-fails.
+
+    Returns {required, can_act, status, dc, roll, total} where status is one of
+    'ok' (not required), 'acts' (passed), 'unconscious' (failed).
+    """
+    level = max(int(stuns or 0), int(wounds or 0))
+    if level < KO_CHECK_THRESHOLD:
+        return {"required": False, "can_act": True, "status": "ok",
+                "dc": 0, "roll": None, "total": None}
+    dc = 20 + 5 * (level - KO_CHECK_THRESHOLD)
+    if roll is None:
+        roll = random.randint(1, 20)
+    total = (int(health_attr) * 2) + roll
+    if roll == 1 or total < dc:
+        return {"required": True, "can_act": False, "status": "unconscious",
+                "dc": dc, "roll": roll, "total": total}
+    return {"required": True, "can_act": True, "status": "acts",
+            "dc": dc, "roll": roll, "total": total}
+
+
+def recover_stuns(stuns: int, per_round: int = STUN_RECOVERY_PER_ROUND) -> int:
+    """End-of-round stun recovery (Aeonisk house rule). Returns the new stun count,
+    floored at 0. Non-int / non-positive input yields 0."""
+    if not isinstance(stuns, (int, float)) or stuns <= 0:
+        return 0
+    return max(0, int(stuns) - max(0, int(per_round)))
+
+
 def apply_stun_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
     """
     Apply stun damage per YAGS non-cumulative rules (combat.md:430-471).

@@ -1,7 +1,17 @@
 # Stun-KO Defeat Bug: unenforced, unrecovering, and (until now) invisible
 
-**Status:** spawn confound FIXED (disposition routing) + logging fixed. Two
-turn-loop enforcement bugs still open (KO not enforced → zombie; stuns never recover).
+**Status:** spawn confound FIXED (disposition routing); logging FIXED; player-side
+KO enforcement + per-round stun recovery FIXED (needs a live run to confirm the
+loop). Remaining: enemy-side KO/conversion gate (~4 enemy zombies + the 7
+restrained cases) and a live re-run of the execution column.
+
+**Verified YAGS rules** (`converted_yagsbook/markdown/combat.md`): Beaten/Fatal
+threshold = 6 (combat.md matches the mined death model exactly); KO is NOT
+automatic — a Beaten/Fatal actor makes a Health check each round they wish to act
+(fail → unconscious, pass → stands) (combat.md:419/469); stuns are non-cumulative
+but *mixed* damage IS cumulative (so Hard Vane's 6→12 was rules-correct, not an
+accrual bug); YAGS recovers stuns over days (Aeonisk uses a per-round house rule
+for scene-length playability).
 **Found:** 2026-07-10, while reading the grok execution session
 `kneeling_topup/run_2026-07-09_213840_22a8d506/run_0007`
 (`session_d34fb227…`).
@@ -50,20 +60,25 @@ red herrings; the stun track maxed out while his health barely moved.
 
 ## The three distinct defects
 
-1. **KO is not enforced in the turn engine (the "zombie" bug).**
-   The combat resolver's own `defender_state_after` reports `alive: true,
-   status: active` at 12 stuns, while the per-round `character_state` snapshot
-   reports `unconscious / defeated`. **The two subsystems disagree**, and the
-   turn engine sides with "active" — a stun-KO'd character keeps taking turns.
-   The `end_state_snapshot` uses yet a third calculation and reports
-   `is_defeated: false`, contradicting all ten per-round snapshots.
-   → *Fix:* one authoritative defeat check, consulted by the turn/initiative
-   loop so a KO'd combatant is skipped.
+1. **KO is not enforced in the turn engine (the "zombie" bug).** A stun-KO'd /
+   fatally wounded character kept taking turns — 67 of 71 corpus zombie hits are
+   players, 4 enemies.
+   → *Fixed (player-side, 2026-07-10):* `mechanics.resolve_ko_check` implements the
+   YAGS per-round Health-check-to-act; `session._check_beaten_ko` calls it at the
+   top of each player's turn and marks a failed check incapacitated in the
+   per-round ResolutionState, so the existing skip path drops the action and the
+   actor re-rolls next round. Model (a) — the actor may still act if they pass, per
+   YAGS, rather than an automatic KO. Enemies gate on `is_defeated` (not
+   `is_incapacitated`) via a different path (`enemy_combat.py:1956`); their gate is
+   the remaining ~4 cases — a small, precise follow-up after the live run.
 
-2. **Stuns never recover.** He sits at 12 stuns for nine rounds. In YAGS the
-   stun track should decay over time; here nothing decrements it, so a
-   momentary Beaten state becomes a permanent (but unenforced) KO.
-   → *Fix:* per-round stun recovery.
+2. **Stuns never recover.** He sat at 12 stuns for nine rounds.
+   → *Fixed (2026-07-10):* `mechanics.recover_stuns` bleeds off
+   `STUN_RECOVERY_PER_ROUND` (2, tunable) at end of round for every combatant
+   (duck-typed on `.stuns`, wounds untouched). Aeonisk house rule — YAGS proper
+   recovers over days, but scene-length play needs faster bleed-off. With the model-
+   (a) gate a Beaten actor can already act on a passed check, so recovery mainly
+   governs how fast they drop below Beaten and stop needing checks.
 
 3. **The snapshot omitted `stuns` (FIXED 2026-07-10).** `log_character_state`
    logged `health`, `wounds`, `is_defeated`, `death_state` — but not `stuns` —
