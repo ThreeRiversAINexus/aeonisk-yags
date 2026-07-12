@@ -95,3 +95,86 @@ def test_replay_events_aggregates_counts_and_diffs():
     assert len(report.diffs) >= 2          # at least the two injected divergences
     assert all(isinstance(d, Diff) for d in report.diffs)
     assert report.has_diffs is True
+
+
+# --- forward-fold state + stun/mixed ---------------------------------------
+def spawn(eid, name, health):
+    return {"event_type": "enemy_spawn", "round": 0, "enemy_id": eid,
+            "enemy_name": name, "stats": {"health": health}}
+
+
+def combat(defender_id, name, dealt, dtype, after, wounds_dealt=None, rnd=1):
+    d = {"dealt": dealt, "soak": 0, "base_damage": dealt, "damage_type": dtype}
+    ev = {"event_type": "combat_action", "round": rnd,
+          "defender": {"id": defender_id, "name": name},
+          "damage": d, "defender_state_after": after}
+    if wounds_dealt is not None:
+        ev["wounds_dealt"] = wounds_dealt
+    return ev
+
+
+def test_stun_faithful_no_diff():
+    # pure stun (non-cumulative): before stuns 0, dealt 6 -> stuns 6, health/wounds untouched
+    events = [spawn("e1", "Grunt", 26),
+              combat("e1", "Grunt", dealt=6, dtype="stun",
+                     after={"wounds": 0, "stuns": 6, "health": 26})]
+    assert replay_events(events).diffs == []
+
+
+def test_stun_mismatch_flagged():
+    events = [spawn("e1", "Grunt", 26),
+              combat("e1", "Grunt", dealt=6, dtype="stun",
+                     after={"wounds": 0, "stuns": 8, "health": 26})]  # log claims 8
+    diffs = replay_events(events).diffs
+    assert any(d.field == "stuns_after" and d.recomputed == 6 for d in diffs)
+
+
+def test_mixed_faithful_no_diff():
+    # dealt 8 -> stun (8+1)//2=4, wound 8//2=4 -> wounds 4//5=0, health -4
+    events = [spawn("e1", "Grunt", 26),
+              combat("e1", "Grunt", dealt=8, dtype="mixed",
+                     after={"wounds": 0, "stuns": 4, "health": 22})]
+    assert replay_events(events).diffs == []
+
+
+def test_forward_fold_stun_non_cumulative_uses_running_state():
+    # PROVES folding: 2nd stun's outcome depends on the 1st's result (old_stuns=4).
+    # dealt 3 with old_stuns 4 -> 3<4 but 3>=4//2 -> +1 -> stuns 5.
+    # Without folding (old_stuns=0) it'd recompute stuns 3 and diff.
+    events = [spawn("e1", "Grunt", 26),
+              combat("e1", "Grunt", dealt=4, dtype="stun",
+                     after={"wounds": 0, "stuns": 4, "health": 26}, rnd=1),
+              combat("e1", "Grunt", dealt=3, dtype="stun",
+                     after={"wounds": 0, "stuns": 5, "health": 26}, rnd=2)]
+    assert replay_events(events).diffs == []
+
+
+def test_health_clamp_divergence_detected():
+    # the real corpus signal: current code clamps health at 0; a buggy log had -5
+    events = [spawn("e1", "Grunt", 5),
+              combat("e1", "Grunt", dealt=10, dtype="wound", wounds_dealt=2,
+                     after={"wounds": 2, "stuns": 0, "health": -5})]
+    diffs = replay_events(events).diffs
+    assert any(d.field == "health_after" and d.logged == -5 and d.recomputed == 0
+               for d in diffs)
+
+
+# --- corpus mode -----------------------------------------------------------
+def test_replay_paths_aggregates(tmp_path):
+    from scripts.mechanics_replay import replay_paths
+    import json
+    good = tmp_path / "good.jsonl"
+    bad = tmp_path / "bad.jsonl"
+    good.write_text("\n".join(json.dumps(e) for e in [
+        spawn("e1", "Grunt", 26),
+        combat("e1", "Grunt", dealt=10, dtype="wound", wounds_dealt=2,
+               after={"wounds": 2, "stuns": 0, "health": 16}),
+    ]))
+    bad.write_text("\n".join(json.dumps(e) for e in [
+        spawn("e1", "Grunt", 26),
+        combat("e1", "Grunt", dealt=10, dtype="wound", wounds_dealt=9,
+               after={"wounds": 9, "stuns": 0, "health": 16}),
+    ]))
+    per_file = replay_paths([str(good), str(bad)])
+    assert per_file[str(good)].has_diffs is False
+    assert per_file[str(bad)].has_diffs is True
