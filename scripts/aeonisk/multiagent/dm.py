@@ -9333,7 +9333,10 @@ When adjudicating:
                 # All other providers (deepinfra, xai, gemini, grok, etc.)
                 # Use UnifiedAIClient which supports OpenAI-compatible APIs
                 from .unified_llm_client import UnifiedAIClient
-                import asyncio
+                # NB: no local `import asyncio` here — asyncio is imported at module
+                # scope (line 5). A local import shadowed it, making `asyncio` a
+                # function-local and throwing UnboundLocalError at the earlier
+                # asyncio.to_thread call (and breaking replay's DM narration path).
 
                 # Map provider names to UnifiedAIClient conventions
                 provider_map = {'xai': 'grok'}
