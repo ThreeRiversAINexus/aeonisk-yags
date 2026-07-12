@@ -97,10 +97,8 @@ class LLMCallLogger:
             temperature=temperature,
             tokens=tokens,
             current_round=current_round,
-            call_sequence=self.call_count
         )
-
-        self.call_count += 1
+        # NB: _log_llm_call stamps + advances call_count itself — do not increment here.
         return response_text
 
     def _log_llm_call(self,
@@ -110,9 +108,15 @@ class LLMCallLogger:
                      temperature: float,
                      tokens: Dict[str, int],
                      current_round: Optional[int],
-                     call_sequence: int):
+                     call_sequence: int = 0):
         """
         Log an LLM call event to JSONL.
+
+        NOTE: the `call_sequence` argument is IGNORED. The sequence is stamped and
+        advanced atomically here so every logged call gets a unique, contiguous
+        per-agent number (the replay-cache key). Callers must NOT increment
+        `call_count` themselves — doing so previously produced colliding stamps
+        (0,0,2,2,…) that overwrote cached calls and crashed replay.
 
         Event format:
         {
@@ -130,6 +134,10 @@ class LLMCallLogger:
             "tokens": {"input": 1234, "output": 567}
         }
         """
+        # Atomic stamp + advance: the single source of truth for call_sequence.
+        seq = self.call_count
+        self.call_count += 1
+
         if not self.jsonl_logger:
             logger.debug(f"No JSONL logger configured for {self.agent_id}, skipping LLM call log")
             return
@@ -146,7 +154,7 @@ class LLMCallLogger:
             'round': current_round,
             'agent_id': self.agent_id,
             'agent_type': self.agent_type,
-            'call_sequence': call_sequence,
+            'call_sequence': seq,
             'prompt': messages,
             'response': response,
             'model': model,
