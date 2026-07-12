@@ -383,6 +383,22 @@ def _mark_defeated_from_resolution(
                             f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
 
 
+def _serialize_conditions(mechanics, agent_id) -> list:
+    """Serialize an agent's live conditions for the character_state snapshot.
+
+    Was hardcoded [] (TODO) — conditions existed only in mechanics.conditions,
+    invisible to the corpus and to round-state reconstruction. Best-effort:
+    a broken mechanics object must never break state logging.
+    """
+    try:
+        conds = mechanics.get_conditions(agent_id) if mechanics else []
+        return [{"name": c.name, "type": c.type, "penalty": c.penalty,
+                 "duration": c.duration, "affects": list(c.affects)}
+                for c in conds]
+    except Exception:
+        return []
+
+
 def _log_ko_check(jsonl_logger, round_num, agent_id, name, side,
                   stuns, wounds, health_attr, result) -> None:
     """Emit a ko_check event for a rolled Beaten/Fatal consciousness check.
@@ -4002,7 +4018,7 @@ Generate narratives (numbered list only):"""
                             void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
                             soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
                             position=str(getattr(player, 'position', 'Unknown')),
-                            conditions=[],  # TODO: Add condition tracking
+                            conditions=_serialize_conditions(mechanics, player.agent_id),
                             is_defeated=(death_state != "alive"),
                             death_state=death_state,
                             stuns=stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
@@ -4048,7 +4064,7 @@ Generate narratives (numbered list only):"""
                                 void_score=0,  # Enemies typically don't track void
                                 soulcredit=0,  # Enemies don't track soulcredit
                                 position=str(getattr(enemy, 'position', 'Unknown')),
-                                conditions=[],  # TODO: Add condition tracking for enemies
+                                conditions=_serialize_conditions(mechanics, enemy.agent_id),
                                 is_defeated=(enemy_death_state != "alive"),
                                 death_state=enemy_death_state,  # NEW: Track death vs unconscious
                                 stuns=enemy_stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat

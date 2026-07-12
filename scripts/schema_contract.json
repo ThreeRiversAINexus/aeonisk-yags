@@ -2404,6 +2404,35 @@
      "list"
     ]
    },
+   "conditions[].affects": {
+    "types": [
+     "list"
+    ]
+   },
+   "conditions[].duration": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "conditions[].name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "conditions[].penalty": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "conditions[].type": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
    "correlation_id": {
     "types": [
      "str"
