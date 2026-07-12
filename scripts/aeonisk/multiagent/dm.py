@@ -67,6 +67,26 @@ def format_filled_clocks_guidance(filled_clocks, critical_overflow: bool = False
     return text
 
 
+def _forced_scenario_fields(spec) -> Dict[str, Any]:
+    """Normalize a force_scenario config value into scenario fields.
+
+    Legacy form: a string spawn-marker (automated tests) -> the historical
+    "Test Scenario" placeholder. Dict form (resume-from-divergence): the
+    reconstructor supplies the recorded theme/location/void plus a situation
+    carrying the story-so-far digest, so the resumed DM continues the scene
+    instead of inventing a fresh one.
+    """
+    if isinstance(spec, dict):
+        return {
+            "theme": spec.get("theme", "Resumed Session"),
+            "location": spec.get("location", "Unknown"),
+            "situation": spec.get("situation", ""),
+            "void_level": spec.get("void_level", 0) or 0,
+        }
+    return {"theme": "Test Scenario", "location": "Test Location",
+            "situation": str(spec), "void_level": 0}
+
+
 def _resolution_success(resolution) -> bool:
     """
     Safely check if ActionResolution succeeded.
@@ -2207,16 +2227,22 @@ Apply this narrative style to:
             dm_notes_path = Path('./multiagent_output') / 'dm_notes.json'
             self.shared_state.save_dm_notes(str(dm_notes_path))
 
-    async def _use_forced_scenario(self, spawn_marker: str, config: Dict[str, Any]):
-        """Use a forced scenario for automated testing (bypasses AI generation)."""
-        # Create minimal scenario object
+    async def _use_forced_scenario(self, spawn_marker, config: Dict[str, Any]):
+        """Use a forced scenario, bypassing AI generation.
+
+        Accepts either the legacy string spawn-marker (automated tests) or a
+        dict with theme/location/situation/void_level (resume-from-divergence:
+        the reconstructor forces the recorded scenario + a story-so-far digest
+        so the resumed DM has continuity instead of inventing a fresh scene).
+        """
+        fields = _forced_scenario_fields(spawn_marker)
         scenario = Scenario(
-            theme="Test Scenario",
-            location="Test Location",
-            situation=spawn_marker,
+            theme=fields["theme"],
+            location=fields["location"],
+            situation=fields["situation"],
             active_npcs=[],
             environmental_factors=[],
-            void_level=0,
+            void_level=fields["void_level"],
             active_vendors=[]
         )
         self.current_scenario = scenario
@@ -2236,19 +2262,42 @@ Apply this narrative style to:
             if mechanics and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_scenario(scenario_data)
 
+        # Process initial_enemies/initial_npcs from config — same surface the
+        # AI-scenario paths honor. Forced scenarios previously skipped it, so a
+        # resume config's per-survivor roster never spawned (0/N matched).
+        scenario_setup_dict = None
+        initial_enemies_config = config.get('initial_enemies', [])
+        initial_npcs_config = config.get('initial_npcs', [])
+        if initial_enemies_config or initial_npcs_config:
+            from .initial_spawns import build_initial_spawns
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
+            scenario_setup_dict = {
+                'initial_enemies': [s.model_dump() for s in enemy_spawns],
+                'npc_spawns': [s.model_dump() for s in npc_spawns]
+            }
+            logger.info(f"Forced scenario: {len(enemy_spawns)} initial enemy spawn(s), "
+                        f"{len(npc_spawns)} NPC spawn(s) from config")
+
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': f"{fields['theme']} — {fields['location']}. {fields['situation']}"
+                                 if isinstance(spawn_marker, dict)
+                                 else f"Test scenario initialized. {spawn_marker}",
+            'faction_conflicts': []
+        }
+        if scenario_setup_dict:
+            payload['scenario_setup'] = scenario_setup_dict
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': f"Test scenario initialized. {spawn_marker}",
-                'faction_conflicts': []
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Using forced test scenario")
-        print(f"Spawn marker: {spawn_marker}")
+        print(f"Spawn marker: {str(spawn_marker)[:200]}")
 
     async def _use_config_scenario(self, scenario_config: Dict[str, Any], config: Dict[str, Any]):
         """Use scenario from config file instead of generating one."""

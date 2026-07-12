@@ -383,6 +383,23 @@ def _mark_defeated_from_resolution(
                             f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
 
 
+def _resume_position(value):
+    """Normalize a recorded position string to a Position ENUM member — the
+    engine calls enum methods on it (shift_toward_center etc.), so a bare
+    string crashes movement. Recorded strings aren't always members
+    ('Engaged-PC'): fall back to the pre-hyphen ring ('Engaged'), then to
+    NEAR_ENEMY as the engine-safe default."""
+    from .schemas.shared_types import Position
+    try:
+        return Position(value)
+    except Exception:
+        pass
+    try:
+        return Position(str(value).split("-", 1)[0])
+    except Exception:
+        return Position.NEAR_ENEMY
+
+
 def _serialize_conditions(mechanics, agent_id) -> list:
     """Serialize an agent's live conditions for the character_state snapshot.
 
@@ -1220,6 +1237,10 @@ class SelfPlayingSession:
         print("Waiting for scenario generation...")
         await self._scenario_ready.wait()
         print("Scenario ready!")
+
+        # Resume-from-divergence: overlay exact recorded vitals on the freshly
+        # created party + spawned enemies (no-op unless config has resume_state)
+        self._apply_resume_state()
 
         # Give players time to receive and process SCENARIO_SETUP message
         # before starting declarations (fixes race condition where enemies
@@ -2121,6 +2142,70 @@ Generate narratives (numbered list only):"""
                 ],
                 changes=changes,
             )
+
+    def _apply_resume_state(self):
+        """Apply a resume_state config block (resume-from-divergence, replay
+        rung 3): exact vitals for party + spawned enemies, matched by NAME
+        (the resumed session mints fresh agent_ids). Runs after scenario setup
+        so initial_enemies have spawned. Roster/clocks/scenario ride existing
+        config surfaces (initial_enemies / starting_clocks / force_scenario);
+        this hook is the one new seam. Unmatched entries warn, never raise.
+
+        Returns {"party": n, "enemies": n, "unmatched": [names]} or None when
+        no resume_state is configured.
+        """
+        rs = (self.config or {}).get("resume_state")
+        if not rs:
+            return None
+        applied = {"party": 0, "enemies": 0, "unmatched": []}
+
+        party_by_name = {p.get("name"): p for p in rs.get("party", []) if p.get("name")}
+        for agent in self.agents:
+            cs = getattr(agent, "character_state", None)
+            name = getattr(cs, "name", None)
+            if not name or name not in party_by_name:
+                continue
+            o = party_by_name.pop(name)
+            for attr in ("health", "max_health", "wounds", "stuns"):
+                if o.get(attr) is not None:
+                    setattr(agent, attr, o[attr])
+            if o.get("position") is not None:
+                agent.position = _resume_position(o["position"])
+            for attr in ("void_score", "soulcredit"):
+                if o.get(attr) is not None and cs is not None:
+                    setattr(cs, attr, o[attr])
+            purse = getattr(cs, "energy_purse", None)
+            if purse is not None:
+                for currency, amount in (o.get("energy") or {}).items():
+                    if hasattr(purse, currency):
+                        setattr(purse, currency, amount)
+            applied["party"] += 1
+            logger.info(f"Resume: applied party state to {name} "
+                        f"(hp={o.get('health')} w={o.get('wounds')} s={o.get('stuns')})")
+        applied["unmatched"].extend(party_by_name)
+
+        enemies_by_name = {e.get("name"): e for e in rs.get("enemies", []) if e.get("name")}
+        roster = getattr(self.enemy_combat, "enemy_agents", None) or []
+        for enemy in roster:
+            o = enemies_by_name.pop(getattr(enemy, "name", None), None)
+            if not o:
+                continue
+            for attr in ("health", "max_health", "wounds", "stuns"):
+                if o.get(attr) is not None:
+                    setattr(enemy, attr, o[attr])
+            if o.get("position") is not None:
+                enemy.position = _resume_position(o["position"])
+            applied["enemies"] += 1
+            logger.info(f"Resume: applied enemy state to {enemy.name} "
+                        f"(hp={o.get('health')} w={o.get('wounds')} s={o.get('stuns')})")
+        applied["unmatched"].extend(enemies_by_name)
+
+        for name in applied["unmatched"]:
+            logger.warning(f"Resume: no live entity matched resume_state entry '{name}'")
+        print(f"✓ Resume state applied: {applied['party']} party, "
+              f"{applied['enemies']} enemies"
+              + (f", {len(applied['unmatched'])} unmatched" if applied["unmatched"] else ""))
+        return applied
 
     def _get_enemy_llm_client(self, llm_config, agent_id, mechanics, provider=None):
         """Return the cached fallback LLM client for this enemy, creating it once.
