@@ -548,6 +548,110 @@ def _normalize_enemy_result(result: dict) -> dict:
     return normalized
 
 
+class EnemyFallbackLLMClient:
+    """
+    Wrapper for enemy LLM calls with logging support.
+
+    Each enemy gets its own instance (cached per agent_id on the session) so
+    call_sequence advances monotonically across rounds — the replay-cache key.
+    Previously this was defined inline in _run_initiative_round and rebuilt every
+    round, resetting call_sequence to 0 (enemies logged [0, 0] across rounds).
+
+    `provider` may be injected (tests); otherwise it is created from llm_config.
+    """
+
+    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown',
+                 session_id=None, agent_prompt_logger=None, provider=None):
+        self.llm_config = llm_config
+        self.jsonl_logger = jsonl_logger
+        self.agent_prompt_logger = agent_prompt_logger
+        self.agent_id = agent_id
+        self.session_id = session_id
+        self.call_sequence = 0  # Track LLM call ordering for replay
+
+        if provider is not None:
+            self.provider = provider
+        else:
+            # Use llm_provider instead of direct Anthropic client
+            from .llm_provider import LLMConfig, create_provider
+
+            provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
+            self.provider = create_provider(provider_config)
+
+    async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
+        from datetime import datetime, timezone
+
+        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
+        response = await self.provider.generate(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+
+        response_text = response.text
+
+        # Log LLM call if logger is available
+        if self.jsonl_logger:
+            try:
+                from token_utils import count_chat_tokens, count_text_tokens
+
+                messages = [{"role": "user", "content": prompt}]
+                model = self.llm_config.get('model', 'unknown')
+                input_tokens = count_chat_tokens(messages, model)
+                output_tokens = count_text_tokens(response_text, model)
+                self.jsonl_logger.write_event({
+                    'event_type': 'llm_call',
+                    'ts': datetime.now(timezone.utc).isoformat(),
+                    'session': self.session_id or 'unknown',
+                    'round': None,  # Enemy calls don't have round context here
+                    'agent_id': self.agent_id,
+                    'agent_type': 'enemy',
+                    'call_sequence': self.call_sequence,
+                    'prompt': messages,
+                    'response': response_text,
+                    'model': model,
+                    'temperature': temperature,
+                    'tokens': {
+                        'input': input_tokens,
+                        'output': output_tokens,
+                        'total': input_tokens + output_tokens,
+                    }
+                })
+                self.call_sequence += 1
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
+
+        # Also log to human-readable agent prompt log if enabled
+        if self.agent_prompt_logger:
+            try:
+                from token_utils import count_chat_tokens, count_text_tokens
+
+                messages = [{"role": "user", "content": prompt}]
+                model = self.llm_config.get('model', 'unknown')
+                input_tokens = count_chat_tokens(messages, model)
+                output_tokens = count_text_tokens(response_text, model)
+                self.agent_prompt_logger.log_llm_call(
+                    agent_id=self.agent_id,
+                    round_num=None,  # Enemy calls don't have round context
+                    call_sequence=self.call_sequence - 1,  # Already incremented above
+                    prompt=prompt,  # Full prompt text
+                    response=response_text,
+                    model=model,
+                    temperature=temperature,
+                    tokens={
+                        'input': input_tokens,
+                        'output': output_tokens,
+                        'total': input_tokens + output_tokens,
+                    }
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+        return {"content": response_text}
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -568,6 +672,9 @@ class SelfPlayingSession:
 
         self.coordinator: Optional[GameCoordinator] = None
         self.agents: List[Any] = []
+        # Per-enemy fallback LLM clients, cached by agent_id so their
+        # call_sequence counter persists across rounds (replay-cache key).
+        self._enemy_llm_clients: Dict[str, Any] = {}
         self.human_interface: Optional[HumanInterface] = None
         self.session_id: Optional[str] = None
         self.session_data: List[Dict[str, Any]] = []
@@ -1957,6 +2064,27 @@ Generate narratives (numbered list only):"""
                 changes=changes,
             )
 
+    def _get_enemy_llm_client(self, llm_config, agent_id, mechanics, provider=None):
+        """Return the cached fallback LLM client for this enemy, creating it once.
+
+        Caching by agent_id keeps the client's call_sequence counter monotonic
+        across rounds — otherwise a fresh client per round reset it to 0, so an
+        enemy declaring in multiple rounds logged colliding [0, 0, ...] sequences
+        (the replay-cache key). `provider` is injectable for tests.
+        """
+        client = self._enemy_llm_clients.get(agent_id)
+        if client is None:
+            client = EnemyFallbackLLMClient(
+                llm_config,
+                jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                agent_id=agent_id,
+                session_id=self.session_id,
+                agent_prompt_logger=self.agent_prompt_logger,
+                provider=provider,
+            )
+            self._enemy_llm_clients[agent_id] = client
+        return client
+
     async def _run_initiative_round(self) -> bool:
         """
         Run a round with proper tactical flow:
@@ -2090,7 +2218,7 @@ Generate narratives (numbered list only):"""
             mechanics.jsonl_logger.log_declaration_phase_start(mechanics.current_round)
 
         # Prepare LLM client for enemy declarations (if needed)
-        llm_client = None
+        enemy_fallback_available = False
         available_tokens = []
         if self.enemy_combat.enabled and len(self.enemy_combat.enemy_agents) > 0:
             # Get available tactical tokens (if mechanics tracks them)
@@ -2103,107 +2231,11 @@ Generate narratives (numbered list only):"""
                 dm_agent = dm_agents[0]
                 enemy_llm_config = get_enemy_llm_config(self.config) or dm_agent.llm_config
 
-                # Create a simple wrapper for enemy fallback LLM functionality.
-                class EnemyFallbackLLMClient:
-                    """
-                    Wrapper for enemy LLM calls with logging support.
-                    Each enemy gets its own instance to track call_sequence per agent.
-                    """
-                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None, agent_prompt_logger=None):
-                        self.llm_config = llm_config
-                        self.jsonl_logger = jsonl_logger
-                        self.agent_prompt_logger = agent_prompt_logger
-                        self.agent_id = agent_id
-                        self.session_id = session_id
-                        self.call_sequence = 0  # Track LLM call ordering for replay
-
-                        # Use llm_provider instead of direct Anthropic client
-                        from .llm_provider import LLMConfig, create_provider
-
-                        provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
-                        self.provider = create_provider(provider_config)
-
-                    async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        from datetime import datetime, timezone
-
-                        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
-                        response = await self.provider.generate(
-                            prompt=prompt,
-                            max_tokens=max_tokens,
-                            temperature=temperature
-                        )
-
-                        response_text = response.text
-
-                        # Log LLM call if logger is available
-                        if self.jsonl_logger:
-                            try:
-                                from token_utils import count_chat_tokens, count_text_tokens
-
-                                messages = [{"role": "user", "content": prompt}]
-                                model = self.llm_config.get('model', 'unknown')
-                                input_tokens = count_chat_tokens(messages, model)
-                                output_tokens = count_text_tokens(response_text, model)
-                                self.jsonl_logger.write_event({
-                                    'event_type': 'llm_call',
-                                    'ts': datetime.now(timezone.utc).isoformat(),
-                                    'session': self.session_id or 'unknown',
-                                    'round': None,  # Enemy calls don't have round context here
-                                    'agent_id': self.agent_id,
-                                    'agent_type': 'enemy',
-                                    'call_sequence': self.call_sequence,
-                                    'prompt': messages,
-                                    'response': response_text,
-                                    'model': model,
-                                    'temperature': temperature,
-                                    'tokens': {
-                                        'input': input_tokens,
-                                        'output': output_tokens,
-                                        'total': input_tokens + output_tokens,
-                                    }
-                                })
-                                self.call_sequence += 1
-                            except Exception as e:
-                                import logging
-                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
-
-                        # Also log to human-readable agent prompt log if enabled
-                        if self.agent_prompt_logger:
-                            try:
-                                from token_utils import count_chat_tokens, count_text_tokens
-
-                                messages = [{"role": "user", "content": prompt}]
-                                model = self.llm_config.get('model', 'unknown')
-                                input_tokens = count_chat_tokens(messages, model)
-                                output_tokens = count_text_tokens(response_text, model)
-                                self.agent_prompt_logger.log_llm_call(
-                                    agent_id=self.agent_id,
-                                    round_num=None,  # Enemy calls don't have round context
-                                    call_sequence=self.call_sequence - 1,  # Already incremented above
-                                    prompt=prompt,  # Full prompt text
-                                    response=response_text,
-                                    model=model,
-                                    temperature=temperature,
-                                    tokens={
-                                        'input': input_tokens,
-                                        'output': output_tokens,
-                                        'total': input_tokens + output_tokens,
-                                    }
-                                )
-                            except Exception as e:
-                                import logging
-                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
-
-                        return {"content": response_text}
-
-                # Create per-enemy LLM clients for proper logging
-                llm_client = EnemyFallbackLLMClient(
-                    enemy_llm_config,
-                    jsonl_logger=mechanics.jsonl_logger if mechanics else None,
-                    agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
-                    session_id=self.session_id,
-                    agent_prompt_logger=self.agent_prompt_logger
-                )
+                # Enemy fallback LLM available for this round. Per-enemy clients
+                # are created lazily + cached in _get_enemy_llm_client so
+                # call_sequence persists across rounds.
+                self._enemy_llm_config = enemy_llm_config
+                enemy_fallback_available = True
 
         # Declaration loop (slowest → fastest, reversed initiative order)
         for initiative_score, agent_type, agent in reversed(initiative_order):
@@ -2246,14 +2278,11 @@ Generate narratives (numbered list only):"""
             elif agent_type == 'enemy':
                 # Enemy declares inline (interleaved with PCs)
                 logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
-                if llm_client:
-                    # Create per-enemy LLM client for proper logging
-                    enemy_llm_client = EnemyFallbackLLMClient(
-                        enemy_llm_config,
-                        jsonl_logger=mechanics.jsonl_logger if mechanics else None,
-                        agent_id=agent.agent_id,
-                        session_id=self.session_id,
-                        agent_prompt_logger=self.agent_prompt_logger
+                if enemy_fallback_available:
+                    # Per-enemy client is cached on the session so call_sequence
+                    # persists across rounds (was reset to 0 every round before).
+                    enemy_llm_client = self._get_enemy_llm_client(
+                        self._enemy_llm_config, agent.agent_id, mechanics
                     )
 
                     logger.debug(f"Calling declare_single_enemy for {agent.name}")

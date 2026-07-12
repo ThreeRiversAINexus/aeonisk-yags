@@ -1895,7 +1895,6 @@ Apply this narrative style to:
                             current_round=None,  # Scenario generation happens before round 1
                             call_sequence=self.llm_logger.call_count
                         )
-                        self.llm_logger.call_count += 1
 
                     # Also log to human-readable agent prompt log if enabled
                     if self.agent_prompt_logger:
@@ -1959,7 +1958,6 @@ Apply this narrative style to:
                                     current_round=None,
                                     call_sequence=self.llm_logger.call_count
                                 )
-                                self.llm_logger.call_count += 1
 
                             # Also log to human-readable agent prompt log if enabled
                             if self.agent_prompt_logger:
@@ -2539,11 +2537,6 @@ Apply this narrative style to:
 
                 # Success! Log and return
                 logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
-
-                # Increment call count for manual logging below
-                # (generate_structured already logged with actual tokens)
-                if self.llm_logger:
-                    self.llm_logger.call_count += 1
 
                 # Also log to agent prompt logger if enabled
                 if self.agent_prompt_logger:
@@ -3878,11 +3871,6 @@ Apply this narrative style to:
 
             logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, story_advance={synthesis.story_advancement is not None}")
 
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
             # Also log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
                 try:
@@ -4085,11 +4073,6 @@ Void Level: {self.current_scenario.void_level}/10"""
                         f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
                         f"{len(decisions.enemy_spawns)} enemy spawns")
 
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
             # 8. Also log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
                 try:
@@ -4178,9 +4161,6 @@ Void Level: {self.current_scenario.void_level}/10"""
                 current_round=round_number
             )
 
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
             logger.info(
                 f"DM round assessment: "
                 f"{[(a.character_name, a.difficulty) for a in assessment.assessments]}")
@@ -4240,8 +4220,6 @@ Void Level: {self.current_scenario.void_level}/10"""
                 llm_logger=self.llm_logger,
                 current_round=round_number
             )
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
             return rulings
         except Exception as e:
             logger.warning(f"Post-resolution adjudication failed (experiment "
@@ -5079,7 +5057,6 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -5195,11 +5172,6 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
 
             narration = purchase_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
 
         except Exception as e:
             logger.warning(f"Purchase LLM call failed: {e}, using fallback narration")
@@ -5328,11 +5300,6 @@ Read the action intent to understand WHY this transfer is happening:
 
             narration = transfer_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
 
         except Exception as e:
             logger.warning(f"Transfer LLM call failed: {e}, using fallback narration")
@@ -8071,7 +8038,6 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         current_round=current_round,
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -9308,7 +9274,6 @@ When adjudicating:
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -9375,7 +9340,6 @@ When adjudicating:
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 return narration
 
@@ -9468,7 +9432,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -9591,7 +9554,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
