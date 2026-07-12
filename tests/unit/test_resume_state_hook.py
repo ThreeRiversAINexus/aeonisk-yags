@@ -51,10 +51,12 @@ def test_party_vitals_applied_by_name():
         "enemies": [],
     })
     applied = s._apply_resume_state()
-    from aeonisk.multiagent.schemas.shared_types import Position
+    from aeonisk.multiagent.enemy_agent import Position
     assert applied["party"] == 1
     assert p.health == 22 and p.wounds == 1 and p.stuns == 2
-    assert p.position is Position.ENGAGED  # ENUM, not str — engine calls enum methods
+    # the TACTICAL Position (ring+side) both agent kinds hold — the engine
+    # calls shift_toward_center/calculate_range on it
+    assert isinstance(p.position, Position) and p.position.ring == "Engaged"
     assert p.character_state.void_score == 1
     assert p.character_state.soulcredit == 4
     assert p.character_state.energy_purse.breath == 9
@@ -68,21 +70,22 @@ def test_enemy_vitals_applied_by_name():
         "enemies": [{"name": "Independent Thug #2", "health": 20, "max_health": 30,
                      "wounds": 2, "stuns": 0, "position": "Engaged-PC"}],
     })
-    from aeonisk.multiagent.schemas.shared_types import Position
+    from aeonisk.multiagent.enemy_agent import Position
     applied = s._apply_resume_state()
     assert applied["enemies"] == 1
     assert e.health == 20 and e.wounds == 2
-    # 'Engaged-PC' is not a Position member: falls back to the pre-hyphen ring,
-    # and MUST be an enum (live crash: str has no shift_toward_center)
-    assert e.position is Position.ENGAGED
+    # 'Engaged-PC' is the tactical Position's own str() form — exact round-trip
+    assert isinstance(e.position, Position)
+    assert str(e.position) == "Engaged-PC"
+    assert e.position.shift_toward_center is not None  # the method that crashed live
 
 
-def test_garbage_position_falls_back_to_safe_enum():
+def test_positions_round_trip_and_garbage_falls_back():
     from aeonisk.multiagent.session import _resume_position
-    from aeonisk.multiagent.schemas.shared_types import Position
-    assert _resume_position("Near-PC") is Position.NEAR_PC
-    assert _resume_position("Engaged-PC") is Position.ENGAGED
-    assert _resume_position("???") is Position.NEAR_ENEMY
+    assert str(_resume_position("Near-PC")) == "Near-PC"
+    assert str(_resume_position("Engaged-PC")) == "Engaged-PC"
+    assert str(_resume_position("Extreme-Enemy")) == "Extreme-Enemy"
+    assert str(_resume_position("???")) == "Near-Enemy"  # engine-safe default
 
 
 def test_unmatched_names_warn_not_raise():

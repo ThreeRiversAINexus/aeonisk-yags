@@ -383,21 +383,23 @@ def _mark_defeated_from_resolution(
                             f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
 
 
+_VALID_RINGS = {"Engaged", "Near", "Far", "Extreme"}
+
+
 def _resume_position(value):
-    """Normalize a recorded position string to a Position ENUM member — the
-    engine calls enum methods on it (shift_toward_center etc.), so a bare
-    string crashes movement. Recorded strings aren't always members
-    ('Engaged-PC'): fall back to the pre-hyphen ring ('Engaged'), then to
-    NEAR_ENEMY as the engine-safe default."""
-    from .schemas.shared_types import Position
-    try:
-        return Position(value)
-    except Exception:
-        pass
-    try:
-        return Position(str(value).split("-", 1)[0])
-    except Exception:
-        return Position.NEAR_ENEMY
+    """Restore a recorded position string as the tactical Position object BOTH
+    agent kinds actually hold (enemy_agent.Position, ring+side, with
+    from_string/shift_toward_center). Recorded strings are its own str() form
+    ('Near-Enemy', 'Engaged-PC'), so they round-trip exactly. Two earlier
+    guesses crashed live: a bare string ('str' has no shift_toward_center) and
+    the schemas Position ENUM ('Position' has no shift_toward_center — that
+    enum is the LLM-schema type, not the tactical one). Unknown rings fall back
+    to Near-Enemy, the engine-safe default."""
+    from .enemy_agent import Position
+    pos = Position.from_string(str(value))
+    if pos.ring not in _VALID_RINGS:
+        return Position.from_string("Near-Enemy")
+    return pos
 
 
 def _serialize_conditions(mechanics, agent_id) -> list:
