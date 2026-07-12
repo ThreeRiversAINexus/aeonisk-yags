@@ -212,6 +212,53 @@ class TestEconomyInvariants:
         assert "damage_negative" in fired(check(ev))
 
 
+def llmcall(agent, seq, atype="player", rnd=1):
+    """An llm_call event as emitted by LLMCallLogger / EnemyFallbackLLMClient."""
+    return {"event_type": "llm_call", "round": rnd, "agent_id": agent,
+            "agent_type": atype, "call_sequence": seq,
+            "prompt": [{"role": "user", "content": "p"}], "response": "r",
+            "model": "m", "temperature": 0.7, "tokens": {"input": 1, "output": 1}}
+
+
+class TestCallSequenceContiguity:
+    """call_sequence must be unique + contiguous per agent — the replay-cache key.
+    Duplicates overwrite cached calls (real data loss => ERROR); gaps mean a call
+    advanced the counter without emitting an event (=> WARN)."""
+
+    def test_silent_when_contiguous(self):
+        ev = [llmcall("player_01", 0), llmcall("player_01", 1), llmcall("player_01", 2),
+              llmcall("dm_01", 0, "dm"), llmcall("enemy_grunt_a", 0, "enemy"),
+              llmcall("enemy_grunt_a", 1, "enemy")]
+        assert "call_sequence_collision" not in fired(check(ev))
+        assert "call_sequence_gap" not in fired(check(ev))
+
+    def test_silent_when_no_llm_calls(self):
+        assert "call_sequence_collision" not in fired(check(clean_session()))
+        assert "call_sequence_gap" not in fired(check(clean_session()))
+
+    def test_duplicate_sequence_is_error(self):
+        # the enemy [0,0] bug: same agent, two calls both stamped 0
+        ev = [llmcall("enemy_grunt_a", 0, "enemy"), llmcall("enemy_grunt_a", 0, "enemy")]
+        vs = check(ev)
+        assert "call_sequence_collision" in fired(vs)
+        assert any(v.invariant == "call_sequence_collision" and v.severity == "error" for v in vs)
+
+    def test_gap_is_warned(self):
+        # the DM 0,2,4,... bug: counter advanced without emitting
+        ev = [llmcall("dm_01", 0, "dm"), llmcall("dm_01", 2, "dm"), llmcall("dm_01", 4, "dm")]
+        vs = check(ev)
+        assert "call_sequence_gap" in fired(vs)
+        assert all(v.severity == "warn" for v in vs if v.invariant == "call_sequence_gap")
+
+    def test_per_agent_independent(self):
+        # player_01 clean, player_02 dup — only the offender fires, tagged by entity
+        ev = [llmcall("player_01", 0), llmcall("player_01", 1),
+              llmcall("player_02", 0), llmcall("player_02", 0)]
+        vs = [v for v in check(ev) if v.invariant == "call_sequence_collision"]
+        assert len(vs) == 1
+        assert vs[0].entity == "player_02"
+
+
 class TestViolationShape:
     def test_violation_has_fields(self):
         v = check([cstate(1, "Vane", void=11)])[0]
