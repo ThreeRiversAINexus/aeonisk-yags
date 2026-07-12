@@ -8016,28 +8016,12 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             completeness_score=completeness_score
                         )
 
-                # Log LLM call for replay (structured output path)
-                if self.llm_logger:
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ]
-                    estimated_input_tokens = count_chat_tokens(messages, model)
-                    estimated_output_tokens = count_text_tokens(resolution_obj.narration, model)
-
-                    self.llm_logger._log_llm_call(
-                        messages=messages,
-                        response=resolution_obj.narration,  # Log narration as response
-                        model=model,
-                        temperature=temperature,
-                        tokens={
-                            'input': estimated_input_tokens,
-                            'output': estimated_output_tokens,
-                            'total': estimated_input_tokens + estimated_output_tokens,
-                        },
-                        current_round=current_round,
-                        call_sequence=self.llm_logger.call_count
-                    )
+                # NOTE: do NOT _log_llm_call here — generate_dm_resolution_structured
+                # already logs this call internally (llm_logger passed through to
+                # provider.generate_structured). A manual re-log here produced a
+                # phantom narration-only duplicate per adjudication (6/24 DM
+                # "calls" in a 3-round smoke were phantoms), poisoning the
+                # replay cache with calls the engine never made.
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:

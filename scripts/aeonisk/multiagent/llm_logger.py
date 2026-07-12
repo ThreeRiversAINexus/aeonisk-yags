@@ -108,7 +108,8 @@ class LLMCallLogger:
                      temperature: float,
                      tokens: Dict[str, int],
                      current_round: Optional[int],
-                     call_sequence: int = 0):
+                     call_sequence: int = 0,
+                     call_type: Optional[str] = None):
         """
         Log an LLM call event to JSONL.
 
@@ -117,6 +118,12 @@ class LLMCallLogger:
         per-agent number (the replay-cache key). Callers must NOT increment
         `call_count` themselves — doing so previously produced colliding stamps
         (0,0,2,2,…) that overwrote cached calls and crashed replay.
+
+        `call_type` tags WHAT the call was — "structured:<SchemaName>" for
+        Pydantic structured-output calls, "text[:purpose]" otherwise (default
+        "text"). This is the semantic replay-cache key enabler: it lets replay
+        key by meaning instead of strict ordinal, and tells contract replay
+        which schema to re-validate the response against.
 
         Event format:
         {
@@ -155,6 +162,7 @@ class LLMCallLogger:
             'agent_id': self.agent_id,
             'agent_type': self.agent_type,
             'call_sequence': seq,
+            'call_type': call_type or 'text',
             'prompt': messages,
             'response': response,
             'model': model,

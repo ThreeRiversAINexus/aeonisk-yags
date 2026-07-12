@@ -21,6 +21,7 @@
   "entity_lifecycle",
   "entity_lifecycle_story_advancement",
   "healing_applied",
+  "ko_check",
   "llm_call",
   "llm_request_start",
   "mission_debrief",
@@ -25535,6 +25536,133 @@
     ]
    }
   },
+  "ko_check": {
+   "@round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "agent_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "can_act": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "False",
+     "True"
+    ]
+   },
+   "correlation_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "dc": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "event_type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "ko_check"
+    ]
+   },
+   "health_attr": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "parent_event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "roll": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "session": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "side": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "enemy",
+     "player"
+    ]
+   },
+   "status": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "acts",
+     "unconscious"
+    ]
+   },
+   "stuns": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "total": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "ts": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "wounds": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   }
+  },
   "llm_call": {
    "@round": {
     "numeric": true,
@@ -25567,6 +25695,12 @@
     "types": [
      "int"
     ]
+   },
+   "call_type": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
    },
    "correlation_id": {
     "types": [
