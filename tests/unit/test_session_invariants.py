@@ -220,6 +220,43 @@ def llmcall(agent, seq, atype="player", rnd=1):
             "model": "m", "temperature": 0.7, "tokens": {"input": 1, "output": 1}}
 
 
+def combat_soak(atk_id, base, soak, dealt, total=None):
+    d = {"base_damage": base, "soak": soak, "dealt": dealt}
+    if total is not None:
+        d["total"] = total
+    return {"event_type": "combat_action", "round": 1,
+            "attacker": {"id": atk_id, "name": atk_id},
+            "defender": {"id": "e1", "name": "Grunt"}, "damage": d}
+
+
+class TestSoakArithmetic:
+    """dealt must equal max(0, (total|base) - soak) on the FORMULA path (known
+    attacker). Mined rule: 81/83 corpus events fit exactly; the only 2 misfits
+    are DM-declared damage (attacker id 'unknown', source structured_output),
+    where dealt is the DM's lawful ruling — those are skipped, not warned."""
+
+    def test_faithful_formula_is_silent(self):
+        assert "soak_arithmetic" not in fired(check([combat_soak("player_01", 19, 9, 10)]))
+        # old schema: total (post-modifier) is the minuend, not base
+        assert "soak_arithmetic" not in fired(check([combat_soak("player_01", 22, 10, 8, total=18)]))
+        # clamp at zero
+        assert "soak_arithmetic" not in fired(check([combat_soak("player_01", 5, 10, 0)]))
+
+    def test_formula_violation_is_error(self):
+        vs = check([combat_soak("player_01", 19, 9, 19)])  # soak not subtracted
+        assert "soak_arithmetic" in fired(vs)
+        assert any(v.invariant == "soak_arithmetic" and v.severity == "error" for v in vs)
+
+    def test_dm_declared_damage_is_skipped(self):
+        # the real corpus shape: unknown attacker, dealt is a DM ruling
+        assert "soak_arithmetic" not in fired(check([combat_soak("unknown", 12, 0, 6)]))
+
+    def test_missing_fields_are_silent(self):
+        ev = {"event_type": "combat_action", "round": 1,
+              "attacker": {"id": "player_01"}, "damage": {"dealt": 5}}
+        assert "soak_arithmetic" not in fired(check([ev]))
+
+
 class TestCallSequenceContiguity:
     """call_sequence must be unique + contiguous per agent — the replay-cache key.
     Duplicates overwrite cached calls (real data loss => ERROR); gaps mean a call

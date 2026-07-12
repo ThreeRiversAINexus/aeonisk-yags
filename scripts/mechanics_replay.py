@@ -56,6 +56,7 @@ from aeonisk.multiagent.mechanics import (
     apply_mixed_damage,
     apply_stun_damage,
     apply_wound_damage,
+    resolve_ko_check,
 )
 
 
@@ -80,6 +81,7 @@ class Diff:
 class Report:
     combat_checked: int = 0
     tier_checked: int = 0
+    ko_checked: int = 0
     combat_unsupported: int = 0     # events the harness can't (yet) re-run
     diffs: List[Diff] = field(default_factory=list)
 
@@ -206,6 +208,28 @@ def check_mixed_damage(event: Dict[str, Any], pre: _Pre) -> List[Diff]:
     return diffs
 
 
+def check_ko_check(event: Dict[str, Any]) -> List[Diff]:
+    """Re-run the Beaten/Fatal consciousness check for a ko_check event.
+
+    The event carries its own inputs (stuns/wounds/health_attr) AND the rolled
+    d20, so resolve_ko_check re-runs deterministically — dc, total, can_act and
+    status are all recomputed and diffed.
+    """
+    needed = ("stuns", "wounds", "health_attr", "roll")
+    if any(event.get(k) is None for k in needed):
+        return []
+    result = resolve_ko_check(event["stuns"], event["wounds"],
+                              event["health_attr"], roll=event["roll"])
+    rnd = event.get("round")
+    who = event.get("name") or event.get("agent_id")
+
+    diffs: List[Diff] = []
+    for fld in ("dc", "total", "can_act", "status"):
+        if fld in event and event[fld] != result[fld]:
+            diffs.append(Diff("ko_check", fld, event[fld], result[fld], rnd, who))
+    return diffs
+
+
 def check_outcome_tier(event: Dict[str, Any]) -> List[Diff]:
     """Re-run margin -> outcome tier for an action_resolution and diff it."""
     roll = event.get("roll") or {}
@@ -281,6 +305,11 @@ def replay_events(events: List[Dict[str, Any]]) -> Report:
             # always fold logged ground truth forward (a diff must not cascade)
             _fold(states, did, after)
 
+        elif et == "ko_check":
+            if e.get("roll") is not None:
+                report.ko_checked += 1
+                report.diffs.extend(check_ko_check(e))
+
         elif et == "action_resolution":
             roll = e.get("roll") or {}
             if roll.get("tier") is not None and roll.get("margin") is not None:
@@ -328,6 +357,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     for rep in per_file.values():
         agg.combat_checked += rep.combat_checked
         agg.tier_checked += rep.tier_checked
+        agg.ko_checked += rep.ko_checked
         agg.combat_unsupported += rep.combat_unsupported
         agg.diffs.extend(rep.diffs)
 
@@ -346,16 +376,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # per-file table (only rows with something checked or diffed)
     for p, r in per_file.items():
-        if not (r.combat_checked or r.tier_checked or r.diffs):
+        if not (r.combat_checked or r.tier_checked or r.ko_checked or r.diffs):
             continue
         tag = "clean" if not r.has_diffs else f"{len(r.diffs)} DIFF(S)"
         print(f"  combat={r.combat_checked:3} tier={r.tier_checked:4} "
-              f"unsup={r.combat_unsupported:2}  {tag:12s} {Path(p).name}")
+              f"ko={r.ko_checked:2} unsup={r.combat_unsupported:2}  "
+              f"{tag:12s} {Path(p).name}")
         for d in r.diffs:
             print(f"      {d}")
 
     print(f"\nChecked {agg.combat_checked} combat damage + {agg.tier_checked} "
-          f"outcome tiers across {len(paths)} session(s).")
+          f"outcome tiers + {agg.ko_checked} KO checks across {len(paths)} session(s).")
     if agg.combat_unsupported:
         print(f"  ({agg.combat_unsupported} event(s) not re-runnable: unknown damage "
               f"type or no wounds_dealt/pre-state)")

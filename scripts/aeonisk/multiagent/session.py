@@ -316,7 +316,9 @@ def _parse_surrender_from_resolution(
 
 def _mark_defeated_from_resolution(
     enemy_combat,
-    resolution_state: ResolutionState
+    resolution_state: ResolutionState,
+    jsonl_logger=None,
+    round_num=None
 ) -> None:
     """
     Sync resolution_state with enemies defeated or incapacitated by PC actions.
@@ -368,6 +370,9 @@ def _mark_defeated_from_resolution(
             from .mechanics import resolve_ko_check
             resolution_state.ko_checked.add(agent_id)
             result = resolve_ko_check(stuns, wounds, _ko_health_attr(enemy))
+            _log_ko_check(jsonl_logger, round_num, agent_id,
+                          getattr(enemy, 'name', agent_id), 'enemy',
+                          stuns, wounds, _ko_health_attr(enemy), result)
             if not result['can_act']:
                 resolution_state.mark_incapacitated(agent_id)
                 logger.info(f"Beaten/Fatal KO: {enemy.name} ({agent_id}) failed health check "
@@ -376,6 +381,39 @@ def _mark_defeated_from_resolution(
             else:
                 logger.info(f"Beaten/Fatal but conscious: {enemy.name} ({agent_id}) passed health "
                             f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+
+
+def _log_ko_check(jsonl_logger, round_num, agent_id, name, side,
+                  stuns, wounds, health_attr, result) -> None:
+    """Emit a ko_check event for a rolled Beaten/Fatal consciousness check.
+
+    Carries the full inputs (stuns/wounds/health_attr/roll) and outputs
+    (dc/total/can_act/status) so the mechanics-diff harness can re-run
+    resolve_ko_check deterministically with the logged roll. Best-effort:
+    logging failure must never break the gate itself.
+    """
+    if not jsonl_logger:
+        return
+    try:
+        jsonl_logger.write_event({
+            'event_type': 'ko_check',
+            'ts': datetime.now().isoformat(),
+            'session': getattr(jsonl_logger, 'session_id', None),
+            'round': round_num,
+            'agent_id': agent_id,
+            'name': name,
+            'side': side,
+            'stuns': stuns,
+            'wounds': wounds,
+            'health_attr': health_attr,
+            'roll': result['roll'],
+            'dc': result['dc'],
+            'total': result['total'],
+            'can_act': result['can_act'],
+            'status': result['status'],
+        })
+    except Exception as e:
+        logger.error(f"Failed to log ko_check for {agent_id}: {e}")
 
 
 def _ko_health_attr(entity) -> int:
@@ -397,7 +435,8 @@ def _ko_health_attr(entity) -> int:
     return 3
 
 
-def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
+def _check_beaten_ko(agent, resolution_state: ResolutionState,
+                     jsonl_logger=None, round_num=None) -> bool:
     """YAGS per-round consciousness gate (combat.md:419/469): if the agent is
     Beaten (stuns>=6) or Fatally wounded (wounds>=6), roll the health check. On
     failure they are unconscious THIS round — marked incapacitated in the
@@ -416,6 +455,8 @@ def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
     result = resolve_ko_check(stuns, wounds, _ko_health_attr(agent))
     cs = getattr(agent, 'character_state', None)
     name = getattr(cs, 'name', None) or getattr(agent, 'agent_id', '?')
+    _log_ko_check(jsonl_logger, round_num, agent.agent_id, name, 'player',
+                  stuns, wounds, _ko_health_attr(agent), result)
     if not result['can_act']:
         resolution_state.mark_incapacitated(agent.agent_id)
         logger.info(
@@ -2816,7 +2857,9 @@ Generate narratives (numbered list only):"""
                 # wounded player must pass a health check to act this round (else
                 # skipped as incapacitated). Fixes the "zombie" — Hard Vane acting
                 # while flagged unconscious. Enemies are gated separately (TODO).
-                _check_beaten_ko(agent, resolution_state)
+                _check_beaten_ko(agent, resolution_state,
+                                 jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                                 round_num=getattr(mechanics, 'current_round', None))
 
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
@@ -2967,7 +3010,10 @@ Generate narratives (numbered list only):"""
                             # so their actions get invalidated (like defeated enemies)
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
-                            _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
+                            _mark_defeated_from_resolution(
+                                self.enemy_combat, resolution_state,
+                                jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                                round_num=getattr(mechanics, 'current_round', None))
 
                             # Process purchase/crafting effects from structured output
                             # Guard: skip all effect processing if action was preempted

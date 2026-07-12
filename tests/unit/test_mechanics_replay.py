@@ -159,6 +159,47 @@ def test_health_clamp_divergence_detected():
                for d in diffs)
 
 
+# --- ko_check --------------------------------------------------------------
+def ko(stuns, wounds, health_attr, roll, dc, total, can_act, status, rnd=2):
+    return {"event_type": "ko_check", "round": rnd, "agent_id": "player_01",
+            "name": "Hard Vane", "side": "player",
+            "stuns": stuns, "wounds": wounds, "health_attr": health_attr,
+            "roll": roll, "dc": dc, "total": total,
+            "can_act": can_act, "status": status}
+
+
+def test_ko_faithful_no_diff():
+    # stuns 8 -> DC 30; health 3, roll 12 -> total 18 < 30 -> unconscious
+    ev = ko(8, 0, 3, roll=12, dc=30, total=18, can_act=False, status="unconscious")
+    report = replay_events([ev])
+    assert report.ko_checked == 1
+    assert report.diffs == []
+    # pass case: roll 20 -> total 26... still <30; use health 5: total 30 >= 30
+    ev2 = ko(8, 0, 5, roll=20, dc=30, total=30, can_act=True, status="acts")
+    assert replay_events([ev2]).diffs == []
+
+
+def test_ko_dc_divergence_flagged():
+    # log claims DC 25 for stuns 8 (as if the formula were 20+5*(level-7))
+    ev = ko(8, 0, 5, roll=20, dc=25, total=30, can_act=True, status="acts")
+    diffs = replay_events([ev]).diffs
+    assert any(d.field == "dc" and d.logged == 25 and d.recomputed == 30 for d in diffs)
+
+
+def test_ko_verdict_divergence_flagged():
+    # log claims the actor could act despite total < dc
+    ev = ko(8, 0, 3, roll=12, dc=30, total=18, can_act=True, status="acts")
+    diffs = replay_events([ev]).diffs
+    assert any(d.field == "can_act" for d in diffs)
+
+
+def test_ko_nat_one_autofail_enforced():
+    # nat 1 must fail even when total would pass
+    ev = ko(6, 0, 10, roll=1, dc=20, total=21, can_act=True, status="acts")
+    diffs = replay_events([ev]).diffs
+    assert any(d.field == "can_act" and d.recomputed is False for d in diffs)
+
+
 # --- corpus mode -----------------------------------------------------------
 def test_replay_paths_aggregates(tmp_path):
     from scripts.mechanics_replay import replay_paths
