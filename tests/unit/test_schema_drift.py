@@ -81,6 +81,91 @@ class TestDiffContract:
         assert drift == []
 
 
+class TestDynamicKeyCollapse:
+    """Data-dependent dict keys (clock names, skill names) must mine as a single
+    `parent.*` field, not one field per name — otherwise every new session with a
+    fresh clock name is 'schema drift' and the contract churns forever. Mined
+    fact: action_resolution.clocks had 762 distinct clock-name keys."""
+
+    def _mine_events(self, events, tmp_path):
+        import json as _json
+        f = tmp_path / "session_dyn.jsonl"
+        f.write_text("\n".join(_json.dumps(e) for e in events))
+        tc, pt, _, _ = mine([str(f)])
+        return build_contract(tc, pt)
+
+    def test_clock_names_collapse(self, tmp_path):
+        events = [
+            {"event_type": "action_resolution", "round": 1,
+             "clocks": {"ACG Audit Sweep": "0/4", "Void Surge": "2/6"},
+             "context": {"clock_sources": {"ACG Audit Sweep": "structured_output"}}},
+        ]
+        c = self._mine_events(events, tmp_path)
+        fields = c["schema"]["action_resolution"]
+        assert "clocks.*" in fields
+        assert "clocks.ACG Audit Sweep" not in fields
+        assert "context.clock_sources.*" in fields
+
+    def test_scene_clock_subfields_merge_under_star(self, tmp_path):
+        events = [
+            {"event_type": "end_state_snapshot",
+             "state_summary": {"scene_clocks": {
+                 "Doom": {"current": 2, "maximum": 6},
+                 "Hope": {"current": 1, "maximum": 4}}}},
+        ]
+        c = self._mine_events(events, tmp_path)
+        fields = c["schema"]["end_state_snapshot"]
+        assert "state_summary.scene_clocks.*" in fields
+        assert "state_summary.scene_clocks.*.current" in fields
+        assert "state_summary.scene_clocks.Doom" not in fields
+
+    def test_skill_names_collapse(self, tmp_path):
+        events = [
+            {"event_type": "enemy_spawn", "round": 0,
+             "stats": {"health": 20, "skills": {"Guns": 4, "Intimacy Ritual": 2}}},
+        ]
+        c = self._mine_events(events, tmp_path)
+        fields = c["schema"]["enemy_spawn"]
+        assert "stats.skills.*" in fields
+        assert "stats.skills.Guns" not in fields
+
+    def test_fixed_schema_fields_do_not_collapse(self, tmp_path):
+        events = [
+            {"event_type": "combat_action", "round": 1,
+             "damage": {"base_damage": 12, "soak": 3, "dealt": 9}},
+        ]
+        c = self._mine_events(events, tmp_path)
+        fields = c["schema"]["combat_action"]
+        assert "damage.base_damage" in fields
+        assert "damage.*" not in fields
+
+    def test_envelope_identity_fields_are_freeform(self, tmp_path):
+        # event_id/ts/session/correlation_id are per-event identity, never an
+        # enum — on rare event types they pinned as 3-value enums and drifted
+        # on every new session
+        events = [
+            {"event_type": "targeting_validation", "round": 1,
+             "ts": "2026-07-12T07:03:49", "session": "abc-123",
+             "event_id": "uuid-1", "parent_event_id": "uuid-0",
+             "correlation_id": "round_2_x", "original_target": "tgt_a"},
+        ]
+        c = self._mine_events(events, tmp_path)
+        fields = c["schema"]["targeting_validation"]
+        for f in ("ts", "session", "event_id", "parent_event_id", "correlation_id"):
+            assert fields[f]["values"] == "freeform", f
+
+    def test_new_clock_name_is_not_drift(self, tmp_path):
+        ref = self._mine_events(
+            [{"event_type": "action_resolution", "round": 1,
+              "clocks": {"Old Clock": "0/4"}}], tmp_path)
+        (tmp_path / "session_dyn.jsonl").unlink()
+        live = self._mine_events(
+            [{"event_type": "action_resolution", "round": 1,
+              "clocks": {"A Brand New Clock Name": "1/8"}}], tmp_path)
+        drift, _ = diff_contract(ref, live)
+        assert drift == []
+
+
 # --- the real gate: live corpus vs committed contract -----------------------
 @pytest.mark.skipif(not os.path.exists(_CONTRACT), reason="no committed contract")
 @pytest.mark.skipif(not iter_session_files([_CORPUS]),

@@ -42,6 +42,26 @@ from collections import Counter, defaultdict
 MAX_DISTINCT = 40   # past this a string leaf is "freeform", not an enum
 MAX_DEPTH = 4       # nested-dict walk depth
 
+# Dict parents whose keys are DATA (clock names, skill names), not schema.
+# Their children collapse to a single `parent.*` field — otherwise every new
+# session's fresh clock name reads as schema drift and the contract churns
+# forever (mined: action_resolution.clocks had 762 distinct clock-name keys).
+# Paths are relative to the event body, [] and * segments already applied.
+DYNAMIC_KEY_PARENTS = {
+    "clocks",                                # action_resolution
+    "context.clock_sources",                 # action_resolution
+    "context.clock_deltas",                  # action_resolution
+    "final_state.scene_clocks",              # session_end
+    "state_summary.scene_clocks",            # end_state_snapshot
+    "stats.skills",                          # enemy_spawn (custom skills occur)
+    "action_context.character_skills",       # pydantic_validation_failure
+}
+
+# Per-event identity/envelope fields: their values are unique by construction
+# (uuids, timestamps) — pinning them as enums on rare event types made every
+# new session "drift". Always freeform.
+IDENTITY_FIELDS = {"ts", "session", "event_id", "parent_event_id", "correlation_id"}
+
 
 class FieldStat:
     __slots__ = ("present", "types", "values", "overflow", "nmin", "nmax")
@@ -76,8 +96,10 @@ def _walk(prefix, obj, stats, depth):
     if depth > MAX_DEPTH:
         return
     if isinstance(obj, dict):
+        dynamic = prefix in DYNAMIC_KEY_PARENTS
         for k, v in obj.items():
-            path = f"{prefix}.{k}" if prefix else k
+            key = "*" if dynamic else k
+            path = f"{prefix}.{key}" if prefix else key
             stats[path].observe(v)
             if isinstance(v, (dict, list)):
                 _walk(path, v, stats, depth + 1)
@@ -150,7 +172,17 @@ def build_contract(type_counts, per_type):
     for et in sorted(per_type):
         fields = {}
         for path, st in sorted(per_type[et].items()):
-            fields[path] = _leaf_shape(st)
+            shape = _leaf_shape(st)
+            # Under a dynamic-key parent the VALUES are data too (clock tick
+            # strings, skill ratings) — never pin them as an enum. Likewise
+            # identity/envelope fields (uuids, timestamps) are unique by
+            # construction.
+            segs = path.split(".")
+            if ("*" in segs or segs[-1] in IDENTITY_FIELDS) \
+                    and isinstance(shape.get("values"), list) \
+                    and "str" in shape.get("types", []):
+                shape["values"] = "freeform"
+            fields[path] = shape
         contract["schema"][et] = fields
     return contract
 
