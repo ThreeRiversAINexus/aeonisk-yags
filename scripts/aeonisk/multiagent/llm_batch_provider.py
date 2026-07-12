@@ -288,7 +288,8 @@ class BatchProxyProvider(LLMProvider):
                     temperature=temperature,
                     tokens=estimated_tokens,
                     current_round=current_round,
-                    call_sequence=llm_logger.call_count
+                    call_sequence=llm_logger.call_count,
+                    call_type=f"structured:{result_type.__name__}"
                 )
 
             return validated
@@ -317,7 +318,8 @@ class BatchProxyProvider(LLMProvider):
                     temperature=temperature,
                     tokens=estimated_tokens,
                     current_round=current_round,
-                    call_sequence=llm_logger.call_count
+                    call_sequence=llm_logger.call_count,
+                    call_type=f"structured:{result_type.__name__}"
                 )
 
             return validated

@@ -79,3 +79,8 @@ class TestStructuredPathsPassTag:
 
     def test_openai_native_site(self):
         assert self._site_passes_tag(_MULTIAGENT / "openai_structured.py")
+
+    def test_batch_proxy_provider_sites(self):
+        # the third structured path — found UNTAGGED in the live smoke (28 'text',
+        # 0 structured): the proxy provider logs through its own generate_structured
+        assert self._site_passes_tag(_MULTIAGENT / "llm_batch_provider.py")
