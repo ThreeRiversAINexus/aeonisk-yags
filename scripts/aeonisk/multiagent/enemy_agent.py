@@ -62,6 +62,11 @@ class Position:
     side: str  # "PC", "Enemy"
 
     def __str__(self) -> str:
+        # Engaged is the center band — side is meaningless there (calculate_range
+        # Rule 1 ignores it). Printing 'Engaged-PC' taught the DM a non-canonical
+        # value that the position_change validation filter then silently dropped.
+        if self.ring == "Engaged":
+            return "Engaged"
         return f"{self.ring}-{self.side}"
 
     def __repr__(self) -> str:

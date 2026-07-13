@@ -925,7 +925,7 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
     section += "\n\n**When choosing TARGET for Shift/Shift_2 actions:**"
     section += "\n- Match your doctrine's preferred range (see above)"
     section += "\n- Consider where PCs are located (see Range Analysis)"
-    section += "\n- Available positions: Engaged-PC, Near-PC, Far-PC, Extreme-PC, Engaged-Enemy, Near-Enemy, Far-Enemy, Extreme-Enemy"
+    section += "\n- Available positions: Engaged, Near-PC, Far-PC, Extreme-PC, Near-Enemy, Far-Enemy, Extreme-Enemy"
     section += f"\n- Example: If PCs are at Far-PC and you prefer Near range → TARGET: Near-PC"
     section += f"\n- Example: If PCs are at Near-Enemy and you prefer Extreme range → TARGET: Far-Enemy or Extreme-Enemy"
 

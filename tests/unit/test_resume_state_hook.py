@@ -74,16 +74,17 @@ def test_enemy_vitals_applied_by_name():
     applied = s._apply_resume_state()
     assert applied["enemies"] == 1
     assert e.health == 20 and e.wounds == 2
-    # 'Engaged-PC' is the tactical Position's own str() form — exact round-trip
+    # legacy 'Engaged-PC' input (historical corpus) parses; prints canonical
     assert isinstance(e.position, Position)
-    assert str(e.position) == "Engaged-PC"
+    assert str(e.position) == "Engaged"
     assert e.position.shift_toward_center is not None  # the method that crashed live
 
 
 def test_positions_round_trip_and_garbage_falls_back():
     from aeonisk.multiagent.session import _resume_position
     assert str(_resume_position("Near-PC")) == "Near-PC"
-    assert str(_resume_position("Engaged-PC")) == "Engaged-PC"
+    assert str(_resume_position("Engaged-PC")) == "Engaged"  # legacy input, canonical out
+    assert str(_resume_position("Engaged")) == "Engaged"
     assert str(_resume_position("Extreme-Enemy")) == "Extreme-Enemy"
     assert str(_resume_position("???")) == "Near-Enemy"  # engine-safe default
 
