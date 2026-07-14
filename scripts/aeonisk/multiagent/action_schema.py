@@ -52,6 +52,9 @@ class ActionDeclaration:
     vendor_id: Optional[str] = None  # Vendor ID (vnd_xxxx) for purchase actions
     item_id: Optional[str] = None  # Item ID (itm_xxxx) for purchase actions
 
+    # Optional checkpoint field (for gated passage — VIII.1 access gate)
+    checkpoint_id: Optional[str] = None  # Checkpoint ID (cp_xxxx) when moving through a gated checkpoint
+
     # Optional transfer-specific fields (for energy currency transfers and item transfers)
     transfer_target: Optional[str] = None  # Character name or agent_id to transfer to
     transfer_currency: Optional[Dict[str, int]] = None  # Currency amounts {"drip": 5, "spark": 2}

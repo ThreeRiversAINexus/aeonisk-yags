@@ -78,4 +78,7 @@ class TestFullContextMode:
     def test_session_treats_full_context_as_mode(self):
         src = (Path(__file__).parent.parent.parent /
                "scripts/aeonisk/multiagent/session.py").read_text()
-        assert "== 'full_context'" in src
+        # full_context is one of the scene-context modes (enforce joined it).
+        assert "'full_context', 'enforce'" in src \
+            or "'enforce', 'full_context'" in src \
+            or "== 'full_context'" in src

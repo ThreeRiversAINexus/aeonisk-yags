@@ -106,6 +106,15 @@ class PurchaseValidation:
 
 
 @dataclass
+class CheckpointAccess:
+    """Result of a checkpoint / sector access check (Codex Nexum VIII.1-VIII.2)."""
+    is_allowed: bool
+    checkpoint_name: str = ""
+    sc_blocked: bool = False
+    failure_reason: Optional[str] = None
+
+
+@dataclass
 class TransferValidation:
     """
     Result of pre-transfer validation check.
@@ -1021,7 +1030,8 @@ class JSONLLogger:
         death_state: str = "alive",
         agent: str = 'player',
         energy: Dict[str, int] = None,
-        seeds: Dict[str, int] = None
+        seeds: Dict[str, int] = None,
+        stuns: int = 0
     ):
         """
         Log character state snapshot (typically at round end).
@@ -1038,10 +1048,13 @@ class JSONLLogger:
             position: Tactical position (e.g., "Near-PC")
             conditions: List of active conditions (debuffs, buffs)
             is_defeated: Whether character is defeated
-            death_state: "alive", "unconscious" (0 HP, wounds < 6), or "dead" (wounds >= 6)
+            death_state: "alive", "unconscious" (0 HP, wounds < 6, or stuns >= 6), or "dead" (wounds >= 6)
             agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
             energy: Currency amounts {"breath": 5, "drip": 10, "grain": 3, "spark": 2, "hollow": 0}
             seeds: Seed counts {"raw": 2, "attuned": 1, "hollow": 0}
+            stuns: Stun count (separate from wounds; >= 6 is the Beaten/KO threshold that
+                   drives death_state="unconscious"). Logged so a stun-KO snapshot is
+                   diagnosable — without it, is_defeated=True at full health looks impossible.
         """
         event = {
             "event_type": "character_state",
@@ -1059,6 +1072,7 @@ class JSONLLogger:
             "conditions": conditions or [],
             "is_defeated": is_defeated,
             "death_state": death_state,  # NEW: Track death vs unconscious
+            "stuns": stuns,  # Separate from wounds; >= 6 drives stun-KO (Beaten threshold)
             "agent": agent,
             "energy": energy or {},
             "seeds": seeds or {}
@@ -3069,6 +3083,35 @@ class MechanicsEngine:
         # Check Soulcredit threshold
         character_sc = getattr(character_state, 'soulcredit', 0)
 
+        # VIII.1 — the Gates: Nexus-aligned institutions check the Codex ledger.
+        # Soulcredit -2 and under is cut off from their markets; per-item
+        # soulcredit_requirement gates sanctioned/licensed gear. Freeborn /
+        # Tempest / Independent markets do not ask. (The buyer knows their own
+        # SC; the gate is where it becomes public — a ledger read.)
+        from .energy_economy import is_nexus_aligned
+        if is_nexus_aligned(getattr(vendor, 'faction', None)):
+            if character_sc <= -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low: {vendor.name} reads the "
+                                   f"Codex ledger and refuses service ({character_sc} "
+                                   f"is -2 or below — cut off from Nexus-aligned markets)",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+            item_req = getattr(item, 'soulcredit_requirement', 0)
+            if item_req and character_sc < item_req:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Standing insufficient: {item.name} requires "
+                                   f"Soulcredit ≥ {item_req} (have {character_sc}); "
+                                   f"the gate reads your ledger and declines",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+
         # Handle both VendorType enum (legacy) and string (NPC vendors)
         vendor_type_str = vendor.vendor_type.value if hasattr(vendor.vendor_type, 'value') else str(vendor.vendor_type) if vendor.vendor_type else None
 
@@ -3135,6 +3178,46 @@ class MechanicsEngine:
             player_currency=player_currency,
             surplus=surplus
         )
+
+    def validate_checkpoint_access(self, character_state: Any, checkpoint: Any) -> 'CheckpointAccess':
+        """Gate access to a checkpoint / sector on Soulcredit standing (VIII.1).
+
+        Nexus-aligned checkpoints check the ledger and apply the universal
+        Cut-Off (SC <= -6, VIII.2). Any checkpoint may set its own
+        soulcredit_requirement floor. Non-aligned checkpoints with no
+        requirement do not ask. The holder knows their own SC; the checkpoint
+        is where it becomes public — a ledger read.
+        """
+        from .energy_economy import is_nexus_aligned, SOULCREDIT_CUT_OFF
+        character_sc = getattr(character_state, 'soulcredit', 0)
+        name = getattr(checkpoint, 'name', 'checkpoint')
+        aligned = is_nexus_aligned(getattr(checkpoint, 'faction', None))
+        req = getattr(checkpoint, 'soulcredit_requirement', 0)
+
+        if aligned:
+            # Nexus-aligned gates require clean standing to walk through lawfully:
+            # any negative Soulcredit is refused (floor 0), and an explicit
+            # positive requirement raises the bar (e.g. +6 Trusted for a
+            # restricted sector). SC <= -6 is the deeper Cut-Off tier (VIII.2).
+            floor = max(0, req)
+            if character_sc < floor:
+                if character_sc <= SOULCREDIT_CUT_OFF:
+                    reason = (f"Cut Off (VIII.2): Soulcredit {character_sc} is -6 or "
+                              f"below — {name} denies passage; locked out of polite society")
+                else:
+                    reason = (f"Standing insufficient: {name} requires Soulcredit ≥ "
+                              f"{floor} (have {character_sc}); the gate reads your "
+                              f"ledger and refuses passage")
+                return CheckpointAccess(is_allowed=False, checkpoint_name=name,
+                                        sc_blocked=True, failure_reason=reason)
+        elif req and character_sc < req:
+            # Non-aligned gates only ask when they set an explicit requirement.
+            return CheckpointAccess(
+                is_allowed=False, checkpoint_name=name, sc_blocked=True,
+                failure_reason=f"Standing insufficient: {name} requires Soulcredit "
+                               f"≥ {req} (have {character_sc})")
+
+        return CheckpointAccess(is_allowed=True, checkpoint_name=name)
 
     def validate_transfer(
         self,
@@ -5556,6 +5639,62 @@ def get_wound_effect(wounds: int) -> Dict[str, Any]:
         return {"name": "Fatal", "penalty": -40, "death_check": True}
 
     return WOUND_THRESHOLDS.get(wounds, WOUND_THRESHOLDS[0])
+
+
+# Beaten (stuns) / Fatal (wounds) threshold: the body has 5 injury levels; the
+# 6th triggers the YAGS "health check to remain conscious". Verified against the
+# corpus (death_state=='dead' <=> wounds>=6, exactly) and combat.md:419/469.
+KO_CHECK_THRESHOLD = 6
+
+# Auto stun recovery per round. DEFAULT 0 (disabled) — "if you get clobbered it's
+# over." This is both YAGS-faithful (stuns recover over days, not mid-combat) and
+# unnecessary: the Beaten health-check gate (resolve_ko_check) already lets a
+# lightly-Beaten fighter act sporadically while a hard-clobbered one stays down,
+# via DC scaling — so decay would be redundant. Mid-fight stun recovery instead
+# comes from a medic/heal action (healing_applied, heal_type=stun) or scene end.
+# Left as a one-line lever: set >0 to re-enable per-round bleed-off.
+STUN_RECOVERY_PER_ROUND = 0
+
+
+def resolve_ko_check(stuns: int, wounds: int, health_attr: int,
+                     roll: Optional[int] = None) -> Dict[str, Any]:
+    """YAGS 'health check to remain conscious enough to act', made each ROUND a
+    Beaten (stuns>=6) or Fatally wounded (wounds>=6) character wishes to act
+    (combat.md:419, 469).
+
+    This is a per-round *consciousness* gate, not a death roll: it never kills
+    (death at the moment of wounding is owned by Player.check_death_save). Pass ->
+    the actor may act this round though still Beaten/Fatal; fail -> unconscious
+    this round (they get a fresh check next round, since ResolutionState is rebuilt
+    each round).
+
+    DC = 20 + 5 * (worse-track-level - 6). Roll = Health*2 + d20 (the same
+    convention as check_death_save); a natural 1 auto-fails.
+
+    Returns {required, can_act, status, dc, roll, total} where status is one of
+    'ok' (not required), 'acts' (passed), 'unconscious' (failed).
+    """
+    level = max(int(stuns or 0), int(wounds or 0))
+    if level < KO_CHECK_THRESHOLD:
+        return {"required": False, "can_act": True, "status": "ok",
+                "dc": 0, "roll": None, "total": None}
+    dc = 20 + 5 * (level - KO_CHECK_THRESHOLD)
+    if roll is None:
+        roll = random.randint(1, 20)
+    total = (int(health_attr) * 2) + roll
+    if roll == 1 or total < dc:
+        return {"required": True, "can_act": False, "status": "unconscious",
+                "dc": dc, "roll": roll, "total": total}
+    return {"required": True, "can_act": True, "status": "acts",
+            "dc": dc, "roll": roll, "total": total}
+
+
+def recover_stuns(stuns: int, per_round: int = STUN_RECOVERY_PER_ROUND) -> int:
+    """End-of-round stun recovery (Aeonisk house rule). Returns the new stun count,
+    floored at 0. Non-int / non-positive input yields 0."""
+    if not isinstance(stuns, (int, float)) or stuns <= 0:
+        return 0
+    return max(0, int(stuns) - max(0, int(per_round)))
 
 
 def apply_stun_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:

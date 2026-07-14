@@ -538,3 +538,36 @@ class TestTargetingValidationMechanical:
 
         assert is_valid is True
         assert corrected.target == "tgt_9xz2"
+
+
+class TestTargetingTriggerReason:
+    """Regression for the mechanical-correction logging crash.
+
+    When a player targets an object (e.g. shooting security cameras to destroy
+    evidence), validate_and_correct_targeting mechanically corrects the effect's
+    target to the declared target and returns (True, corrected, error=None) —
+    see test_pattern_c_stale_target_id / test_cross_type_mismatch_*.
+
+    The DM then logs that correction, deriving `triggered_by` from the error
+    string. A bare `':' in error` there raised
+    `TypeError: argument of type 'NoneType' is not iterable` on the None error
+    and killed the entire session (dm.py ~8090). _targeting_trigger_reason must
+    treat a None / colon-less error as 'unknown'.
+    """
+
+    def test_none_error_does_not_raise(self):
+        from scripts.aeonisk.multiagent.dm import _targeting_trigger_reason
+        # The exact crashing input: error is None on the mechanical-correction path.
+        assert _targeting_trigger_reason(None) == 'unknown'
+
+    def test_colonless_error_is_unknown(self):
+        from scripts.aeonisk.multiagent.dm import _targeting_trigger_reason
+        assert _targeting_trigger_reason("no colon here") == 'unknown'
+
+    def test_colon_error_returns_prefix(self):
+        from scripts.aeonisk.multiagent.dm import _targeting_trigger_reason
+        assert _targeting_trigger_reason("stale_target: tgt_old9 not found") == 'stale_target'
+
+    def test_empty_error_is_unknown(self):
+        from scripts.aeonisk.multiagent.dm import _targeting_trigger_reason
+        assert _targeting_trigger_reason("") == 'unknown'

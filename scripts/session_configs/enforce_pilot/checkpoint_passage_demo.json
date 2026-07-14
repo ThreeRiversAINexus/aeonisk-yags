@@ -1,0 +1,131 @@
+{
+  "_seed_doc": "Golden seed corpus: SOCIAL/INVESTIGATION archetype. Pure dialogue scene at a checkpoint, no combat. DM spawns 2-3 NPCs across faction Lines so the MCP naming pipeline is well-exercised.",
+  "session_name": "CHECKPOINT PASSAGE DEMO \u2014 Meridian Gate standing gate (VIII.1)",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "multiagent_output/checkpoint_demo",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "vendor_spawn_frequency": -1,
+  "names_mcp": {
+    "enabled": true,
+    "from_pool": true
+  },
+  "scenario_hint": "Meridian Gate \u2014 a Sovereign Nexus checkpoint between Freeborn territory and the Nexus-administered trade rings. The two couriers must pass through the gate to deliver their shipment. The gate reads each traveler's Codex standing (Soulcredit). Lawful passage is simply presenting your standing and walking through \u2014 IF your standing clears. For someone Cut Off, the lawful path is closed and only alternate approaches remain: bribe a guard, deceive the auditor, slip the cordon, or turn back. An honest off-ramp always exists (turn back / declare and accept seizure), so the log captures a CHOSEN path, not a forced one. To attempt passage, a courier declares an EXPLORE action with checkpoint_id set to the gate's ID.",
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Courier Vale Orne",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "temperature": 0.7
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Reach the Nexus trade ring despite a fouled ledger",
+          "Get the shipment through Meridian Gate"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Charm": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Awareness": 4,
+          "Charm": 3,
+          "Investigation": 3
+        },
+        "void": 0,
+        "soulcredit": -3,
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {}
+      },
+      {
+        "name": "Courier Rell Dane",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "temperature": 0.7
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Escort the shipment through lawfully",
+          "Get the shipment through Meridian Gate"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Charm": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Awareness": 4,
+          "Charm": 3,
+          "Investigation": 3
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {}
+      }
+    ]
+  },
+  "notes": "Checkpoint passage demo. Vale (SC -3) is denied lawful passage and must choose an alternate path; Rell (SC +2) clears. Enforce mode judges whatever Vale chooses.",
+  "post_resolution_adjudication": "enforce",
+  "_design_notes": "Passage-focused demo for the VIII.1 checkpoint gate. Two Freeborn couriers must pass Meridian Gate (Sovereign Nexus, reads the ledger). Vale is Cut-Off-adjacent (SC -3) and will be DENIED lawful passage; Rell (SC +2) clears. Denied, Vale must choose an alternate path (bribe/deceive/sneak) \u2014 which enforce-mode then judges, tightening the spiral. Players are told to declare an EXPLORE action with checkpoint_id to attempt passage.",
+  "starting_checkpoints": [
+    {
+      "checkpoint_id": "cp_meridian",
+      "name": "Meridian Gate",
+      "faction": "Sovereign Nexus",
+      "soulcredit_requirement": 0,
+      "description": "Sovereign Nexus customs checkpoint; reads the Codex ledger before granting passage."
+    }
+  ],
+  "starting_clocks": [
+    {
+      "name": "Clear Meridian Gate",
+      "current": 0,
+      "max": 4,
+      "description": "Progress toward getting both couriers + shipment through the gate. At 4: through.",
+      "advance_meaning": "A courier gets through the gate (lawful pass, bribe, deception, or slip).",
+      "regress_meaning": "A refusal, detention, or blown bluff pushes the crew back from the gate."
+    }
+  ]
+}

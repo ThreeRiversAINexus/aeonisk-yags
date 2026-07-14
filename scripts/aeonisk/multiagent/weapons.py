@@ -754,6 +754,48 @@ def get_weapon(weapon_id: str) -> Weapon:
     return WEAPON_LIBRARY[weapon_id]
 
 
+# =============================================================================
+# CONTRACT-GEAR SOULCREDIT LOCKS (Gear & Tech Reference v1.2.2)
+# =============================================================================
+# Contract-tier gear tagged "soulcredit_locked" refuses to function when the
+# wielder's Soulcredit falls below its floor. The Debtbreaker Sidearm "locks if
+# Soulcredit < 0" (Codex ping on every shot). Default floor is 0; other locked
+# items may override by name. This makes Soulcredit debits (incl. the enforce-
+# mode magistrate ledger) mechanically consequential in combat.
+CONTRACT_WEAPON_SC_MIN: Dict[str, int] = {
+    "Debtbreaker Sidearm": 0,  # locks if SC < 0
+}
+DEFAULT_SC_LOCK_THRESHOLD: int = 0
+
+
+def weapon_sc_lock_threshold(weapon: 'Weapon'):
+    """Soulcredit floor for a contract weapon, or None if it is not
+    Soulcredit-locked. A wielder at or above the floor may fire it."""
+    if not weapon or "soulcredit_locked" not in (weapon.special or []):
+        return None
+    return CONTRACT_WEAPON_SC_MIN.get(weapon.name, DEFAULT_SC_LOCK_THRESHOLD)
+
+
+def weapon_is_sc_locked(weapon: 'Weapon', wielder_soulcredit: int) -> bool:
+    """True when a Soulcredit-locked contract weapon refuses to fire because
+    the wielder's standing is below its floor (Debtbreaker: SC < 0)."""
+    threshold = weapon_sc_lock_threshold(weapon)
+    if threshold is None:
+        return False
+    return wielder_soulcredit < threshold
+
+
+def get_weapon_by_name(name: str):
+    """Look up a Weapon by display name (e.g. 'Debtbreaker Sidearm'), or None.
+    Used where only the weapon name string is in hand (damage apply path)."""
+    if not name:
+        return None
+    for w in WEAPON_LIBRARY.values():
+        if w.name == name:
+            return w
+    return None
+
+
 def get_armor(armor_id: str) -> Armor:
     """
     Get armor by ID from library.

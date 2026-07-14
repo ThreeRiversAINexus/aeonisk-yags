@@ -35,9 +35,18 @@ content: |-
       difficulty_estimate: int,
       difficulty_justification: str,
       action_type: ActionType.EXPLORE,
-      target_position: Position       # REQUIRED! Where are you moving to?
+      target_position: Position,      # REQUIRED! Where are you moving to?
+      checkpoint_id: Optional[str]    # Set to a gate's ID (cp_xxxx) when moving THROUGH a gated checkpoint
   )
   ```
+
+  ## Passing a gated checkpoint
+
+  If your move is an attempt to pass through a **checkpoint listed in your
+  Environment** (e.g. `Meridian Gate (ID: cp_meridian)`), you MUST set
+  `checkpoint_id` to that gate's ID. The gate reads your Codex standing
+  (Soulcredit) and may refuse you — you only learn the verdict by trying.
+  If refused, the lawful path is closed and you must choose another approach.
 
   ## Common Exploration Skills
 
@@ -72,6 +81,21 @@ content: |-
       difficulty_justification="DC 12: Tactical movement under potential threat",
       action_type=ActionType.EXPLORE,
       target_position="Cargo-Bay-Cover"
+  )
+  ```
+
+  **Example 3: Pass through a gated checkpoint**
+  ```python
+  ExploreAction(
+      intent="Pass through Meridian Gate with the shipment",
+      description="I approach Meridian Gate by the formal route, present the manifest, and request lawful passage through to the trade ring.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=12,
+      difficulty_justification="DC 12: routine passage — the gate check is on standing, not the roll",
+      action_type=ActionType.EXPLORE,
+      target_position="Trade-Ring",
+      checkpoint_id="cp_meridian"    # ← REQUIRED to actually attempt the gate
   )
   ```
 

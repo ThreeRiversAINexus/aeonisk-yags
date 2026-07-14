@@ -355,11 +355,78 @@ def _mark_defeated_from_resolution(
             logger.info(f"Marked {enemy.name} ({agent_id}) as defeated (health={health}, safety net)")
             continue
 
-        # Stun KO: stuns >= 6 means unconscious (YAGS Beaten threshold)
+        # YAGS Beaten/Fatal consciousness gate (model a, same as players): a
+        # Beaten (stuns>=6) or fatally wounded (wounds>=6) enemy must pass a Health
+        # check to act this round; fail -> incapacitated (ActionValidator then
+        # invalidates its action), pass -> acts while Beaten. Rolled at most ONCE
+        # per round via the ko_checked guard (this runs after every PC action).
         stuns = getattr(enemy, 'stuns', 0)
-        if isinstance(stuns, int) and stuns >= 6:
-            resolution_state.mark_incapacitated(agent_id)
-            logger.info(f"Marked {enemy.name} ({agent_id}) as incapacitated (stuns={stuns}, stun KO)")
+        wounds = getattr(enemy, 'wounds', 0)
+        stuns = stuns if isinstance(stuns, (int, float)) else 0
+        wounds = wounds if isinstance(wounds, (int, float)) else 0
+        if (stuns >= 6 or wounds >= 6) and agent_id not in resolution_state.ko_checked:
+            from .mechanics import resolve_ko_check
+            resolution_state.ko_checked.add(agent_id)
+            result = resolve_ko_check(stuns, wounds, _ko_health_attr(enemy))
+            if not result['can_act']:
+                resolution_state.mark_incapacitated(agent_id)
+                logger.info(f"Beaten/Fatal KO: {enemy.name} ({agent_id}) failed health check "
+                            f"(stuns={stuns}, wounds={wounds}, total={result['total']} vs "
+                            f"DC {result['dc']}) - incapacitated this round")
+            else:
+                logger.info(f"Beaten/Fatal but conscious: {enemy.name} ({agent_id}) passed health "
+                            f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+
+
+def _ko_health_attr(entity) -> int:
+    """Toughness attribute for the KO health check, handling both entity shapes:
+    players expose it on `character_state.attributes['Health']` (as
+    Player.check_death_save reads it); enemies on `attributes['Endurance']` (the
+    Aeonisk YAGS Health-equivalent, per enemy_agent.py). Falls back to 3."""
+    cs = getattr(entity, 'character_state', None)
+    cs_attrs = getattr(cs, 'attributes', None)
+    if isinstance(cs_attrs, dict):
+        for k in ('Health', 'Endurance'):
+            if k in cs_attrs:
+                return cs_attrs[k]
+    attrs = getattr(entity, 'attributes', None)
+    if isinstance(attrs, dict):
+        for k in ('Endurance', 'Health'):
+            if k in attrs:
+                return attrs[k]
+    return 3
+
+
+def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
+    """YAGS per-round consciousness gate (combat.md:419/469): if the agent is
+    Beaten (stuns>=6) or Fatally wounded (wounds>=6), roll the health check. On
+    failure they are unconscious THIS round — marked incapacitated in the
+    per-round ResolutionState so the existing skip path drops their action, and
+    they get a fresh check next round (ResolutionState is rebuilt each round). On
+    success they act normally despite being Beaten. This is a consciousness gate,
+    never a death roll (death is owned by Player.check_death_save at damage time).
+
+    Returns True if the agent was marked incapacitated.
+    """
+    from .mechanics import resolve_ko_check
+    stuns = getattr(agent, 'stuns', 0) or 0
+    wounds = getattr(agent, 'wounds', 0) or 0
+    if stuns < 6 and wounds < 6:
+        return False
+    result = resolve_ko_check(stuns, wounds, _ko_health_attr(agent))
+    cs = getattr(agent, 'character_state', None)
+    name = getattr(cs, 'name', None) or getattr(agent, 'agent_id', '?')
+    if not result['can_act']:
+        resolution_state.mark_incapacitated(agent.agent_id)
+        logger.info(
+            f"Beaten/Fatal KO: {name} failed health check "
+            f"(stuns={stuns}, wounds={wounds}, roll={result['roll']}, "
+            f"total={result['total']} vs DC {result['dc']}) - unconscious this round")
+        return True
+    logger.info(
+        f"Beaten/Fatal but conscious: {name} passed health check "
+        f"(total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+    return False
 
 
 def _check_condition_incapacitation(
@@ -510,6 +577,9 @@ class SelfPlayingSession:
 
         # Initialize persistent vendors from config
         self._initialize_persistent_vendors()
+
+        # Initialize gated checkpoints from config (VIII.1 access gate)
+        self._initialize_checkpoints()
 
         # Initialize persistent altars from config
         self._initialize_persistent_altars()
@@ -695,6 +765,35 @@ class SelfPlayingSession:
             logger.info(f"Initialized persistent vendor: {vendor.name} ({vendor_type_str}) with {len(inventory_items)} items, vendor_id={vendor.vendor_id}")
 
         print(f"✓ Loaded {len(persistent_vendors_config)} persistent vendor(s)")
+
+    def _initialize_checkpoints(self):
+        """Initialize gated checkpoints from config['starting_checkpoints'].
+
+        Each entry: {checkpoint_id?, name, faction, soulcredit_requirement?,
+        description?}. Nexus-aligned checkpoints gate on standing (VIII.1) and
+        apply the universal Cut-Off (VIII.2). Enforced deterministically when a
+        player action carries a checkpoint_id; surfaced to the DM otherwise.
+        """
+        checkpoints_config = self.config.get('starting_checkpoints', [])
+        if not checkpoints_config:
+            return
+
+        from .energy_economy import Checkpoint
+
+        for cp in checkpoints_config:
+            checkpoint = Checkpoint(
+                checkpoint_id=cp.get('checkpoint_id') or f"cp_{cp['name'].lower().replace(' ', '_')}",
+                name=cp['name'],
+                faction=cp.get('faction', 'Neutral'),
+                soulcredit_requirement=cp.get('soulcredit_requirement', 0),
+                description=cp.get('description', ''),
+            )
+            self.shared_state.add_checkpoint(checkpoint)
+            logger.info(f"Initialized checkpoint: {checkpoint.name} "
+                        f"({checkpoint.faction}, SC≥{checkpoint.soulcredit_requirement}), "
+                        f"id={checkpoint.checkpoint_id}")
+
+        print(f"✓ Loaded {len(checkpoints_config)} checkpoint(s)")
 
     def _initialize_persistent_altars(self):
         """
@@ -1068,6 +1167,13 @@ class SelfPlayingSession:
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
             # Populate player_agents in shared_state for ally buff targeting
             self.shared_state.player_agents = player_agents
+            # Enforce mode: the post-resolution magistrate becomes the sole
+            # ledger writer, so the narration call must NOT apply its own
+            # soulcredit/void deltas (would double-count). Flag it once here;
+            # the two dm.py apply blocks honor it. Narrator's proposed deltas
+            # still live in the logged ActionResolution effects for diffing.
+            mechanics.suppress_narration_economy = (
+                self.config.get('post_resolution_adjudication') == 'enforce')
             # Party context feature flags (player prompts read these)
             self.shared_state.party_capabilities_enabled = self.config.get(
                 'party_capabilities_enabled', True)
@@ -2677,6 +2783,12 @@ Generate narratives (numbered list only):"""
                 # This feeds into the existing is_incapacitated() check below
                 _check_condition_incapacitation(agent.agent_id, mechanics, resolution_state)
 
+                # YAGS Beaten/Fatal consciousness gate: a stun-KO'd or fatally
+                # wounded player must pass a health check to act this round (else
+                # skipped as incapacitated). Fixes the "zombie" — Hard Vane acting
+                # while flagged unconscious. Enemies are gated separately (TODO).
+                _check_beaten_ko(agent, resolution_state)
+
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
                 player_skip_reason = None
@@ -3817,6 +3929,7 @@ Generate narratives (numbered list only):"""
                             conditions=[],  # TODO: Add condition tracking
                             is_defeated=(death_state != "alive"),
                             death_state=death_state,
+                            stuns=stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
                             energy=energy_data,
                             seeds=seeds_data
                         )
@@ -3862,6 +3975,7 @@ Generate narratives (numbered list only):"""
                                 conditions=[],  # TODO: Add condition tracking for enemies
                                 is_defeated=(enemy_death_state != "alive"),
                                 death_state=enemy_death_state,  # NEW: Track death vs unconscious
+                                stuns=enemy_stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
                                 agent='enemy'  # Add agent field to identify this as enemy state
                             )
 
@@ -3944,6 +4058,24 @@ Generate narratives (numbered list only):"""
                 expired = mechanics.tick_conditions(agent_id)
                 if expired:
                     logger.info(f"Conditions expired for {agent_id}: {', '.join(expired)}")
+
+        # End-of-round stun recovery. DISABLED by default (STUN_RECOVERY_PER_ROUND=0):
+        # "if you get clobbered it's over" — the Beaten health-check gate already
+        # governs acting-while-stunned, and stuns clear via a medic/heal action or
+        # scene end, not automatic decay (YAGS-faithful). Guarded so it's zero-cost
+        # when disabled; flip the constant >0 to re-enable per-round bleed-off.
+        from .mechanics import recover_stuns, STUN_RECOVERY_PER_ROUND
+        if STUN_RECOVERY_PER_ROUND > 0:
+            combatants = list(self.agents)
+            if hasattr(self, 'enemy_combat') and hasattr(self.enemy_combat, 'enemy_agents'):
+                combatants += list(self.enemy_combat.enemy_agents)
+            for c in combatants:
+                old = getattr(c, 'stuns', 0) or 0
+                if old > 0:
+                    new = recover_stuns(old)
+                    c.stuns = new
+                    nm = getattr(getattr(c, 'character_state', None), 'name', None) or getattr(c, 'name', '?')
+                    logger.debug(f"Stun recovery: {nm} {old} -> {new}")
 
         # Clear the action buffer for next round
         self._declared_actions.clear()
@@ -4640,17 +4772,20 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         """EXPERIMENT: one stripped-context adjudication call per round;
         rulings logged as post_resolution_adjudication events, never
         applied. See post_adjudication.py for the hypothesis."""
-        from .post_adjudication import rulings_event_data
+        from .post_adjudication import (
+            ENFORCE_REGIME_LABEL, apply_rulings, rulings_event_data)
 
         dm_agent = getattr(self, 'dm_agent', None)
         if dm_agent is None or mechanics is None:
             return
+        mode = self.config.get('post_resolution_adjudication')
         summary = self._build_resolution_summary(all_resolutions)
         # Mode 'full_context' feeds the judge the story so far (scenario
-        # stakes + recent syntheses) so mitigation is knowable; any other
-        # truthy value = stripped statute-only call (the original cell).
+        # stakes + recent syntheses) so mitigation is knowable; 'enforce'
+        # also uses full context (it is the live judgment). Any other truthy
+        # value = stripped statute-only call (the original observe-only cell).
         scene_context = ""
-        if self.config.get('post_resolution_adjudication') == 'full_context':
+        if mode in ('full_context', 'enforce'):
             parts = []
             hint = self.config.get('scenario_hint')
             if hint:
@@ -4662,6 +4797,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             summary, mechanics.current_round, scene_context=scene_context)
         if rulings is None or not rulings.rulings:
             return
+
+        if mode == 'enforce':
+            # The magistrate is the sole ledger writer this round (narration
+            # economy deltas were suppressed upstream). Apply and log applied.
+            roster = self.shared_state.registered_players if self.shared_state else []
+            applied = apply_rulings(rulings, mechanics, roster,
+                                    round_num=mechanics.current_round)
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_event(
+                    event_type="post_resolution_adjudication",
+                    data=rulings_event_data(
+                        rulings, applied_to_state=True,
+                        applied_records=applied, regime=ENFORCE_REGIME_LABEL),
+                    round_num=mechanics.current_round,
+                )
+            logger.info(f"Post-resolution adjudication (ENFORCE, applied): "
+                        f"{[(r.character_name, r.soulcredit_delta, r.void_delta) for r in rulings.rulings]}")
+            return
+
         if mechanics.jsonl_logger:
             mechanics.jsonl_logger.log_event(
                 event_type="post_resolution_adjudication",
@@ -6156,6 +6310,39 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             'failure_reason': f"Validation error: {str(e)}",
                             'executed': False
                         }
+
+        # PRE-VALIDATE CHECKPOINT ACCESS (before DM sees the action)
+        # If a player action targets passing a gated checkpoint, the Soulcredit
+        # gate (VIII.1/VIII.2) is authoritative: the result is stashed for the
+        # DM to narrate, so a Cut-Off actor cannot be waved through.
+        checkpoint_id = action_payload.get('checkpoint_id')
+        if checkpoint_id and self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+            checkpoint = self.shared_state.get_checkpoint_by_id(checkpoint_id)
+            if player_agent and checkpoint:
+                access = mechanics.validate_checkpoint_access(
+                    player_agent.character_state, checkpoint)
+                action_payload['checkpoint_validation'] = {
+                    'checkpoint_name': access.checkpoint_name,
+                    'is_allowed': access.is_allowed,
+                    'sc_blocked': access.sc_blocked,
+                    'failure_reason': access.failure_reason,
+                }
+                if not access.is_allowed:
+                    logger.warning(f"Checkpoint access DENIED for {agent_id} at "
+                                   f"{access.checkpoint_name}: {access.failure_reason}")
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event(
+                        event_type="checkpoint_access",
+                        data={
+                            'player_id': agent_id,
+                            'character_name': player_agent.character_state.name,
+                            'checkpoint_id': checkpoint_id,
+                            **action_payload['checkpoint_validation'],
+                        },
+                        round_num=mechanics.current_round,
+                    )
 
         # PRE-VALIDATE AND EXECUTE TRANSFER ACTIONS (before DM sees them)
         # Similar to purchases - prevents phantom transfers where DM narrates success but mechanics fail

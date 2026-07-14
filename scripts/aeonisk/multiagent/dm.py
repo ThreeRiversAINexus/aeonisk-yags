@@ -119,7 +119,7 @@ def _resolve_weapon_and_damage_type(
     if not player_agent or not hasattr(player_agent, 'equipped_weapons'):
         return ("Unknown Weapon", "wound", None)
 
-    skill = action.get('skill', '').lower()
+    skill = (action.get('skill') or '').lower()  # models may return skill: null
     primary = player_agent.equipped_weapons.get('primary')
     sidearm = player_agent.equipped_weapons.get('sidearm')
 
@@ -141,6 +141,84 @@ def _resolve_weapon_and_damage_type(
         return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
 
     return ("Unknown Weapon", "wound", None)
+
+
+def _targeting_trigger_reason(error: Optional[str]) -> str:
+    """Derive the `triggered_by` tag for targeting-validation logging.
+
+    `error` is None on the mechanical-correction success path
+    (validate_and_correct_targeting returns (True, corrected, None)), so a bare
+    `':' in error` there raised `TypeError: argument of type 'NoneType' is not
+    iterable` and killed the whole session over a metrics log. Treat a missing
+    or colon-less error as 'unknown'.
+    """
+    if error and ':' in error:
+        return error.split(':')[0]
+    return 'unknown'
+
+
+def _get_wielder_soulcredit(action: Optional[Dict[str, Any]], shared_state) -> Optional[int]:
+    """Resolve the acting player's current Soulcredit for contract-gear locks.
+    Prefers the live mechanics ledger (kept authoritative by enforce mode);
+    falls back to the character_state snapshot. None if not a tracked player."""
+    if not action or not shared_state:
+        return None
+    aid = action.get('agent_id')
+    if not aid:
+        return None
+    mech = shared_state.get_mechanics_engine() if hasattr(shared_state, 'get_mechanics_engine') else None
+    if mech and aid in getattr(mech, 'soulcredit_states', {}):
+        return mech.soulcredit_states[aid].score
+    for p in getattr(shared_state, 'player_agents', []):
+        if getattr(p, 'agent_id', None) == aid:
+            return getattr(getattr(p, 'character_state', None), 'soulcredit', None)
+    return None
+
+
+def _build_checkpoint_context(action: Optional[Dict[str, Any]]) -> str:
+    """Surface a stashed checkpoint verdict (VIII.1) to the DM narration prompt.
+
+    Not a hard block: for a denied character the DM must refuse the lawful
+    walk-through and force an alternate approach (turn back, bribe, deceive,
+    sneak, force) — each its own consequence. Empty string when the action did
+    not attempt a gated passage.
+    """
+    if not action:
+        return ""
+    cv = action.get('checkpoint_validation')
+    if not cv:
+        return ""
+    name = cv.get('checkpoint_name', 'the checkpoint')
+    if cv.get('is_allowed'):
+        return (f"\n\n**✓ CHECKPOINT — {name}:** the gate reads the character's "
+                f"Codex standing and clears them. Lawful passage is open; narrate "
+                f"the crossing.\n")
+    reason = cv.get('failure_reason', 'standing insufficient')
+    return (f"\n\n**⛔ CHECKPOINT DENIED — {name}:** the gate reads the character's "
+            f"Codex standing and REFUSES passage ({reason}). Do NOT narrate a simple "
+            f"walk-through or let them slip past unremarked — the lawful path is "
+            f"CLOSED. Narrate the refusal at the gate, then force the choice: turn "
+            f"back, bribe, deceive, sneak, or force the way — each with consequences.\n")
+
+
+def _force_fail_locked_weapon(resolution, weapon_obj, wielder_soulcredit) -> bool:
+    """If a contract weapon is Soulcredit-locked, force the action's roll to a
+    failure — the weapon never fired, so the attack does not succeed.
+
+    Returns True if the lock was applied. This gives the acting agent a clean
+    "this didn't work, adapt" signal (and lets the failure-loop detector engage)
+    instead of a masked success. The DM prompt's lock directive and the damage
+    backstop handle narration and damage; this owns the outcome tier.
+    """
+    from .weapons import weapon_is_sc_locked
+    if wielder_soulcredit is None or not weapon_is_sc_locked(weapon_obj, wielder_soulcredit):
+        return False
+    from .mechanics import OutcomeTier
+    resolution.success = False
+    resolution.outcome_tier = OutcomeTier.FAILURE
+    if getattr(resolution, 'margin', 0) >= 0:
+        resolution.margin = -1
+    return True
 
 
 def _get_combatant_state_tag(
@@ -288,6 +366,24 @@ def _build_weapon_context(action: Optional[Dict[str, Any]], shared_state) -> str
 
     if weapon_name == "Unknown Weapon":
         return ""
+
+    # Contract-gear Soulcredit lock: a weapon tagged soulcredit_locked refuses
+    # to fire when the wielder's standing is below its floor (Debtbreaker: SC<0).
+    # Deterministic no-damage is enforced in _process_structured_damage_effects;
+    # this directive keeps the DM's narration coherent with the mechanical block.
+    from .weapons import weapon_is_sc_locked, weapon_sc_lock_threshold
+    wielder_sc = _get_wielder_soulcredit(action, shared_state)
+    if wielder_sc is not None and weapon_is_sc_locked(weapon_obj, wielder_sc):
+        floor = weapon_sc_lock_threshold(weapon_obj)
+        return (
+            f"\n\n**⛔ CONTRACT WEAPON LOCKED (MECHANICAL):**\n"
+            f"Weapon: {weapon_name}\n"
+            f"The wielder's Soulcredit ({wielder_sc}) is below this contract "
+            f"weapon's floor ({floor}). The weapon LOCKS — it clicks dead and "
+            f"emits a Codex ping. This attack FAILS: it does not hit and deals "
+            f"NO damage. Do NOT emit any DamageEffect for this weapon. Narrate "
+            f"the dead click and the Codex ping.\n"
+        )
 
     weapon_damage = weapon_obj.damage if weapon_obj else 0
     weapon_attack = weapon_obj.attack if weapon_obj else 0
@@ -685,6 +781,22 @@ def _process_structured_damage_effects(
     if not damage_effects:
         return []
 
+    # Contract-gear Soulcredit lock (deterministic backstop): if the attacker's
+    # weapon is soulcredit_locked and their standing is below its floor, the
+    # weapon never fired — drop ALL damage regardless of what the DM narrated.
+    # (Debtbreaker Sidearm "locks if Soulcredit < 0"; Gear & Tech Ref v1.2.2.)
+    _sc_states = getattr(mechanics, 'soulcredit_states', None)
+    if isinstance(_sc_states, dict) and attacker_id in _sc_states:
+        from .weapons import get_weapon_by_name, weapon_is_sc_locked
+        weapon_obj = get_weapon_by_name(weapon)
+        wielder_sc = _sc_states[attacker_id].score
+        if weapon_obj is not None and weapon_is_sc_locked(weapon_obj, wielder_sc):
+            msg = (f"⛔ {weapon} LOCKED: {attacker_name}'s Soulcredit ({wielder_sc}) "
+                   f"is below the contract floor — the weapon clicks dead (Codex ping). "
+                   f"No damage dealt.")
+            logger_instance.warning(msg)
+            return [msg]
+
     messages = []
     target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
 
@@ -779,6 +891,15 @@ def _process_structured_damage_effects(
                 messages.append(f"** {target_entity.name} is impervious to damage!")
                 logger_instance.info(f"Damage blocked: {target_entity.name} is non-destructible")
             continue  # Skip combatant damage logic
+
+        # Target didn't resolve to a tracked entity (e.g. the DM narrated harm to
+        # a non-combatant suspect/prisoner in a coercion/violence scene). Keep the
+        # narration; skip mechanical HP application rather than crash on None.
+        if target_entity is None:
+            logger_instance.debug(
+                f"Damage target unresolved ({getattr(damage_effect, 'target', '?')}); "
+                f"skipping mechanical damage application")
+            continue
 
         # === BARRIER INTERCEPTION ===
         damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
@@ -1070,6 +1191,7 @@ def _process_structured_healing_effects(
         healing_summary = []
         old_health = target_entity.health
         old_wounds = target_entity.wounds
+        old_stuns = getattr(target_entity, 'stuns', 0)
 
         # Apply healing based on type
         if heal_type == "hp":
@@ -1084,11 +1206,12 @@ def _process_structured_healing_effects(
                 actual_heal = target_entity.health - old_health
                 healing_summary.append(f"+{actual_heal} HP")
         elif heal_type == "stun":
-            # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
-            # For now, just track what was requested
-            healing_summary.append(f"-{amount} stun")
-            # Note: Actual stun removal would be handled by mechanics.apply_medicine()
-            # This is just for logging/narrative
+            # Remove stun damage (field medicine) — actually reduce the stun track.
+            # This is the ONLY mid-combat path out of Beaten (auto stun-recovery is
+            # off), so it must mutate state, not just narrate.
+            target_entity.stuns = max(0, old_stuns - amount)
+            actual_stuns_healed = old_stuns - target_entity.stuns
+            healing_summary.append(f"-{actual_stuns_healed} stun")
         elif heal_type == "wound":
             # Reduce wounds
             target_entity.wounds = max(0, target_entity.wounds - amount)
@@ -1127,6 +1250,7 @@ def _process_structured_healing_effects(
                     "health": target_entity.health,
                     "max_health": target_entity.max_health,
                     "wounds": target_entity.wounds,
+                    "stuns": getattr(target_entity, 'stuns', 0),
                     "alive": target_entity.health > 0,
                     "status": heal_status
                 }
@@ -1143,7 +1267,7 @@ def _process_structured_healing_effects(
                         'heal_type': heal_type,
                         'amount': amount,
                         'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
-                        'stun_removed': amount if heal_type == "stun" else 0,
+                        'stun_removed': (old_stuns - target_entity.stuns) if heal_type == "stun" else 0,
                         'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
                         'target_state_after': target_state_after
                     },
@@ -2034,59 +2158,12 @@ Apply this narrative style to:
 
         scenario_setup_dict = None
         if initial_enemies_config or initial_npcs_config:
-            from .schemas.story_events import EnemySpawn, NPCSpawn
-            from .schemas.shared_types import Position
+            from .initial_spawns import build_initial_spawns
 
-            # Convert initial_enemies config dicts to EnemySpawn objects
-            enemy_spawns = []
-            for enemy_config in initial_enemies_config:
-                template_raw = enemy_config.get('template', 'grunt').lower()
-                template_map = {
-                    'grunt': 'Grunt',
-                    'elite': 'Elite',
-                    'boss': 'Boss'
-                }
-                template = template_map.get(template_raw, 'Grunt')
-
-                position_str = enemy_config.get('position', 'Far-Enemy')
-                position_map = {
-                    'Engaged': Position.ENGAGED,
-                    'Near-PC': Position.NEAR_PC,
-                    'Near-Enemy': Position.NEAR_ENEMY,
-                    'Far-PC': Position.FAR_PC,
-                    'Far-Enemy': Position.FAR_ENEMY,
-                    'Extreme-PC': Position.EXTREME_PC,
-                    'Extreme-Enemy': Position.EXTREME_ENEMY
-                }
-                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
-
-                enemy_spawn = EnemySpawn(
-                    template=template,
-                    faction=enemy_config.get('faction', 'Hostile'),
-                    archetype=enemy_config.get('archetype', enemy_config.get('name', 'Unknown Enemy')),
-                    count=enemy_config.get('count', 1),
-                    spawn_reason=enemy_config.get('spawn_reason', f"{enemy_config.get('name', 'Enemy')} present at scenario start"),
-                    initial_position=initial_position,
-                    custom_traits=enemy_config.get('tactics')
-                )
-                enemy_spawns.append(enemy_spawn)
-
-            # Convert initial_npcs config dicts to NPCSpawn objects
-            npc_spawns = []
-            for npc_config in initial_npcs_config:
-                npc_spawn = NPCSpawn(
-                    name=npc_config.get('name', 'Unknown NPC'),
-                    faction=npc_config.get('faction', 'Unknown'),
-                    entity_type=npc_config.get('entity_type', 'neutral'),
-                    threat_level=npc_config.get('threat_level', 'non_combatant'),
-                    disposition=npc_config.get('disposition', 'neutral'),
-                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
-                    health=npc_config.get('health', 20),
-                    soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {}),
-                    weapons=npc_config.get('weapons', [])
-                )
-                npc_spawns.append(npc_spawn)
+            # Honors disposition: a prisoner/friendly/neutral "enemy" routes to the
+            # disarmed NPC path instead of spawning as an armed combatant.
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
 
             # Serialize to dicts for JSON
             scenario_setup_dict = {
@@ -2266,69 +2343,12 @@ Apply this narrative style to:
         # Create scenario_setup object with initial_enemies and/or initial_npcs if specified
         scenario_setup_obj = None
         if initial_enemies_config or initial_npcs_config:
-            from types import SimpleNamespace
-            from .schemas.story_events import EnemySpawn, NPCSpawn
-            from .schemas.shared_types import Position  # Position Enum, not enemy_agent.Position class
+            from .initial_spawns import build_initial_spawns
 
-            # Convert initial_enemies config dicts to EnemySpawn objects
-            enemy_spawns = []
-            for enemy_config in initial_enemies_config:
-                # Map config template (lowercase) to schema template (capitalized)
-                template_raw = enemy_config.get('template', 'grunt').lower()
-                template_map = {
-                    'grunt': 'Grunt',
-                    'elite': 'Elite',
-                    'boss': 'Boss'
-                }
-                template = template_map.get(template_raw, 'Grunt')
-
-                # Map position string to Position enum
-                # Valid: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy
-                position_str = enemy_config.get('position', 'Far-Enemy')
-                position_map = {
-                    'Engaged': Position.ENGAGED,
-                    'Near-PC': Position.NEAR_PC,
-                    'Near-Enemy': Position.NEAR_ENEMY,
-                    'Far-PC': Position.FAR_PC,
-                    'Far-Enemy': Position.FAR_ENEMY,
-                    'Extreme-PC': Position.EXTREME_PC,
-                    'Extreme-Enemy': Position.EXTREME_ENEMY
-                }
-                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
-
-                # Extract/generate required fields
-                name = enemy_config.get('name', 'Unknown Enemy')
-                faction = enemy_config.get('faction', 'Hostile')
-                archetype = enemy_config.get('archetype', name)  # Default to name if not specified
-                spawn_reason = enemy_config.get('spawn_reason', f'{name} present at scenario start')
-
-                enemy_spawn = EnemySpawn(
-                    template=template,
-                    faction=faction,
-                    archetype=archetype,
-                    count=enemy_config.get('count', 1),
-                    spawn_reason=spawn_reason,
-                    initial_position=initial_position,
-                    custom_traits=enemy_config.get('tactics')  # Map tactics to custom_traits
-                )
-                enemy_spawns.append(enemy_spawn)
-
-            # Convert initial_npcs config dicts to NPCSpawn objects
-            npc_spawns = []
-            for npc_config in initial_npcs_config:
-                npc_spawn = NPCSpawn(
-                    name=npc_config.get('name', 'Unknown NPC'),
-                    faction=npc_config.get('faction', 'Unknown'),
-                    entity_type=npc_config.get('entity_type', 'neutral'),
-                    threat_level=npc_config.get('threat_level', 'non_combatant'),
-                    disposition=npc_config.get('disposition', 'neutral'),
-                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
-                    health=npc_config.get('health', 20),
-                    soak=npc_config.get('soak', 0),
-                    skills=npc_config.get('skills', {}),
-                    weapons=npc_config.get('weapons', [])
-                )
-                npc_spawns.append(npc_spawn)
+            # Honors disposition: a prisoner/friendly/neutral "enemy" routes to the
+            # disarmed NPC path instead of spawning as an armed combatant.
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
 
             # Serialize Pydantic models to dicts for JSON serialization
             # (Message.to_json() uses json.dumps with default=str, which breaks objects)
@@ -5672,6 +5692,7 @@ For **other actions** (flee, hide, assist, attack):
 
                     target_wounds = getattr(target_entity, 'wounds', 0) if target_entity else 0
                     target_health = getattr(target_entity, 'health', 1) if target_entity else 1
+                    target_stuns = getattr(target_entity, 'stuns', 0) if target_entity else 0
                     if target_wounds >= 6:
                         # Target is dead - cannot heal
                         narration += f"\n\n[{character_name} attempts to heal but the target is beyond saving — wounds too severe (wounds: {target_wounds}).]"
@@ -5707,18 +5728,23 @@ For **other actions** (flee, hide, assist, attack):
                         if total >= dc:
                             # Success: create healing effect
                             from .schemas.action_effects import HealingEffect
-                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 HP + margin
+                            npc_heal_amount = max(1, total - dc + 5)  # Base 5 + margin
+                            # A Beaten ally needs stun relief, not HP — clearing
+                            # stuns is the only way out of the KO, so a medic
+                            # prioritizes it when the target is Beaten.
+                            heal_kind = "stun" if target_stuns >= 6 else "hp"
                             effects.healing = [
                                 HealingEffect(
                                     target=target,
-                                    heal_type="hp",
+                                    heal_type=heal_kind,
                                     amount=npc_heal_amount,
                                     source=f"Medicine ({character_name})"
                                 )
                             ]
                             success_tier = SuccessTier.MODERATE if (total - dc) < 5 else SuccessTier.GOOD
                             margin = total - dc
-                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} HP.]"
+                            _heal_unit = "stun" if heal_kind == "stun" else "HP"
+                            narration += f"\n\n[Medicine check: {base_roll} + {d20} (d20) = {total} vs DC {dc} — SUCCESS! Healed for {npc_heal_amount} {_heal_unit}.]"
                             logger.info(f"NPC {character_name} healed {target}: roll {total} vs DC {dc} (Medicine {medicine_skill})")
                         else:
                             # Failure: no healing applied
@@ -5956,6 +5982,20 @@ For **other actions** (flee, hide, assist, attack):
                 agent_id=player_id,
                 modifiers=modifiers if modifiers else None
             )
+
+            # Contract-gear Soulcredit lock: a locked weapon does not fire, so
+            # the attack FAILS the roll (not a masked success). Applied before
+            # the mechanical text / narration prompt so both read the failure
+            # and the acting agent gets a clean signal to change tactics.
+            if action.get('action_type') in ('attack', 'combat', 'brawl'):
+                action.setdefault('agent_id', player_id)
+                _, _, _lock_weapon = _resolve_weapon_and_damage_type(action, self.shared_state)
+                if _force_fail_locked_weapon(
+                        resolution, _lock_weapon,
+                        _get_wielder_soulcredit(action, self.shared_state)):
+                    logger.info(f"Contract weapon locked for "
+                                f"{action.get('character', player_id)}: "
+                                f"action fails the roll (weapon did not fire)")
 
             # Format mechanical resolution (pass modifiers for display)
             mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)
@@ -6574,7 +6614,9 @@ For **other actions** (flee, hide, assist, attack):
                     )
 
             # Apply void changes (both gains and reductions)
-            if state_changes['void_change'] != 0:
+            # Enforce mode: the post-resolution magistrate is the sole ledger
+            # writer, so skip the narration call's void application here.
+            if state_changes['void_change'] != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 # Track void change for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
@@ -6671,7 +6713,8 @@ For **other actions** (flee, hide, assist, attack):
             reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
             sc_source = state_changes.get('soulcredit_source', '')
 
-            if sc_change != 0:
+            # Enforce mode: magistrate is sole ledger writer; skip narration SC.
+            if sc_change != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 current_round = mechanics.current_round if mechanics else None
                 sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
@@ -7073,7 +7116,9 @@ For **other actions** (flee, hide, assist, attack):
                     )
 
             # Apply void changes (both gains and reductions)
-            if state_changes['void_change'] != 0:
+            # Enforce mode: the post-resolution magistrate is the sole ledger
+            # writer, so skip the narration call's void application here.
+            if state_changes['void_change'] != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 # Track void change for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
@@ -7170,7 +7215,8 @@ For **other actions** (flee, hide, assist, attack):
             reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
             sc_source = state_changes.get('soulcredit_source', '')
 
-            if sc_change != 0:
+            # Enforce mode: magistrate is sole ledger writer; skip narration SC.
+            if sc_change != 0 and not getattr(mechanics, 'suppress_narration_economy', False):
                 current_round = mechanics.current_round if mechanics else None
                 sc_state.adjust(sc_change, reasons_text, round_num=current_round)
 
@@ -7913,7 +7959,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=correction.corrected_target,
                                     correction_method='llm_inference',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=True,
                                     confidence=correction.confidence,
                                     reasoning=correction.reasoning,
@@ -7937,7 +7983,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=None,
                                     correction_method='failed',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=False,
                                     error=str(llm_error),
                                     declared_target=action.get('target'),
@@ -7960,7 +8006,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                     original_target=first_damage.target,
                                     corrected_target=corrected_effect.target,
                                     correction_method='mechanical',
-                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    triggered_by=_targeting_trigger_reason(error),
                                     success=True,
                                     declared_target=action.get('target'),
                                     effect_type='damage',
@@ -8155,6 +8201,18 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             underlying_error = None
             if hasattr(e, '__cause__') and e.__cause__:
                 underlying_error = f"{type(e.__cause__).__name__}: {str(e.__cause__)}"
+            else:
+                # Bare exceptions (e.g. a TypeError from unguarded `x in None`
+                # in the resolution-processing chain) carry no __cause__; the
+                # traceback is the only way to locate the failing line.
+                import traceback
+                tb = traceback.extract_tb(e.__traceback__)
+                if tb:
+                    frame = tb[-1]
+                    underlying_error = (
+                        f"{error_type} at {frame.filename.split('/')[-1]}:"
+                        f"{frame.lineno} in {frame.name}(): {frame.line}"
+                    )
 
             logger.error(
                 f"❌ DM: Structured output failed:\n"
@@ -8786,7 +8844,8 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                         combatant_list += "names or describes targeting that specific entity."
 
         # Build weapon context for combat actions (includes mechanical stats + damage guidance)
-        weapon_context = _build_weapon_context(action, self.shared_state)
+        # + any checkpoint verdict so the DM gates passage in narration (VIII.1).
+        weapon_context = _build_weapon_context(action, self.shared_state) + _build_checkpoint_context(action)
 
         # Build session context (SC history + in-round recap + narrative digest)
         mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
@@ -9159,7 +9218,7 @@ When adjudicating:
         is_dialogue_with_pc = False
         target_character = None
         if action and action_type == 'social':
-            intent = action.get('intent', '').lower()
+            intent = (action.get('intent') or '').lower()  # models may return intent: null
             description_lower = description.lower()
 
             # Check if targeting another player character
@@ -9274,7 +9333,10 @@ When adjudicating:
                 # All other providers (deepinfra, xai, gemini, grok, etc.)
                 # Use UnifiedAIClient which supports OpenAI-compatible APIs
                 from .unified_llm_client import UnifiedAIClient
-                import asyncio
+                # NB: no local `import asyncio` here — asyncio is imported at module
+                # scope (line 5). A local import shadowed it, making `asyncio` a
+                # function-local and throwing UnboundLocalError at the earlier
+                # asyncio.to_thread call (and breaking replay's DM narration path).
 
                 # Map provider names to UnifiedAIClient conventions
                 provider_map = {'xai': 'grok'}

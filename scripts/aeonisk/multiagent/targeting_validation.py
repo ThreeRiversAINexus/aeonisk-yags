@@ -218,8 +218,8 @@ def _check_target_combat_state(
                 f"{entity.despawned_round}). Entity is no longer in combat."
             )
 
-    # Check death state
-    if hasattr(entity, 'health') and hasattr(entity, 'max_health'):
+    # Check death state (health may be None on non-combatant/subdued entities)
+    if getattr(entity, 'health', None) is not None and hasattr(entity, 'max_health'):
         if entity.health <= 0:
             return (
                 f"Combat damage targeting unconscious/dead entity "

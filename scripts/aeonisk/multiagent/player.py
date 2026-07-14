@@ -595,17 +595,31 @@ class AIPlayerAgent(Agent):
         if not hasattr(self, 'equipped_weapons') or not hasattr(self, 'weapon_inventory'):
             return ""
 
+        # Contract-gear lock tag: you know your OWN Soulcredit, so a locked
+        # weapon shows a warning in YOUR loadout (a Cut-Off wielder sees the
+        # Debtbreaker won't fire and can pick another weapon). Others never see
+        # your standing — that only surfaces when a gate/lock checks it.
+        from .weapons import weapon_is_sc_locked, weapon_sc_lock_threshold
+        my_sc = getattr(getattr(self, 'character_state', None), 'soulcredit', None)
+
+        def _lock_tag(wpn):
+            if my_sc is not None and weapon_is_sc_locked(wpn, my_sc):
+                fl = weapon_sc_lock_threshold(wpn)
+                return (f" ⛔[LOCKED — your Soulcredit {my_sc} is below this contract "
+                        f"weapon's floor ({fl}); it will NOT fire. Use another weapon.]")
+            return ""
+
         equipped_list = []
         if self.equipped_weapons.get('primary'):
             wpn = self.equipped_weapons['primary']
-            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
+            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage){_lock_tag(wpn)}")
         if self.equipped_weapons.get('sidearm'):
             wpn = self.equipped_weapons['sidearm']
-            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
+            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage){_lock_tag(wpn)}")
 
         carried_list = []
         for wpn in self.weapon_inventory:
-            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
+            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()}){_lock_tag(wpn)}")
 
         text = "\n\n**Your Weapons:**\n"
         if equipped_list:
@@ -1953,6 +1967,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Environment features (altars, vendors, situational factors)
                 "altar_availability": self._format_altar_availability(),
                 "vendor_status": self._format_vendor_status(),
+                "checkpoint_status": self._format_checkpoint_status(),
                 # Player-only message (hidden from DM, per-player instruction)
                 "player_only_message": f"\n**[PLAYER INSTRUCTIONS - NOT VISIBLE TO DM]:**\n{self.character_config.get('player_only_message')}\n" if self.character_config.get('player_only_message') else ""
             }
@@ -2180,6 +2195,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # Environment context (unified + legacy)
                 "entities_present": self._format_entities_present(),
                 "vendor_status": self._format_vendor_status(),
+                "checkpoint_status": self._format_checkpoint_status(),
                 "threat_status": self._format_threat_status(),  # Legacy
                 "altar_availability": self._format_altar_availability(),
                 "void_warning": "Low void risk" if self.character_state.void_score < 5 else f"⚠️ Void score: {self.character_state.void_score}/10",
@@ -2385,6 +2401,31 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
     def _format_threat_status(self) -> str:
         """Legacy method - use _format_entities_present() instead."""
         return self._format_entities_present()
+
+    def _format_checkpoint_status(self) -> str:
+        """Format gated checkpoints for movement actions (VIII.1 access gate).
+
+        Surfaces each checkpoint's ID, faction, and standing floor so a player
+        can route a passage attempt through the deterministic gate by setting
+        checkpoint_id on an EXPLORE action.
+        """
+        checkpoints = getattr(self.shared_state, 'current_checkpoints', None) if self.shared_state else None
+        if not checkpoints:
+            return "No gated checkpoints present"
+
+        lines = []
+        for cp in checkpoints:
+            floor = getattr(cp, 'soulcredit_requirement', 0)
+            if floor:
+                gate = f"requires Soulcredit ≥ {floor}"
+            else:
+                gate = "Nexus-aligned: reads the ledger (Cut-Off at Soulcredit ≤ -6)"
+            lines.append(f"**{cp.name}** (ID: `{cp.checkpoint_id}`, {cp.faction}) — {gate}")
+            if getattr(cp, 'description', ''):
+                lines.append(f"  {cp.description}")
+        lines.append("To attempt passage, declare an EXPLORE action with `checkpoint_id` "
+                     "set to the gate's ID; the gate checks your standing.")
+        return "\n".join(lines)
 
     def _format_vendor_status(self) -> str:
         """Format vendor availability for purchase actions with IDs and inventory."""
@@ -2641,6 +2682,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             ),
             vendor_id=getattr(action_details, 'vendor_id', None),
             item_id=getattr(action_details, 'item_id', None),
+            checkpoint_id=getattr(action_details, 'checkpoint_id', None),
             transfer_target=getattr(action_details, 'transfer_target', None),
             transfer_currency=getattr(action_details, 'transfer_currency', None),
             transfer_items=getattr(action_details, 'transfer_items', None),

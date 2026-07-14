@@ -68,6 +68,12 @@ class ResolutionState:
     # These NPCs are no longer present and should not appear in narration
     fled_npcs: Set[str] = field(default_factory=set)  # Set of NPC agent_ids
 
+    # Entities that already made their per-round Beaten/Fatal KO health check.
+    # Guards against re-rolling: _mark_defeated_from_resolution runs after each PC
+    # action, but the YAGS health-check-to-act is once per round. (Per-round set,
+    # reset with each new ResolutionState.)
+    ko_checked: Set[str] = field(default_factory=set)  # Set of agent_ids
+
     # Position changes (for opportunity attacks, breakaway, etc.)
     position_changes: Dict[str, str] = field(default_factory=dict)  # {agent_id: new_position}
 

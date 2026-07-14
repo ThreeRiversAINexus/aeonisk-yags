@@ -476,6 +476,7 @@ class VendorItem(BaseModel):
     price_hollow: int = Field(0, ge=0, description="Cost in Hollow currency (illicit void energy)")
     seed_barter: bool = Field(False, description="Can trade attuned seeds for this item")
     item_type: str = Field("consumable", description="Item category: consumable, food, tool, seed, offering, exchange, prop, equipment")
+    soulcredit_requirement: int = Field(0, description="Minimum Soulcredit standing to buy this item (sanctioned/licensed gear). Enforced only at Nexus-aligned vendors (VIII.1). 0 = no standing gate.")
 
     model_config = ConfigDict(
         validate_assignment=True,  # Validate on attribute assignment
@@ -519,6 +520,45 @@ class VendorItem(BaseModel):
         if self.seed_barter:
             prices.append("1 Attuned Seed")
         return " or ".join(prices) if prices else "Free"
+
+
+# Nexus-aligned institutions gate service on Soulcredit standing (Codex Nexum
+# VIII.1 / VI.1). Freeborn, Tempest-adjacent, and Independent markets do not ask.
+# Names are normalized (lowercased, stripped) before lookup; aliases included.
+NEXUS_ALIGNED_FACTIONS = frozenset({
+    "sovereign nexus", "nexus",
+    "arcane genetics", "arcgen",
+    "pantheon security", "pantheon",
+    "astral commerce group", "acg",
+    "aether dynamics", "aethyr dynamics",
+})
+
+
+def is_nexus_aligned(faction: Optional[str]) -> bool:
+    """True if a vendor/institution of this faction checks the Codex ledger
+    before serving (VIII.1). Unknown/empty factions are treated as unaligned."""
+    if not faction:
+        return False
+    return faction.strip().lower() in NEXUS_ALIGNED_FACTIONS
+
+
+# Codex Nexum VIII.2: Soulcredit -6 and under is Cut Off from polite society.
+SOULCREDIT_CUT_OFF = -6
+
+
+@dataclass
+class Checkpoint:
+    """A gated checkpoint / sector / service access point (VIII.1).
+
+    Nexus-aligned checkpoints check the ledger and apply the universal Cut-Off
+    (SC <= -6). Any checkpoint may set its own soulcredit_requirement (a
+    standing floor to pass); 0 means no explicit requirement.
+    """
+    checkpoint_id: str
+    name: str
+    faction: str
+    soulcredit_requirement: int = 0
+    description: str = ""
 
 
 class Vendor:
