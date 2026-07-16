@@ -4434,6 +4434,9 @@ BINDING CONTRACT:
 - Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
 - Every state claim must identify its subject, causing actor, and source outcome.
 - Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+  after-state actually changes that subject. Attitude, cooperation, mood, or other
+  soft observations use claim_kind `other` (or no claim at all).
 - Set `narration` to the segment texts joined in order with blank lines.
 - Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
 

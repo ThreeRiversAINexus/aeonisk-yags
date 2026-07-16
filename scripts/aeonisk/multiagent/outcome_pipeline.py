@@ -667,12 +667,18 @@ def validate_outcome_synthesis(
         state = outcome.entity_states_after.get(claim.subject_id)
         if claim.claim_kind in {"life_state", "consciousness", "combat_state"}:
             if state is None:
-                errors.append(f"state claim subject {claim.subject_id} is not changed by {claim.source_outcome_id}")
+                errors.append(
+                    f"state claim subject {claim.subject_id} is not changed by "
+                    f"{claim.source_outcome_id}; for attitude or social observations "
+                    "use claim_kind 'other' or omit the claim"
+                )
             else:
                 expected = getattr(state, claim.claim_kind)
                 if claim.symbolic_value != expected:
                     errors.append(
-                        f"state claim {claim.claim_kind}={claim.symbolic_value} contradicts {expected}"
+                        f"state claim {claim.claim_kind}={claim.symbolic_value} contradicts "
+                        f"{expected}; for attitude or social observations use "
+                        "claim_kind 'other' or omit the claim"
                     )
         elif claim.claim_kind != "other":
             matching_fact = any(

@@ -575,3 +575,46 @@ async def test_session_aborts_cleanly_on_failed_synthesis_message():
     assert session._synthesis_complete.is_set()
     assert session._session_end_status == "aborted"
     assert session._end_reason == "round_synthesis_failed"
+
+
+def test_social_claim_with_kind_other_passes_without_state_change():
+    # Round-2 live failure: pure social rounds change no mechanical state, but
+    # the model still wants to record "they cooperate". That belongs in kind
+    # 'other', which needs no backing state change.
+    outcome = _outcome(after=_state(health=30))  # nothing changed
+    synthesis = _synthesis(
+        "The operative answers evenly, cooperative now, weighing each question "
+        "against the certainty that the crew has already decided his fate.",
+        outcome,
+    )
+    synthesis.state_claims = [StateClaim(
+        claim_kind="other",
+        subject_id="enemy_vane",
+        causing_actor_id=outcome.actor_id,
+        source_outcome_id=outcome.outcome_id,
+        symbolic_value="cooperative",
+    )]
+    validate_outcome_synthesis(synthesis, [outcome])
+
+
+def test_hard_claim_without_state_change_error_teaches_kind_other():
+    # Live round-2 shape: a pure social round applies no state changes at all.
+    outcome = _outcome(after=_state(health=30))
+    outcome.entity_states_after = {}
+    outcome.entity_states_before = {}
+    synthesis = _synthesis(
+        "The operative answers evenly and remains alert, weighing each question "
+        "against the certainty that the crew has already decided his fate.",
+        outcome,
+    )
+    synthesis.state_claims = [StateClaim(
+        claim_kind="consciousness",
+        subject_id="enemy_vane",
+        causing_actor_id=outcome.actor_id,
+        source_outcome_id=outcome.outcome_id,
+        symbolic_value="cooperative",
+    )]
+    with pytest.raises(SynthesisValidationError) as excinfo:
+        validate_outcome_synthesis(synthesis, [outcome])
+    message = str(excinfo.value)
+    assert "claim_kind 'other'" in message
