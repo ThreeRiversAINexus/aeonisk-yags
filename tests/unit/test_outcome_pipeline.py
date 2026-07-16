@@ -378,3 +378,200 @@ async def test_synthesis_retries_validation_without_reapplying_outcomes():
     second_prompt = dm._generate_round_synthesis_structured.await_args_list[1].args[0]
     assert "CONTAMINATED PRIOR PROSE" not in first_prompt
     assert "uses death language" in second_prompt
+
+
+# --- Live-experiment regressions (2026-07-16, Kneeling run 9052cb25) ---
+# Round-1 synthesis failed closed on all attempts and the session hung:
+# (a) aware_agents/visibility carried LLM-invented agent ids (player_sela vs
+#     player_oathkeeper_sela vs real id player_01), making the visibility
+#     subset check unsatisfiable;
+# (b) narration was rejected for joining segments with a space instead of
+#     blank lines — presentation the code should derive, not validate;
+# (c) the fail-closed RuntimeError was swallowed by the message bus and the
+#     session waited on _synthesis_complete forever.
+
+from aeonisk.multiagent.outcome_pipeline import (
+    RoundSynthesisFailClosed,
+    canonicalize_viewer_ids,
+    canonicalize_synthesis_visibility,
+    finalize_synthesis_narration,
+)
+
+
+def _roster():
+    return {
+        "player_01": "Oathkeeper Sela",
+        "player_02": "Cold Tarn",
+        "enemy_op_1": "Subdued Operative #1",
+    }
+
+
+def test_viewer_ids_canonicalize_to_roster_entity_ids():
+    raw = [
+        "player_01",              # exact id
+        "player_oathkeeper_sela", # invented id, full name
+        "player_sela",            # invented id, partial name (duplicate)
+        "player_cold_tarn",       # invented id, full name
+        "dm", "dm_01",            # dm aliases collapse
+        "spectral_witness",       # unmappable — dropped
+    ]
+    assert canonicalize_viewer_ids(raw, _roster()) == ["player_01", "player_02", "dm"]
+
+
+def test_viewer_id_ambiguous_partial_is_dropped():
+    roster = {"player_01": "Sela Vane", "player_02": "Kara Vane"}
+    assert canonicalize_viewer_ids(["player_vane"], roster) == []
+
+
+def test_build_applied_outcome_canonicalizes_aware_agents():
+    snap = _state(health=30)
+    before = {
+        "enemy_vane": snap,
+        "player_01": EntityStateSnapshot(
+            entity_id="player_01",
+            entity_type="player",
+            name="Oathkeeper Sela",
+            narrative_name="Sela",
+            health=20,
+            max_health=20,
+            life_state="alive",
+            consciousness="conscious",
+            combat_state="active",
+        ),
+    }
+    outcome = build_applied_outcome(
+        round_num=1,
+        sequence=1,
+        actor_id="player_01",
+        actor_name="Oathkeeper Sela",
+        action={"intent": "watch"},
+        resolution_data={"aware_agents": ["player_sela", "dm"], "resolution": {}},
+        before=before,
+        after=before,
+    )
+    assert outcome.visibility == ["player_01", "dm"]
+
+
+def test_narration_is_derived_from_segments_not_validated_for_exact_join():
+    first = _outcome(sequence=1)
+    second = _outcome(sequence=2)
+    synthesis = OutcomeRoundSynthesis(
+        narration=(
+            "The model joined these segment texts with a single space instead of "
+            "blank lines and the old validator rejected the entire synthesis for it."
+        ),
+        segments=[
+            NarrativeSegment(
+                segment_id="seg_1",
+                text="Kael forces the broker back beneath the awning, alive and answering.",
+                source_outcome_ids=[first.outcome_id],
+            ),
+            NarrativeSegment(
+                segment_id="seg_2",
+                text="The market crowd withdraws, leaving the balance plainly altered.",
+                source_outcome_ids=[second.outcome_id],
+            ),
+        ],
+        coverage=[
+            CoverageEntry(outcome_id=first.outcome_id, disposition="rendered", segment_id="seg_1"),
+            CoverageEntry(outcome_id=second.outcome_id, disposition="rendered", segment_id="seg_2"),
+        ],
+    )
+    finalize_synthesis_narration(synthesis)
+    assert synthesis.narration == (
+        "Kael forces the broker back beneath the awning, alive and answering."
+        "\n\n"
+        "The market crowd withdraws, leaving the balance plainly altered."
+    )
+    validate_outcome_synthesis(synthesis, [first, second])
+
+
+def test_segment_visibility_canonicalized_before_subset_check():
+    outcome = _outcome()
+    outcome.visibility = ["player_01", "player_02", "dm"]
+    synthesis = _synthesis(
+        "Kael forces the broker back beneath the awning, alive and answering for "
+        "what he knows, while the market crowd holds its distance and watches.",
+        outcome,
+    )
+    synthesis.segments[0].visibility = ["player_oathkeeper_sela", "player_cold_tarn", "dm"]
+    canonicalize_synthesis_visibility(synthesis, _roster())
+    assert synthesis.segments[0].visibility == ["player_01", "player_02", "dm"]
+    validate_outcome_synthesis(synthesis, [outcome])
+
+
+@pytest.mark.asyncio
+async def test_synthesis_exhaustion_raises_fail_closed():
+    dm = object.__new__(AIDMAgent)
+    dm.session_config = {"outcome_synthesis_attempts": 2}
+    dm._round_synthesis_history = []
+    dm.shared_state = None
+
+    outcome = _outcome()
+    invalid = _synthesis(
+        "Kael watches Vane's lifeless body settle beneath the awning while the "
+        "market goes silent and every witness quietly withdraws from the square.",
+        outcome,
+    )
+    dm._generate_round_synthesis_structured = AsyncMock(side_effect=[invalid, invalid])
+
+    with pytest.raises(RoundSynthesisFailClosed):
+        await dm._synthesize_applied_outcomes(
+            [{"applied_outcome": outcome.model_dump(mode="json")}],
+            round_num=10,
+        )
+
+
+@pytest.mark.asyncio
+async def test_handle_synthesis_fail_closed_broadcasts_failure():
+    dm = object.__new__(AIDMAgent)
+    dm.agent_id = "dm_01"
+    dm._synthesize_round_outcome = AsyncMock(
+        side_effect=RoundSynthesisFailClosed("validation exhausted")
+    )
+    sent = []
+    dm.send_message_sync = lambda mtype, recipient, payload: sent.append(
+        (mtype, recipient, payload)
+    )
+
+    await dm._handle_synthesis({"resolutions": [{"stub": True}], "round": 3})
+
+    assert len(sent) == 1
+    _, recipient, payload = sent[0]
+    assert recipient is None  # broadcast
+    assert payload["is_round_synthesis"] is True
+    assert payload["synthesis_failed"] is True
+    assert payload["round"] == 3
+
+
+@pytest.mark.asyncio
+async def test_session_aborts_cleanly_on_failed_synthesis_message():
+    import asyncio
+    from aeonisk.multiagent.base import Message, MessageType
+    from aeonisk.multiagent.session import SelfPlayingSession
+    from datetime import datetime
+
+    session = object.__new__(SelfPlayingSession)
+    session._synthesis_complete = asyncio.Event()
+    session._session_end_status = None
+    session._end_reason = None
+    session._last_dm_narration = None
+
+    message = Message(
+        id="synthesis_fail",
+        type=MessageType.DM_NARRATION,
+        sender="dm_01",
+        recipient=None,
+        payload={
+            "narration": "Round synthesis failed validation after bounded retries.",
+            "is_round_synthesis": True,
+            "synthesis_failed": True,
+            "round": 1,
+        },
+        timestamp=datetime.now(),
+    )
+    await session._handle_dm_narration(message)
+
+    assert session._synthesis_complete.is_set()
+    assert session._session_end_status == "aborted"
+    assert session._end_reason == "round_synthesis_failed"

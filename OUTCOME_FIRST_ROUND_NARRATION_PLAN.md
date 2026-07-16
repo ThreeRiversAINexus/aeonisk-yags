@@ -603,6 +603,35 @@ requires manual recovery; executable replay now works for cached sessions, but
 the new mode remains suitable for controlled evaluation rather than accepted
 unattended bulk corpus generation.
 
+### Live experiment findings (2026-07-16, Kneeling session 9052cb25)
+
+First live flagged run: the pipeline engaged (six applied outcomes, zero legacy
+mixed `action_resolution` events), but round-1 synthesis failed closed on all
+three attempts and the session then hung. Three defects, all fixed with
+regression tests:
+
+1. **Viewer ids were LLM-proposed and trusted.** `aware_agents` carried invented
+   agent ids (`player_sela` vs `player_oathkeeper_sela` for the real
+   `player_01`), so the visibility intersection was unsatisfiable by any
+   synthesis. Fix: `canonicalize_viewer_ids` maps proposed ids onto the real
+   entity roster at outcome build time and again over each synthesis segment
+   before the subset check; unmappable ids are dropped and logged.
+2. **Exact-join narration validation was brittle.** Attempt 3 joined segment
+   texts with a single space and was rejected. Narration is presentation, so
+   code now derives it (`finalize_synthesis_narration`) and the equality rule
+   is gone.
+3. **Fail-closed hung instead of halting.** The exhaustion error was swallowed
+   by the message bus and the session waited on synthesis completion forever
+   (60+ minutes, event loop idle). The DM now broadcasts `synthesis_failed`,
+   and the session ends itself cleanly (`_session_end_status='aborted'`,
+   `_end_reason='round_synthesis_failed'`, normal `session_end` emission)
+   with the checkpoint already logged for later resume.
+
+The mechanics-side contract held throughout: adjudication stayed mechanics-only
+and effects applied deterministically. The failures were all in the
+synthesis-validation seam, and two of the three were the validator being wrong
+rather than the model.
+
 ### Phase 1: Contracts and pure builders
 
 - Add `ActionAdjudication`, `AppliedOutcome`, state snapshot, narrative segment,

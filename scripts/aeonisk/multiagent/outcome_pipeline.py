@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from enum import Enum
@@ -16,6 +17,8 @@ from .schemas.story_events import RoundSynthesis
 
 OUTCOME_PIPELINE_CONFIG_KEY = "outcome_first_narration"
 SCHEMA_VERSION = "3.0.0"
+
+logger = logging.getLogger(__name__)
 
 
 class ActionAdjudication(BaseModel):
@@ -132,6 +135,10 @@ class SynthesisValidationError(ValueError):
     def __init__(self, errors: Sequence[str]):
         self.errors = list(errors)
         super().__init__("; ".join(self.errors))
+
+
+class RoundSynthesisFailClosed(RuntimeError):
+    """Synthesis exhausted its bounded validation retries; the round cannot narrate."""
 
 
 _MECHANICS_LEAK_PATTERNS = (
@@ -461,7 +468,10 @@ def build_applied_outcome(
         entity_states_after=changed_after,
         observable_facts=facts,
         prohibited_claims=prohibited,
-        visibility=resolution_data.get("aware_agents", []) or [],
+        visibility=canonicalize_viewer_ids(
+            resolution_data.get("aware_agents", []) or [],
+            {entity_id: snap.name for entity_id, snap in before.items()},
+        ),
         consequential=consequential,
     )
 
@@ -487,6 +497,76 @@ def prose_safe_outcome_payload(outcomes: Sequence[AppliedOutcome]) -> List[Dict[
     ]
 
 
+_VIEWER_ID_PREFIXES = ("player_", "npc_", "enemy_", "env_")
+
+
+def _normalize_viewer_token(token: str) -> str:
+    token = token.strip().lower()
+    for prefix in _VIEWER_ID_PREFIXES:
+        if token.startswith(prefix):
+            token = token[len(prefix):]
+            break
+    return token.replace("_", " ").strip()
+
+
+def canonicalize_viewer_ids(
+    raw_ids: Sequence[str],
+    roster: Dict[str, str],
+) -> List[str]:
+    """Map proposed viewer ids onto real entity ids; drop what cannot be matched.
+
+    Viewer lists are proposed by the LLM and routinely carry invented agent ids
+    (e.g. `player_oathkeeper_sela` for the real `player_01`). Visibility set
+    logic is only meaningful over canonical ids, so unmatched or ambiguous
+    entries are dropped rather than trusted.
+    """
+    names = {
+        entity_id: (name or "").strip().lower()
+        for entity_id, name in roster.items()
+    }
+    result: List[str] = []
+    for raw in raw_ids or []:
+        token = (raw or "").strip()
+        low = token.lower()
+        canonical: Optional[str] = None
+        if low in ("dm", "gm") or low.startswith("dm_"):
+            canonical = "dm"
+        elif token in roster:
+            canonical = token
+        else:
+            wanted = _normalize_viewer_token(token)
+            if wanted:
+                matches = [
+                    entity_id
+                    for entity_id, name in names.items()
+                    if name and (name == wanted or name.endswith(" " + wanted))
+                ]
+                if len(matches) == 1:
+                    canonical = matches[0]
+        if canonical is None:
+            logger.warning("Dropping unmappable viewer id %r", raw)
+        elif canonical not in result:
+            result.append(canonical)
+    return result
+
+
+def finalize_synthesis_narration(synthesis: OutcomeRoundSynthesis) -> None:
+    """Derive narration from segments; presentation is code's job, not the LLM's."""
+    synthesis.narration = "\n\n".join(
+        segment.text.strip() for segment in synthesis.segments
+    ).strip()
+
+
+def canonicalize_synthesis_visibility(
+    synthesis: OutcomeRoundSynthesis,
+    roster: Dict[str, str],
+) -> None:
+    """Rewrite each segment's proposed viewer list onto canonical entity ids."""
+    for segment in synthesis.segments:
+        if segment.visibility:
+            segment.visibility = canonicalize_viewer_ids(segment.visibility, roster)
+
+
 def validate_outcome_synthesis(
     synthesis: OutcomeRoundSynthesis,
     outcomes: Sequence[AppliedOutcome],
@@ -497,9 +577,7 @@ def validate_outcome_synthesis(
     coverage_by_id: Dict[str, List[CoverageEntry]] = {}
     segments = {segment.segment_id: segment for segment in synthesis.segments}
     source_segments: Dict[str, List[str]] = {}
-    joined_narration = "\n\n".join(segment.text.strip() for segment in synthesis.segments).strip()
-    if synthesis.narration.strip() != joined_narration:
-        errors.append("narration must equal segment texts joined in order")
+    # narration is derived from segments by finalize_synthesis_narration, not validated.
     for entry in synthesis.coverage:
         coverage_by_id.setdefault(entry.outcome_id, []).append(entry)
         if entry.outcome_id not in by_id:

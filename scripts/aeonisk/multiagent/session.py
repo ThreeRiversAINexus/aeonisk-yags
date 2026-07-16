@@ -2063,6 +2063,11 @@ Generate narratives (numbered list only):"""
                 await self._check_end_conditions()
                 break
 
+            # Fail-closed synthesis aborts the session; skip the DM turn.
+            if self._end_reason == 'round_synthesis_failed':
+                await self._check_end_conditions()
+                break
+
             # Run DM turn at end of round
             await self._run_dm_turn()
 
@@ -7622,6 +7627,15 @@ NO conversions/morale checks needed (scene just started).
 
         # Check if this is a round synthesis completion
         if message.payload.get('is_round_synthesis', False):
+            if message.payload.get('synthesis_failed'):
+                # Fail-closed synthesis: the round's mechanics are applied and
+                # checkpointed, but no valid narration exists. End the session
+                # cleanly instead of stranding the gameplay loop.
+                print("\n⛔ Round synthesis failed closed — ending session for manual recovery")
+                self._session_end_status = 'aborted'
+                self._end_reason = 'round_synthesis_failed'
+                self._synthesis_complete.set()
+                return
             logger.debug("Round synthesis received, processing...")
 
             # Check for structured synthesis (Phase 5: Pydantic AI migration)

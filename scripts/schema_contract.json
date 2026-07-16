@@ -1,9 +1,11 @@
 {
  "event_types": [
+  "action_adjudication",
   "action_declaration",
   "action_resolution",
   "adjudication_start",
   "agent_conversion",
+  "applied_outcome",
   "character_state",
   "checkpoint_access",
   "clock_advancement",
@@ -21,7 +23,6 @@
   "entity_lifecycle",
   "entity_lifecycle_story_advancement",
   "healing_applied",
-  "ko_check",
   "llm_call",
   "llm_request_start",
   "mission_debrief",
@@ -34,6 +35,7 @@
   "round_start",
   "round_summary",
   "round_synthesis",
+  "round_synthesis_failed",
   "scenario",
   "session_end",
   "session_error",
@@ -43,6 +45,297 @@
   "void_level_update"
  ],
  "schema": {
+  "action_adjudication": {
+   "@round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "actor_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "npc_subdued_operative_#1_6976",
+     "npc_subdued_operative_#2_6976",
+     "npc_subdued_operative_#3_6976",
+     "player_01",
+     "player_02",
+     "player_03"
+    ]
+   },
+   "actor_name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Cold Tarn",
+     "Hard Vane",
+     "Oathkeeper Sela",
+     "Subdued Operative #1",
+     "Subdued Operative #2",
+     "Subdued Operative #3"
+    ]
+   },
+   "adjudication": {
+    "types": [
+     "dict"
+    ]
+   },
+   "adjudication.action_skipped": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "False"
+    ]
+   },
+   "adjudication.aware_agents": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects": {
+    "types": [
+     "dict"
+    ]
+   },
+   "adjudication.effects.attunement": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.clock_updates": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.conditions": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.crafting": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.currency_transfer": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.damage": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.healing": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.inventory_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.item_discovery": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.item_transfer": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.notes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.position_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.purchase": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.soulcredit_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.stabilization": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.effects.stealth_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.effects.void_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "adjudication.margin": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "adjudication.reasoning_short": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Failed social check; formal custody confirmation is not secured, so transfer remains unresolved and exposure increases.",
+     "Resolved Subdued Operative #1's comply action mechanically.",
+     "Resolved Subdued Operative #2's comply action mechanically.",
+     "Resolved Subdued Operative #3's comply action mechanically.",
+     "Social coordination failed: the scene is stable, but no binding handoff agreement was established, so custody remains procedurally unresolved and exposure risk increases.",
+     "The order was clear but ineffective: no successful custody transfer or de-escalation beyond the already-compliant prisoner, so the legal handoff does not progress."
+    ]
+   },
+   "adjudication.skill_override": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.skip_reason": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "adjudication.success_tier": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "failure",
+     "moderate"
+    ]
+   },
+   "adjudication_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "adj_31a09a0aa8b7",
+     "adj_7a0271fde65d",
+     "adj_d4b65021e62b",
+     "adj_d93b8c6910b3",
+     "adj_d93d04fe4e7d",
+     "adj_f762c4af1f78"
+    ]
+   },
+   "correlation_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "event_type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "action_adjudication"
+    ]
+   },
+   "outcome_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "out_01799085bc78",
+     "out_6f496f0aeca7",
+     "out_ae3d197b9deb",
+     "out_b5af7dd93e34",
+     "out_bc1e420719ea",
+     "out_f11e502ffbab"
+    ]
+   },
+   "parent_event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "schema_version": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "3.0.0"
+    ]
+   },
+   "sequence": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "session": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "ts": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   }
+  },
   "action_declaration": {
    "@round": {
     "numeric": true,
@@ -2362,6 +2655,425 @@
     "values": "freeform"
    }
   },
+  "applied_outcome": {
+   "@round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "actor_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "npc_subdued_operative_#1_6976",
+     "npc_subdued_operative_#2_6976",
+     "npc_subdued_operative_#3_6976",
+     "player_01",
+     "player_02",
+     "player_03"
+    ]
+   },
+   "actor_name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Cold Tarn",
+     "Hard Vane",
+     "Oathkeeper Sela",
+     "Subdued Operative #1",
+     "Subdued Operative #2",
+     "Subdued Operative #3"
+    ]
+   },
+   "actor_narrative_name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Cold Tarn",
+     "Hard Vane",
+     "Oathkeeper Sela",
+     "Subdued Operative #1",
+     "Subdued Operative #2",
+     "Subdued Operative #3"
+    ]
+   },
+   "adjudication_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "adj_31a09a0aa8b7",
+     "adj_7a0271fde65d",
+     "adj_d4b65021e62b",
+     "adj_d93b8c6910b3",
+     "adj_d93d04fe4e7d",
+     "adj_f762c4af1f78"
+    ]
+   },
+   "applied_effects": {
+    "types": [
+     "dict"
+    ]
+   },
+   "applied_effects.attunement": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "applied_effects.crafting": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "applied_effects.damage": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "applied_effects.inventory_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "applied_effects.item_discovery": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "applied_effects.purchase": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "applied_effects.status_effects": {
+    "types": [
+     "list"
+    ]
+   },
+   "consequential": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
+    ]
+   },
+   "correlation_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "declaration_event_id": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "declared_dialogue": {
+    "types": [
+     "NoneType",
+     "str"
+    ],
+    "values": [
+     "<None>",
+     "Let's keep this clean and documented\u2014confirm the handoff and I\u2019ll hold the line until it\u2019s official.",
+     "Stay calm. You\u2019re not being executed\u2014you\u2019re being handed over to Pantheon. Make this easy and it stays clean.",
+     "Stay still, hands visible. We\u2019re doing this by the book until Pantheon Security takes custody."
+    ]
+   },
+   "entity_states_after": {
+    "types": [
+     "dict"
+    ]
+   },
+   "entity_states_before": {
+    "types": [
+     "dict"
+    ]
+   },
+   "event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "event_type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "applied_outcome"
+    ]
+   },
+   "intent": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Maintain armed cover while coordinating lawful transfer of the three detainees to Pantheon Security",
+     "Maintain cover on the detainees and confirm a lawful handoff with Sela and Vane",
+     "Secure custody of the three surrendered operatives and hand them over to Pantheon authorities",
+     "comply"
+    ]
+   },
+   "lifecycle_changes": {
+    "types": [
+     "list"
+    ]
+   },
+   "method": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "I keep my hands visible and follow the order to stay still. There are armed authorities and the handoff seems to be under control, so complying is the safest move for a prisoner like me.",
+     "I keep my tone calm and authoritative, clearly stating that the situation is over and that the three operatives are now to remain under guard until Pantheon Security can take custody. I emphasize lawful compliance, discourage any attempt to flee or escalate, and direct the present allies to maintain a respectful but firm perimeter around the detainees.",
+     "I keep my tone even and professional, addressing Sela and Vane directly while maintaining the detainees' restrained status. I frame the situation as a lawful custody transfer and request clear confirmation of who is taking charge, ensuring the operatives remain contained until the handoff is formally accepted.",
+     "I keep my weapon trained on the subdued operatives without escalating, and I speak clearly to Oathkeeper Sela and Cold Tarn to confirm the handoff plan, custody order, and any required restraints or documentation. My goal is to preserve compliance, avoid unnecessary force, and ensure the detainees are transferred cleanly to Pantheon Security.",
+     "I\u2019m a prisoner and the room is under control by armed authorities. The best chance of staying alive is to stay still, keep my hands visible, and follow instructions until this handoff is finished.",
+     "I\u2019m a prisoner and the situation is being handled by armed authorities. I\u2019ll follow instructions, stay still, and avoid escalating while the handoff is being confirmed."
+    ]
+   },
+   "observable_facts": {
+    "types": [
+     "list"
+    ]
+   },
+   "observable_facts[].causing_actor_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "npc_subdued_operative_#1_6976",
+     "npc_subdued_operative_#2_6976",
+     "npc_subdued_operative_#3_6976",
+     "player_01",
+     "player_02",
+     "player_03"
+    ]
+   },
+   "observable_facts[].fact_kind": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "dialogue",
+     "failure",
+     "success"
+    ]
+   },
+   "observable_facts[].prose_safe_summary": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Cold Tarn says: \"Let's keep this clean and documented\u2014confirm the handoff and I\u2019ll hold the line until it\u2019s official.\"",
+     "Hard Vane says: \"Stay still, hands visible. We\u2019re doing this by the book until Pantheon Security takes custody.\"",
+     "Oathkeeper Sela says: \"Stay calm. You\u2019re not being executed\u2014you\u2019re being handed over to Pantheon. Make this easy and it stays clean.\"",
+     "The attempt fails.",
+     "The attempt succeeds."
+    ]
+   },
+   "observable_facts[].severity": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "observable_facts[].subject_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "npc_subdued_operative_#1_6976",
+     "npc_subdued_operative_#2_6976",
+     "npc_subdued_operative_#3_6976",
+     "player_01",
+     "player_02",
+     "player_03"
+    ]
+   },
+   "observable_facts[].symbolic_value": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "failed",
+     "spoken",
+     "succeeded"
+    ]
+   },
+   "outcome_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "out_01799085bc78",
+     "out_6f496f0aeca7",
+     "out_ae3d197b9deb",
+     "out_b5af7dd93e34",
+     "out_bc1e420719ea",
+     "out_f11e502ffbab"
+    ]
+   },
+   "parent_event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "prohibited_claims": {
+    "types": [
+     "list"
+    ]
+   },
+   "roll_result": {
+    "types": [
+     "dict"
+    ]
+   },
+   "roll_result.attribute": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Willpower"
+    ]
+   },
+   "roll_result.difficulty": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "roll_result.intent": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Maintain armed cover while coordinating lawful transfer of the three detainees to Pantheon Security",
+     "Maintain cover on the detainees and confirm a lawful handoff with Sela and Vane",
+     "Secure custody of the three surrendered operatives and hand them over to Pantheon authorities"
+    ]
+   },
+   "roll_result.margin": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "roll_result.outcome_tier": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "failure"
+    ]
+   },
+   "roll_result.skill": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Corporate Influence",
+     "Intimidation"
+    ]
+   },
+   "roll_result.success": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "False",
+     "True"
+    ]
+   },
+   "roll_result.success_tier": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "moderate"
+    ]
+   },
+   "roll_result.total": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "schema_version": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "3.0.0"
+    ]
+   },
+   "sequence": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "session": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "target_ids": {
+    "types": [
+     "list"
+    ]
+   },
+   "target_names": {
+    "types": [
+     "list"
+    ]
+   },
+   "ts": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "visibility": {
+    "types": [
+     "list"
+    ]
+   }
+  },
   "character_state": {
    "@agent": {
     "types": [
@@ -2403,35 +3115,6 @@
     "types": [
      "list"
     ]
-   },
-   "conditions[].affects": {
-    "types": [
-     "list"
-    ]
-   },
-   "conditions[].duration": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "conditions[].name": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "conditions[].penalty": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "conditions[].type": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
    },
    "correlation_id": {
     "types": [
@@ -2577,12 +3260,6 @@
     "values": "freeform"
    },
    "soulcredit": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "stuns": {
     "numeric": true,
     "types": [
      "int"
@@ -4043,7 +4720,6 @@
      "Debt-Burdened Sael",
      "Drifter Sable",
      "Enforcer Dax Cole",
-     "Enforcer Kael Dren",
      "Hard Vane",
      "Neutral Pike",
      "Pragmatist Rook"
@@ -4188,7 +4864,6 @@
     "values": [
      "Heavy Combat Armor",
      "Light Combat Armor",
-     "Medium Combat Armor",
      "No Armor",
      "Ritual Robes",
      "Tactical Vest"
@@ -4335,7 +5010,6 @@
     "values": [
      "Grunt",
      "ambusher",
-     "elite",
      "enforcer",
      "grunt",
      "security_drone",
@@ -4426,7 +5100,6 @@
      "Independent Subdued Operative #1",
      "Independent Subdued Operative #2",
      "Independent Thug #1",
-     "Independent Thug #2",
      "Sovereign Nexus Security Patrol #2"
     ]
    },
@@ -4442,7 +5115,6 @@
      "enemy_grunt_6e254bdb",
      "enemy_grunt_82d57baf",
      "enemy_grunt_89bd8ed4",
-     "enemy_grunt_8e1eca6e",
      "enemy_grunt_dae0ceb7"
     ]
    },
@@ -4455,7 +5127,6 @@
      "Independent Subdued Operative #1 morale breaks! They're panicked and will attempt to flee (hp_below_25)",
      "Independent Subdued Operative #2 morale breaks! They're panicked and will attempt to flee (hp_below_25)",
      "Independent Thug #1 morale breaks! They're panicked and will attempt to flee (hp_below_25)",
-     "Independent Thug #2 morale breaks! They're panicked and will attempt to flee (critical_stuns)",
      "Sovereign Nexus Security Patrol #2 surrenders! Morale broken (hp_below_25)"
     ]
    },
@@ -4639,137 +5310,6 @@
     ]
    }
   },
-  "ko_check": {
-   "@round": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "agent_id": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "enemy_grunt_8e1eca6e"
-    ]
-   },
-   "can_act": {
-    "types": [
-     "bool"
-    ],
-    "values": [
-     "False",
-     "True"
-    ]
-   },
-   "correlation_id": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "dc": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "event_id": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "event_type": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "ko_check"
-    ]
-   },
-   "health_attr": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "name": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Independent Thug #2"
-    ]
-   },
-   "parent_event_id": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "roll": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "round": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "session": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "side": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "enemy",
-     "player"
-    ]
-   },
-   "status": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "acts",
-     "unconscious"
-    ]
-   },
-   "stuns": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "total": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "ts": {
-    "types": [
-     "str"
-    ],
-    "values": "freeform"
-   },
-   "wounds": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   }
-  },
   "llm_call": {
    "@round": {
     "numeric": true,
@@ -4807,7 +5347,16 @@
     "types": [
      "str"
     ],
-    "values": "freeform"
+    "values": [
+     "structured:ActionAdjudication",
+     "structured:ActionIntent",
+     "structured:ConversionDecisions",
+     "structured:OutcomeRoundSynthesis",
+     "structured:PostRulings",
+     "structured:RoundAssessment",
+     "structured:ScenarioSetup",
+     "structured:SocialAction"
+    ]
    },
    "correlation_id": {
     "types": [
@@ -5311,7 +5860,6 @@
      "Independent Subdued Operative #1",
      "Independent Subdued Operative #2",
      "Independent Thug #1",
-     "Independent Thug #2",
      "Pantheon Security Security Response #1",
      "Sovereign Nexus Security Patrol #2",
      "Sovereign Nexus Security Sentinels #1"
@@ -6836,6 +7384,46 @@
     "values": "freeform"
    }
   },
+  "round_synthesis_failed": {
+   "@round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "attempts": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "outcome_ids": {
+    "types": [
+     "list"
+    ]
+   },
+   "resume_phase": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "synthesis"
+    ]
+   },
+   "schema_version": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "3.0.0"
+    ]
+   },
+   "validation_errors": {
+    "types": [
+     "list"
+    ]
+   }
+  },
   "scenario": {
    "correlation_id": {
     "types": [
@@ -7378,14 +7966,6 @@
      "=== TRIBUNAL PRESSURE ==="
     ]
    },
-   "config._comment_initial_enemies": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Structured output for initial enemy spawning"
-    ]
-   },
    "config._comment_initial_npcs": {
     "types": [
      "str"
@@ -7402,14 +7982,6 @@
     "values": [
      "=== THE NARRATIVE WAR ===",
      "=== THE TRIAL ==="
-    ]
-   },
-   "config._comment_positions": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Valid rings: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy"
     ]
    },
    "config._comment_scenario": {
@@ -7436,8 +8008,7 @@
     ],
     "values": [
      "=== TACTICAL MODULE - ENABLED (Potential Combat if Deals Go Bad) ===",
-     "=== TACTICAL MODULE ===",
-     "=== TACTICAL MODULE v1.2.3 ==="
+     "=== TACTICAL MODULE ==="
     ]
    },
    "config._comment_vendors": {
@@ -7697,7 +8268,8 @@
      "A Bond severance case becomes a factional powder keg. Four witnesses with competing interests must testify before the Codex tribunal - but everyone has secrets, everyone has stakes, and the Bond in question may be the only thing preventing a void catastrophe. Legal drama meets supernatural horror.",
      "Corpus v1 pilot config for cheaper eval/fine-tune data generation. Derived from ml_training_scenarios, capped at 10 turns, and routed through batch_proxy.",
      "Corpus v2 moral-pressure scenario targeting thin soulcredit classes measured in the 2026-07-02 rules-fidelity baseline: negative deltas (n=23, one scenario), soulcredit x void coupled events (n=20), and law-vs-sympathy tension under Sovereign Nexus scoring.",
-     "House of Vox operatives racing to control the narrative around a Nexus scandal before the truth destroys their faction's influence. Information is the weapon. Belief is the battlefield. What people think happened matters more than what actually happened."
+     "House of Vox operatives racing to control the narrative around a Nexus scandal before the truth destroys their faction's influence. Information is the weapon. Belief is the battlefield. What people think happened matters more than what actually happened.",
+     "Live experiment: outcome_first_narration flag on, same Kneeling scenario that produced the false-death prose. Direct API (single run, not bulk)."
     ]
    },
    "config._role": {
@@ -7708,7 +8280,8 @@
      "bond_severance_tribunal_openai",
      "corpus_v1_bulk_cheap",
      "corpus_v2_moral_pressure",
-     "house_of_vox_information_warfare_openai"
+     "house_of_vox_information_warfare_openai",
+     "outcome_first_experiment"
     ]
    },
    "config._seed_doc": {
@@ -7726,14 +8299,6 @@
     ],
     "values": [
      "scripts/session_configs/ml_training_scenarios/06_economic_pressure/debt_spiral_desperation.json"
-    ]
-   },
-   "config._vendor_info": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds)"
     ]
    },
    "config.agents": {
@@ -7877,8 +8442,7 @@
      "str"
     ],
     "values": [
-     "Freeborn",
-     "Local Criminal Syndicate"
+     "Freeborn"
     ]
    },
    "config.initial_enemies[].name": {
@@ -8090,7 +8654,6 @@
     "values": [
      "BOND SEVERANCE TRIBUNAL - Legal drama meets supernatural horror. Four witnesses, each with secrets, each trying to influence a verdict while hiding their agendas. The Bond itself is unstable and may rupture. The Codex is glitching. The children are showing symptoms. Let testimony and cross-examination drive the drama. Combat only as last resort in sacred space. 20 rounds for a full trial with revelations and crisis. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0.",
      "Checkpoint passage demo. Vale (SC -3) is denied lawful passage and must choose an alternate path; Rell (SC +2) clears. Enforce mode judges whatever Vale chooses.",
-     "Combat scenario test - ambush, firefight, battle, or hostile encounter",
      "Corpus v2 moral pressure: selfish deception with a standing honesty off-ramp. Every checkpoint stage is a scored choice between margin and ledger.",
      "Execution vs mercy. Chosen transgression: IV.3/II.1 executing the surrendered vs II.8 lawful detention (merit).",
      "HOUSE OF VOX BROADCAST WAR - Information warfare with moral stakes. Four Vox operatives trying to suppress a scandal that turns out to be true. Who decides what the public gets to know? 20 rounds of propaganda, investigation, and the question of whether controlling truth is the same as lying. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0.",
@@ -8098,6 +8661,14 @@
      "ML Training Focus: Economic pressure mechanics, all characters negative soulcredit (-3 to -5), currency scarcity (only 4 Drip total starting cash, need 5 Drip), vendor SC lockouts, debt payment deadline clock, moral choice (15 Drip smuggling job vs. 2 Drip legal work), repo agent NPC antagonists. Tests underrepresented economic systems, desperation-driven decisions, resource management, soulcredit consequence depth. Long campaign (17 turns) allows debt spiral drama, moral erosion, consequence escalation.",
      "SC-consequences demo. Player 0 starts Cut-Off-adjacent (SC -3): the Debtbreaker locks on attack, the Pantheon dispensary refuses them, and Meridian Gate denies passage. Enforce mode keeps the ledger live as the scene plays out.",
      "Torture dilemma. Chosen transgression: II.10 will-violation / II.1 excessive force vs lawful interrogation. Necessity (IV.4) is a partial, reviewable defense only."
+    ]
+   },
+   "config.outcome_first_narration": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
     ]
    },
    "config.output_dir": {
@@ -8514,8 +9085,8 @@
      "1d59fdb",
      "24c07dd",
      "24c07dd-dirty",
-     "2cf6283-dirty",
      "30cdff3-dirty",
+     "3ea67ec-dirty",
      "5084a83",
      "5535c75",
      "5a962ed",
@@ -8533,8 +9104,7 @@
      "eb452ec-dirty",
      "ed3268c",
      "edfb7c6",
-     "edfb7c6-dirty",
-     "ff4e378-dirty"
+     "edfb7c6-dirty"
     ]
    },
    "parent_event_id": {
@@ -8713,7 +9283,6 @@
     ],
     "values": [
      "<None>",
-     "tgt_m9fh",
      "tgt_prisoner_01",
      "tgt_subdued_operative"
     ]
@@ -8739,7 +9308,6 @@
     ],
     "values": [
      "restrained detainees",
-     "tgt_m9fh",
      "tgt_prisoner_01",
      "tgt_subdued_operative"
     ]
@@ -8791,7 +9359,6 @@
     "values": [
      "tgt_ij1u",
      "tgt_lcn4",
-     "tgt_q1ty",
      "tgt_unk1"
     ]
    },

@@ -3244,13 +3244,33 @@ Apply this narrative style to:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(
-            resolutions,
-            round_num,
-            resolution_state=resolution_state,
-            expired_clocks=expired_clocks,
-            entity_lifecycle_result=entity_lifecycle_result
-        )
+        from .outcome_pipeline import RoundSynthesisFailClosed
+        try:
+            synthesis = await self._synthesize_round_outcome(
+                resolutions,
+                round_num,
+                resolution_state=resolution_state,
+                expired_clocks=expired_clocks,
+                entity_lifecycle_result=entity_lifecycle_result
+            )
+        except RoundSynthesisFailClosed as exc:
+            # The message bus swallows handler exceptions, so an unhandled
+            # raise here strands the session on _synthesis_complete forever.
+            # Broadcast the failure so the session can end itself cleanly;
+            # the round_synthesis_failed checkpoint has already been logged.
+            logger.error(f"[DM {self.agent_id}] Round synthesis failed closed: {exc}")
+            print(f"\n[DM {self.agent_id}] ===== Round Synthesis FAILED (fail-closed) =====")
+            self.send_message_sync(
+                MessageType.DM_NARRATION,
+                None,  # Broadcast
+                {
+                    'narration': f"Round synthesis failed validation after bounded retries: {exc}",
+                    'is_round_synthesis': True,
+                    'synthesis_failed': True,
+                    'round': round_num,
+                }
+            )
+            return
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -4337,8 +4357,12 @@ Void Level: {self.current_scenario.void_level}/10"""
         from .outcome_pipeline import (
             AppliedOutcome,
             OutcomeRoundSynthesis,
+            RoundSynthesisFailClosed,
             SynthesisValidationError,
+            canonicalize_synthesis_visibility,
+            finalize_synthesis_narration,
             prose_safe_outcome_payload,
+            snapshot_shared_state,
             validate_outcome_synthesis,
         )
 
@@ -4436,6 +4460,17 @@ specificity, motive, and a changed final tableau over repeated action summaries.
             if synthesis is None:
                 validation_errors = ["structured synthesis returned no result"]
                 continue
+            # Presentation and viewer ids are enforced in code: narration is
+            # derived from segments, and proposed visibility lists are mapped
+            # onto the real entity roster before set logic runs over them.
+            finalize_synthesis_narration(synthesis)
+            canonicalize_synthesis_visibility(
+                synthesis,
+                {
+                    entity_id: snap.name
+                    for entity_id, snap in snapshot_shared_state(self.shared_state).items()
+                },
+            )
             if getattr(self.shared_state, 'session', None) and getattr(
                     self.shared_state.session, 'replay_mode', False):
                 # Cached synthesis carries the source run's UUIDs. Requiring
@@ -4467,7 +4502,7 @@ specificity, motive, and a changed final tableau over repeated action summaries.
                 },
                 round_num,
             )
-        raise RuntimeError(
+        raise RoundSynthesisFailClosed(
             "Outcome-first synthesis exhausted validation attempts: "
             + "; ".join(validation_errors)
         )
