@@ -770,3 +770,23 @@ def test_visibility_errors_name_the_allowed_viewers():
     message = str(excinfo.value)
     assert "broadens restricted outcomes" in message
     assert "player_01" in message  # actionable: tells the model what to set
+
+
+def test_symbolic_value_clamps_instead_of_rejecting():
+    # Run-5 live failure: the model wrote a sentence into symbolic_value
+    # (max_length=100) and OpenAI structured outputs don't enforce maxLength,
+    # so Pydantic hard-rejected every synthesis attempt before semantic
+    # validation ever ran. Clamp in code; a tag is advisory, the round is not.
+    long_value = (
+        "Pantheon Security is on approach while the prisoners are moved to the "
+        "transfer point and binders are applied to every operative in custody."
+    )
+    claim = StateClaim(
+        claim_kind="other",
+        subject_id="npc_op_1",
+        causing_actor_id="player_01",
+        source_outcome_id="out_x",
+        symbolic_value=long_value,
+    )
+    assert len(claim.symbolic_value) == 100
+    assert claim.symbolic_value == long_value[:100]

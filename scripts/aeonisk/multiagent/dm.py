@@ -4439,6 +4439,8 @@ BINDING CONTRACT:
 - Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
   after-state actually changes that subject. Attitude, cooperation, mood, or other
   soft observations use claim_kind `other` (or no claim at all).
+- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+  never a sentence.
 - Set `narration` to the segment texts joined in order with blank lines.
 - Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
 

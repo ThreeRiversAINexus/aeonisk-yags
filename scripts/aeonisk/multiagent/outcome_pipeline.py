@@ -8,7 +8,7 @@ import uuid
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .schemas.action_resolution import MechanicalEffects
 from .schemas.shared_types import SuccessTier
@@ -122,6 +122,16 @@ class StateClaim(BaseModel):
     causing_actor_id: str
     source_outcome_id: str
     symbolic_value: str = Field(min_length=1, max_length=100)
+
+    @field_validator("symbolic_value", mode="before")
+    @classmethod
+    def _clamp_symbolic_value(cls, value: Any) -> Any:
+        # Structured-output providers don't enforce maxLength, and a verbose
+        # tag must not hard-reject the whole synthesis before semantic
+        # validation runs. Clamp; hard claim kinds still get value-checked.
+        if isinstance(value, str) and len(value) > 100:
+            return value[:100]
+        return value
 
 
 class OutcomeRoundSynthesis(RoundSynthesis):
