@@ -703,7 +703,12 @@ def validate_outcome_synthesis(
         entries = coverage_by_id.get(outcome.outcome_id, [])
         sources = source_segments.get(outcome.outcome_id, [])
         if len(sources) > 1:
-            errors.append(f"outcome {outcome.outcome_id} is rendered by multiple segments")
+            # Re-describing an already-rendered outcome (e.g. a closing summary
+            # beat) is repetition, not falsity; coverage still names one
+            # primary segment. Warn, don't fail the round.
+            warnings.append(
+                f"outcome {outcome.outcome_id} is rendered by multiple segments"
+            )
         if not entries:
             continue
         entry = entries[0]
@@ -748,8 +753,15 @@ def validate_outcome_synthesis(
                 for fact in outcome.observable_facts
             )
             if not matching_fact:
+                available = [
+                    f"{fact.fact_kind}/{fact.subject_id}/{fact.causing_actor_id}"
+                    for fact in outcome.observable_facts
+                ]
                 errors.append(
-                    f"state claim {claim.claim_kind} lacks an applied fact in {claim.source_outcome_id}"
+                    f"state claim {claim.claim_kind} lacks an applied fact in "
+                    f"{claim.source_outcome_id}; available facts "
+                    f"(kind/subject/actor) are {available or 'none'} — match one, "
+                    "use claim_kind 'other', or drop the claim"
                 )
     claimed_facts = {
         (claim.source_outcome_id, claim.claim_kind, claim.subject_id, claim.causing_actor_id)

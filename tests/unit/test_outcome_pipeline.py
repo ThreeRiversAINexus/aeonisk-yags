@@ -820,3 +820,32 @@ def test_symbolic_value_clamps_instead_of_rejecting():
     )
     assert len(claim.symbolic_value) == 100
     assert claim.symbolic_value == long_value[:100]
+
+
+def test_duplicate_segment_rendering_is_a_warning_not_an_error():
+    # Run-8 live failure: a closing summary beat re-sourced outcomes already
+    # rendered, and a retry re-described one actor in a second segment.
+    # Repetition harms style, not truth — the coverage entry still names one
+    # primary segment, and falsity rules apply per segment either way.
+    outcome = _outcome()
+    text_a = (
+        "Kael presses the broker back beneath the awning, the exchange sharp "
+        "but controlled while the market's attention gathers at the edges."
+    )
+    text_b = (
+        "By the end of it the confrontation has settled into a watchful truce, "
+        "the broker diminished but standing and the crowd already dispersing."
+    )
+    synthesis = OutcomeRoundSynthesis(
+        narration=text_a + "\n\n" + text_b,
+        segments=[
+            NarrativeSegment(segment_id="seg_1", text=text_a,
+                             source_outcome_ids=[outcome.outcome_id]),
+            NarrativeSegment(segment_id="seg_2", text=text_b,
+                             source_outcome_ids=[outcome.outcome_id]),
+        ],
+        coverage=[CoverageEntry(outcome_id=outcome.outcome_id,
+                                disposition="rendered", segment_id="seg_1")],
+    )
+    warnings = validate_outcome_synthesis(synthesis, [outcome])
+    assert any("multiple segments" in w for w in warnings)
