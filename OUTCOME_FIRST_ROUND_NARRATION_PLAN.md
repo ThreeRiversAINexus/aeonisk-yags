@@ -632,6 +632,52 @@ and effects applied deterministically. The failures were all in the
 synthesis-validation seam, and two of the three were the validator being wrong
 rather than the model.
 
+### Live experiment record (2026-07-16, runs 2–10): first complete session
+
+Iterating one live Kneeling run per fix produced five more defects, each with
+a regression test, and ended with run 10 completing all ten rounds:
+
+- **Run 2** (1 round validated): soft observations ("cooperative") emitted as
+  `consciousness` claims; correctly rejected but the retries taught nothing.
+  Prompt + both validator branches now direct soft observations to
+  claim_kind `other`.
+- **Run 3** (fail r1): strict max-based segment chronology was unsatisfiable
+  alongside the contract's own merging instruction; relaxed to
+  earliest-outcome ordering.
+- **Run 4** (fail r1): full-party `aware_agents` made semantically public
+  outcomes formally restricted; a canonical viewer set covering every player
+  now collapses to public at build time. Visibility errors name the allowed
+  list.
+- **Run 5** (4 rounds validated): a sentence-length `symbolic_value` hit the
+  Pydantic max_length before semantic validation ever ran (providers don't
+  enforce maxLength); clamped in code.
+- **Run 6** (6 rounds validated): first genuinely restricted outcome; model
+  isolated it correctly but died on ordering + one missing claim with terse
+  errors. All reciprocity/ordering errors now spell out the exact correction.
+- **Run 7** (fail r4): model narrates the dramatic anchor first for causally
+  independent outcomes and cannot be argued out of it. Presentation order
+  cannot falsify state: within-segment id order is now code-sorted, and
+  cross-segment chronology is a logged warning, not an error.
+- **Run 8** (fail r3): closing-summary beats re-source rendered outcomes;
+  repetition is not falsity — demoted to warning.
+- **Run 9b** (fail r1): retries oscillated — fixing one error while reverting
+  another — because the model never saw its own rejected response. Retries now
+  embed the prior response and request an edited version.
+- **Run 10: complete.** 10/10 rounds validated; two rounds needed exactly one
+  anchored retry each (12 synthesis calls total); zero mechanics leaks, zero
+  death language, zero registry-name leaks across 8,005 chars of prose; all
+  `character_state` life-states consistent; clean round-cap ending
+  (draw) with full debrief. ~1.08M tokens / 130 LLM calls (gpt-5.4-mini).
+
+Resulting doctrine, now encoded in the validator: **errors block only what
+would make prose false** (death language for the living, contradicted or
+unbacked hard state claims, mechanics/registry leaks, visibility broadening,
+coverage gaps); **structure and ordering deviations warn and log**. Remaining
+known quality gaps: NPC `narrative_name` equals the registry label (prisoners
+narrate as "Subdued Operative #N"), and upstream adjudications occasionally
+restrict mundane public actions via noisy `aware_agents` (spurious privacy —
+honored faithfully, but worth adjudication-prompt attention).
+
 ### Phase 1: Contracts and pure builders
 
 - Add `ActionAdjudication`, `AppliedOutcome`, state snapshot, narrative segment,
