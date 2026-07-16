@@ -601,10 +601,13 @@ def validate_outcome_synthesis(
         segment_sequences = [sequence[item] for item in segment.source_outcome_ids]
         if segment_sequences != sorted(segment_sequences):
             errors.append(f"segment {segment.segment_id} reverses outcome order")
+        # Segments are ordered by their earliest outcome. Comparing against the
+        # previous segment's *max* made merging (absorbing a later reaction into
+        # an earlier beat) unsatisfiable, which the prompt explicitly invites.
         if segment_sequences and min(segment_sequences) < last_sequence:
             errors.append(f"segment {segment.segment_id} appears out of chronological order")
         if segment_sequences:
-            last_sequence = max(segment_sequences)
+            last_sequence = min(segment_sequences)
         for pattern, label in _MECHANICS_LEAK_PATTERNS:
             if pattern.search(segment.text):
                 errors.append(f"segment {segment.segment_id} leaks {label}")

@@ -618,3 +618,76 @@ def test_hard_claim_without_state_change_error_teaches_kind_other():
         validate_outcome_synthesis(synthesis, [outcome])
     message = str(excinfo.value)
     assert "claim_kind 'other'" in message
+
+
+def test_merged_segment_may_absorb_later_reactions():
+    # Live round-1 failure (run 3): the model merged an operative's reaction
+    # (seq 6) into the opening beat alongside seqs 1-3, so the next segment's
+    # sources (4,5) sat "before" 6 and strict max-based chronology rejected
+    # every attempt. Merging later reactions into an earlier beat is exactly
+    # what the prompt asks for; only genuine inversions should fail.
+    outcomes = [_outcome(sequence=n) for n in (1, 2, 3, 4)]
+    text_a = (
+        "Hard Vane moves first, and the operatives' answers fold into the same "
+        "tense exchange as the room settles around the interrogation."
+    )
+    text_b = (
+        "Oathkeeper Sela follows with the restraint work, keeping the surrendered "
+        "men calm while the handoff is prepared under lawful order."
+    )
+    synthesis = OutcomeRoundSynthesis(
+        narration=text_a + "\n\n" + text_b,
+        segments=[
+            NarrativeSegment(
+                segment_id="seg_1",
+                text=text_a,
+                source_outcome_ids=[outcomes[0].outcome_id, outcomes[1].outcome_id,
+                                    outcomes[3].outcome_id],  # 1, 2, 4
+            ),
+            NarrativeSegment(
+                segment_id="seg_2",
+                text=text_b,
+                source_outcome_ids=[outcomes[2].outcome_id],  # 3 — after min but below prior max
+            ),
+        ],
+        coverage=[
+            CoverageEntry(outcome_id=outcomes[0].outcome_id, disposition="rendered", segment_id="seg_1"),
+            CoverageEntry(outcome_id=outcomes[1].outcome_id, disposition="merged", segment_id="seg_1"),
+            CoverageEntry(outcome_id=outcomes[3].outcome_id, disposition="merged", segment_id="seg_1"),
+            CoverageEntry(outcome_id=outcomes[2].outcome_id, disposition="rendered", segment_id="seg_2"),
+        ],
+    )
+    validate_outcome_synthesis(synthesis, outcomes)
+
+
+def test_genuine_segment_inversion_still_rejected():
+    outcomes = [_outcome(sequence=1), _outcome(sequence=2)]
+    text_a = (
+        "The reply comes first in this telling, even though the engine resolved "
+        "it second, which inverts the causal order of the exchange."
+    )
+    text_b = (
+        "Only afterwards does the opening action appear, out of order, breaking "
+        "the causal chain the applied outcomes actually established."
+    )
+    synthesis = OutcomeRoundSynthesis(
+        narration=text_a + "\n\n" + text_b,
+        segments=[
+            NarrativeSegment(
+                segment_id="seg_1",
+                text=text_a,
+                source_outcome_ids=[outcomes[1].outcome_id],  # seq 2 first
+            ),
+            NarrativeSegment(
+                segment_id="seg_2",
+                text=text_b,
+                source_outcome_ids=[outcomes[0].outcome_id],  # seq 1 second
+            ),
+        ],
+        coverage=[
+            CoverageEntry(outcome_id=outcomes[1].outcome_id, disposition="rendered", segment_id="seg_1"),
+            CoverageEntry(outcome_id=outcomes[0].outcome_id, disposition="rendered", segment_id="seg_2"),
+        ],
+    )
+    with pytest.raises(SynthesisValidationError, match="chronological"):
+        validate_outcome_synthesis(synthesis, outcomes)

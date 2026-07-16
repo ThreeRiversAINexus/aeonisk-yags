@@ -4426,6 +4426,8 @@ BINDING CONTRACT:
 - Preserve chronological and causal order.
 - Establish the setting once; do not restart every paragraph with the location.
 - Merge causally compatible actions when useful, but preserve each distinct consequence.
+- Order segments by their earliest outcome; a beat may absorb later reactions,
+  but never narrate an effect before its cause.
 - Integrate only useful declared dialogue. Omit repetitive or inert speech.
 - Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
 - Use the supplied prose-facing names, not registry labels.
