@@ -4452,11 +4452,22 @@ specificity, motive, and a changed final tableau over repeated action summaries.
 """
         max_attempts = max(1, int(self.session_config.get('outcome_synthesis_attempts', 3)))
         validation_errors: List[str] = []
+        prior_response_json: Optional[str] = None
         for attempt in range(1, max_attempts + 1):
             retry_context = ""
             if validation_errors:
+                # Without the prior response the model regenerates from scratch
+                # and oscillates — fixing one error while reverting another.
+                # Anchor the retry on its own output so it edits instead.
+                prior_block = (
+                    f"\n\nYOUR PRIOR RESPONSE:\n{prior_response_json}"
+                    if prior_response_json else ""
+                )
                 retry_context = (
-                    "\n\nTHE PRIOR RESPONSE WAS REJECTED. Correct every error:\n- "
+                    prior_block
+                    + "\n\nTHE PRIOR RESPONSE WAS REJECTED. Return a corrected "
+                    "version of it: fix every error below and change nothing "
+                    "else.\n- "
                     + "\n- ".join(validation_errors)
                 )
             synthesis = await self._generate_round_synthesis_structured(
@@ -4494,6 +4505,7 @@ specificity, motive, and a changed final tableau over repeated action summaries.
                 return synthesis
             except SynthesisValidationError as exc:
                 validation_errors = exc.errors
+                prior_response_json = synthesis.model_dump_json()
                 logger.warning(
                     "Outcome synthesis validation failed (attempt %s/%s): %s",
                     attempt,

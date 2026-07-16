@@ -378,6 +378,10 @@ async def test_synthesis_retries_validation_without_reapplying_outcomes():
     second_prompt = dm._generate_round_synthesis_structured.await_args_list[1].args[0]
     assert "CONTAMINATED PRIOR PROSE" not in first_prompt
     assert "uses death language" in second_prompt
+    # The retry must carry the prior response so the model edits rather than
+    # regenerates — otherwise it oscillates, fixing one error and reverting
+    # another (observed live: run 9b, round 1).
+    assert "lifeless body" in second_prompt
 
 
 # --- Live-experiment regressions (2026-07-16, Kneeling run 9052cb25) ---
