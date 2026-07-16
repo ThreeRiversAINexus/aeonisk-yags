@@ -18,6 +18,7 @@ class TestBuildResolutionSummary:
         # Test the method directly without full session initialization
         session = object.__new__(SelfPlayingSession)
         session.shared_state = None  # No target resolution in these tests
+        session.config = {}  # Legacy path (outcome_first_narration off)
         return session._build_resolution_summary
 
     def test_empty_resolutions(self, build_resolution_summary):

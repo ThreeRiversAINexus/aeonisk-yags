@@ -637,15 +637,19 @@ class EnemyFallbackLLMClient:
     """
 
     def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown',
-                 session_id=None, agent_prompt_logger=None, provider=None):
+                 session_id=None, agent_prompt_logger=None, provider=None,
+                 replay_client=None):
         self.llm_config = llm_config
         self.jsonl_logger = jsonl_logger
         self.agent_prompt_logger = agent_prompt_logger
         self.agent_id = agent_id
         self.session_id = session_id
+        self.replay_client = replay_client
         self.call_sequence = 0  # Track LLM call ordering for replay
 
-        if provider is not None:
+        if replay_client is not None:
+            self.provider = None
+        elif provider is not None:
             self.provider = provider
         else:
             # Use llm_provider instead of direct Anthropic client
@@ -656,6 +660,15 @@ class EnemyFallbackLLMClient:
 
     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
         from datetime import datetime, timezone
+
+        if self.replay_client is not None:
+            response = self.replay_client.messages.create(
+                model=self.llm_config.get('model', 'replay'),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return {"content": response.content[0].text}
 
         # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
         response = await self.provider.generate(
@@ -752,6 +765,7 @@ class SelfPlayingSession:
         # Per-enemy fallback LLM clients, cached by agent_id so their
         # call_sequence counter persists across rounds (replay-cache key).
         self._enemy_llm_clients: Dict[str, Any] = {}
+        self._replay_agent_aliases: Dict[str, str] = {}
         self.human_interface: Optional[HumanInterface] = None
         self.session_id: Optional[str] = None
         self.session_data: List[Dict[str, Any]] = []
@@ -1293,6 +1307,9 @@ class SelfPlayingSession:
             session_config=self.config,  # Pass full session config for persistent vendors
             # names_client attached in start_session() after session_id is known
         )
+        if self.replay_mode and dm_llm_client is not None:
+            from .llm_logger import ReplayStructuredProvider
+            dm_agent.llm_provider = ReplayStructuredProvider(dm_llm_client)
         self.dm_agent = dm_agent  # Held for post-init wiring (names_mcp, etc.)
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -2226,9 +2243,36 @@ Generate narratives (numbered list only):"""
                 session_id=self.session_id,
                 agent_prompt_logger=self.agent_prompt_logger,
                 provider=provider,
+                replay_client=self._get_replay_client(agent_id) if self.replay_mode else None,
             )
             self._enemy_llm_clients[agent_id] = client
         return client
+
+    def _get_replay_client(self, agent_id):
+        """Create one cached or hybrid client per replayed agent."""
+        from .llm_logger import MockLLMClient, HybridLLMClient
+
+        cache_agent_id = agent_id
+        if agent_id not in self.llm_cache and agent_id.startswith('enemy_'):
+            cached_enemy_ids = sorted({
+                cached_id for cached_id, _sequence in self.llm_cache
+                if cached_id.startswith('enemy_')
+            })
+            used_ids = set(self._replay_agent_aliases.values())
+            available = [item for item in cached_enemy_ids if item not in used_ids]
+            if available:
+                cache_agent_id = available[0]
+                self._replay_agent_aliases[agent_id] = cache_agent_id
+
+        if self.continue_from_round is not None:
+            client = HybridLLMClient(
+                self.llm_cache,
+                agent_id=cache_agent_id,
+                continue_from_round=self.continue_from_round,
+            )
+            self.hybrid_clients.append(client)
+            return client
+        return MockLLMClient(self.llm_cache, agent_id=cache_agent_id)
 
     async def _run_initiative_round(self) -> bool:
         """
@@ -2923,6 +2967,8 @@ Generate narratives (numbered list only):"""
 
         # Collect all resolutions for synthesis at the end
         all_resolutions = []
+        outcome_first = bool(self.config.get('outcome_first_narration', False))
+        outcome_sequence = 0
 
         # Execute actions in initiative order (highest first)
         for initiative_score, agent_type, agent in initiative_order:
@@ -2994,6 +3040,29 @@ Generate narratives (numbered list only):"""
                         'effects': {},
                         'resolution': {'margin': 0},
                     }
+                    if outcome_first:
+                        from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+
+                        declared = self._declared_actions.get(agent.agent_id, [])
+                        declared_action = dict(declared[0].get('action', {})) if declared else {}
+                        skip_resolution['action'] = declared_action or skip_resolution['action']
+                        outcome_sequence += 1
+                        applied_outcome = build_applied_outcome(
+                            round_num=mechanics.current_round if mechanics else 0,
+                            sequence=outcome_sequence,
+                            actor_id=agent.agent_id,
+                            actor_name=agent.character_state.name,
+                            action=skip_resolution['action'],
+                            resolution_data=skip_resolution,
+                            before=snapshot_shared_state(self.shared_state),
+                            after=snapshot_shared_state(self.shared_state),
+                        )
+                        skip_resolution['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_applied_outcome(
+                                mechanics.current_round,
+                                applied_outcome.model_dump(mode='json'),
+                            )
                     all_resolutions.append(skip_resolution)
 
                     # Log to JSONL
@@ -3025,6 +3094,10 @@ Generate narratives (numbered list only):"""
 
                     # Process each action in order (free action first, then main action)
                     for idx, buffered_action in enumerate(buffered_actions):
+                        state_before = None
+                        if outcome_first:
+                            from .outcome_pipeline import snapshot_shared_state
+                            state_before = snapshot_shared_state(self.shared_state)
                         action_label = "FREE ACTION" if buffered_action['action'].get('is_free_action') else f"ACTION {idx+1}"
                         logger.debug(f"Processing {action_label} for {agent.character_state.name}")
 
@@ -3206,6 +3279,48 @@ Generate narratives (numbered list only):"""
                                 except Exception as e:
                                     logger.error(f"Error processing stabilization: {e}")
 
+                            if outcome_first:
+                                from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                                outcome_action = dict(buffered_action['action'])
+                                target_id = outcome_action.get('target')
+                                if target_id and self.shared_state:
+                                    mapper = self.shared_state.get_target_id_mapper()
+                                    target_entity = mapper.resolve_target(target_id) if mapper else None
+                                    if target_entity is not None:
+                                        outcome_action['target_entity_id'] = getattr(
+                                            target_entity, 'agent_id', getattr(target_entity, 'object_id', target_id)
+                                        )
+                                outcome_sequence += 1
+                                applied_outcome = build_applied_outcome(
+                                    round_num=mechanics.current_round if mechanics else 0,
+                                    sequence=outcome_sequence,
+                                    actor_id=agent.agent_id,
+                                    actor_name=agent.character_state.name,
+                                    action=outcome_action,
+                                    resolution_data=resolution_data,
+                                    before=state_before or {},
+                                    after=snapshot_shared_state(self.shared_state),
+                                )
+                                resolution_data['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                                if mechanics and mechanics.jsonl_logger:
+                                    adjudication = resolution_data.get('adjudication') or {}
+                                    mechanics.jsonl_logger.log_action_adjudication(
+                                        mechanics.current_round,
+                                        {
+                                            'schema_version': applied_outcome.schema_version,
+                                            'adjudication_id': applied_outcome.adjudication_id,
+                                            'outcome_id': applied_outcome.outcome_id,
+                                            'sequence': applied_outcome.sequence,
+                                            'actor_id': applied_outcome.actor_id,
+                                            'actor_name': applied_outcome.actor_name,
+                                            'adjudication': adjudication,
+                                        },
+                                    )
+                                    mechanics.jsonl_logger.log_applied_outcome(
+                                        mechanics.current_round,
+                                        applied_outcome.model_dump(mode='json'),
+                                    )
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
@@ -3216,6 +3331,10 @@ Generate narratives (numbered list only):"""
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
                 if self.enemy_combat.enabled:
+                    state_before = None
+                    if outcome_first:
+                        from .outcome_pipeline import snapshot_shared_state
+                        state_before = snapshot_shared_state(self.shared_state)
                     result = self.enemy_combat.execute_enemy_action(
                         enemy_id=agent.agent_id,
                         player_agents=player_agents,
@@ -3277,7 +3396,33 @@ Generate narratives (numbered list only):"""
                                 await self.coordinator.message_bus._route_message(broadcast_message)
 
                         # Add enemy result to synthesis input (normalized for schema consistency)
-                        all_resolutions.append(_normalize_enemy_result(result))
+                        normalized_enemy = _normalize_enemy_result(result)
+                        if outcome_first:
+                            from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                            outcome_sequence += 1
+                            enemy_action = {
+                                'intent': result.get('action', 'acts'),
+                                'description': result.get('action', 'acts'),
+                                'target': result.get('target'),
+                                'dialogue_content': result.get('dialogue_content'),
+                            }
+                            applied_outcome = build_applied_outcome(
+                                round_num=mechanics.current_round if mechanics else 0,
+                                sequence=outcome_sequence,
+                                actor_id=agent.agent_id,
+                                actor_name=agent.name,
+                                action=enemy_action,
+                                resolution_data=normalized_enemy,
+                                before=state_before or {},
+                                after=snapshot_shared_state(self.shared_state),
+                            )
+                            normalized_enemy['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_applied_outcome(
+                                    mechanics.current_round,
+                                    applied_outcome.model_dump(mode='json'),
+                                )
+                        all_resolutions.append(normalized_enemy)
 
                         # Combat logging handled in enemy_combat.py via log_combat_action()
 
@@ -3298,6 +3443,10 @@ Generate narratives (numbered list only):"""
                     npc_action_type = npc_action.get('action_type', 'dialogue')
 
                     print(f"\n[{agent.name}] (NPC) executing: {npc_action_type} - {npc_intent[:50]}...")
+                    state_before = None
+                    if outcome_first:
+                        from .outcome_pipeline import snapshot_shared_state
+                        state_before = snapshot_shared_state(self.shared_state)
 
                     # Build action payload for DM adjudication (similar to players)
                     action_for_adjudication = {
@@ -3479,6 +3628,47 @@ Generate narratives (numbered list only):"""
                     resolution_data = getattr(adjudication_event, 'resolution_data', None)
                     if resolution_data:
                         all_resolutions.append(resolution_data)
+
+                        if outcome_first:
+                            from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                            outcome_sequence += 1
+                            outcome_action = dict(action_for_adjudication['action'])
+                            target_id = outcome_action.get('target')
+                            if target_id and self.shared_state:
+                                mapper = self.shared_state.get_target_id_mapper()
+                                target_entity = mapper.resolve_target(target_id) if mapper else None
+                                if target_entity is not None:
+                                    outcome_action['target_entity_id'] = getattr(
+                                        target_entity, 'agent_id', getattr(target_entity, 'object_id', target_id)
+                                    )
+                            applied_outcome = build_applied_outcome(
+                                round_num=mechanics.current_round if mechanics else 0,
+                                sequence=outcome_sequence,
+                                actor_id=agent.agent_id,
+                                actor_name=agent.name,
+                                action=outcome_action,
+                                resolution_data=resolution_data,
+                                before=state_before or {},
+                                after=snapshot_shared_state(self.shared_state),
+                            )
+                            resolution_data['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_action_adjudication(
+                                    mechanics.current_round,
+                                    {
+                                        'schema_version': applied_outcome.schema_version,
+                                        'adjudication_id': applied_outcome.adjudication_id,
+                                        'outcome_id': applied_outcome.outcome_id,
+                                        'sequence': applied_outcome.sequence,
+                                        'actor_id': applied_outcome.actor_id,
+                                        'actor_name': applied_outcome.actor_name,
+                                        'adjudication': resolution_data.get('adjudication') or {},
+                                    },
+                                )
+                                mechanics.jsonl_logger.log_applied_outcome(
+                                    mechanics.current_round,
+                                    applied_outcome.model_dump(mode='json'),
+                                )
 
                         # NPC resolutions go through DM adjudication, so they're already logged
                         # via the normal log_action_resolution call in dm.py
@@ -4378,6 +4568,13 @@ Generate narratives (numbered list only):"""
             print("[Debrief skipped - no AI players]\n")
             return
 
+        if self.replay_mode:
+            # Debriefs are post-session flavor, and the source smoke fixture
+            # does not contain debrief LLM calls. Never create a live provider
+            # during an otherwise fully cached replay.
+            print("[Debrief skipped - no cached replay responses]\n")
+            return
+
         # Build debrief context
         mechanics = self.shared_state.get_mechanics_engine()
 
@@ -5016,6 +5213,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         """
         if not all_resolutions:
             return "No resolutions this round"
+
+        if self.config.get('outcome_first_narration', False):
+            from .outcome_pipeline import AppliedOutcome
+
+            outcome_lines = []
+            for resolution in all_resolutions:
+                raw_outcome = resolution.get('applied_outcome')
+                if not raw_outcome:
+                    continue
+                outcome = AppliedOutcome.model_validate(raw_outcome)
+                facts = "; ".join(
+                    fact.prose_safe_summary for fact in outcome.observable_facts
+                ) or "No observable consequence"
+                outcome_lines.append(
+                    f"- [{outcome.outcome_id}] {outcome.actor_name}: "
+                    f"{outcome.intent} -> {facts}"
+                )
+            if outcome_lines:
+                return "\n".join(outcome_lines)
 
         # Get target_id_mapper for resolving target names
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
@@ -7414,8 +7630,12 @@ NO conversions/morale checks needed (scene just started).
 
             if structured_synthesis_data:
                 # Deserialize dict back to Pydantic model
-                from .schemas.story_events import RoundSynthesis
-                structured_synthesis = RoundSynthesis(**structured_synthesis_data)
+                if structured_synthesis_data.get('segments'):
+                    from .outcome_pipeline import OutcomeRoundSynthesis
+                    structured_synthesis = OutcomeRoundSynthesis(**structured_synthesis_data)
+                else:
+                    from .schemas.story_events import RoundSynthesis
+                    structured_synthesis = RoundSynthesis(**structured_synthesis_data)
                 # Process structured synthesis (no marker parsing!) - now async
                 await self._process_structured_synthesis(structured_synthesis)
             else:

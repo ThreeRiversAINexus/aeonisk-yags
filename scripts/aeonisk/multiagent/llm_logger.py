@@ -5,6 +5,7 @@ This module provides a wrapper around LLM clients that logs all prompts
 and responses to enable deterministic replay of game sessions.
 """
 
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
@@ -273,6 +274,39 @@ class MockLLMClient:
 
         # Create messages interface (mimics client.messages.create())
         self.messages = MockMessages(self.cache, self.call_index, self.agent_id)
+
+
+class ReplayStructuredProvider:
+    """Adapt a replay client to the provider interface used by DM helpers."""
+
+    def __init__(self, client: Any):
+        self.client = client
+
+    async def generate_structured(self, prompt: str, result_type: type,
+                                  system_prompt: Optional[str] = None,
+                                  max_tokens: Optional[int] = None,
+                                  temperature: Optional[float] = None,
+                                  **kwargs):
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
+        response = self.client.messages.create(
+            model=kwargs.get("model", "replay"),
+            messages=messages,
+            temperature=temperature or 0.0,
+            max_tokens=max_tokens or 4000,
+        )
+        text = response.content[0].text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end <= start:
+                raise ValueError(f"Cached replay response is not JSON for {result_type.__name__}")
+            payload = json.loads(text[start:end + 1])
+        return result_type.model_validate(payload)
 
 
 class HybridMessages:

@@ -42,6 +42,7 @@ async def generate_dm_resolution_structured(
     fallback_to_text: bool = False,  # Changed default: NO silent fallbacks
     llm_logger: Optional[Any] = None,  # For token tracking
     current_round: Optional[int] = None,  # For token tracking
+    result_type: type = ActionResolution,
     **kwargs
 ) -> Union[ActionResolution, str]:
     """
@@ -118,10 +119,10 @@ async def generate_dm_resolution_structured(
     # Try structured output (with built-in retry/backoff from ClaudeProvider)
     else:
         try:
-            logger.debug("Attempting structured output with ActionResolution schema")
-            resolution: ActionResolution = await provider.generate_structured(
+            logger.debug("Attempting structured output with %s schema", result_type.__name__)
+            resolution = await provider.generate_structured(
                 prompt=prompt,
-                result_type=ActionResolution,
+                result_type=result_type,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -129,7 +130,13 @@ async def generate_dm_resolution_structured(
                 current_round=current_round,  # Pass through for token tracking
                 **kwargs
             )
-            logger.debug(f"✓ Structured resolution: {resolution.success_tier}, {len(resolution.narration)} chars, {len(resolution.effects.void_changes)} void changes")
+            narration_length = len(getattr(resolution, 'narration', '') or '')
+            logger.debug(
+                "✓ Structured resolution: %s, %s narration chars, %s void changes",
+                resolution.success_tier,
+                narration_length,
+                len(resolution.effects.void_changes),
+            )
             return resolution
 
         except Exception as e:

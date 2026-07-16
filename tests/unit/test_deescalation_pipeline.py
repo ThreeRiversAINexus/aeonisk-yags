@@ -265,6 +265,7 @@ class TestResolutionSummaryDataShape:
 
         session = MagicMock(spec=SelfPlayingSession)
         session.shared_state = shared_state
+        session.config = {}  # Legacy path (outcome_first_narration off)
         # Bind the real method
         session._build_resolution_summary = SelfPlayingSession._build_resolution_summary.__get__(session, SelfPlayingSession)
         return session

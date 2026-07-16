@@ -856,6 +856,28 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_action_adjudication(self, round_num: int, adjudication: Dict[str, Any]):
+        """Log mechanics-only DM adjudication for the outcome-first pipeline."""
+        event = {
+            "event_type": "action_adjudication",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            **adjudication,
+        }
+        self._write_event(event)
+
+    def log_applied_outcome(self, round_num: int, outcome: Dict[str, Any]):
+        """Log authoritative post-application state and narrative provenance."""
+        event = {
+            "event_type": "applied_outcome",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            **outcome,
+        }
+        self._write_event(event)
+
     def log_clock_spawn(
         self,
         clock_name: str,
@@ -920,6 +942,12 @@ class JSONLLogger:
 
         # Add structured fields if available
         if structured_synthesis:
+            if hasattr(structured_synthesis, "segments"):
+                event["schema_version"] = getattr(structured_synthesis, "schema_version", "3.0.0")
+                event["segments"] = [segment.model_dump(mode="json") for segment in structured_synthesis.segments]
+                event["coverage"] = [entry.model_dump(mode="json") for entry in structured_synthesis.coverage]
+                event["state_claims"] = [claim.model_dump(mode="json") for claim in structured_synthesis.state_claims]
+
             # Add story_advancement if present
             if structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance:
                 event["story_advancement"] = {

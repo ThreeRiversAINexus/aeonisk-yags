@@ -179,6 +179,31 @@ class ReplaySession:
         if not self.llm_cache:
             issues.append("No LLM calls logged - agent decisions cannot be replayed")
 
+        # Check the agent IDs that the replay session is expected to create.
+        # Enemy IDs are discovered from their logged calls because they are
+        # generated during scenario setup.
+        cached_agents = {agent_id for agent_id, _sequence in self.llm_cache}
+        expected_agents = {'dm_01'}
+        players = (self.config or {}).get('agents', {}).get('players', [])
+        party_size = (self.config or {}).get('party_size', len(players))
+        expected_agents.update(f'player_{index:02d}' for index in range(1, min(party_size, len(players)) + 1))
+        missing_agents = sorted(expected_agents - cached_agents)
+        if missing_agents:
+            issues.append(f"Missing cached LLM calls for agents: {', '.join(missing_agents)}")
+
+        provider_names = []
+        for agent_config in ((self.config or {}).get('agents', {}).get('dm', {}),):
+            provider_names.append(agent_config.get('llm', {}).get('provider'))
+        provider_names.extend(
+            player.get('llm', {}).get('provider')
+            for player in players[:party_size]
+        )
+        enemy_provider = (self.config or {}).get('agents', {}).get('enemies', {}).get('llm', {}).get('provider')
+        if enemy_provider:
+            provider_names.append(enemy_provider)
+        if any(provider == 'batch_proxy' for provider in provider_names):
+            warnings.append("batch_proxy configuration will be bypassed for cached replay clients")
+
         # Count events by type
         event_types = defaultdict(int)
         for event in self.events:
@@ -329,8 +354,9 @@ class ReplaySession:
             # Modify config to limit rounds if specified
             # When start_from_round is used, adjust max_turns to account for skipped rounds
             if self.replay_to_round < 999:
-                # If starting from round N and replaying to round M, only run M-N+1 rounds
-                actual_rounds_to_run = self.replay_to_round - self.start_from_round + 1
+                # Gameplay rounds are 1-indexed; round 0 is setup/lifecycle.
+                # replay_to_round is inclusive, so round 1 means one gameplay round.
+                actual_rounds_to_run = max(1, self.replay_to_round - self.start_from_round)
                 session.config['max_turns'] = actual_rounds_to_run
                 print(f"✓ Limited replay to rounds {self.start_from_round}-{self.replay_to_round} ({actual_rounds_to_run} rounds)")
             elif self.start_from_round > 0:

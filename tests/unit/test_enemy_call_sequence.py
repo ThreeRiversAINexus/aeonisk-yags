@@ -54,6 +54,7 @@ def test_session_caches_client_per_agent_id():
     sess._enemy_llm_clients = {}
     sess.session_id = "s"
     sess.agent_prompt_logger = None
+    sess.replay_mode = False
 
     mechanics = types.SimpleNamespace(jsonl_logger=None)
     cfg = {"model": "test-model"}
@@ -75,6 +76,7 @@ async def test_counter_survives_simulated_rounds_via_cache():
     sess._enemy_llm_clients = {}
     sess.session_id = "s"
     sess.agent_prompt_logger = None
+    sess.replay_mode = False
     mechanics = types.SimpleNamespace(jsonl_logger=jl)
     cfg = {"model": "test-model"}
     provider = _FakeProvider()
