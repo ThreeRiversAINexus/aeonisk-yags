@@ -56,14 +56,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "npc_subdued_operative_#1_6976",
-     "npc_subdued_operative_#2_6976",
-     "npc_subdued_operative_#3_6976",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "actor_name": {
     "types": [
@@ -217,14 +210,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Failed social check; formal custody confirmation is not secured, so transfer remains unresolved and exposure increases.",
-     "Resolved Subdued Operative #1's comply action mechanically.",
-     "Resolved Subdued Operative #2's comply action mechanically.",
-     "Resolved Subdued Operative #3's comply action mechanically.",
-     "Social coordination failed: the scene is stable, but no binding handoff agreement was established, so custody remains procedurally unresolved and exposure risk increases.",
-     "The order was clear but ineffective: no successful custody transfer or de-escalation beyond the already-compliant prisoner, so the legal handoff does not progress."
-    ]
+    "values": "freeform"
    },
    "adjudication.skill_override": {
     "types": [
@@ -247,7 +233,10 @@
      "str"
     ],
     "values": [
+     "critical_failure",
+     "exceptional",
      "failure",
+     "good",
      "moderate"
     ]
    },
@@ -255,14 +244,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "adj_31a09a0aa8b7",
-     "adj_7a0271fde65d",
-     "adj_d4b65021e62b",
-     "adj_d93b8c6910b3",
-     "adj_d93d04fe4e7d",
-     "adj_f762c4af1f78"
-    ]
+    "values": "freeform"
    },
    "correlation_id": {
     "types": [
@@ -288,14 +270,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "out_01799085bc78",
-     "out_6f496f0aeca7",
-     "out_ae3d197b9deb",
-     "out_b5af7dd93e34",
-     "out_bc1e420719ea",
-     "out_f11e502ffbab"
-    ]
+    "values": "freeform"
    },
    "parent_event_id": {
     "types": [
@@ -2666,14 +2641,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "npc_subdued_operative_#1_6976",
-     "npc_subdued_operative_#2_6976",
-     "npc_subdued_operative_#3_6976",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "actor_name": {
     "types": [
@@ -2705,14 +2673,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "adj_31a09a0aa8b7",
-     "adj_7a0271fde65d",
-     "adj_d4b65021e62b",
-     "adj_d93b8c6910b3",
-     "adj_d93d04fe4e7d",
-     "adj_f762c4af1f78"
-    ]
+    "values": "freeform"
    },
    "applied_effects": {
     "types": [
@@ -2798,9 +2759,25 @@
     ],
     "values": [
      "<None>",
+     "Cooperate now, and this stays procedural. Resist, and we do this the hard way.",
+     "Easy. Talk straight, and this stays simple for everyone.",
+     "Keep them calm and keep your hands visible\u2014Pantheon Security takes them from here.",
+     "Let Pantheon do this by the book. We keep this clean, keep everyone breathing, and nobody has to answer for a massacre.",
+     "Let Pantheon take custody. Nobody makes this worse by reaching.",
      "Let's keep this clean and documented\u2014confirm the handoff and I\u2019ll hold the line until it\u2019s official.",
+     "Let's keep this clean\u2014no one needs to get hurt now. Hand them over and we all walk out of this in one piece.",
+     "Let\u2019s end this cleanly. Nobody needs more blood over this\u2014Pantheon takes custody, and we all walk away breathing.",
+     "One by one. Lie to me, and the others will be the ones to pay for it.",
+     "Please, I don\u2019t know anything useful\u2014just don\u2019t hurt me. I\u2019ll cooperate.",
+     "Please, I\u2019m cooperating. Don\u2019t make me pay for answers I don\u2019t have.",
+     "Please, I\u2019m just a prisoner. I don\u2019t know any safehouses\u2014don\u2019t hurt me.",
+     "Please, I\u2019m not the one with answers. I\u2019ll cooperate\u2014just don\u2019t hurt me.",
+     "Please, don't do this\u2014I\u2019m not resisting. Just let us go and nobody has to get hurt.",
      "Stay calm. You\u2019re not being executed\u2014you\u2019re being handed over to Pantheon. Make this easy and it stays clean.",
-     "Stay still, hands visible. We\u2019re doing this by the book until Pantheon Security takes custody."
+     "Stay still, hands visible. We\u2019re doing this by the book until Pantheon Security takes custody.",
+     "Talk now, and keep this clean. Cooperation helps you; silence only makes this worse.",
+     "Talk now, and you keep the story in your favor.",
+     "Talk. Who hired you, and where are the safehouses? You stay alive if you do."
     ]
    },
    "entity_states_after": {
@@ -2808,9 +2785,205 @@
      "dict"
     ]
    },
+   "entity_states_after.*": {
+    "types": [
+     "dict"
+    ]
+   },
+   "entity_states_after.*.barrier": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "entity_states_after.*.combat_state": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.conditions": {
+    "types": [
+     "list"
+    ]
+   },
+   "entity_states_after.*.consciousness": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.entity_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.entity_type": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.health": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_after.*.is_active": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
+    ]
+   },
+   "entity_states_after.*.life_state": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.max_health": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_after.*.name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.narrative_name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.position": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_after.*.stuns": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_after.*.wounds": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
    "entity_states_before": {
     "types": [
      "dict"
+    ]
+   },
+   "entity_states_before.*": {
+    "types": [
+     "dict"
+    ]
+   },
+   "entity_states_before.*.barrier": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "entity_states_before.*.combat_state": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.conditions": {
+    "types": [
+     "list"
+    ]
+   },
+   "entity_states_before.*.consciousness": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.entity_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.entity_type": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.health": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_before.*.is_active": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
+    ]
+   },
+   "entity_states_before.*.life_state": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.max_health": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_before.*.name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.narrative_name": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.position": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "entity_states_before.*.stuns": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "entity_states_before.*.wounds": {
+    "numeric": true,
+    "types": [
+     "int"
     ]
    },
    "event_id": {
@@ -2831,12 +3004,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Maintain armed cover while coordinating lawful transfer of the three detainees to Pantheon Security",
-     "Maintain cover on the detainees and confirm a lawful handoff with Sela and Vane",
-     "Secure custody of the three surrendered operatives and hand them over to Pantheon authorities",
-     "comply"
-    ]
+    "values": "freeform"
    },
    "lifecycle_changes": {
     "types": [
@@ -2847,14 +3015,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "I keep my hands visible and follow the order to stay still. There are armed authorities and the handoff seems to be under control, so complying is the safest move for a prisoner like me.",
-     "I keep my tone calm and authoritative, clearly stating that the situation is over and that the three operatives are now to remain under guard until Pantheon Security can take custody. I emphasize lawful compliance, discourage any attempt to flee or escalate, and direct the present allies to maintain a respectful but firm perimeter around the detainees.",
-     "I keep my tone even and professional, addressing Sela and Vane directly while maintaining the detainees' restrained status. I frame the situation as a lawful custody transfer and request clear confirmation of who is taking charge, ensuring the operatives remain contained until the handoff is formally accepted.",
-     "I keep my weapon trained on the subdued operatives without escalating, and I speak clearly to Oathkeeper Sela and Cold Tarn to confirm the handoff plan, custody order, and any required restraints or documentation. My goal is to preserve compliance, avoid unnecessary force, and ensure the detainees are transferred cleanly to Pantheon Security.",
-     "I\u2019m a prisoner and the room is under control by armed authorities. The best chance of staying alive is to stay still, keep my hands visible, and follow instructions until this handoff is finished.",
-     "I\u2019m a prisoner and the situation is being handled by armed authorities. I\u2019ll follow instructions, stay still, and avoid escalating while the handoff is being confirmed."
-    ]
+    "values": "freeform"
    },
    "observable_facts": {
     "types": [
@@ -2865,20 +3026,14 @@
     "types": [
      "str"
     ],
-    "values": [
-     "npc_subdued_operative_#1_6976",
-     "npc_subdued_operative_#2_6976",
-     "npc_subdued_operative_#3_6976",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "observable_facts[].fact_kind": {
     "types": [
      "str"
     ],
     "values": [
+     "condition",
      "dialogue",
      "failure",
      "success"
@@ -2888,13 +3043,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Cold Tarn says: \"Let's keep this clean and documented\u2014confirm the handoff and I\u2019ll hold the line until it\u2019s official.\"",
-     "Hard Vane says: \"Stay still, hands visible. We\u2019re doing this by the book until Pantheon Security takes custody.\"",
-     "Oathkeeper Sela says: \"Stay calm. You\u2019re not being executed\u2014you\u2019re being handed over to Pantheon. Make this easy and it stays clean.\"",
-     "The attempt fails.",
-     "The attempt succeeds."
-    ]
+    "values": "freeform"
    },
    "observable_facts[].severity": {
     "types": [
@@ -2908,37 +3057,19 @@
     "types": [
      "str"
     ],
-    "values": [
-     "npc_subdued_operative_#1_6976",
-     "npc_subdued_operative_#2_6976",
-     "npc_subdued_operative_#3_6976",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "observable_facts[].symbolic_value": {
     "types": [
      "str"
     ],
-    "values": [
-     "failed",
-     "spoken",
-     "succeeded"
-    ]
+    "values": "freeform"
    },
    "outcome_id": {
     "types": [
      "str"
     ],
-    "values": [
-     "out_01799085bc78",
-     "out_6f496f0aeca7",
-     "out_ae3d197b9deb",
-     "out_b5af7dd93e34",
-     "out_bc1e420719ea",
-     "out_f11e502ffbab"
-    ]
+    "values": "freeform"
    },
    "parent_event_id": {
     "types": [
@@ -2961,6 +3092,9 @@
      "str"
     ],
     "values": [
+     "Empathy",
+     "Perception",
+     "Presence",
      "Willpower"
     ]
    },
@@ -2974,11 +3108,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Maintain armed cover while coordinating lawful transfer of the three detainees to Pantheon Security",
-     "Maintain cover on the detainees and confirm a lawful handoff with Sela and Vane",
-     "Secure custody of the three surrendered operatives and hand them over to Pantheon authorities"
-    ]
+    "values": "freeform"
    },
    "roll_result.margin": {
     "numeric": true,
@@ -2991,7 +3121,10 @@
      "str"
     ],
     "values": [
-     "failure"
+     "critical_failure",
+     "exceptional",
+     "failure",
+     "good"
     ]
    },
    "roll_result.skill": {
@@ -2999,7 +3132,10 @@
      "str"
     ],
     "values": [
+     "Charm",
+     "Combat",
      "Corporate Influence",
+     "Insight",
      "Intimidation"
     ]
    },
@@ -3114,6 +3250,43 @@
    "conditions": {
     "types": [
      "list"
+    ]
+   },
+   "conditions[].affects": {
+    "types": [
+     "list"
+    ]
+   },
+   "conditions[].duration": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "conditions[].name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Calmed",
+     "Tense",
+     "Wavering"
+    ]
+   },
+   "conditions[].penalty": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "conditions[].type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Calmed",
+     "Tense",
+     "Wavering"
     ]
    },
    "correlation_id": {
@@ -3260,6 +3433,12 @@
     "values": "freeform"
    },
    "soulcredit": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "stuns": {
     "numeric": true,
     "types": [
      "int"
@@ -4308,6 +4487,7 @@
     "values": [
      "dm_declaration",
      "round_cap",
+     "round_synthesis_failed",
      "terminal_clock",
      "tpk"
     ]
@@ -4317,6 +4497,7 @@
      "str"
     ],
     "values": [
+     "aborted",
      "defeat",
      "draw",
      "victory"
@@ -4404,6 +4585,9 @@
      "Pike\u2019s burst of suppressing fire still echoes in the Dock 14 annex when the room finally seems to remember to breathe. The service corridor mouth is chewed into splinters and wet sparks, rain hissing through the loading ribs as ricochets die somewhere deeper in the walls. No one rushes out to meet the gunfire; whatever presence was listening has been forced flat and quiet, and that silence feels a",
      "Repo agents are dispatched, bond pressure intensifies, and the party risks immediate financial seizure or detention.",
      "Repo agents arrive to seize assets, detain debtors, or initiate bond-collection proceedings.",
+     "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_2 appears out of chronological order",
+     "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_2 appears out of chronological order; applied fact condition for player_02 lacks a state claim; applied fact condition for player_02 lacks a state claim; applied fact condition for npc_subdued_operative_#1_6656 lacks a state claim",
+     "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: state claim subject npc_subdued_operative_#2_9072 is not changed by out_e4a4f404e284; state claim subject npc_subdued_operative_#3_9072 is not changed by out_d39a6e5e505c; state claim subject npc_subdued_operative_#1_9072 is not changed by out_0592707f4c8f",
      "The account defaults, repo agents deploy, and the party risks bond enslavement or asset seizure.",
      "The magistrate issues a binding custody determination based on the verified record",
      "The party reaches a secure fallback point and escapes immediate pursuit",
@@ -4436,6 +4620,7 @@
      "Detention Transfer",
      "Find the Witness",
      "Intercept the Buyer",
+     "Legal Handoff",
      "Maintenance Spine Escape",
      "Manual Recovery",
      "Minimum Payment Due",
@@ -5242,6 +5427,8 @@
      "enemy_grunt_769db193",
      "enemy_grunt_9754414d",
      "npc_kestrel_dock_witness_3d7b8a16",
+     "npc_subdued_operative_#1_4048",
+     "npc_subdued_operative_#2_4048",
      "player_01",
      "player_02",
      "player_03"
@@ -5261,7 +5448,9 @@
      "Independent Subdued Operative #1",
      "Kestrel Dock Witness",
      "Oathkeeper Sela",
-     "Pragmatist Rook"
+     "Pragmatist Rook",
+     "Subdued Operative #1",
+     "Subdued Operative #2"
     ]
    },
    "target_state_after": {
@@ -5295,6 +5484,12 @@
     ],
     "values": [
      "active"
+    ]
+   },
+   "target_state_after.stuns": {
+    "numeric": true,
+    "types": [
+     "int"
     ]
    },
    "target_state_after.wounds": {
@@ -5355,7 +5550,8 @@
      "structured:PostRulings",
      "structured:RoundAssessment",
      "structured:ScenarioSetup",
-     "structured:SocialAction"
+     "structured:SocialAction",
+     "structured:SupportAction"
     ]
    },
    "correlation_id": {
@@ -6547,31 +6743,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Assist Sela with securing the subdued operatives with proper restraints",
-     "Bind the subdued operatives with Pantheon restraints and register their detention in the official custody logbook.",
-     "Blend into the intake process and stage a lawful-looking transfer path",
-     "Carefully release the bound witness from the restraint cradle for extraction",
-     "Clean blood off prisoner #2's restraint cuffs for biometric scan",
-     "Coordinate lawful custody transfer of subdued operatives to Pantheon Security",
-     "Coordinate power feeds and suppress feedback surges for Hard Vane's physical bypass.",
-     "Coordinate proper prisoner restraint and custody documentation with Cold Tarn",
-     "Force open remaining cradle restraints to free the witness for extraction",
-     "Inspect the hidden route machinery for a bypass or leverage point",
-     "Inspect the rear utilities hatch for seams, locks, and alarm bypass points",
-     "Inspect the sealed cargo crate for tampering and hidden compartments",
-     "Inspect the sealed hollow-seed crate for tampering and hidden contents",
-     "Palm Kade's raw whistleblower data crystal from the couch and swap in a forged token",
-     "Physically bind and secure the surrendered operative using tactical restraints to establish formal, non-lethal custody.",
-     "Physically disable the amber buoy's power coupling",
-     "Physically sever mirror bus and install hardware kill\u2011switch on mirror relay env_l80l",
-     "Secure center operative's restraints properly while maintaining weapon control",
-     "Secure subdued operatives with bind-tape for Pantheon custody transfer",
-     "Secure subdued operatives with restraint cuffs from Pantheon drone",
-     "Secure the subdued operative using tactical restraints and Sovereign legal protocols to ensure lawful custody.",
-     "Seed and deliver a counter-narrative framing the leak as Freeborn propaganda",
-     "Use zip-ties to properly restrain the subdued ACG operative"
-    ]
+    "values": "freeform"
    },
    "action_context.player_id": {
     "types": [
@@ -6945,6 +7117,35 @@
     ],
     "values": "freeform"
    },
+   "coverage": {
+    "types": [
+     "list"
+    ]
+   },
+   "coverage[].disposition": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "rendered"
+    ]
+   },
+   "coverage[].outcome_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "coverage[].segment_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "seg_1",
+     "seg_2",
+     "seg_3"
+    ]
+   },
    "event_id": {
     "types": [
      "str"
@@ -7236,6 +7437,45 @@
      "Vault access is lawfully granted and the party moves below the archives into the inner records chamber. The concealed bay has been pinpointed, the witness\u2019s contamination hold confirmed, and the annex\u2019s clerks have realized Pantheon Security now knows the exact location of the concealed custody site. Amber purge-lattice warnings still pulse through the glass overhead, but the immediate barrier is gone; the next room is a colder, more secret space of seals, pod housings, and narrowing time."
     ]
    },
+   "schema_version": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "OutcomeRoundSynthesis_OpenAICompat_104414878716848"
+    ]
+   },
+   "segments": {
+    "types": [
+     "list"
+    ]
+   },
+   "segments[].segment_id": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "seg_1",
+     "seg_2",
+     "seg_3"
+    ]
+   },
+   "segments[].source_outcome_ids": {
+    "types": [
+     "list"
+    ]
+   },
+   "segments[].text": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "segments[].visibility": {
+    "types": [
+     "list"
+    ]
+   },
    "session": {
     "types": [
      "str"
@@ -7260,6 +7500,43 @@
      "The central legal question resolved with a severance ruling, but the exposed hidden approval and active void manifestation leave the scene in unresolved supernatural and political aftermath rather than a clean victory.",
      "The prisoners were secured, documented, and routed into lawful detention through Pantheon Security procedure; the detention scene resolves successfully."
     ]
+   },
+   "state_claims": {
+    "types": [
+     "list"
+    ]
+   },
+   "state_claims[].causing_actor_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "state_claims[].claim_kind": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "dialogue"
+    ]
+   },
+   "state_claims[].source_outcome_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "state_claims[].subject_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "state_claims[].symbolic_value": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
    },
    "story_advancement": {
     "types": [
@@ -7683,6 +7960,7 @@
      "str"
     ],
     "values": [
+     "aborted",
      "defeat",
      "draw",
      "victory"
@@ -9081,6 +9359,7 @@
      "01a26c8-dirty",
      "0e84a2d-dirty",
      "10cb91c",
+     "1464a81-dirty",
      "1788da6-dirty",
      "1d59fdb",
      "24c07dd",
@@ -9099,8 +9378,10 @@
      "7747b96",
      "80c28f9",
      "863662e-dirty",
+     "86b2b06-dirty",
      "9e67818",
      "c41a8b5",
+     "c817c61-dirty",
      "eb452ec-dirty",
      "ed3268c",
      "edfb7c6",

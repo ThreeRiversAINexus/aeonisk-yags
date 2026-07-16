@@ -468,9 +468,9 @@ def build_applied_outcome(
         entity_states_after=changed_after,
         observable_facts=facts,
         prohibited_claims=prohibited,
-        visibility=canonicalize_viewer_ids(
+        visibility=_effective_visibility(
             resolution_data.get("aware_agents", []) or [],
-            {entity_id: snap.name for entity_id, snap in before.items()},
+            before,
         ),
         consequential=consequential,
     )
@@ -550,6 +550,30 @@ def canonicalize_viewer_ids(
     return result
 
 
+def _effective_visibility(
+    raw_ids: Sequence[str],
+    before: Dict[str, EntityStateSnapshot],
+) -> List[str]:
+    """Canonicalize proposed viewers; collapse full-party awareness to public.
+
+    Adjudications often list the whole party (+ dm) as aware_agents. Visibility
+    only carries meaning when someone is excluded, so a set covering every
+    player collapses to [] rather than forcing synthesis segments to copy the
+    roster verbatim.
+    """
+    viewers = canonicalize_viewer_ids(
+        raw_ids,
+        {entity_id: snap.name for entity_id, snap in before.items()},
+    )
+    player_ids = {
+        entity_id for entity_id, snap in before.items()
+        if snap.entity_type == "player"
+    }
+    if player_ids and player_ids.issubset(set(viewers)):
+        return []
+    return viewers
+
+
 def finalize_synthesis_narration(synthesis: OutcomeRoundSynthesis) -> None:
     """Derive narration from segments; presentation is code's job, not the LLM's."""
     synthesis.narration = "\n\n".join(
@@ -616,9 +640,15 @@ def validate_outcome_synthesis(
         if restricted_sets:
             allowed_visibility = set.intersection(*restricted_sets)
             if not segment.visibility:
-                errors.append(f"segment {segment.segment_id} broadens restricted outcomes to public visibility")
+                errors.append(
+                    f"segment {segment.segment_id} broadens restricted outcomes to "
+                    f"public visibility; set its visibility to {sorted(allowed_visibility)}"
+                )
             elif not set(segment.visibility).issubset(allowed_visibility):
-                errors.append(f"segment {segment.segment_id} includes unauthorized viewers")
+                errors.append(
+                    f"segment {segment.segment_id} includes unauthorized viewers; "
+                    f"allowed viewers are {sorted(allowed_visibility)}"
+                )
         living_changed = any(
             snap.life_state == "alive"
             for outcome in source_outcomes

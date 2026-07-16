@@ -55,12 +55,22 @@ DYNAMIC_KEY_PARENTS = {
     "state_summary.scene_clocks",            # end_state_snapshot
     "stats.skills",                          # enemy_spawn (custom skills occur)
     "action_context.character_skills",       # pydantic_validation_failure
+    "entity_states_before",                  # applied_outcome (keys are entity ids)
+    "entity_states_after",                   # applied_outcome (keys are entity ids)
 }
 
 # Per-event identity/envelope fields: their values are unique by construction
 # (uuids, timestamps) — pinning them as enums on rare event types made every
 # new session "drift". Always freeform.
-IDENTITY_FIELDS = {"ts", "session", "event_id", "parent_event_id", "correlation_id"}
+IDENTITY_FIELDS = {
+    "ts", "session", "event_id", "parent_event_id", "correlation_id",
+    # outcome pipeline: per-event uuids, per-session entity ids (npc ids carry
+    # a session suffix), and free prose — all churn as enums
+    "outcome_id", "adjudication_id", "declaration_event_id",
+    "actor_id", "subject_id", "causing_actor_id", "source_outcome_id",
+    "reasoning_short", "prose_safe_summary", "symbolic_value",
+    "intent", "method", "text", "synthesis",
+}
 
 
 class FieldStat:

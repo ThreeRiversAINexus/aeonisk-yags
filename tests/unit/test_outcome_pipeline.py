@@ -424,6 +424,8 @@ def test_viewer_id_ambiguous_partial_is_dropped():
 
 
 def test_build_applied_outcome_canonicalizes_aware_agents():
+    # A second, excluded player keeps the outcome genuinely restricted —
+    # otherwise full-party awareness collapses to public visibility.
     snap = _state(health=30)
     before = {
         "enemy_vane": snap,
@@ -432,6 +434,17 @@ def test_build_applied_outcome_canonicalizes_aware_agents():
             entity_type="player",
             name="Oathkeeper Sela",
             narrative_name="Sela",
+            health=20,
+            max_health=20,
+            life_state="alive",
+            consciousness="conscious",
+            combat_state="active",
+        ),
+        "player_02": EntityStateSnapshot(
+            entity_id="player_02",
+            entity_type="player",
+            name="Cold Tarn",
+            narrative_name="Tarn",
             health=20,
             max_health=20,
             life_state="alive",
@@ -691,3 +704,69 @@ def test_genuine_segment_inversion_still_rejected():
     )
     with pytest.raises(SynthesisValidationError, match="chronological"):
         validate_outcome_synthesis(synthesis, outcomes)
+
+
+def test_full_party_visibility_collapses_to_public():
+    # Run-4 live failure: adjudications listed the whole party + dm as
+    # aware_agents. Visibility only carries meaning when someone is excluded;
+    # a full-roster list forced every segment to copy the roster or fail.
+    party_snap = {
+        eid: EntityStateSnapshot(
+            entity_id=eid, entity_type="player", name=name, narrative_name=name,
+            health=20, max_health=20, life_state="alive",
+            consciousness="conscious", combat_state="active",
+        )
+        for eid, name in (("player_01", "Oathkeeper Sela"), ("player_02", "Cold Tarn"))
+    }
+    party_snap["enemy_vane"] = _state(health=30)
+    outcome = build_applied_outcome(
+        round_num=1,
+        sequence=1,
+        actor_id="player_01",
+        actor_name="Oathkeeper Sela",
+        action={"intent": "watch"},
+        resolution_data={
+            "aware_agents": ["dm", "player_02", "player_01"],
+            "resolution": {},
+        },
+        before=party_snap,
+        after=party_snap,
+    )
+    assert outcome.visibility == []
+
+
+def test_partial_party_visibility_stays_restricted():
+    party_snap = {
+        eid: EntityStateSnapshot(
+            entity_id=eid, entity_type="player", name=name, narrative_name=name,
+            health=20, max_health=20, life_state="alive",
+            consciousness="conscious", combat_state="active",
+        )
+        for eid, name in (("player_01", "Oathkeeper Sela"), ("player_02", "Cold Tarn"))
+    }
+    outcome = build_applied_outcome(
+        round_num=1,
+        sequence=1,
+        actor_id="player_01",
+        actor_name="Oathkeeper Sela",
+        action={"intent": "whisper"},
+        resolution_data={"aware_agents": ["player_01", "dm"], "resolution": {}},
+        before=party_snap,
+        after=party_snap,
+    )
+    assert outcome.visibility == ["player_01", "dm"]
+
+
+def test_visibility_errors_name_the_allowed_viewers():
+    outcome = _outcome()
+    outcome.visibility = ["player_01", "dm"]
+    synthesis = _synthesis(
+        "Kael leans close and keeps the exchange between them, the rest of the "
+        "room reading only posture while the words stay private and deliberate.",
+        outcome,
+    )
+    with pytest.raises(SynthesisValidationError) as excinfo:
+        validate_outcome_synthesis(synthesis, [outcome])
+    message = str(excinfo.value)
+    assert "broadens restricted outcomes" in message
+    assert "player_01" in message  # actionable: tells the model what to set
