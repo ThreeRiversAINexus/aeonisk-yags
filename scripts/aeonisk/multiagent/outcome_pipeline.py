@@ -604,10 +604,24 @@ def canonicalize_synthesis_visibility(
 def validate_outcome_synthesis(
     synthesis: OutcomeRoundSynthesis,
     outcomes: Sequence[AppliedOutcome],
-) -> None:
+) -> List[str]:
+    """Raise SynthesisValidationError on falsifying defects; return style warnings.
+
+    Errors block: anything that would let prose assert false authoritative
+    state (false deaths, contradicted claims, leaks, broadened visibility,
+    broken coverage/provenance). Warnings log: presentation-order deviations,
+    which a DM legitimately reorders for drama and which cannot falsify state.
+    """
     errors: List[str] = []
+    warnings: List[str] = []
     by_id = {outcome.outcome_id: outcome for outcome in outcomes}
     sequence = {outcome.outcome_id: outcome.sequence for outcome in outcomes}
+    # Listing order inside a segment is formatting, not semantics — sort it.
+    for segment in synthesis.segments:
+        segment.source_outcome_ids = sorted(
+            segment.source_outcome_ids,
+            key=lambda outcome_id: sequence.get(outcome_id, float("inf")),
+        )
     coverage_by_id: Dict[str, List[CoverageEntry]] = {}
     segments = {segment.segment_id: segment for segment in synthesis.segments}
     source_segments: Dict[str, List[str]] = {}
@@ -633,19 +647,12 @@ def validate_outcome_synthesis(
             errors.append(f"segment {segment.segment_id} references unknown outcomes {unknown}")
             continue
         segment_sequences = [sequence[item] for item in segment.source_outcome_ids]
-        if segment_sequences != sorted(segment_sequences):
-            errors.append(
-                f"segment {segment.segment_id} reverses outcome order; list "
-                "source_outcome_ids in ascending resolution order"
-            )
-        # Segments are ordered by their earliest outcome. Comparing against the
-        # previous segment's *max* made merging (absorbing a later reaction into
-        # an earlier beat) unsatisfiable, which the prompt explicitly invites.
+        # Segments ordered by earliest outcome is a style preference: the model
+        # narrates the dramatic anchor first for independent outcomes, and a
+        # reordering cannot falsify state. Warn, don't fail the round.
         if segment_sequences and min(segment_sequences) < last_sequence:
-            errors.append(
-                f"segment {segment.segment_id} appears out of chronological order; "
-                "order segments so each one's earliest source outcome comes no "
-                "earlier than the previous segment's earliest"
+            warnings.append(
+                f"segment {segment.segment_id} appears out of chronological order"
             )
         if segment_sequences:
             last_sequence = min(segment_sequences)
@@ -768,3 +775,4 @@ def validate_outcome_synthesis(
                 )
     if errors:
         raise SynthesisValidationError(errors)
+    return warnings

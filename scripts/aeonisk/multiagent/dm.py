@@ -4488,7 +4488,9 @@ specificity, motive, and a changed final tableau over repeated action summaries.
                 # turn a valid cache hit into a false divergence.
                 return synthesis
             try:
-                validate_outcome_synthesis(synthesis, outcomes)
+                style_warnings = validate_outcome_synthesis(synthesis, outcomes)
+                for warning in style_warnings:
+                    logger.info("Synthesis style warning (non-blocking): %s", warning)
                 return synthesis
             except SynthesisValidationError as exc:
                 validation_errors = exc.errors

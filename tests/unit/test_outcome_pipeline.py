@@ -673,15 +673,19 @@ def test_merged_segment_may_absorb_later_reactions():
     validate_outcome_synthesis(synthesis, outcomes)
 
 
-def test_genuine_segment_inversion_still_rejected():
+def test_segment_inversion_is_a_warning_not_an_error():
+    # Run-7 live finding: the model narrates the dramatic anchor first for
+    # causally independent outcomes and will not be argued out of it. Ordering
+    # does not create false authoritative state (false-death, leak, and claim
+    # rules guard that), so chronology demotes to a logged warning.
     outcomes = [_outcome(sequence=1), _outcome(sequence=2)]
     text_a = (
         "The reply comes first in this telling, even though the engine resolved "
-        "it second, which inverts the causal order of the exchange."
+        "it second, which inverts the resolution order of the exchange."
     )
     text_b = (
-        "Only afterwards does the opening action appear, out of order, breaking "
-        "the causal chain the applied outcomes actually established."
+        "Only afterwards does the opening action appear in the prose, though "
+        "nothing false is asserted about anyone's state or condition."
     )
     synthesis = OutcomeRoundSynthesis(
         narration=text_a + "\n\n" + text_b,
@@ -702,8 +706,34 @@ def test_genuine_segment_inversion_still_rejected():
             CoverageEntry(outcome_id=outcomes[0].outcome_id, disposition="rendered", segment_id="seg_2"),
         ],
     )
-    with pytest.raises(SynthesisValidationError, match="chronological"):
-        validate_outcome_synthesis(synthesis, outcomes)
+    warnings = validate_outcome_synthesis(synthesis, outcomes)
+    assert any("chronological" in w for w in warnings)
+
+
+def test_source_outcome_ids_are_sorted_by_code_not_rejected():
+    # Listing order inside a segment is formatting, not semantics: code sorts.
+    outcomes = [_outcome(sequence=1), _outcome(sequence=2)]
+    text = (
+        "Both actions land in the same beat of the scene, described together "
+        "while the room absorbs what has just been decided between them."
+    )
+    synthesis = OutcomeRoundSynthesis(
+        narration=text,
+        segments=[NarrativeSegment(
+            segment_id="seg_1",
+            text=text,
+            source_outcome_ids=[outcomes[1].outcome_id, outcomes[0].outcome_id],
+        )],
+        coverage=[
+            CoverageEntry(outcome_id=outcomes[1].outcome_id, disposition="rendered", segment_id="seg_1"),
+            CoverageEntry(outcome_id=outcomes[0].outcome_id, disposition="merged", segment_id="seg_1"),
+        ],
+    )
+    warnings = validate_outcome_synthesis(synthesis, outcomes)
+    assert synthesis.segments[0].source_outcome_ids == [
+        outcomes[0].outcome_id, outcomes[1].outcome_id,
+    ]
+    assert warnings == []
 
 
 def test_full_party_visibility_collapses_to_public():
