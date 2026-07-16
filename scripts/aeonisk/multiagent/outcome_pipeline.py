@@ -634,12 +634,19 @@ def validate_outcome_synthesis(
             continue
         segment_sequences = [sequence[item] for item in segment.source_outcome_ids]
         if segment_sequences != sorted(segment_sequences):
-            errors.append(f"segment {segment.segment_id} reverses outcome order")
+            errors.append(
+                f"segment {segment.segment_id} reverses outcome order; list "
+                "source_outcome_ids in ascending resolution order"
+            )
         # Segments are ordered by their earliest outcome. Comparing against the
         # previous segment's *max* made merging (absorbing a later reaction into
         # an earlier beat) unsatisfiable, which the prompt explicitly invites.
         if segment_sequences and min(segment_sequences) < last_sequence:
-            errors.append(f"segment {segment.segment_id} appears out of chronological order")
+            errors.append(
+                f"segment {segment.segment_id} appears out of chronological order; "
+                "order segments so each one's earliest source outcome comes no "
+                "earlier than the previous segment's earliest"
+            )
         if segment_sequences:
             last_sequence = min(segment_sequences)
         for pattern, label in _MECHANICS_LEAK_PATTERNS:
@@ -754,7 +761,10 @@ def validate_outcome_synthesis(
                 for kind in candidate_kinds
             ):
                 errors.append(
-                    f"applied fact {fact.fact_kind} for {fact.subject_id} lacks a state claim"
+                    f"applied fact {fact.fact_kind} for {fact.subject_id} lacks a state claim; "
+                    f"add one with claim_kind '{sorted(candidate_kinds)[0]}', subject_id "
+                    f"'{fact.subject_id}', causing_actor_id '{fact.causing_actor_id}', "
+                    f"source_outcome_id '{outcome.outcome_id}'"
                 )
     if errors:
         raise SynthesisValidationError(errors)
