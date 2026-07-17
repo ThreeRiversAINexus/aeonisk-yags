@@ -290,8 +290,11 @@ def test_coverage_must_match_segment_provenance():
     synthesis = _synthesis(text, outcome)
     synthesis.coverage[0].segment_id = "invented_beat"
 
-    with pytest.raises(SynthesisValidationError, match="missing segment"):
-        validate_outcome_synthesis(synthesis, [outcome])
+    # With exactly one segment rendering the outcome, the mismatch is
+    # deterministic bookkeeping: auto-repaired with a warning, not fatal.
+    warnings = validate_outcome_synthesis(synthesis, [outcome])
+    assert synthesis.coverage[0].segment_id == "beat_1"
+    assert any("auto-repair" in w for w in warnings)
 
 
 def test_restricted_outcome_cannot_be_rendered_publicly():
@@ -853,3 +856,58 @@ def test_duplicate_segment_rendering_is_a_warning_not_an_error():
     )
     warnings = validate_outcome_synthesis(synthesis, [outcome])
     assert any("multiple segments" in w for w in warnings)
+
+
+def test_prose_safe_summary_clamps_instead_of_crashing_the_engine():
+    # Bulk run_0006 crash: engine-side f-string builds prose_safe_summary from
+    # an unbounded dialogue line; max_length=300 turned a long speech into a
+    # session-killing ValidationError at outcome build time.
+    long_line = "Pantheon Security Marshal, I hereby request " + "formal statement " * 30
+    fact = ObservableFact(
+        fact_kind="dialogue",
+        subject_id="player_01",
+        causing_actor_id="player_01",
+        symbolic_value="spoken",
+        prose_safe_summary=f'Sela says: "{long_line}"',
+    )
+    assert len(fact.prose_safe_summary) <= 300
+
+
+def test_omitted_but_rendered_coverage_auto_repairs_to_merged():
+    # Bulk run_0001 r3 fail-closed: coverage said omitted_nonconsequential but
+    # a segment sourced the outcome. Segments are ground truth for what was
+    # rendered; code reconciles the bookkeeping instead of burning retries.
+    outcome = _outcome()
+    synthesis = _synthesis(
+        "Kael forces the broker back beneath the awning, alive and answering "
+        "for what he knows while the market crowd holds its wary distance.",
+        outcome,
+    )
+    synthesis.coverage = [CoverageEntry(
+        outcome_id=outcome.outcome_id,
+        disposition="omitted_nonconsequential",
+        segment_id=None,
+    )]
+    warnings = validate_outcome_synthesis(synthesis, [outcome])
+    assert synthesis.coverage[0].disposition == "merged"
+    assert synthesis.coverage[0].segment_id == "beat_1"
+    assert any("auto-repair" in w for w in warnings)
+
+
+def test_mismatched_coverage_segment_auto_repairs_when_unambiguous():
+    # Bulk run_0009 r3 fail-closed: coverage named a segment that doesn't
+    # source the outcome while exactly one segment does — deterministic fix.
+    outcome = _outcome()
+    synthesis = _synthesis(
+        "Kael forces the broker back beneath the awning, alive and answering "
+        "for what he knows while the market crowd holds its wary distance.",
+        outcome,
+    )
+    synthesis.coverage = [CoverageEntry(
+        outcome_id=outcome.outcome_id,
+        disposition="rendered",
+        segment_id="seg_nonexistent",
+    )]
+    warnings = validate_outcome_synthesis(synthesis, [outcome])
+    assert synthesis.coverage[0].segment_id == "beat_1"
+    assert any("auto-repair" in w for w in warnings)

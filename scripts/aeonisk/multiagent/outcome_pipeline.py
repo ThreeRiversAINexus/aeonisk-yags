@@ -73,6 +73,15 @@ class ObservableFact(BaseModel):
     severity: Optional[Literal["minor", "moderate", "severe", "critical"]] = None
     prose_safe_summary: str = Field(min_length=3, max_length=300)
 
+    @field_validator("prose_safe_summary", mode="before")
+    @classmethod
+    def _clamp_prose_safe_summary(cls, value: Any) -> Any:
+        # Built engine-side from unbounded input (e.g. a long dialogue line);
+        # a verbose summary must not crash outcome construction mid-session.
+        if isinstance(value, str) and len(value) > 300:
+            return value[:297] + "..."
+        return value
+
 
 class AppliedOutcome(BaseModel):
     schema_version: str = SCHEMA_VERSION
@@ -622,6 +631,29 @@ def validate_outcome_synthesis(
             segment.source_outcome_ids,
             key=lambda outcome_id: sequence.get(outcome_id, float("inf")),
         )
+    # Coverage is bookkeeping over segments, and segments are ground truth for
+    # what was rendered. Reconcile deterministic mismatches instead of burning
+    # model retries on them (observed live: bulk runs 0001/0009).
+    rendering_segments: Dict[str, List[str]] = {}
+    for segment in synthesis.segments:
+        for outcome_id in segment.source_outcome_ids:
+            rendering_segments.setdefault(outcome_id, []).append(segment.segment_id)
+    for entry in synthesis.coverage:
+        sources = rendering_segments.get(entry.outcome_id, [])
+        if entry.disposition == "omitted_nonconsequential" and sources:
+            entry.disposition = "merged"
+            entry.segment_id = sources[0]
+            warnings.append(
+                f"auto-repair: outcome {entry.outcome_id} was marked omitted but "
+                f"is rendered by {sources[0]}; coverage set to merged"
+            )
+        elif (entry.disposition != "omitted_nonconsequential"
+                and entry.segment_id not in sources and len(sources) == 1):
+            warnings.append(
+                f"auto-repair: coverage for {entry.outcome_id} pointed at "
+                f"{entry.segment_id}; corrected to {sources[0]}"
+            )
+            entry.segment_id = sources[0]
     coverage_by_id: Dict[str, List[CoverageEntry]] = {}
     segments = {segment.segment_id: segment for segment in synthesis.segments}
     source_segments: Dict[str, List[str]] = {}
