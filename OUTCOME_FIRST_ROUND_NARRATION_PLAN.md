@@ -672,7 +672,28 @@ a regression test, and ended with run 10 completing all ten rounds:
 Resulting doctrine, now encoded in the validator: **errors block only what
 would make prose false** (death language for the living, contradicted or
 unbacked hard state claims, mechanics/registry leaks, visibility broadening,
-coverage gaps); **structure and ordering deviations warn and log**. Remaining
+coverage gaps); **structure and ordering deviations warn and log**.
+
+### Bulk validation (2026-07-16/17): 12 sessions, 4 scenarios, batch API
+
+12 sessions (Kneeling, bonded-blade duel, medic rescue, investigation; 3 each)
+through the llm-proxy batch strategy. Pipeline verdict: **57 validated rounds,
+zero mechanics leaks and zero false death claims across 102KB of prose; zero
+synthesis failures in the three new scenarios**; healing (23 events) and
+condition facts exercised. Three failures, all fixed with regression tests:
+an engine-side `prose_safe_summary` overflow crash (clamped), and two
+coverage-bookkeeping fail-closures that now auto-repair in code (segments are
+ground truth for what was rendered). Operational lesson: batch strategy is
+structurally wrong for sequential session workloads (~35 min/call turnaround;
+9 of 12 sessions hit the 25h wall clock mid-round-7) — use direct strategy
+for validation, reserve batch for wide-parallel corpus jobs with multi-day
+windows.
+
+A follow-up forced-combat run (direct API, 5 rounds, 20 combat actions,
+damage/unconscious/movement facts) validated 5/5 rounds with zero failures
+and narrated a triple knockdown correctly — "dropping the void spawn
+unconscious while still alive" — closing the loop on the exact false-death
+failure class that motivated this plan. Remaining
 known quality gaps: NPC `narrative_name` equals the registry label (prisoners
 narrate as "Subdued Operative #N"), and upstream adjudications occasionally
 restrict mundane public actions via noisy `aware_agents` (spurious privacy —
