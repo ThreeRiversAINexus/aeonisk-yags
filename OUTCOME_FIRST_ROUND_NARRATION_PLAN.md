@@ -693,11 +693,36 @@ A follow-up forced-combat run (direct API, 5 rounds, 20 combat actions,
 damage/unconscious/movement facts) validated 5/5 rounds with zero failures
 and narrated a triple knockdown correctly — "dropping the void spawn
 unconscious while still alive" — closing the loop on the exact false-death
-failure class that motivated this plan. Remaining
-known quality gaps: NPC `narrative_name` equals the registry label (prisoners
-narrate as "Subdued Operative #N"), and upstream adjudications occasionally
-restrict mundane public actions via noisy `aware_agents` (spurious privacy —
-honored faithfully, but worth adjudication-prompt attention).
+failure class that motivated this plan.
+
+### Deferred: NPC/enemy narrative naming (open design question, not scheduled)
+
+Enemies and converted prisoners render in prose under their registry label
+(`f"{spawn.faction} {spawn.archetype} #{i+1}"` in `enemy_combat.py`), e.g.
+"Independent Subdued Operative #3". `EntityStateSnapshot` already carries both
+`name` (registry) and `narrative_name` (prose-facing), but the builder defaults
+`narrative_name = name` when no override exists, so the label leaks through.
+
+This is genuinely two questions, kept separate on purpose:
+- **In-world knowledge (a feature, keep):** PCs should NOT know a stranger's
+  real name without establishing it in the fiction. That constraint is correct
+  and should be protected, not naively fixed away with a name generator.
+- **Prose register (the actual leak):** a database key is still not how anyone,
+  DM included, refers to an unknown person. The register a human uses is
+  diegetic — "the wounded one", "the third operative", "the one who dropped his
+  gun" — the same shape of leak as raw HP or `tgt_xxxx`, just hiding in `name`.
+
+Preferred fix if/when taken up: generate a diegetic placeholder from
+archetype/position/observable state when no name is established, and only
+promote `narrative_name` to a real name once the fiction earns it (interrogation
+succeeds, ID pulled, name spoken in dialogue). Explicitly NOT "wire up
+names_mcp to assign real names at spawn" — that would erase the in-world
+unknown-until-revealed property the maintainer wants to keep. Deferred pending
+a decision on whether it's worth the work at all.
+
+Other known gap: upstream adjudications occasionally restrict mundane public
+actions via noisy `aware_agents` (spurious privacy — honored faithfully by
+synthesis, but worth adjudication-prompt attention).
 
 ### Phase 1: Contracts and pure builders
 
