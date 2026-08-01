@@ -89,6 +89,7 @@ class TestNPCSpawnWeaponPassthrough:
         dm.shared_state.get_target_id_mapper.return_value = MagicMock()
         dm.agent_prompt_logger = None
         dm.llm_provider = None
+        dm.names_client = None
 
         npc = dm._process_npc_spawn(spawn)
 
@@ -119,6 +120,7 @@ class TestNPCSpawnWeaponPassthrough:
         dm.shared_state.get_target_id_mapper.return_value = MagicMock()
         dm.agent_prompt_logger = None
         dm.llm_provider = None
+        dm.names_client = None
 
         npc = dm._process_npc_spawn(spawn)
 

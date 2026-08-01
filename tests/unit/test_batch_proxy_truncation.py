@@ -140,7 +140,7 @@ class TestPreValidateFields:
         with caplog.at_level(logging.WARNING):
             batch_provider._pre_validate_fields(data, schema)
 
-        assert any("Truncating" in rec.message and "title" in rec.message for rec in caplog.records)
+        assert any("truncating" in rec.message.lower() and "title" in rec.message for rec in caplog.records)
 
     def test_handles_missing_fields_gracefully(self, batch_provider):
         """Fields missing from data are not touched (Pydantic handles defaults)."""

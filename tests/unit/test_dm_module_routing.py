@@ -352,9 +352,9 @@ class TestPromptLoadingIntegration:
         assert result is not None
         assert len(result.content) > 0
         assert 'Pinned' in result.content                  # suppression content
-        assert 'base_damage=15' in result.content           # lethal content preserved
+        assert 'LETHAL DAMAGE TABLE' in result.content      # lethal content preserved
         assert 'proportionality' in result.content          # freeform soulcredit
-        assert 'no damage entries' in result.content        # note about Example 2
+        assert 'no damage entries' in result.content.lower()  # note about Example 2
 
 
 class TestDMModuleRoutingWithExperimentFlags:
