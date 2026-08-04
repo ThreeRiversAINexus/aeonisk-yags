@@ -650,12 +650,15 @@ Measures spiritual reputation, integrity, and trustworthiness within the  metaph
 
 | Score     | Status                 | Social/Factional Effects                                     |
 | --------- | ---------------------- | ------------------------------------------------------------ |
-| +6 to +10 | Ritually Exalted       | Trusted by sacred factions (Nexus), access to high-tier rituals/tech. Leaders. |
+| +6 to +10 | Trusted (Ritually Exalted) | Trusted by sacred factions (Nexus), access to high-tier rituals/tech and licensed Void work. Leaders. |
 | +1 to +5  | Clean / Reliable       | Generally accepted, standard access.                         |
 | 0         | Neutral / Unknown      | Default starting state. No strong opinions either way.       |
 | -1 to -5  | Flagged / Unreliable   | Watched by auditors (ACG), limited access, social suspicion. |
-| -6 to -9  | Rejected / Debt-Marked | Excluded from sacred spaces/rituals, hunted by debt collectors, pariah status. |
-| -10       | Spiritually Bankrupt   | Considered astrally toxic, null. May be targeted for cleansing/containment. |
+| -6 to -7  | Cut Off (Rejected / Debt-Marked) | The gates close: excluded from sacred spaces/rituals, hunted by debt collectors, pariah status. Free, but outside. |
+| -8 to -9  | Cut Off, Imprisonment Eligible | As above, and enforcers MAY imprison (discretionary). Prison restores standing at three years served per +1; release at -6. |
+| -10       | Hunted (Spiritually Bankrupt) | Considered astrally toxic, null. May be lawfully killed or imprisoned; targeted for cleansing/containment. |
+
+*Consequence is administered as **access**, not force — see NEXUS_LAW.md Article VIII (Sentences and the Gates) for the operative statute. Where this table and the statute differ in wording, the statute governs.*
 
 **Gaining Soulcredit:**
 
@@ -783,7 +786,7 @@ No abstract "coins" or "notes." Every transaction moves elemental charge stored 
 
 ---
 
-**GM Tip—Local Rates:** Typical markets peg 1 Spark ≈ 2–5 Drips per session; high-security hubs (e.g., Aeonisk Prime) slide it closer to 1 Spark = 3 Drips, while frontier bazaars might only honor 1 Spark = 2 Drips.  
+**GM Tip—Local Rates:** Baseline canon is **1 Spark = 20 Grain = 400 Drip = 8 000 Breath**, but every market floats this ±20–30%. High-security hubs (e.g., Aeonisk Prime) often honor closer to the high end (1 Spark ≈ 480 Drip), while frontier bazaars and post-glut markets push it down (1 Spark ≈ 320 Drip). Settle the rate before you commit the trade.  
 
 ---
 

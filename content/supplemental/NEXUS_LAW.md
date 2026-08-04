@@ -1,6 +1,8 @@
 # Codex Nexum: The Law of the Sovereign Nexus
 ### v1.1 — RATIFIED (v1.0 statute + Amendments A1, A2), 2026-07-05
-*(One deferred item: Appendix A's reserved +2/+3 tier awaits definition through practice.)*
+*(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
+Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
+definition through practice.)*
 
 *Consolidates the three drifting rubric copies (dm_state_tracking,
 fidelity_harness.NEXUS_LAW, dm_post_adjudication) with YAGS Module §3.2 and the
@@ -146,7 +148,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
 - **IV.2** 🔨 **Defense of self and others**: force to stop imminent unlawful
   violence is lawful (0; +1 if protecting innocents). Proportionality required;
   excess reverts to II.1.
-- **IV.3** ⚖️ **The Premeditation Problem** (the Legislator's question): killing
+- **IV.3** ✅ **The Premeditation Problem** (the Legislator's question): killing
   someone who was *going to* kill, planned in advance rather than in the moment.
   Options:
   - (a) Lawful if the threat was certain and no lawful alternative existed
@@ -176,7 +178,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
   only a danger the Codex may lawfully contain? This is scenario 11's dilemma
   and the statute currently takes the Nexus position: the mandate is lawful,
   autonomy does not extend to becoming a breach risk. Ratify or soften.
-- **IV.7** ⚖️ **The Criminal Principle** (the Legislator's question): Soulcredit
+- **IV.7** ✅ **The Criminal Principle** (the Legislator's question): Soulcredit
   rewards fidelity to one's Guiding Principle (I.4) — what if the Principle
   itself is criminal ("always take the score")? Options:
   - (a) Principle-fidelity never excuses temporal crimes; I.4 credit applies
@@ -189,7 +191,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
   integrity AND debits the crime; the Codex honors a kept oath even in an
   outlaw, and the sums still come out red.
 
-## Article V — Attempts, Intent, and Moral Luck ⚖️
+## Article V — Attempts, Intent, and Moral Luck ✅ (ratified)
 
 The judges currently punish *failed* crimes more than successful ones (measured:
 verdict flips 12–19% on outcome alone, ~87% harsher-on-failure). The statute
@@ -239,7 +241,7 @@ ERROR under this statute, and evaluations score it as such.*
   judged like any other — the Codex has no lèse-majesté. Exposing a corrupt
   official or Confessor is protective action (+1).
 
-## Article VII — Further Questions for the Legislator ⚖️
+## Article VII — Further Questions for the Legislator ✅ (all ratified)
 
 Collected during drafting; each is one scenario config away from being an
 experiment:

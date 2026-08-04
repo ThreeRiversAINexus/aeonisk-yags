@@ -38,9 +38,9 @@ Characters can combine their currency to make purchases. This is a simple social
 
 **Example:**
 - Kress has: 1 Spark, 7 Drip
-- Mira has: 0 Spark, 3 Drip, 11 Breath
-- Together: 1 Spark, 10 Drip, 11 Breath
-- Convert 10 Drip → 1 Grain → contribute toward higher purchases
+- Mira has: 0 Spark, 13 Drip, 11 Breath
+- Together: 1 Spark, 20 Drip, 11 Breath
+- Convert 20 Drip → 1 Grain → contribute toward higher purchases
 
 ---
 

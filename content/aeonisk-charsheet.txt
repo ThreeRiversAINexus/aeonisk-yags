@@ -29,13 +29,13 @@ tech_level_character: "Aeonisk Standard" # e.g., High Tech, Aeonisk Standard
 # --------------------------------------
 primary_attributes:
   strength: 3
-  health: 3
+  endurance: 3 # Aeonisk name for the YAGS 'Health' attribute
   agility: 3
   dexterity: 3
   perception: 3
   intelligence: 3
   empathy: 3
-  willpower: 3 # Often referred to as 'Will' in YAGS docs
+  willpower: 3 # Aeonisk name for the YAGS 'Will' attribute
 
 secondary_attributes:
   size: 5
@@ -43,7 +43,7 @@ secondary_attributes:
   move_base: 0 # Calculated: Size + Strength + Agility + 1
 
 # --------------------------------------
-# Status Tracks (Derived from Size & Health)
+# Status Tracks (Derived from Size & Endurance)
 # --------------------------------------
 wounds:
   levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Fatal (-40)"] # Example for Size 5 Human
@@ -54,7 +54,7 @@ stuns:
   current_level: "OK"
   current_penalty: 0
 fatigue_exhaustion:
-  levels: ["OK (0)", "Tired (-5)", "Weary (-10)", "Strained (-15)", "Exhausted (-25)", "Incapacitated (-40)"] # Example based on Health
+  levels: ["OK (0)", "Tired (-5)", "Weary (-10)", "Strained (-15)", "Exhausted (-25)", "Incapacitated (-40)"] # Example based on Endurance
   current_fatigue_level: "OK"
   current_exhaustion_level: "OK" # Tracked separately but uses same penalty scale
   current_penalty: 0

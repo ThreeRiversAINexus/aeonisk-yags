@@ -3,6 +3,11 @@
 **Version 1.2.4**
 *Quick‑look tables for weapons, armor, accessories, vehicles, and companion automata — all formatted for at‑table play or fast GM prep.*
 
+> **Note on the filename.** This document's content is at **v1.2.4**; the file is
+> still named `v1.2.2` deliberately. `scripts/aeonisk/multiagent/knowledge_retrieval.py`
+> resolves it by filename, so the name is a pinned dependency, not a stale
+> version. The internal version above is the authoritative one.
+
 ------
 
 ## 0 · Economics & Infrastructure

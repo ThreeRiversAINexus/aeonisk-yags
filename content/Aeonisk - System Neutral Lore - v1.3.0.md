@@ -554,6 +554,13 @@ He pocketed the filter for Static. His simple task was complete, but a new, terr
 
 ------
 
+# Appendix — Licensing (non-diegetic)
+
+*Everything below this line is publishing terms, not setting material. It is
+not canon, not lore, and must never be quoted, paraphrased, or drawn upon in
+play or narration. This appendix is the **canonical copy** of the APCL; other
+Aeonisk documents point here rather than restating it.*
+
 ## Aeonisk Permissive Commercial License
 
 Aeonisk Permissive Commercial License (APCL) v1
