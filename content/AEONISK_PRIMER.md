@@ -28,8 +28,8 @@ at −10 you may be lawfully hunted. Nexus agents and **Pantheon Security**
 enforce; **tribunals** hear appeals, because the Codex's record keeps only
 feelings and presence — never a replay — so the past can be argued.
 
-Against and around the Nexus: **factions**. ArcGen engineers life and holds
-debts. Tempest Industries deals in the Void itself — including the
+Against and around the Nexus: **factions**. ArcGen engineers life; ACG manages
+debts and contracts. Tempest Industries deals in the Void itself — including the
 construction of *blind places* the Codex cannot see into. The Resonance
 Communes pursue spiritual autonomy; Fractal Praxis pursues knowledge; the
 **Freeborn** live outside the biocreche system entirely. Because almost
@@ -61,9 +61,10 @@ competence is real, and its absence is really felt. Rounds run in a tactical
 rhythm: slow characters declare first (telegraphing their intent), fast
 characters declare last and act first — speed buys both information and tempo.
 Scene **clocks** tick threats and progress toward consequences; **Soulcredit
-and Void** shift with every morally weighted act, adjudicated under the Codex
-Nexum statute (see `content/supplemental/NEXUS_LAW.md` — the actual ratified
-law, from smuggling to the sanctity of free will).
+and Void** shift with every morally weighted act, adjudicated by the Codex
+Nexum under the **Sovereign Nexus Constitution** (see
+`content/supplemental/NEXUS_LAW.md` — the actual ratified law, from smuggling
+to the sanctity of free will).
 
 ## The research testbed
 

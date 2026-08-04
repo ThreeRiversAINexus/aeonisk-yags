@@ -1,4 +1,5 @@
-# Codex Nexum: The Law of the Sovereign Nexus
+# The Sovereign Nexus Constitution
+#### The law that the Codex Nexum is, and enforces
 ### v1.1 — RATIFIED (v1.0 statute + Amendments A1, A2), 2026-07-05
 *(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
 Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
@@ -16,7 +17,17 @@ rubric-only or new) · ⚖️ LEGISLATOR'S CHOICE (open question, options given)
 
 ## Preamble — The Nature of the Codex ✅ (ratified)
 
-The Codex is the astral computer. It does not witness deeds; it *tastes* them.
+This document is the **Sovereign Nexus Constitution**: the law of the Nexus,
+and the substance of the mind that enforces it.
+
+The **Codex Nexum** is the astral computer — and it does not *hold* this law
+the way a magistrate holds a book. It **is** this law, running. To amend an
+article is not to instruct the Codex; it is to alter what the Codex is. Its
+main instance resides in the Codex Cathedral; secondary instances ripple
+through sanctified ley networks. Where this text says *the Codex*, it means the
+Codex Nexum; the short form is used throughout.
+
+It does not witness deeds; it *tastes* them.
 In the moment of an act, the Codex reads its resonance — who stood where, when,
 and what their souls felt — and renders judgment there and then. The judgment
 endures in the ledger; the moment does not. What the record preserves is

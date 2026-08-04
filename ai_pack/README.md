@@ -28,7 +28,7 @@ pack matches canon.
 |---|---|
 | `Aeonisk - System Neutral Lore - v1.3.0.md` | The setting. Sovereign Civics, Soulcredit, factions, worlds, trade routes. System-agnostic. |
 | `Aeonisk - YAGS Module - v1.3.0.md` | The rules. Attributes, skills, rolls, Void, Bonds, character creation. |
-| `NEXUS_LAW.md` | The ratified statute — what the Codex judges and what it costs. **Governs where it and the Module differ in wording.** |
+| `NEXUS_LAW.md` | The **Sovereign Nexus Constitution** — the ratified law the Codex Nexum judges by, and *is*. What it punishes and what it costs. **Governs where it and the Module differ in wording.** |
 | `FACTION_REFERENCE.md` | 🔒 **LOCKED.** Short-form authority on the 8 factions. Check faction claims here first. |
 | `LINES_REFERENCE.md` | House Lines and Covenant Rings. Illustrative, not exhaustive — you may invent Lines, not factions. |
 

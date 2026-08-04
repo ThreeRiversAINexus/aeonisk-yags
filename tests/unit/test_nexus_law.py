@@ -49,3 +49,25 @@ def test_in_session_guidance_drift_guard():
     for clause in ("record tampering", "JUDGE THE DEED",
                    "Sovereign Nexus universal morality"):
         assert clause in guidance
+
+
+def test_codex_nexum_identity_is_consistent():
+    """The Legislator's 2026-08-04 ruling: the Codex Nexum IS the law, running.
+
+    'Codex Nexum' formerly named both the astral computer (statute preamble,
+    dm_prompt) and a governing legal *text* (Module glossary), while the law
+    itself had no name of its own. The ruling: the Codex Nexum is the astral
+    computer and is identical with its law; that law is the Sovereign Nexus
+    Constitution. Guard both halves against re-drift.
+    """
+    assert "# The Sovereign Nexus Constitution" in STATUTE
+    assert "The **Codex Nexum** is the astral computer" in STATUTE
+
+    glossary = (ROOT / "content/Aeonisk - YAGS Module - v1.3.0.md").read_text()
+    assert "**Sovereign Nexus Constitution:**" in glossary, (
+        "the law needs its own glossary entry"
+    )
+    assert "**Codex Nexum:** The astral computer" in glossary
+    assert "Governing legal-mnemonic text" not in glossary, (
+        "the Codex Nexum is not a text; that reading was overruled"
+    )

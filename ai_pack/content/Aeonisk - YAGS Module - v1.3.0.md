@@ -953,7 +953,8 @@ ____________________________________________________________
 - **AR/BR:** After/Before Reconciliation (Year 0). Standard time notation.
 - **Bond:** Formal metaphysical alignment/contract. Real and binding.
 - **Codex Cathedral:** Fortified citadel on Aeonisk Prime that houses the main physical manifestation of the Codex Nexum. Seat of the Sovereign Nexus's clerical and judicial body (Confessors, tribunal clerks, Cathedral healers, ritual-supply clergy). Not a separate faction — operates under Nexus authority.
-- **Codex Nexum:** Governing legal-mnemonic text of the Nexus. Its main physical manifestation resides in the Codex Cathedral; secondary instances ripple through sanctified ley networks.
+- **Codex Nexum:** The astral computer that judges under the Sovereign Nexus Constitution — and *is* that law rather than merely holding it: the statute is its substance, not its instruction set. Amending an article alters what the Codex Nexum is. Its main instance resides in the Codex Cathedral; secondary instances ripple through sanctified ley networks. Commonly shortened to **the Codex**.
+- **Sovereign Nexus Constitution:** The law of the Nexus, and the substance of the Codex Nexum that enforces it. Ratified text: `content/supplemental/NEXUS_LAW.md`.
 - **Covenant Rings:** Second Aeon structure (Kinship, Dream, Descent).
 - **Cycle:** A period of 7 days, a week.
 - **Eye of Breach:** Unsanctioned AI that mirrors the Codex Nexum. Active on Nimbus and Hollow Vector.

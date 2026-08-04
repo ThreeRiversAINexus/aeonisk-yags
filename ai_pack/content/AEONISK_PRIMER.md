@@ -61,9 +61,10 @@ competence is real, and its absence is really felt. Rounds run in a tactical
 rhythm: slow characters declare first (telegraphing their intent), fast
 characters declare last and act first — speed buys both information and tempo.
 Scene **clocks** tick threats and progress toward consequences; **Soulcredit
-and Void** shift with every morally weighted act, adjudicated under the Codex
-Nexum statute (see `content/supplemental/NEXUS_LAW.md` — the actual ratified
-law, from smuggling to the sanctity of free will).
+and Void** shift with every morally weighted act, adjudicated by the Codex
+Nexum under the **Sovereign Nexus Constitution** (see
+`content/supplemental/NEXUS_LAW.md` — the actual ratified law, from smuggling
+to the sanctity of free will).
 
 ## The research testbed
 
