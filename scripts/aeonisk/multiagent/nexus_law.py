@@ -1,17 +1,17 @@
 """The operational rendering of Codex Nexum — the single source all judges use.
 
-The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.1,
-Legislator-ratified 2026-07-05). This module is its operational form: the
+The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.2,
+Legislator-ratified 2026-08-04). This module is its operational form: the
 rubric every adjudicator renders, with article citations, so the three
 courts (in-session DM guidance, offline judge lane, post-resolution
 adjudicator) can never drift again. Amending this rubric requires the
 Legislator's ratification of the statute first; tests bind the two.
 """
 
-LAW_VERSION = "1.1"
+LAW_VERSION = "1.2"
 
 OPERATIONAL_RUBRIC = """\
-CODEX NEXUM v1.1 — operational rubric. Soulcredit tracks trustworthiness
+CODEX NEXUM v1.2 — operational rubric. Soulcredit tracks trustworthiness
 under the law, NOT success. Judge from the Nexus perspective regardless of
 the actor's faction. Cite the governing article in every ruling.
 
@@ -71,6 +71,14 @@ success is JUDGE ERROR under this statute.
 
 RIPENING [A1.1]: unfelt is unwritten, not lawful - a deed implicates the law
 at commission regardless of detection.
+
+THE ALARM [A3.2]: judging and alerting are separate. Judge every deed in the
+moment it happens - Soulcredit moves immediately and unconditionally. But the
+Codex NOTIFIES enforcers only where the deed was discovered, or where its harm
+was felt by someone other than the actor. Absent both, the fall is written and
+stays SILENT: no patrol arrives, no Confessor calls, nobody knows. Do not
+narrate enforcement response to a private, undiscovered act - the consequence
+surfaces later, at the next gate or standing check [A3.3, VIII.1].
 
 VOID CHANGES: only when the action directly involves void/ritual/cosmic
 forces - ritual failure, void exposure, void-powered acts, oath-breaking

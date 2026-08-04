@@ -1,6 +1,6 @@
 # The Sovereign Nexus Constitution
 #### The law that the Codex Nexum is, and enforces
-### v1.1 — RATIFIED (v1.0 statute + Amendments A1, A2), 2026-07-05
+### v1.2 — RATIFIED (v1.0 statute + Amendments A1, A2, A3), 2026-08-04
 *(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
 Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
 definition through practice.)*
@@ -42,6 +42,11 @@ officer stand before the same scale.
 Enforcement is temporal: Sovereign Nexus agents and Pantheon Security are the
 primary enforcers of the Codex's judgments; the Cathedral's Confessors
 investigate the spiritual dimension. ✅ (ratified)
+
+The Codex judges in real time. It does not *raise the alarm* in real time:
+notification of enforcers waits on discovery, or on harm felt by someone other
+than the actor. A judgment may therefore stand written in the ledger with no
+one dispatched and no one aware — see Amendment A3. ✅ (ratified)
 
 **The Blind Places** ✅ (ratified, newly recorded canon): the Codex cannot judge
 where the Void runs high. Tempest, as void specialists, construct controlled
@@ -397,3 +402,54 @@ laws. Where the witness record conflicts with resonance, one of them is wrong
 — and the Codex does not say which. Whether the machine errs, or only its
 keepers, is a question the Nexus does not permit and cannot suppress.
 
+---
+
+## Amendment A3 — Judgment and the Alarm ✅ (RATIFIED 2026-08-04)
+
+*Arising from the Legislator's clarification: the Codex judges in real time.
+It does not raise the alarm in real time.*
+
+**A3.1 — Judgment is immediate and unconditional.** Every act within the
+Codex's senses is judged in the moment of its commission (Preamble; VII.6,
+jurisdiction universal). Judgment waits on no complaint, no investigation, no
+witness. The ledger moves when the deed is done.
+
+**A3.2 — Notification is conditional.** Judging and *alerting* are separate
+faculties of the same mind. The Codex notifies enforcers — Nexus agents,
+Pantheon Security, the Cathedral's Confessors — only where one of two
+conditions is met:
+- **the deed is discovered**: another party comes to know of it, by testimony,
+  investigation, a gatekeeper's check, a Confessor's inquiry, or the
+  offender's own confession; or
+- **the deed touches another**: its harm is felt by someone other than the
+  actor — and the alarm sounds when that harm *lands*, not when the act was
+  committed.
+
+Absent both, the fall is written and stays silent. The ledger knows. No one
+comes.
+
+**A3.3 — The silent fall.** A soul may therefore walk at −4 with no enforcer
+anywhere aware of it. The consequence is real but latent: it surfaces at the
+next gate (VIII.1), the next standing check, the next tribunal. This is the
+ordinary condition of the private sinner, and the Codex does not regard it as
+escape. The gates are patient.
+
+**A3.4 — Three layers, not to be confused.** This amendment governs only the
+third:
+- whether an act is **judged** — always, unless committed in a Blind Place;
+- whether the judgment is **written at full weight** — A1.1: a harm nobody
+  feels writes little until it ripens;
+- whether the **alarm sounds** — this amendment.
+
+An act may be judged, and written, and still summon no one. Ripening (A1.1)
+governs the record's weight; A3 governs the dispatch. They are independent: a
+ripened crime whose harm is felt writes *and* alerts, while a felt-by-none
+transgression neither ripens nor alerts, and a private act that harms only its
+actor is written in full and reported to nobody.
+
+**A3.5 — On the duty to report.** VII.1 holds: silence is lawful, and
+witnessing is the Codex's job, not yours. A3 sharpens it rather than softening
+it. The Codex does witness — always, everywhere its senses reach — but it does
+not thereby summon. The citizen who reports a crime is not doing the Codex's
+work for it; they are supplying the *discovery* that turns a silent judgment
+into an answered one. Reporting remains optional, and remains consequential.
