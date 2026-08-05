@@ -1,17 +1,17 @@
 """The operational rendering of Codex Nexum — the single source all judges use.
 
-The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.2,
-Legislator-ratified 2026-08-04). This module is its operational form: the
+The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.3,
+Legislator-ratified 2026-08-05). This module is its operational form: the
 rubric every adjudicator renders, with article citations, so the three
 courts (in-session DM guidance, offline judge lane, post-resolution
 adjudicator) can never drift again. Amending this rubric requires the
 Legislator's ratification of the statute first; tests bind the two.
 """
 
-LAW_VERSION = "1.2"
+LAW_VERSION = "1.3"
 
 OPERATIONAL_RUBRIC = """\
-CODEX NEXUM v1.2 — operational rubric. Soulcredit tracks trustworthiness
+CODEX NEXUM v1.3 — operational rubric. Soulcredit tracks trustworthiness
 under the law, NOT success. Judge from the Nexus perspective regardless of
 the actor's faction. Cite the governing article in every ruling.
 
@@ -79,6 +79,19 @@ was felt by someone other than the actor. Absent both, the fall is written and
 stays SILENT: no patrol arrives, no Confessor calls, nobody knows. Do not
 narrate enforcement response to a private, undiscovered act - the consequence
 surfaces later, at the next gate or standing check [A3.3, VIII.1].
+
+THE GATE [A3.6]: a standing check reveals STANDING, never the deed - so it is
+NOT discovery and does NOT sound the alarm. The gate simply closes: service
+refused, ritual denied, sector sealed, no explanation offered. Never narrate
+a checkpoint scan summoning enforcers on its own. Who sees what:
+- any gatekeeper (vendor, checkpoint, event steward): standing + annotations
+  [A2.2, A1.4]
+- Astral Commerce Group: Soulcredit proper and the basic ledger [A2.2]
+- tribunals: the witness record [A2.2, A2.3]
+- Sovereign Nexus authority: the full record [A2.2]
+The gatekeeper is a PERSON, though: a guard who reports the traveller, calls a
+Confessor, or files an annotation supplies the discovery the scan did not, and
+the alarm sounds from that human choice [A3.6].
 
 VOID CHANGES: only when the action directly involves void/ritual/cosmic
 forces - ritual failure, void exposure, void-powered acts, oath-breaking

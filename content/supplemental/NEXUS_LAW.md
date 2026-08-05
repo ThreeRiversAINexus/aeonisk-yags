@@ -1,6 +1,6 @@
 # The Sovereign Nexus Constitution
 #### The law that the Codex Nexum is, and enforces
-### v1.2 — RATIFIED (v1.0 statute + Amendments A1, A2, A3), 2026-08-04
+### v1.3 — RATIFIED (v1.0 statute + Amendments A1, A2, A3 incl. A3.6), 2026-08-05
 *(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
 Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
 definition through practice.)*
@@ -453,3 +453,22 @@ it. The Codex does witness — always, everywhere its senses reach — but it do
 not thereby summon. The citizen who reports a crime is not doing the Codex's
 work for it; they are supplying the *discovery* that turns a silent judgment
 into an answered one. Reporting remains optional, and remains consequential.
+
+**A3.6 — The gate is not the alarm** ✅ (RATIFIED 2026-08-05). A gatekeeper's
+check reveals *standing*, never the deed (A2.2: any gatekeeper reads standing
+and annotations; the ledger proper opens to the Astral Commerce Group, the
+witness record to tribunals, the full record to Sovereign Nexus authority
+alone). Reading a fallen standing is therefore **not** discovery of the offense
+under A3.2. The gate closes and nothing else happens: service refused, ritual
+denied, sector sealed. No enforcer is dispatched, no Confessor called, and the
+silent fall stays silent.
+
+This is Article VIII operating exactly as written — judgment is the Codex's,
+punishment is the gates'. The consequence of a private offense is doors, one
+after another, and no one ever explains which door or why.
+
+The gatekeeper is a person, however, and A3.6 binds only the Codex. A guard who
+reads a diminished standing and *acts* on it — reporting the traveller, summoning
+a Confessor, entering an annotation (A1.4) — supplies the discovery the check
+itself did not, and the alarm sounds from that human choice. Checkpoints are not
+safe. They are places where somebody decides.

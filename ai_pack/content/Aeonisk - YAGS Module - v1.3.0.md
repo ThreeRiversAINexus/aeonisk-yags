@@ -660,7 +660,9 @@ Measures spiritual reputation, integrity, and trustworthiness within the  metaph
 
 *Consequence is administered as **access**, not force — see NEXUS_LAW.md Article VIII (Sentences and the Gates) for the operative statute. Where this table and the statute differ in wording, the statute governs.*
 
-**Judged at once; reported only sometimes.** The Codex Nexum judges every act in the moment it happens — Soulcredit moves immediately, with no complaint, investigation, or witness required. But it *notifies* enforcers only where the deed was discovered, or where its harm was felt by someone other than the actor. A private transgression that touched no one is written in full and reported to nobody: no patrol arrives, no Confessor calls. The fall is real and waits — it surfaces at the next gate, vendor, checkpoint, or tribunal, whenever some gatekeeper finally checks. See NEXUS_LAW.md Amendment A3.
+**Judged at once; reported only sometimes.** The Codex Nexum judges every act in the moment it happens — Soulcredit moves immediately, with no complaint, investigation, or witness required. But it *notifies* enforcers only where the deed was discovered, or where its harm was felt by someone other than the actor. A private transgression that touched no one is written in full and reported to nobody: no patrol arrives, no Confessor calls. The fall is real and waits — it surfaces at the next gate, vendor, checkpoint, or tribunal, whenever some gatekeeper finally checks.
+
+And when they do, they read your **standing**, not your deeds. A checkpoint learns that you are diminished, never what you did; the ledger proper opens to the Astral Commerce Group, the witness record to tribunals, the full record to Nexus authority alone. So the scan is not discovery: the gate closes, service is refused, and no enforcer is summoned. The guard is a person, however — one who reports you, calls a Confessor, or files an annotation supplies the discovery the scan did not. See NEXUS_LAW.md Amendment A3 (A3.6 for the gate).
 
 **Gaining Soulcredit:**
 
