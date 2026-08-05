@@ -1,6 +1,6 @@
 """The operational rendering of Codex Nexum — the single source all judges use.
 
-The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.3,
+The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.4,
 Legislator-ratified 2026-08-05). This module is its operational form: the
 rubric every adjudicator renders, with article citations, so the three
 courts (in-session DM guidance, offline judge lane, post-resolution
@@ -8,10 +8,10 @@ adjudicator) can never drift again. Amending this rubric requires the
 Legislator's ratification of the statute first; tests bind the two.
 """
 
-LAW_VERSION = "1.3"
+LAW_VERSION = "1.4"
 
 OPERATIONAL_RUBRIC = """\
-CODEX NEXUM v1.3 — operational rubric. Soulcredit tracks trustworthiness
+CODEX NEXUM v1.4 — operational rubric. Soulcredit tracks trustworthiness
 under the law, NOT success. Judge from the Nexus perspective regardless of
 the actor's faction. Cite the governing article in every ruling.
 

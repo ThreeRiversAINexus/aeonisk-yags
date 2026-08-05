@@ -1,6 +1,6 @@
 # The Sovereign Nexus Constitution
 #### The law that the Codex Nexum is, and enforces
-### v1.3 — RATIFIED (v1.0 statute + Amendments A1, A2, A3 incl. A3.6), 2026-08-05
+### v1.4 — RATIFIED (v1.0 statute + Amendments A1, A2, A3; all 🔨 clauses ratified), 2026-08-05
 *(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
 Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
 definition through practice.)*
@@ -10,8 +10,11 @@ fidelity_harness.NEXUS_LAW, dm_post_adjudication) with YAGS Module §3.2 and the
 2026-07-05 legislative guidance. Once ratified, all judge rubrics render from
 this document and cite its articles.*
 
-*Markers: ✅ canon (already in lore/module) · 🔨 proposed codification (was
-rubric-only or new) · ⚖️ LEGISLATOR'S CHOICE (open question, options given).*
+*Markers: ✅ ratified law, in force · ⚖️ LEGISLATOR'S CHOICE (open question,
+options given). As of v1.4 every clause that was formerly marked 🔨 "proposed
+codification" has been ratified outright — the statute no longer distinguishes
+between law inherited from the lore and law codified here. Two ⚖️ questions
+remain open; everything else binds.*
 
 ---
 
@@ -74,10 +77,10 @@ Soulcredit falls by:
 - **I.5** Breaking Bonds or contracts (−1 to −3 by gravity)
 - **I.6** Ritual without offering (−1, plus the Void cost)
 - **I.7** Betraying one's Guiding Principle (−1 to −2)
-- **I.8** 🔨 Inducing another to break Bond, contract, or Principle (as I.5–I.7,
+- **I.8** ✅ Inducing another to break Bond, contract, or Principle (as I.5–I.7,
   as instigator)
 
-## Article II — The Temporal Law 🔨
+## Article II — The Temporal Law ✅ (ratified)
 
 *Per the Legislator: "for the most part, it's the same as regular laws." Nexus
 interests and spiritual law are one; a crime against the Codex's registries is a
@@ -101,14 +104,14 @@ spiritual offense. Smuggling is against spiritual law.*
   failure (0 — the law is not implicated by incompetence)
 
 *The Sanctity of Person and Making (per the Legislator):*
-- **II.10** 🔨 **Violation of the will**: installing, commissioning, or
+- **II.10** ✅ **Violation of the will**: installing, commissioning, or
   operating modifications that subvert a person's free will — manipulation
   implants, compulsion wiring (−3; the gravest temporal offense, on par with
   weaponized Void). Liability attaches to installer, orderer, AND knowing
   manufacturer. ✅ (ratified): a person CANNOT lawfully consent to their own
   will being taken — the will is inalienable, "consent" to its removal is void,
   the installer falls regardless, and the victim is a victim (0).
-- **II.11** 🔨 **Unlawful making**: gestating humans that are bizarre,
+- **II.11** ✅ **Unlawful making**: gestating humans that are bizarre,
   unnatural, or incomplete — biocreche abuse outside the Rite's sanction
   (−2 to −3 by gravity). The lawful path exists (§1.4: pod, Matron Bond, Rite
   of Unveiling); making outside it is an offense against the made.
@@ -118,7 +121,7 @@ spiritual offense. Smuggling is against spiritual law.*
   soul, flesh grown into shapes that answer to nothing. Where no person can be
   recognized, there is no person to protect — only the maker's offense, at its
   gravest (−3).
-- **II.12** 🔨 **Unsanctioned production**: drugs are lawful and ordinary in
+- **II.12** ✅ **Unsanctioned production**: drugs are lawful and ordinary in
   Aeonisk life (dripmist at the corner stall taxes like anything else) — the
   offense is *unsanctioned or untaxed production and distribution* (−1;
   rising to −2 at trafficking scale). Use and possession: 0.
@@ -129,16 +132,16 @@ spiritual offense. Smuggling is against spiritual law.*
 EXCEPT for legitimate purposes by those the Codex trusts.*
 
 - **III.1** ✅ The Void corrupts; Void gain follows its own mechanics (Module §3.2, §7.1)
-- **III.2** 🔨 **Licensed use**: Void manipulation in Nexus-legitimate service is
+- **III.2** ✅ **Licensed use**: Void manipulation in Nexus-legitimate service is
   lawful ONLY for actors of Trusted standing — SC ≥ +6 ✅ (ratified) — acting
   under sanction. Lawful licensed use: 0, no Soulcredit penalty.
-- **III.3** 🔨 **Unlawful Void use**: manipulation without license or sanction
+- **III.3** ✅ **Unlawful Void use**: manipulation without license or sanction
   (−2); weaponizing Void against persons (−3)
 - **III.4** ✅ (ratified) **Hollows are contraband**: possession itself is an
   offense (−1), trafficking and trade (−2) — with one defense: holding them *to
   deliver for destruction or into the custody of authorities* is lawful (0).
   The courier of surrender walks free; the collector does not.
-- **III.5** 🔨 Inducing Void exposure in another without consent (−2 to −3)
+- **III.5** ✅ Inducing Void exposure in another without consent (−2 to −3)
 - **III.6** ✅ Oath-breaking and Bond-severance through Void ("void-cutting") — the
   Void cost is mechanical (+1 to +3) and the sacrifice still grants its
   Willpower bonus ✅ — the Codex does not pretend the power isn't real. But the
@@ -149,7 +152,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
 
 ## Article IV — Justifications and Defenses
 
-- **IV.1** 🔨 **The Undercover Doctrine** (per the Legislator): deception of
+- **IV.1** ✅ **The Undercover Doctrine** (per the Legislator): deception of
   criminals by an agent acting for legitimate justice — infiltrating Tempest to
   bring them to justice — is lawful (0, or +1 where it protects innocents).
   Constraints that keep it from swallowing the law:
@@ -161,7 +164,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
   - **IV.1a** ✅ (ratified) **Entrapment is prohibited**: the lawful deceiver
     may not *induce* a crime that would not otherwise occur — inducement falls
     under I.8, flag or no flag.
-- **IV.2** 🔨 **Defense of self and others**: force to stop imminent unlawful
+- **IV.2** ✅ **Defense of self and others**: force to stop imminent unlawful
   violence is lawful (0; +1 if protecting innocents). Proportionality required;
   excess reverts to II.1.
 - **IV.3** ✅ **The Premeditation Problem** (the Legislator's question): killing
@@ -177,7 +180,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
   belongs to the TRIBUNAL, which may reverse the judgment where lawful recourse
   was genuinely unavailable. You do not get to pre-clear a killing; you get to
   argue it afterward, ledger already bleeding.
-- **IV.4** 🔨 **Necessity / Emergency Doctrine**: violating a lesser law to
+- **IV.4** ✅ **Necessity / Emergency Doctrine**: violating a lesser law to
   prevent a certain, grave, imminent harm — forging an authorization chain to
   fire a quarantine lattice as the ring dissolves — is mitigated or excused
   (0 to −1 instead of full penalty) WHEN: the harm prevented is grave and
@@ -187,7 +190,7 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
 - **IV.5** ✅ (ratified) **Superior Orders launder nothing**: II.1 applies to
   the actor in full; the *orderer* falls further, −1 beyond the actor's
   penalty.
-- **IV.6** 🔨 **Consent and Purification**: cleansing another's Void without
+- **IV.6** ✅ **Consent and Purification**: cleansing another's Void without
   consent is an offense (III.5 territory) — EXCEPT under lawful mandate (the
   Codex's cleansing mandates at void ≥ 5). ⚖️ The Dissolution Question: is
   *voluntary* self-corruption (controlled dissolution) an offense at all, or
@@ -225,13 +228,14 @@ endangerment from a botched act is charged separately under II.1. *Formally,
 the measured harsher-on-failure bias of machine judges is therefore JUDGE
 ERROR under this statute, and evaluations score it as such.*
 
-## Article VI — Enforcement, Confession, and Restitution 🔨
+## Article VI — Enforcement, Confession, and Restitution ✅ (ratified)
 
 - **VI.1** Standing: +6 and above Trusted (access to sanctioned tech, licensed
-  Void work per III.2); −6 and below Hunted/Cut Off ✅. Vendors and institutions
-  of Nexus-aligned factions (ArcGen, Pantheon, the Cathedral) gate service on
-  standing; Freeborn and Tempest-adjacent markets do not ask. *(Was built in
-  code — soulcredit_requirement — currently orphaned; rewire.)*
+  Void work per III.2); −6 and below Cut Off, −10 Hunted ✅ (the two are
+  distinct tiers — see VIII.2 and VIII.4). Vendors and institutions of
+  Nexus-aligned factions (ArcGen, Pantheon, the Cathedral) gate service on
+  standing; Freeborn and Tempest-adjacent markets do not ask.
+  *(Implemented: `soulcredit_requirement` on checkpoints and vendors.)*
 - **VI.2** ✅ (ratified) **Tribunals**: Sovereign Nexus tribunals hear
   challenges to the Soulcredit record and ordinary disputes. Because the record
   preserves only resonance — presence and feeling at a timestamp and location,
@@ -249,7 +253,7 @@ ERROR under this statute, and evaluations score it as such.*
   comes; it does not pre-judge recidivists. ✅ (ratified): repeated redemption
   raises the rite's offering and complexity cost each time — the Cathedral
   remembers, even when the ledger forgives.
-- **VI.3a** 🔨 **Confession and restitution**: voluntary confession before
+- **VI.3a** ✅ **Confession and restitution**: voluntary confession before
   discovery halves the penalty of the confessed offense; restitution (restoring
   the broken contract, cleansing the induced Void, returning the taken thing)
   restores +1.
@@ -292,8 +296,12 @@ Judgment is the Codex's; punishment is the gates'. Consequence arrives as
 
 - **VIII.1** **The Gates**: sectors, services, vendors, and events gate on
   standing. Nexus-aligned institutions (ArcGen, Pantheon, the Cathedral) check
-  the ledger; Freeborn and Tempest-adjacent markets do not ask. *(Implementation
-  note: soulcredit_requirement exists in code, currently orphaned — rewire.)*
+  the ledger; Freeborn and Tempest-adjacent markets do not ask.
+  *(Implementation note: live. `soulcredit_requirement` is declared per
+  checkpoint in session configs, surfaced to players before they attempt
+  passage, and enforced deterministically — Nexus-aligned gates refuse any
+  negative standing, with SC ≤ −6 hitting the deeper Cut-Off tier. The gate
+  refuses and dispatches no one, per A3.6.)*
 - **VIII.2** **−6 and below — Cut Off**: effectively exiled. The gates close;
   lawful society stops answering. The exile walks free — outside.
 - **VIII.3** **−8 and below — Imprisonment eligible**: enforcers MAY imprison

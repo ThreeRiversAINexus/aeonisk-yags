@@ -31,6 +31,9 @@ offense — III.4). Drugs like dripmist are ordinary and lawful; only the *untax
 - **Soulcredit (−10..+10)** — spiritual credit score. Gates: **+6 Trusted** (licensed magic/Void
   work, sanctioned tech); **−6 Cut Off** (exile in all but chains); **−8** prisons may take you;
   **−10** lawfully hunted. Private until a gatekeeper tests it (vendor / checkpoint / contract weapon).
+  Judged in real time, but the Codex **alerts enforcers only on discovery or harm to another** — a
+  private transgression is written in full and reported to nobody, and a standing check closes the
+  gate without summoning anyone (A3, A3.6).
 - **Void (0..10)** — corruption counter. Gained via unethical ritual, skipped offerings, broken
   oaths, raw exposure. **5+** warps reality around you; **10** takes you. Legal use licensed only to
   the Trusted (+6); its currency-flesh, **hollows**, are contraband.

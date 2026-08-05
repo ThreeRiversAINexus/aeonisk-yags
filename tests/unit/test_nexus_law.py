@@ -71,3 +71,32 @@ def test_codex_nexum_identity_is_consistent():
     assert "Governing legal-mnemonic text" not in glossary, (
         "the Codex Nexum is not a text; that reading was overruled"
     )
+
+
+def test_scenario_builder_summary_does_not_invert_the_statute():
+    """The skill's clause index drifted badly once — guard the rulings it got wrong.
+
+    As found 2026-08-05 it still carried v1.1, marked two ratified articles as
+    open questions, stated IV.7 as option (a) when the ratified ruling is (b)
+    (the tragic reading), and described reverse moral luck as judge *behaviour*
+    rather than as the JUDGE ERROR Article V declares it to be. A scenario
+    author reading it would have built against the opposite of the law.
+    """
+    summary = (ROOT / ".claude/skills/scenario-builder/references/"
+               "nexus_law_summary.md").read_text()
+
+    assert f"v{LAW_VERSION}" in summary, "clause index is pinned to a stale statute version"
+
+    # IV.7 — the tragic reading: the ledger records BOTH.
+    assert "The ledger records BOTH" in summary
+    assert "Principle-fidelity never excuses temporal crimes" not in summary
+
+    # Article V — harsher-on-failure is error, not expected behaviour.
+    assert "JUDGE ERROR" in summary
+    assert "failed crimes can be judged harder" not in summary
+
+    # IV.3 — the tribunal holds the affirmative defense.
+    assert "TRIBUNAL" in summary
+
+    # Only genuinely open questions may carry the scales.
+    assert summary.count("⚖️") <= 3, "summary marks ratified law as open"
