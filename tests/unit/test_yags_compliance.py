@@ -1,7 +1,7 @@
 """
 tests/unit/test_yags_compliance.py
 
-Validate game follows YAGS rules from content/Aeonisk - YAGS Module - v1.2.2.md
+Validate game follows YAGS rules from content/Aeonisk - YAGS Module - v1.4.0.md
 
 Tests core game mechanics:
 - Combat round structure (declare→resolve→synthesis)

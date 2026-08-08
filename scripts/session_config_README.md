@@ -886,8 +886,8 @@ When `force_vendor_gate: true`, DM generates scenarios like:
 
 ## See Also
 
-- **Economy Guide**: `content/Aeonisk - Economy & Money-Making Guide - v1.3.0.md`
-- **YAGS Module**: `content/Aeonisk - YAGS Module - v1.3.0.md`
+- **Economy Guide**: `content/Aeonisk - Economy & Money-Making Guide - v1.4.0.md`
+- **YAGS Module**: `content/Aeonisk - YAGS Module - v1.4.0.md`
 - **Vendor System**: `scripts/aeonisk/multiagent/energy_economy.py`
 - **Loot System**: `scripts/aeonisk/multiagent/enemy_spawner.py` (line 456)
 - **CLAUDE.md**: Root-level project documentation

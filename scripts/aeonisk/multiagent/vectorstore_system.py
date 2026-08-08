@@ -14,8 +14,21 @@ import re
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Tuple
-import chromadb
-from chromadb.config import Settings
+
+# Canon documents ingested into the vectorstore, repo-root-relative.
+# Guarded by tests/unit/test_vectorstore_rule_files.py — populate_vectorstore()
+# skips missing paths silently, so drift here is invisible at runtime.
+RULE_FILES: List[str] = [
+    "content/AEONISK_PRIMER.md",
+    "content/Aeonisk - YAGS Module - v1.4.0.md",
+    "content/Aeonisk - System Neutral Lore - v1.4.0.md",
+    "content/Aeonisk - Gear & Tech Reference - v1.4.0.md",
+    "content/Aeonisk - Economy & Money-Making Guide - v1.4.0.md",
+    "content/experimental/Aeonisk - Tactical Module - v1.4.0.md",
+    "content/supplemental/NEXUS_LAW.md",
+    "content/supplemental/FACTION_REFERENCE.md",
+    "content/supplemental/LINES_REFERENCE.md",
+]
 
 
 @dataclass
@@ -32,6 +45,12 @@ class AeoniskVectorStore:
     """ChromaDB-based vectorstore for all YAGS and Aeonisk content."""
     
     def __init__(self, persist_directory: str = "./vectorstore_data"):
+        # Imported lazily: chromadb pulls in an opentelemetry stack that is not
+        # always installable alongside the rest of the project, and RULE_FILES
+        # must stay importable without it.
+        import chromadb
+        from chromadb.config import Settings
+
         self.client = chromadb.PersistentClient(
             path=persist_directory,
             settings=Settings(anonymized_telemetry=False)
@@ -105,20 +124,9 @@ class AeoniskVectorStore:
     async def populate_vectorstore(self):
         """Load all markdown files into the vectorstore."""
         
-        # Define all the rule files to process
-        rule_files = [
-            "ai_pack/core.md",
-            "ai_pack/character.md", 
-            "ai_pack/scifitech.md",
-            "content/Aeonisk - YAGS Module - v1.2.1.md",
-            "content/Aeonisk - System Neutral Lore - v1.2.1.md",
-            "content/Aeonisk - Gear & Tech Reference - v1.2.1.md",
-            "content/experimental/Aeonisk - Tactical Module - v1.2.1.md"
-        ]
-        
         all_chunks = []
-        
-        for file_path in rule_files:
+
+        for file_path in RULE_FILES:
             full_path = Path(file_path)
             if full_path.exists():
                 print(f"Processing {file_path}...")
