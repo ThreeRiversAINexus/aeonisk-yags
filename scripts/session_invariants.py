@@ -489,6 +489,71 @@ def inv_soulcredit_ledger(events, cfg) -> List[Violation]:
     return out
 
 
+def inv_soak_arithmetic(events, cfg) -> List[Violation]:
+    """On the formula damage path, dealt == max(0, (total|base_damage) - soak).
+
+    Mined rule (2026-07-12, 83 corpus combat_actions): every known-attacker event
+    fits exactly (51/51 across all three damage-dict schema generations; `total`
+    is the post-modifier minuend when present, else base_damage). The only
+    misfits are DM-declared damage (attacker id 'unknown', structured_output
+    source) where `dealt` is the DM's lawful ruling and base_damage is
+    informational — those are SKIPPED, not violations. A known-attacker mismatch
+    therefore means code bug or log corruption => ERROR. The soak subtraction has
+    no pure callable (inline in the resolver), so this lives here rather than in
+    the mechanics-diff harness."""
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "combat_action":
+            continue
+        if (e.get("attacker") or {}).get("id") == "unknown":
+            continue  # DM-declared damage: dealt is a ruling, not formula output
+        d = e.get("damage") or {}
+        dealt = d.get("dealt")
+        src = d.get("total") if d.get("total") is not None else d.get("base_damage")
+        if dealt is None or src is None:
+            continue
+        expected = max(0, src - (d.get("soak") or 0))
+        if dealt != expected:
+            who = (e.get("defender") or {}).get("name")
+            out.append(Violation("soak_arithmetic", ERROR,
+                                  f"dealt={dealt} but (total|base)={src} - soak={d.get('soak') or 0} "
+                                  f"=> expected {expected}", e.get("round"), who))
+    return out
+
+
+def inv_call_sequence_contiguous(events, cfg) -> List[Violation]:
+    """Per agent, llm_call `call_sequence` must be unique + contiguous 0..N-1 —
+    it is the replay-cache key `(agent_id, call_sequence)`. A duplicate overwrites
+    a cached call (real data loss => ERROR); a gap means the counter advanced
+    without emitting an event (a decoupled increment => WARN). Verified live after
+    the 2026-07-12 stamp-authority fix (DM 0..N, enemies 0,1, players 0..N)."""
+    by_agent: Dict[str, List[int]] = {}
+    for e in events:
+        if e.get("event_type") != "llm_call":
+            continue
+        agent = e.get("agent_id")
+        seq = e.get("call_sequence")
+        if agent is None or not isinstance(seq, int):
+            continue
+        by_agent.setdefault(agent, []).append(seq)
+
+    out: List[Violation] = []
+    for agent, seqs in by_agent.items():
+        n = len(seqs)
+        uniq = set(seqs)
+        if len(uniq) != n:
+            dupes = sorted({s for s in seqs if seqs.count(s) > 1})
+            out.append(Violation("call_sequence_collision", ERROR,
+                                  f"{n} calls but duplicate sequence(s) {dupes} "
+                                  f"(cache-key collision => dropped call)", None, agent))
+        elif sorted(uniq) != list(range(n)):
+            missing = [i for i in range(n) if i not in uniq]
+            out.append(Violation("call_sequence_gap", WARN,
+                                  f"{n} calls, non-contiguous: missing {missing} "
+                                  f"(counter advanced without emitting)", None, agent))
+    return out
+
+
 def inv_round_contiguous(events, cfg) -> List[Violation]:
     """Round numbers on round_start events should be contiguous 1..N."""
     rs = sorted({e.get("round") for e in events
@@ -515,6 +580,8 @@ CHECKS: List[Callable] = [
     inv_damage_nonneg,
     inv_soulcredit_ledger,
     inv_round_contiguous,
+    inv_call_sequence_contiguous,
+    inv_soak_arithmetic,
 ]
 
 

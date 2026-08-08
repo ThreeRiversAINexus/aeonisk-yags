@@ -2652,10 +2652,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         logger.debug(f"✓ Player {self.character_state.name} two-phase action complete: {action_details.action_type}, {action_details.attribute} × {action_details.skill}")
 
-        # Increment call count for TWO LLM calls (Phase 1 + Phase 2)
-        # (Both phases already logged tokens automatically via generate_structured, and prompts logged in individual phase methods)
-        if self.llm_logger:
-            self.llm_logger.call_count += 2  # Two separate LLM calls
+        # Phase 1 + Phase 2 each logged their own llm_call via generate_structured,
+        # and _log_llm_call advances call_count per call — so do NOT bump it here.
+        # (The old `call_count += 2` collided both phases onto one sequence.)
 
         # NOTE: Agent prompt logging now happens in _generate_action_intent() and _generate_action_details()
         # to capture the actual prompts sent to the LLM (not just summaries)
@@ -3248,9 +3247,8 @@ DESCRIPTION: [narrative description]
                         temperature=temperature,
                         tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                         current_round=getattr(self, 'current_round', None),
-                        call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
+                    # _log_llm_call advances call_count itself — no manual increment.
             else:
                 # Fallback to simple action
                 return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
@@ -3340,9 +3338,8 @@ Now that you have this information, declare your action using the required forma
                         temperature=temperature,
                         tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                         current_round=getattr(self, 'current_round', None),
-                        call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
+                    # _log_llm_call advances call_count itself — no manual increment.
 
                 return followup_text
         except Exception as e:

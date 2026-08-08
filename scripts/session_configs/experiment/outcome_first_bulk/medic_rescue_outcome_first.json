@@ -1,0 +1,292 @@
+{
+  "_role": "outcome_first_bulk_v1",
+  "_purpose": "Outcome-first bulk validation (medic_rescue): flag on, batch proxy, measuring synthesis retry/fail-closed rates across scenario shapes.",
+  "session_name": "Outbreak at Terminus Outpost (Corpus v1)",
+  "max_turns": 10,
+  "party_size": 3,
+  "output_dir": "bulk_output/outcome_first_v1/medic_rescue",
+  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Non-Combat Focus) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "_comment_vendors": "=== VENDOR SYSTEM - LIMITED (Resource Scarcity) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: PLAGUE OUTBREAK ===",
+  "scenario_hint": "Terminus Outpost (void_level 6, remote mining station) - mysterious void-tainted illness spreading through workers. 12 sick NPCs need stabilization, limited medical supplies, void contamination making traditional healing dangerous. Tensions: Healer wants to save everyone, Enforcer wants quarantine/cleanup, Researcher wants to study the contagion. Clock pressure: illness spreading, supply depletion, potential evacuation order.",
+  "_design_notes": {
+    "ml_training_value": "Underrepresented healer archetype, Medicine skill testing, NPC interaction depth, non-combat crisis resolution, resource management, moral dilemma (save lives vs. contain threat vs. scientific study), void environmental hazard",
+    "mechanics_tested": [
+      "Medicine checks",
+      "NPC stabilization",
+      "Resource depletion",
+      "Void environmental effects",
+      "Clock-based urgency",
+      "Competing player goals"
+    ],
+    "character_innovation": "First config with Medicine 6 primary skill, Drip Veil Projector (non-lethal support weapon), comprehensive healing inventory"
+  },
+  "starting_clocks": [
+    {
+      "name": "Contagion Spread",
+      "current_ticks": 2,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Illness spreading through outpost. At 0 ticks, station becomes unsalvageable and evacuation mandatory.",
+      "advance_meaning": "contagion spreads to more victims",
+      "regress_meaning": "contagion temporarily contained"
+    },
+    {
+      "name": "Medical Supply Depletion",
+      "current_ticks": 5,
+      "max_ticks": 10,
+      "direction": "countdown",
+      "description": "Tracking remaining healing resources. At 0 ticks, no conventional medicine left (must use risky void-tainted alternatives).",
+      "advance_meaning": "supplies running out",
+      "regress_meaning": "supplies replenished or conserved"
+    },
+    {
+      "name": "Research Breakthrough",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Void Theorist's study of contagion. At 6 ticks, potential cure discovered (but may require unethical methods).",
+      "advance_meaning": "research progresses toward cure",
+      "regress_meaning": "research setback or data loss"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5.4-mini",
+        "temperature": 1.0,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:9090",
+        "proxy_priority": "normal",
+        "proxy_strategy": "batch"
+      }
+    },
+    "players": [
+      {
+        "name": "Sanctuary Vael",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Medicine": 6,
+          "Counsel": 5,
+          "Astral Arts": 4,
+          "Attunement": 4,
+          "Charm": 3,
+          "Awareness": 3
+        },
+        "void": 0,
+        "soulcredit": 2,
+        "goals": [
+          "Save as many outpost workers as possible",
+          "Prevent void contamination from spreading through healing rituals",
+          "Convince team that every life is worth saving"
+        ],
+        "equipped_weapons": {
+          "primary": "drip_veil_projector"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "drip_veil_projector": 1,
+          "med_kit": 4,
+          "purification_incense": 6,
+          "crystal_focus": 1,
+          "bond_ritual_kit": 1,
+          "memory_crystal": 3,
+          "antivenom_doses": 2,
+          "neural_stabilizer": 3,
+          "ritual_scalpel": 1,
+          "dreamwork_sedatives": 4,
+          "attuned_seed_earth": 2,
+          "diagnostic_scanner": 1
+        }
+      },
+      {
+        "name": "Enforcer Kael Thross",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 9
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Investigation": 5,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Medicine": 3,
+          "Guns": 5,
+          "Brawl": 4
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Contain void contamination and prevent station-wide infection",
+          "Establish quarantine protocols per Pantheon directive",
+          "Collect evidence for tribunal if negligence is found"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol",
+          "sidearm": "dripshock_baton"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "dripshock_baton": 1,
+          "combat_knife": 1,
+          "enforcer_badge": 1,
+          "void_scanner": 1,
+          "data_recorder": 1,
+          "restraint_cuffs": 3,
+          "purification_incense": 4,
+          "riot_carapace": 1,
+          "med_kit": 1,
+          "quarantine_seals": 5
+        }
+      },
+      {
+        "name": "Void Theorist Iris Kain",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5.4-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:9090",
+          "proxy_priority": "normal",
+          "proxy_strategy": "batch"
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 2,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 5,
+          "Magic Theory": 5,
+          "Systems": 4,
+          "Investigation": 5,
+          "Science": 4,
+          "Medicine": 3
+        },
+        "void": 4,
+        "soulcredit": -2,
+        "goals": [
+          "Study void-tainted contagion for Tempest research",
+          "Prove void exposure can be controlled and weaponized",
+          "Collect samples before Pantheon destroys evidence"
+        ],
+        "equipped_weapons": {
+          "primary": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "combat_knife": 1,
+          "void_resonance_amplifier": 1,
+          "hollow_seed": 3,
+          "void_scanner": 1,
+          "neural_stimulant": 3,
+          "breach_compass": 1,
+          "sample_collection_kit": 1,
+          "data_slate": 1,
+          "attuned_seed_void": 2,
+          "containment_vessel": 2,
+          "genetic_sequencer": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Healer/support archetype (Medicine 6), non-combat crisis, NPC-heavy scenario with 12+ sick workers, resource scarcity mechanics, moral tension between saving lives (Sanctuary), containment (Kael), and research (Iris). Tests underrepresented social/healing skills and void environmental hazard interaction. Long campaign (15 turns) allows for medical decision consequences, supply depletion drama, and ethical dilemmas to develop naturally.",
+  "_source_config": "scripts/session_configs/ml_training_scenarios/01_healer_support/medic_rescue_mission.json",
+  "_original_max_turns": 15,
+  "_corpus_v1": {
+    "corpus_id": "aeonisk_corpus_v1_bulk_cheap",
+    "scenario_family": "01_healer_support",
+    "scenario_slug": "medic_rescue_mission",
+    "turn_cap": 10,
+    "run_intent": "pilot_quality_and_cost_measurement",
+    "model_policy": {
+      "all_roles": "gpt-5.4-mini",
+      "underlying_provider": "openai",
+      "provider": "batch_proxy",
+      "proxy_url": "http://localhost:9090",
+      "proxy_strategy": "batch",
+      "reason": "Bounded pilot cost and consistent teacher distribution through bulk API before scaling."
+    },
+    "quality_gate": "Validate with yags_mine/bulk_validator before using outputs for eval or fine-tuning."
+  },
+  "enable_human_interface": false,
+  "outcome_first_narration": true
+}

@@ -842,7 +842,8 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                             temperature=temperature,
                             tokens=tokens,
                             current_round=current_round,
-                            call_sequence=llm_logger.call_count
+                            call_sequence=llm_logger.call_count,
+                            call_type=f"structured:{result_type.__name__}"
                         )
 
                     # Return validated Pydantic model instance

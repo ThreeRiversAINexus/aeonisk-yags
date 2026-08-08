@@ -5,6 +5,7 @@ This module provides a wrapper around LLM clients that logs all prompts
 and responses to enable deterministic replay of game sessions.
 """
 
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
@@ -97,10 +98,8 @@ class LLMCallLogger:
             temperature=temperature,
             tokens=tokens,
             current_round=current_round,
-            call_sequence=self.call_count
         )
-
-        self.call_count += 1
+        # NB: _log_llm_call stamps + advances call_count itself — do not increment here.
         return response_text
 
     def _log_llm_call(self,
@@ -110,9 +109,22 @@ class LLMCallLogger:
                      temperature: float,
                      tokens: Dict[str, int],
                      current_round: Optional[int],
-                     call_sequence: int):
+                     call_sequence: int = 0,
+                     call_type: Optional[str] = None):
         """
         Log an LLM call event to JSONL.
+
+        NOTE: the `call_sequence` argument is IGNORED. The sequence is stamped and
+        advanced atomically here so every logged call gets a unique, contiguous
+        per-agent number (the replay-cache key). Callers must NOT increment
+        `call_count` themselves — doing so previously produced colliding stamps
+        (0,0,2,2,…) that overwrote cached calls and crashed replay.
+
+        `call_type` tags WHAT the call was — "structured:<SchemaName>" for
+        Pydantic structured-output calls, "text[:purpose]" otherwise (default
+        "text"). This is the semantic replay-cache key enabler: it lets replay
+        key by meaning instead of strict ordinal, and tells contract replay
+        which schema to re-validate the response against.
 
         Event format:
         {
@@ -130,6 +142,10 @@ class LLMCallLogger:
             "tokens": {"input": 1234, "output": 567}
         }
         """
+        # Atomic stamp + advance: the single source of truth for call_sequence.
+        seq = self.call_count
+        self.call_count += 1
+
         if not self.jsonl_logger:
             logger.debug(f"No JSONL logger configured for {self.agent_id}, skipping LLM call log")
             return
@@ -146,7 +162,8 @@ class LLMCallLogger:
             'round': current_round,
             'agent_id': self.agent_id,
             'agent_type': self.agent_type,
-            'call_sequence': call_sequence,
+            'call_sequence': seq,
+            'call_type': call_type or 'text',
             'prompt': messages,
             'response': response,
             'model': model,
@@ -257,6 +274,39 @@ class MockLLMClient:
 
         # Create messages interface (mimics client.messages.create())
         self.messages = MockMessages(self.cache, self.call_index, self.agent_id)
+
+
+class ReplayStructuredProvider:
+    """Adapt a replay client to the provider interface used by DM helpers."""
+
+    def __init__(self, client: Any):
+        self.client = client
+
+    async def generate_structured(self, prompt: str, result_type: type,
+                                  system_prompt: Optional[str] = None,
+                                  max_tokens: Optional[int] = None,
+                                  temperature: Optional[float] = None,
+                                  **kwargs):
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
+        response = self.client.messages.create(
+            model=kwargs.get("model", "replay"),
+            messages=messages,
+            temperature=temperature or 0.0,
+            max_tokens=max_tokens or 4000,
+        )
+        text = response.content[0].text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end <= start:
+                raise ValueError(f"Cached replay response is not JSON for {result_type.__name__}")
+            payload = json.loads(text[start:end + 1])
+        return result_type.model_validate(payload)
 
 
 class HybridMessages:

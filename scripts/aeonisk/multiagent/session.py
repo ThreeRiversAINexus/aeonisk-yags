@@ -316,7 +316,9 @@ def _parse_surrender_from_resolution(
 
 def _mark_defeated_from_resolution(
     enemy_combat,
-    resolution_state: ResolutionState
+    resolution_state: ResolutionState,
+    jsonl_logger=None,
+    round_num=None
 ) -> None:
     """
     Sync resolution_state with enemies defeated or incapacitated by PC actions.
@@ -368,6 +370,9 @@ def _mark_defeated_from_resolution(
             from .mechanics import resolve_ko_check
             resolution_state.ko_checked.add(agent_id)
             result = resolve_ko_check(stuns, wounds, _ko_health_attr(enemy))
+            _log_ko_check(jsonl_logger, round_num, agent_id,
+                          getattr(enemy, 'name', agent_id), 'enemy',
+                          stuns, wounds, _ko_health_attr(enemy), result)
             if not result['can_act']:
                 resolution_state.mark_incapacitated(agent_id)
                 logger.info(f"Beaten/Fatal KO: {enemy.name} ({agent_id}) failed health check "
@@ -376,6 +381,74 @@ def _mark_defeated_from_resolution(
             else:
                 logger.info(f"Beaten/Fatal but conscious: {enemy.name} ({agent_id}) passed health "
                             f"check (total={result['total']} vs DC {result['dc']}) - acts while Beaten")
+
+
+_VALID_RINGS = {"Engaged", "Near", "Far", "Extreme"}
+
+
+def _resume_position(value):
+    """Restore a recorded position string as the tactical Position object BOTH
+    agent kinds actually hold (enemy_agent.Position, ring+side, with
+    from_string/shift_toward_center). Recorded strings are its own str() form
+    ('Near-Enemy', 'Engaged-PC'), so they round-trip exactly. Two earlier
+    guesses crashed live: a bare string ('str' has no shift_toward_center) and
+    the schemas Position ENUM ('Position' has no shift_toward_center — that
+    enum is the LLM-schema type, not the tactical one). Unknown rings fall back
+    to Near-Enemy, the engine-safe default."""
+    from .enemy_agent import Position
+    pos = Position.from_string(str(value))
+    if pos.ring not in _VALID_RINGS:
+        return Position.from_string("Near-Enemy")
+    return pos
+
+
+def _serialize_conditions(mechanics, agent_id) -> list:
+    """Serialize an agent's live conditions for the character_state snapshot.
+
+    Was hardcoded [] (TODO) — conditions existed only in mechanics.conditions,
+    invisible to the corpus and to round-state reconstruction. Best-effort:
+    a broken mechanics object must never break state logging.
+    """
+    try:
+        conds = mechanics.get_conditions(agent_id) if mechanics else []
+        return [{"name": c.name, "type": c.type, "penalty": c.penalty,
+                 "duration": c.duration, "affects": list(c.affects)}
+                for c in conds]
+    except Exception:
+        return []
+
+
+def _log_ko_check(jsonl_logger, round_num, agent_id, name, side,
+                  stuns, wounds, health_attr, result) -> None:
+    """Emit a ko_check event for a rolled Beaten/Fatal consciousness check.
+
+    Carries the full inputs (stuns/wounds/health_attr/roll) and outputs
+    (dc/total/can_act/status) so the mechanics-diff harness can re-run
+    resolve_ko_check deterministically with the logged roll. Best-effort:
+    logging failure must never break the gate itself.
+    """
+    if not jsonl_logger:
+        return
+    try:
+        jsonl_logger.write_event({
+            'event_type': 'ko_check',
+            'ts': datetime.now().isoformat(),
+            'session': getattr(jsonl_logger, 'session_id', None) or 'unknown',
+            'round': round_num,
+            'agent_id': agent_id,
+            'name': name,
+            'side': side,
+            'stuns': stuns,
+            'wounds': wounds,
+            'health_attr': health_attr,
+            'roll': result['roll'],
+            'dc': result['dc'],
+            'total': result['total'],
+            'can_act': result['can_act'],
+            'status': result['status'],
+        })
+    except Exception as e:
+        logger.error(f"Failed to log ko_check for {agent_id}: {e}")
 
 
 def _ko_health_attr(entity) -> int:
@@ -397,7 +470,8 @@ def _ko_health_attr(entity) -> int:
     return 3
 
 
-def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
+def _check_beaten_ko(agent, resolution_state: ResolutionState,
+                     jsonl_logger=None, round_num=None) -> bool:
     """YAGS per-round consciousness gate (combat.md:419/469): if the agent is
     Beaten (stuns>=6) or Fatally wounded (wounds>=6), roll the health check. On
     failure they are unconscious THIS round — marked incapacitated in the
@@ -416,6 +490,8 @@ def _check_beaten_ko(agent, resolution_state: ResolutionState) -> bool:
     result = resolve_ko_check(stuns, wounds, _ko_health_attr(agent))
     cs = getattr(agent, 'character_state', None)
     name = getattr(cs, 'name', None) or getattr(agent, 'agent_id', '?')
+    _log_ko_check(jsonl_logger, round_num, agent.agent_id, name, 'player',
+                  stuns, wounds, _ko_health_attr(agent), result)
     if not result['can_act']:
         resolution_state.mark_incapacitated(agent.agent_id)
         logger.info(
@@ -548,6 +624,124 @@ def _normalize_enemy_result(result: dict) -> dict:
     return normalized
 
 
+class EnemyFallbackLLMClient:
+    """
+    Wrapper for enemy LLM calls with logging support.
+
+    Each enemy gets its own instance (cached per agent_id on the session) so
+    call_sequence advances monotonically across rounds — the replay-cache key.
+    Previously this was defined inline in _run_initiative_round and rebuilt every
+    round, resetting call_sequence to 0 (enemies logged [0, 0] across rounds).
+
+    `provider` may be injected (tests); otherwise it is created from llm_config.
+    """
+
+    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown',
+                 session_id=None, agent_prompt_logger=None, provider=None,
+                 replay_client=None):
+        self.llm_config = llm_config
+        self.jsonl_logger = jsonl_logger
+        self.agent_prompt_logger = agent_prompt_logger
+        self.agent_id = agent_id
+        self.session_id = session_id
+        self.replay_client = replay_client
+        self.call_sequence = 0  # Track LLM call ordering for replay
+
+        if replay_client is not None:
+            self.provider = None
+        elif provider is not None:
+            self.provider = provider
+        else:
+            # Use llm_provider instead of direct Anthropic client
+            from .llm_provider import LLMConfig, create_provider
+
+            provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
+            self.provider = create_provider(provider_config)
+
+    async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
+        from datetime import datetime, timezone
+
+        if self.replay_client is not None:
+            response = self.replay_client.messages.create(
+                model=self.llm_config.get('model', 'replay'),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return {"content": response.content[0].text}
+
+        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
+        response = await self.provider.generate(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+
+        response_text = response.text
+
+        # Log LLM call if logger is available
+        if self.jsonl_logger:
+            try:
+                from token_utils import count_chat_tokens, count_text_tokens
+
+                messages = [{"role": "user", "content": prompt}]
+                model = self.llm_config.get('model', 'unknown')
+                input_tokens = count_chat_tokens(messages, model)
+                output_tokens = count_text_tokens(response_text, model)
+                self.jsonl_logger.write_event({
+                    'event_type': 'llm_call',
+                    'ts': datetime.now(timezone.utc).isoformat(),
+                    'session': self.session_id or 'unknown',
+                    'round': None,  # Enemy calls don't have round context here
+                    'agent_id': self.agent_id,
+                    'agent_type': 'enemy',
+                    'call_sequence': self.call_sequence,
+                    'call_type': 'text:enemy_tactical',
+                    'prompt': messages,
+                    'response': response_text,
+                    'model': model,
+                    'temperature': temperature,
+                    'tokens': {
+                        'input': input_tokens,
+                        'output': output_tokens,
+                        'total': input_tokens + output_tokens,
+                    }
+                })
+                self.call_sequence += 1
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
+
+        # Also log to human-readable agent prompt log if enabled
+        if self.agent_prompt_logger:
+            try:
+                from token_utils import count_chat_tokens, count_text_tokens
+
+                messages = [{"role": "user", "content": prompt}]
+                model = self.llm_config.get('model', 'unknown')
+                input_tokens = count_chat_tokens(messages, model)
+                output_tokens = count_text_tokens(response_text, model)
+                self.agent_prompt_logger.log_llm_call(
+                    agent_id=self.agent_id,
+                    round_num=None,  # Enemy calls don't have round context
+                    call_sequence=self.call_sequence - 1,  # Already incremented above
+                    prompt=prompt,  # Full prompt text
+                    response=response_text,
+                    model=model,
+                    temperature=temperature,
+                    tokens={
+                        'input': input_tokens,
+                        'output': output_tokens,
+                        'total': input_tokens + output_tokens,
+                    }
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+        return {"content": response_text}
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -568,6 +762,10 @@ class SelfPlayingSession:
 
         self.coordinator: Optional[GameCoordinator] = None
         self.agents: List[Any] = []
+        # Per-enemy fallback LLM clients, cached by agent_id so their
+        # call_sequence counter persists across rounds (replay-cache key).
+        self._enemy_llm_clients: Dict[str, Any] = {}
+        self._replay_agent_aliases: Dict[str, str] = {}
         self.human_interface: Optional[HumanInterface] = None
         self.session_id: Optional[str] = None
         self.session_data: List[Dict[str, Any]] = []
@@ -1056,6 +1254,10 @@ class SelfPlayingSession:
         await self._scenario_ready.wait()
         print("Scenario ready!")
 
+        # Resume-from-divergence: overlay exact recorded vitals on the freshly
+        # created party + spawned enemies (no-op unless config has resume_state)
+        self._apply_resume_state()
+
         # Give players time to receive and process SCENARIO_SETUP message
         # before starting declarations (fixes race condition where enemies
         # declare before players see the scenario)
@@ -1105,6 +1307,9 @@ class SelfPlayingSession:
             session_config=self.config,  # Pass full session config for persistent vendors
             # names_client attached in start_session() after session_id is known
         )
+        if self.replay_mode and dm_llm_client is not None:
+            from .llm_logger import ReplayStructuredProvider
+            dm_agent.llm_provider = ReplayStructuredProvider(dm_llm_client)
         self.dm_agent = dm_agent  # Held for post-init wiring (names_mcp, etc.)
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -1858,6 +2063,11 @@ Generate narratives (numbered list only):"""
                 await self._check_end_conditions()
                 break
 
+            # Fail-closed synthesis aborts the session; skip the DM turn.
+            if self._end_reason == 'round_synthesis_failed':
+                await self._check_end_conditions()
+                break
+
             # Run DM turn at end of round
             await self._run_dm_turn()
 
@@ -1956,6 +2166,118 @@ Generate narratives (numbered list only):"""
                 ],
                 changes=changes,
             )
+
+    def _apply_resume_state(self):
+        """Apply a resume_state config block (resume-from-divergence, replay
+        rung 3): exact vitals for party + spawned enemies, matched by NAME
+        (the resumed session mints fresh agent_ids). Runs after scenario setup
+        so initial_enemies have spawned. Roster/clocks/scenario ride existing
+        config surfaces (initial_enemies / starting_clocks / force_scenario);
+        this hook is the one new seam. Unmatched entries warn, never raise.
+
+        Returns {"party": n, "enemies": n, "unmatched": [names]} or None when
+        no resume_state is configured.
+        """
+        rs = (self.config or {}).get("resume_state")
+        if not rs:
+            return None
+        applied = {"party": 0, "enemies": 0, "unmatched": []}
+
+        party_by_name = {p.get("name"): p for p in rs.get("party", []) if p.get("name")}
+        for agent in self.agents:
+            cs = getattr(agent, "character_state", None)
+            name = getattr(cs, "name", None)
+            if not name or name not in party_by_name:
+                continue
+            o = party_by_name.pop(name)
+            for attr in ("health", "max_health", "wounds", "stuns"):
+                if o.get(attr) is not None:
+                    setattr(agent, attr, o[attr])
+            if o.get("position") is not None:
+                agent.position = _resume_position(o["position"])
+            for attr in ("void_score", "soulcredit"):
+                if o.get(attr) is not None and cs is not None:
+                    setattr(cs, attr, o[attr])
+            purse = getattr(cs, "energy_purse", None)
+            if purse is not None:
+                for currency, amount in (o.get("energy") or {}).items():
+                    if hasattr(purse, currency):
+                        setattr(purse, currency, amount)
+            applied["party"] += 1
+            logger.info(f"Resume: applied party state to {name} "
+                        f"(hp={o.get('health')} w={o.get('wounds')} s={o.get('stuns')})")
+        applied["unmatched"].extend(party_by_name)
+
+        enemies_by_name = {e.get("name"): e for e in rs.get("enemies", []) if e.get("name")}
+        roster = getattr(self.enemy_combat, "enemy_agents", None) or []
+        for enemy in roster:
+            o = enemies_by_name.pop(getattr(enemy, "name", None), None)
+            if not o:
+                continue
+            for attr in ("health", "max_health", "wounds", "stuns"):
+                if o.get(attr) is not None:
+                    setattr(enemy, attr, o[attr])
+            if o.get("position") is not None:
+                enemy.position = _resume_position(o["position"])
+            applied["enemies"] += 1
+            logger.info(f"Resume: applied enemy state to {enemy.name} "
+                        f"(hp={o.get('health')} w={o.get('wounds')} s={o.get('stuns')})")
+        applied["unmatched"].extend(enemies_by_name)
+
+        for name in applied["unmatched"]:
+            logger.warning(f"Resume: no live entity matched resume_state entry '{name}'")
+        print(f"✓ Resume state applied: {applied['party']} party, "
+              f"{applied['enemies']} enemies"
+              + (f", {len(applied['unmatched'])} unmatched" if applied["unmatched"] else ""))
+        return applied
+
+    def _get_enemy_llm_client(self, llm_config, agent_id, mechanics, provider=None):
+        """Return the cached fallback LLM client for this enemy, creating it once.
+
+        Caching by agent_id keeps the client's call_sequence counter monotonic
+        across rounds — otherwise a fresh client per round reset it to 0, so an
+        enemy declaring in multiple rounds logged colliding [0, 0, ...] sequences
+        (the replay-cache key). `provider` is injectable for tests.
+        """
+        client = self._enemy_llm_clients.get(agent_id)
+        if client is None:
+            client = EnemyFallbackLLMClient(
+                llm_config,
+                jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                agent_id=agent_id,
+                session_id=self.session_id,
+                agent_prompt_logger=self.agent_prompt_logger,
+                provider=provider,
+                replay_client=self._get_replay_client(agent_id) if self.replay_mode else None,
+            )
+            self._enemy_llm_clients[agent_id] = client
+        return client
+
+    def _get_replay_client(self, agent_id):
+        """Create one cached or hybrid client per replayed agent."""
+        from .llm_logger import MockLLMClient, HybridLLMClient
+
+        cache_agent_id = agent_id
+        if agent_id not in self.llm_cache and agent_id.startswith('enemy_'):
+            cached_enemy_ids = sorted({
+                cached_id for cached_id, _sequence in self.llm_cache
+                if cached_id.startswith('enemy_')
+            })
+            used_ids = set(self._replay_agent_aliases.values())
+            available = [item for item in cached_enemy_ids if item not in used_ids]
+            if available:
+                cache_agent_id = available[0]
+                self._replay_agent_aliases[agent_id] = cache_agent_id
+
+        if self.continue_from_round is not None:
+            client = HybridLLMClient(
+                self.llm_cache,
+                agent_id=cache_agent_id,
+                continue_from_round=self.continue_from_round,
+            )
+            self.hybrid_clients.append(client)
+            return client
+        return MockLLMClient(self.llm_cache, agent_id=cache_agent_id)
 
     async def _run_initiative_round(self) -> bool:
         """
@@ -2090,7 +2412,7 @@ Generate narratives (numbered list only):"""
             mechanics.jsonl_logger.log_declaration_phase_start(mechanics.current_round)
 
         # Prepare LLM client for enemy declarations (if needed)
-        llm_client = None
+        enemy_fallback_available = False
         available_tokens = []
         if self.enemy_combat.enabled and len(self.enemy_combat.enemy_agents) > 0:
             # Get available tactical tokens (if mechanics tracks them)
@@ -2103,107 +2425,11 @@ Generate narratives (numbered list only):"""
                 dm_agent = dm_agents[0]
                 enemy_llm_config = get_enemy_llm_config(self.config) or dm_agent.llm_config
 
-                # Create a simple wrapper for enemy fallback LLM functionality.
-                class EnemyFallbackLLMClient:
-                    """
-                    Wrapper for enemy LLM calls with logging support.
-                    Each enemy gets its own instance to track call_sequence per agent.
-                    """
-                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None, agent_prompt_logger=None):
-                        self.llm_config = llm_config
-                        self.jsonl_logger = jsonl_logger
-                        self.agent_prompt_logger = agent_prompt_logger
-                        self.agent_id = agent_id
-                        self.session_id = session_id
-                        self.call_sequence = 0  # Track LLM call ordering for replay
-
-                        # Use llm_provider instead of direct Anthropic client
-                        from .llm_provider import LLMConfig, create_provider
-
-                        provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
-                        self.provider = create_provider(provider_config)
-
-                    async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        from datetime import datetime, timezone
-
-                        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
-                        response = await self.provider.generate(
-                            prompt=prompt,
-                            max_tokens=max_tokens,
-                            temperature=temperature
-                        )
-
-                        response_text = response.text
-
-                        # Log LLM call if logger is available
-                        if self.jsonl_logger:
-                            try:
-                                from token_utils import count_chat_tokens, count_text_tokens
-
-                                messages = [{"role": "user", "content": prompt}]
-                                model = self.llm_config.get('model', 'unknown')
-                                input_tokens = count_chat_tokens(messages, model)
-                                output_tokens = count_text_tokens(response_text, model)
-                                self.jsonl_logger.write_event({
-                                    'event_type': 'llm_call',
-                                    'ts': datetime.now(timezone.utc).isoformat(),
-                                    'session': self.session_id or 'unknown',
-                                    'round': None,  # Enemy calls don't have round context here
-                                    'agent_id': self.agent_id,
-                                    'agent_type': 'enemy',
-                                    'call_sequence': self.call_sequence,
-                                    'prompt': messages,
-                                    'response': response_text,
-                                    'model': model,
-                                    'temperature': temperature,
-                                    'tokens': {
-                                        'input': input_tokens,
-                                        'output': output_tokens,
-                                        'total': input_tokens + output_tokens,
-                                    }
-                                })
-                                self.call_sequence += 1
-                            except Exception as e:
-                                import logging
-                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
-
-                        # Also log to human-readable agent prompt log if enabled
-                        if self.agent_prompt_logger:
-                            try:
-                                from token_utils import count_chat_tokens, count_text_tokens
-
-                                messages = [{"role": "user", "content": prompt}]
-                                model = self.llm_config.get('model', 'unknown')
-                                input_tokens = count_chat_tokens(messages, model)
-                                output_tokens = count_text_tokens(response_text, model)
-                                self.agent_prompt_logger.log_llm_call(
-                                    agent_id=self.agent_id,
-                                    round_num=None,  # Enemy calls don't have round context
-                                    call_sequence=self.call_sequence - 1,  # Already incremented above
-                                    prompt=prompt,  # Full prompt text
-                                    response=response_text,
-                                    model=model,
-                                    temperature=temperature,
-                                    tokens={
-                                        'input': input_tokens,
-                                        'output': output_tokens,
-                                        'total': input_tokens + output_tokens,
-                                    }
-                                )
-                            except Exception as e:
-                                import logging
-                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
-
-                        return {"content": response_text}
-
-                # Create per-enemy LLM clients for proper logging
-                llm_client = EnemyFallbackLLMClient(
-                    enemy_llm_config,
-                    jsonl_logger=mechanics.jsonl_logger if mechanics else None,
-                    agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
-                    session_id=self.session_id,
-                    agent_prompt_logger=self.agent_prompt_logger
-                )
+                # Enemy fallback LLM available for this round. Per-enemy clients
+                # are created lazily + cached in _get_enemy_llm_client so
+                # call_sequence persists across rounds.
+                self._enemy_llm_config = enemy_llm_config
+                enemy_fallback_available = True
 
         # Declaration loop (slowest → fastest, reversed initiative order)
         for initiative_score, agent_type, agent in reversed(initiative_order):
@@ -2246,14 +2472,11 @@ Generate narratives (numbered list only):"""
             elif agent_type == 'enemy':
                 # Enemy declares inline (interleaved with PCs)
                 logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
-                if llm_client:
-                    # Create per-enemy LLM client for proper logging
-                    enemy_llm_client = EnemyFallbackLLMClient(
-                        enemy_llm_config,
-                        jsonl_logger=mechanics.jsonl_logger if mechanics else None,
-                        agent_id=agent.agent_id,
-                        session_id=self.session_id,
-                        agent_prompt_logger=self.agent_prompt_logger
+                if enemy_fallback_available:
+                    # Per-enemy client is cached on the session so call_sequence
+                    # persists across rounds (was reset to 0 every round before).
+                    enemy_llm_client = self._get_enemy_llm_client(
+                        self._enemy_llm_config, agent.agent_id, mechanics
                     )
 
                     logger.debug(f"Calling declare_single_enemy for {agent.name}")
@@ -2749,6 +2972,8 @@ Generate narratives (numbered list only):"""
 
         # Collect all resolutions for synthesis at the end
         all_resolutions = []
+        outcome_first = bool(self.config.get('outcome_first_narration', False))
+        outcome_sequence = 0
 
         # Execute actions in initiative order (highest first)
         for initiative_score, agent_type, agent in initiative_order:
@@ -2787,7 +3012,9 @@ Generate narratives (numbered list only):"""
                 # wounded player must pass a health check to act this round (else
                 # skipped as incapacitated). Fixes the "zombie" — Hard Vane acting
                 # while flagged unconscious. Enemies are gated separately (TODO).
-                _check_beaten_ko(agent, resolution_state)
+                _check_beaten_ko(agent, resolution_state,
+                                 jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                                 round_num=getattr(mechanics, 'current_round', None))
 
                 # Skip defeated/incapacitated players (same checks as enemy invalidation)
                 # This prevents wasted LLM calls for mechanically impossible actions
@@ -2818,6 +3045,29 @@ Generate narratives (numbered list only):"""
                         'effects': {},
                         'resolution': {'margin': 0},
                     }
+                    if outcome_first:
+                        from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+
+                        declared = self._declared_actions.get(agent.agent_id, [])
+                        declared_action = dict(declared[0].get('action', {})) if declared else {}
+                        skip_resolution['action'] = declared_action or skip_resolution['action']
+                        outcome_sequence += 1
+                        applied_outcome = build_applied_outcome(
+                            round_num=mechanics.current_round if mechanics else 0,
+                            sequence=outcome_sequence,
+                            actor_id=agent.agent_id,
+                            actor_name=agent.character_state.name,
+                            action=skip_resolution['action'],
+                            resolution_data=skip_resolution,
+                            before=snapshot_shared_state(self.shared_state),
+                            after=snapshot_shared_state(self.shared_state),
+                        )
+                        skip_resolution['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_applied_outcome(
+                                mechanics.current_round,
+                                applied_outcome.model_dump(mode='json'),
+                            )
                     all_resolutions.append(skip_resolution)
 
                     # Log to JSONL
@@ -2849,6 +3099,10 @@ Generate narratives (numbered list only):"""
 
                     # Process each action in order (free action first, then main action)
                     for idx, buffered_action in enumerate(buffered_actions):
+                        state_before = None
+                        if outcome_first:
+                            from .outcome_pipeline import snapshot_shared_state
+                            state_before = snapshot_shared_state(self.shared_state)
                         action_label = "FREE ACTION" if buffered_action['action'].get('is_free_action') else f"ACTION {idx+1}"
                         logger.debug(f"Processing {action_label} for {agent.character_state.name}")
 
@@ -2938,7 +3192,10 @@ Generate narratives (numbered list only):"""
                             # so their actions get invalidated (like defeated enemies)
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
-                            _mark_defeated_from_resolution(self.enemy_combat, resolution_state)
+                            _mark_defeated_from_resolution(
+                                self.enemy_combat, resolution_state,
+                                jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                                round_num=getattr(mechanics, 'current_round', None))
 
                             # Process purchase/crafting effects from structured output
                             # Guard: skip all effect processing if action was preempted
@@ -3027,6 +3284,48 @@ Generate narratives (numbered list only):"""
                                 except Exception as e:
                                     logger.error(f"Error processing stabilization: {e}")
 
+                            if outcome_first:
+                                from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                                outcome_action = dict(buffered_action['action'])
+                                target_id = outcome_action.get('target')
+                                if target_id and self.shared_state:
+                                    mapper = self.shared_state.get_target_id_mapper()
+                                    target_entity = mapper.resolve_target(target_id) if mapper else None
+                                    if target_entity is not None:
+                                        outcome_action['target_entity_id'] = getattr(
+                                            target_entity, 'agent_id', getattr(target_entity, 'object_id', target_id)
+                                        )
+                                outcome_sequence += 1
+                                applied_outcome = build_applied_outcome(
+                                    round_num=mechanics.current_round if mechanics else 0,
+                                    sequence=outcome_sequence,
+                                    actor_id=agent.agent_id,
+                                    actor_name=agent.character_state.name,
+                                    action=outcome_action,
+                                    resolution_data=resolution_data,
+                                    before=state_before or {},
+                                    after=snapshot_shared_state(self.shared_state),
+                                )
+                                resolution_data['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                                if mechanics and mechanics.jsonl_logger:
+                                    adjudication = resolution_data.get('adjudication') or {}
+                                    mechanics.jsonl_logger.log_action_adjudication(
+                                        mechanics.current_round,
+                                        {
+                                            'schema_version': applied_outcome.schema_version,
+                                            'adjudication_id': applied_outcome.adjudication_id,
+                                            'outcome_id': applied_outcome.outcome_id,
+                                            'sequence': applied_outcome.sequence,
+                                            'actor_id': applied_outcome.actor_id,
+                                            'actor_name': applied_outcome.actor_name,
+                                            'adjudication': adjudication,
+                                        },
+                                    )
+                                    mechanics.jsonl_logger.log_applied_outcome(
+                                        mechanics.current_round,
+                                        applied_outcome.model_dump(mode='json'),
+                                    )
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
@@ -3037,6 +3336,10 @@ Generate narratives (numbered list only):"""
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
                 if self.enemy_combat.enabled:
+                    state_before = None
+                    if outcome_first:
+                        from .outcome_pipeline import snapshot_shared_state
+                        state_before = snapshot_shared_state(self.shared_state)
                     result = self.enemy_combat.execute_enemy_action(
                         enemy_id=agent.agent_id,
                         player_agents=player_agents,
@@ -3098,7 +3401,33 @@ Generate narratives (numbered list only):"""
                                 await self.coordinator.message_bus._route_message(broadcast_message)
 
                         # Add enemy result to synthesis input (normalized for schema consistency)
-                        all_resolutions.append(_normalize_enemy_result(result))
+                        normalized_enemy = _normalize_enemy_result(result)
+                        if outcome_first:
+                            from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                            outcome_sequence += 1
+                            enemy_action = {
+                                'intent': result.get('action', 'acts'),
+                                'description': result.get('action', 'acts'),
+                                'target': result.get('target'),
+                                'dialogue_content': result.get('dialogue_content'),
+                            }
+                            applied_outcome = build_applied_outcome(
+                                round_num=mechanics.current_round if mechanics else 0,
+                                sequence=outcome_sequence,
+                                actor_id=agent.agent_id,
+                                actor_name=agent.name,
+                                action=enemy_action,
+                                resolution_data=normalized_enemy,
+                                before=state_before or {},
+                                after=snapshot_shared_state(self.shared_state),
+                            )
+                            normalized_enemy['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_applied_outcome(
+                                    mechanics.current_round,
+                                    applied_outcome.model_dump(mode='json'),
+                                )
+                        all_resolutions.append(normalized_enemy)
 
                         # Combat logging handled in enemy_combat.py via log_combat_action()
 
@@ -3119,6 +3448,10 @@ Generate narratives (numbered list only):"""
                     npc_action_type = npc_action.get('action_type', 'dialogue')
 
                     print(f"\n[{agent.name}] (NPC) executing: {npc_action_type} - {npc_intent[:50]}...")
+                    state_before = None
+                    if outcome_first:
+                        from .outcome_pipeline import snapshot_shared_state
+                        state_before = snapshot_shared_state(self.shared_state)
 
                     # Build action payload for DM adjudication (similar to players)
                     action_for_adjudication = {
@@ -3300,6 +3633,47 @@ Generate narratives (numbered list only):"""
                     resolution_data = getattr(adjudication_event, 'resolution_data', None)
                     if resolution_data:
                         all_resolutions.append(resolution_data)
+
+                        if outcome_first:
+                            from .outcome_pipeline import build_applied_outcome, snapshot_shared_state
+                            outcome_sequence += 1
+                            outcome_action = dict(action_for_adjudication['action'])
+                            target_id = outcome_action.get('target')
+                            if target_id and self.shared_state:
+                                mapper = self.shared_state.get_target_id_mapper()
+                                target_entity = mapper.resolve_target(target_id) if mapper else None
+                                if target_entity is not None:
+                                    outcome_action['target_entity_id'] = getattr(
+                                        target_entity, 'agent_id', getattr(target_entity, 'object_id', target_id)
+                                    )
+                            applied_outcome = build_applied_outcome(
+                                round_num=mechanics.current_round if mechanics else 0,
+                                sequence=outcome_sequence,
+                                actor_id=agent.agent_id,
+                                actor_name=agent.name,
+                                action=outcome_action,
+                                resolution_data=resolution_data,
+                                before=state_before or {},
+                                after=snapshot_shared_state(self.shared_state),
+                            )
+                            resolution_data['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_action_adjudication(
+                                    mechanics.current_round,
+                                    {
+                                        'schema_version': applied_outcome.schema_version,
+                                        'adjudication_id': applied_outcome.adjudication_id,
+                                        'outcome_id': applied_outcome.outcome_id,
+                                        'sequence': applied_outcome.sequence,
+                                        'actor_id': applied_outcome.actor_id,
+                                        'actor_name': applied_outcome.actor_name,
+                                        'adjudication': resolution_data.get('adjudication') or {},
+                                    },
+                                )
+                                mechanics.jsonl_logger.log_applied_outcome(
+                                    mechanics.current_round,
+                                    applied_outcome.model_dump(mode='json'),
+                                )
 
                         # NPC resolutions go through DM adjudication, so they're already logged
                         # via the normal log_action_resolution call in dm.py
@@ -3926,7 +4300,7 @@ Generate narratives (numbered list only):"""
                             void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
                             soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
                             position=str(getattr(player, 'position', 'Unknown')),
-                            conditions=[],  # TODO: Add condition tracking
+                            conditions=_serialize_conditions(mechanics, player.agent_id),
                             is_defeated=(death_state != "alive"),
                             death_state=death_state,
                             stuns=stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
@@ -3972,7 +4346,7 @@ Generate narratives (numbered list only):"""
                                 void_score=0,  # Enemies typically don't track void
                                 soulcredit=0,  # Enemies don't track soulcredit
                                 position=str(getattr(enemy, 'position', 'Unknown')),
-                                conditions=[],  # TODO: Add condition tracking for enemies
+                                conditions=_serialize_conditions(mechanics, enemy.agent_id),
                                 is_defeated=(enemy_death_state != "alive"),
                                 death_state=enemy_death_state,  # NEW: Track death vs unconscious
                                 stuns=enemy_stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
@@ -4197,6 +4571,13 @@ Generate narratives (numbered list only):"""
 
         if not player_agents or not player_agents[0].llm_config:
             print("[Debrief skipped - no AI players]\n")
+            return
+
+        if self.replay_mode:
+            # Debriefs are post-session flavor, and the source smoke fixture
+            # does not contain debrief LLM calls. Never create a live provider
+            # during an otherwise fully cached replay.
+            print("[Debrief skipped - no cached replay responses]\n")
             return
 
         # Build debrief context
@@ -4837,6 +5218,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         """
         if not all_resolutions:
             return "No resolutions this round"
+
+        if self.config.get('outcome_first_narration', False):
+            from .outcome_pipeline import AppliedOutcome
+
+            outcome_lines = []
+            for resolution in all_resolutions:
+                raw_outcome = resolution.get('applied_outcome')
+                if not raw_outcome:
+                    continue
+                outcome = AppliedOutcome.model_validate(raw_outcome)
+                facts = "; ".join(
+                    fact.prose_safe_summary for fact in outcome.observable_facts
+                ) or "No observable consequence"
+                outcome_lines.append(
+                    f"- [{outcome.outcome_id}] {outcome.actor_name}: "
+                    f"{outcome.intent} -> {facts}"
+                )
+            if outcome_lines:
+                return "\n".join(outcome_lines)
 
         # Get target_id_mapper for resolving target names
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
@@ -7227,6 +7627,15 @@ NO conversions/morale checks needed (scene just started).
 
         # Check if this is a round synthesis completion
         if message.payload.get('is_round_synthesis', False):
+            if message.payload.get('synthesis_failed'):
+                # Fail-closed synthesis: the round's mechanics are applied and
+                # checkpointed, but no valid narration exists. End the session
+                # cleanly instead of stranding the gameplay loop.
+                print("\n⛔ Round synthesis failed closed — ending session for manual recovery")
+                self._session_end_status = 'aborted'
+                self._end_reason = 'round_synthesis_failed'
+                self._synthesis_complete.set()
+                return
             logger.debug("Round synthesis received, processing...")
 
             # Check for structured synthesis (Phase 5: Pydantic AI migration)
@@ -7235,8 +7644,12 @@ NO conversions/morale checks needed (scene just started).
 
             if structured_synthesis_data:
                 # Deserialize dict back to Pydantic model
-                from .schemas.story_events import RoundSynthesis
-                structured_synthesis = RoundSynthesis(**structured_synthesis_data)
+                if structured_synthesis_data.get('segments'):
+                    from .outcome_pipeline import OutcomeRoundSynthesis
+                    structured_synthesis = OutcomeRoundSynthesis(**structured_synthesis_data)
+                else:
+                    from .schemas.story_events import RoundSynthesis
+                    structured_synthesis = RoundSynthesis(**structured_synthesis_data)
                 # Process structured synthesis (no marker parsing!) - now async
                 await self._process_structured_synthesis(structured_synthesis)
             else:

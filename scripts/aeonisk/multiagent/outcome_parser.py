@@ -33,27 +33,11 @@ def extract_from_structured_resolution(
     Returns:
         Dict with state changes (same format as parse_state_changes)
     """
-    try:
-        from .schemas.action_resolution import ActionResolution
-    except ImportError:
-        logger.error("Failed to import ActionResolution schema")
-        return {
-            'clock_triggers': [],
-            'void_change': 0,
-            'void_reasons': [],
-            'void_target_character': None,
-            'conditions': [],
-            'notes': [],
-            'position_change': None,
-            'soulcredit_change': 0,
-            'soulcredit_reasons': []
-        }
-
-    if not isinstance(resolution_obj, ActionResolution):
-        logger.warning(f"extract_from_structured_resolution called with non-ActionResolution: {type(resolution_obj)}")
+    if not hasattr(resolution_obj, 'effects'):
+        logger.warning(f"extract_from_structured_resolution called without effects: {type(resolution_obj)}")
         return None
 
-    logger.debug("Extracting state changes from structured ActionResolution")
+    logger.debug("Extracting state changes from structured adjudication")
 
     # Extract void changes (with fuzzy name matching)
     logger.trace(f"Processing {len(resolution_obj.effects.void_changes)} void changes")

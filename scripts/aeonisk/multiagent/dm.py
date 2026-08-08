@@ -67,6 +67,26 @@ def format_filled_clocks_guidance(filled_clocks, critical_overflow: bool = False
     return text
 
 
+def _forced_scenario_fields(spec) -> Dict[str, Any]:
+    """Normalize a force_scenario config value into scenario fields.
+
+    Legacy form: a string spawn-marker (automated tests) -> the historical
+    "Test Scenario" placeholder. Dict form (resume-from-divergence): the
+    reconstructor supplies the recorded theme/location/void plus a situation
+    carrying the story-so-far digest, so the resumed DM continues the scene
+    instead of inventing a fresh one.
+    """
+    if isinstance(spec, dict):
+        return {
+            "theme": spec.get("theme", "Resumed Session"),
+            "location": spec.get("location", "Unknown"),
+            "situation": spec.get("situation", ""),
+            "void_level": spec.get("void_level", 0) or 0,
+        }
+    return {"theme": "Test Scenario", "location": "Test Location",
+            "situation": str(spec), "void_level": 0}
+
+
 def _resolution_success(resolution) -> bool:
     """
     Safely check if ActionResolution succeeded.
@@ -1895,7 +1915,6 @@ Apply this narrative style to:
                             current_round=None,  # Scenario generation happens before round 1
                             call_sequence=self.llm_logger.call_count
                         )
-                        self.llm_logger.call_count += 1
 
                     # Also log to human-readable agent prompt log if enabled
                     if self.agent_prompt_logger:
@@ -1959,7 +1978,6 @@ Apply this narrative style to:
                                     current_round=None,
                                     call_sequence=self.llm_logger.call_count
                                 )
-                                self.llm_logger.call_count += 1
 
                             # Also log to human-readable agent prompt log if enabled
                             if self.agent_prompt_logger:
@@ -2209,16 +2227,22 @@ Apply this narrative style to:
             dm_notes_path = Path('./multiagent_output') / 'dm_notes.json'
             self.shared_state.save_dm_notes(str(dm_notes_path))
 
-    async def _use_forced_scenario(self, spawn_marker: str, config: Dict[str, Any]):
-        """Use a forced scenario for automated testing (bypasses AI generation)."""
-        # Create minimal scenario object
+    async def _use_forced_scenario(self, spawn_marker, config: Dict[str, Any]):
+        """Use a forced scenario, bypassing AI generation.
+
+        Accepts either the legacy string spawn-marker (automated tests) or a
+        dict with theme/location/situation/void_level (resume-from-divergence:
+        the reconstructor forces the recorded scenario + a story-so-far digest
+        so the resumed DM has continuity instead of inventing a fresh scene).
+        """
+        fields = _forced_scenario_fields(spawn_marker)
         scenario = Scenario(
-            theme="Test Scenario",
-            location="Test Location",
-            situation=spawn_marker,
+            theme=fields["theme"],
+            location=fields["location"],
+            situation=fields["situation"],
             active_npcs=[],
             environmental_factors=[],
-            void_level=0,
+            void_level=fields["void_level"],
             active_vendors=[]
         )
         self.current_scenario = scenario
@@ -2238,19 +2262,42 @@ Apply this narrative style to:
             if mechanics and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_scenario(scenario_data)
 
+        # Process initial_enemies/initial_npcs from config — same surface the
+        # AI-scenario paths honor. Forced scenarios previously skipped it, so a
+        # resume config's per-survivor roster never spawned (0/N matched).
+        scenario_setup_dict = None
+        initial_enemies_config = config.get('initial_enemies', [])
+        initial_npcs_config = config.get('initial_npcs', [])
+        if initial_enemies_config or initial_npcs_config:
+            from .initial_spawns import build_initial_spawns
+            enemy_spawns, npc_spawns = build_initial_spawns(
+                initial_enemies_config, initial_npcs_config)
+            scenario_setup_dict = {
+                'initial_enemies': [s.model_dump() for s in enemy_spawns],
+                'npc_spawns': [s.model_dump() for s in npc_spawns]
+            }
+            logger.info(f"Forced scenario: {len(enemy_spawns)} initial enemy spawn(s), "
+                        f"{len(npc_spawns)} NPC spawn(s) from config")
+
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': f"{fields['theme']} — {fields['location']}. {fields['situation']}"
+                                 if isinstance(spawn_marker, dict)
+                                 else f"Test scenario initialized. {spawn_marker}",
+            'faction_conflicts': []
+        }
+        if scenario_setup_dict:
+            payload['scenario_setup'] = scenario_setup_dict
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': f"Test scenario initialized. {spawn_marker}",
-                'faction_conflicts': []
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Using forced test scenario")
-        print(f"Spawn marker: {spawn_marker}")
+        print(f"Spawn marker: {str(spawn_marker)[:200]}")
 
     async def _use_config_scenario(self, scenario_config: Dict[str, Any], config: Dict[str, Any]):
         """Use scenario from config file instead of generating one."""
@@ -2539,11 +2586,6 @@ Apply this narrative style to:
 
                 # Success! Log and return
                 logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
-
-                # Increment call count for manual logging below
-                # (generate_structured already logged with actual tokens)
-                if self.llm_logger:
-                    self.llm_logger.call_count += 1
 
                 # Also log to agent prompt logger if enabled
                 if self.agent_prompt_logger:
@@ -3202,13 +3244,33 @@ Apply this narrative style to:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(
-            resolutions,
-            round_num,
-            resolution_state=resolution_state,
-            expired_clocks=expired_clocks,
-            entity_lifecycle_result=entity_lifecycle_result
-        )
+        from .outcome_pipeline import RoundSynthesisFailClosed
+        try:
+            synthesis = await self._synthesize_round_outcome(
+                resolutions,
+                round_num,
+                resolution_state=resolution_state,
+                expired_clocks=expired_clocks,
+                entity_lifecycle_result=entity_lifecycle_result
+            )
+        except RoundSynthesisFailClosed as exc:
+            # The message bus swallows handler exceptions, so an unhandled
+            # raise here strands the session on _synthesis_complete forever.
+            # Broadcast the failure so the session can end itself cleanly;
+            # the round_synthesis_failed checkpoint has already been logged.
+            logger.error(f"[DM {self.agent_id}] Round synthesis failed closed: {exc}")
+            print(f"\n[DM {self.agent_id}] ===== Round Synthesis FAILED (fail-closed) =====")
+            self.send_message_sync(
+                MessageType.DM_NARRATION,
+                None,  # Broadcast
+                {
+                    'narration': f"Round synthesis failed validation after bounded retries: {exc}",
+                    'is_round_synthesis': True,
+                    'synthesis_failed': True,
+                    'round': round_num,
+                }
+            )
+            return
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -3552,7 +3614,7 @@ Apply this narrative style to:
                 # inherit stale outcome_tiers from the previous PC action.
                 is_npc_action = action.get('is_npc', False)
 
-                if action_resolution and not is_npc_action:
+                if action_resolution and not is_npc_action and not self._outcome_first_enabled():
                     # Build economy changes dict with void and soulcredit deltas
                     economy_changes = {
                         'void_delta': state_changes.get('void_change', 0),
@@ -3735,14 +3797,55 @@ Apply this narrative style to:
         # Send individual resolutions to each player
         for res in resolutions:
             # Prepare serializable resolution data (exclude non-serializable ActionResolution object)
+            structured_adjudication = None
+            if self._outcome_first_enabled():
+                from .outcome_pipeline import ActionAdjudication
+
+                resolution_model = res['resolution'].get('resolution')
+                if resolution_model is not None and hasattr(resolution_model, 'success_tier'):
+                    structured_adjudication = ActionAdjudication(
+                        success_tier=getattr(resolution_model, 'success_tier'),
+                        margin=getattr(resolution_model, 'margin', 0),
+                        effects=getattr(resolution_model, 'effects'),
+                        reasoning_short=getattr(
+                            resolution_model,
+                            'reasoning_short',
+                            getattr(resolution_model, 'rationale', None) or 'Mechanics applied from the resolved action.',
+                        ),
+                        skill_override=getattr(resolution_model, 'skill_override', None),
+                        action_skipped=getattr(resolution_model, 'action_skipped', False),
+                        skip_reason=getattr(resolution_model, 'skip_reason', None),
+                        aware_agents=getattr(resolution_model, 'aware_agents', []) or [],
+                    ).model_dump(mode='json')
+                elif resolution_model is not None:
+                    # Legacy mechanical fallbacks can still reach this envelope
+                    # during replay/provider failures. Preserve a typed, minimal
+                    # adjudication instead of dereferencing new-schema fields.
+                    from .schemas.shared_types import SuccessTier
+                    legacy_tier = getattr(resolution_model, 'outcome_tier', 'failure')
+                    legacy_tier = getattr(legacy_tier, 'value', legacy_tier)
+                    try:
+                        tier = SuccessTier(str(legacy_tier))
+                    except ValueError:
+                        tier = SuccessTier.MODERATE if getattr(resolution_model, 'success', False) else SuccessTier.FAILURE
+                    structured_adjudication = ActionAdjudication(
+                        success_tier=tier,
+                        margin=int(getattr(resolution_model, 'margin', 0)),
+                        reasoning_short='Legacy mechanics fallback applied during replay.',
+                    ).model_dump(mode='json')
+
             serializable_res = {
                 'player_id': res['player_id'],
                 'character_name': res['character_name'],
                 'initiative': res['initiative'],
                 'action': res['action'],
                 'resolution': res['resolution']['outcome'],  # Use serialized outcome instead of raw resolution
-                'narration': res['resolution']['narration'],  # CRITICAL: Include narration so DM sees it during synthesis
-                'effects': res['resolution'].get('effects')  # CRITICAL: Include purchase/crafting effects for session.py processing
+                'narration': '' if self._outcome_first_enabled() else res['resolution']['narration'],
+                'effects': res['resolution'].get('effects'),
+                'adjudication': structured_adjudication,
+                'aware_agents': res['resolution'].get('aware_agents', []),
+                'action_skipped': res['resolution'].get('action_skipped', False),
+                'skip_reason': res['resolution'].get('skip_reason'),
             }
 
             # Build lightweight effects summary for story beat generation
@@ -3837,7 +3940,12 @@ Apply this narrative style to:
 
         print(f"\n[DM {self.agent_id}] ===== Adjudication Complete =====\n")
 
-    async def _generate_round_synthesis_structured(self, prompt: str) -> Optional['RoundSynthesis']:
+    async def _generate_round_synthesis_structured(
+        self,
+        prompt: str,
+        result_type=None,
+        system_prompt: Optional[str] = None,
+    ) -> Optional['RoundSynthesis']:
         """
         Generate round synthesis using Pydantic AI structured output (Phase 5).
         Returns RoundSynthesis if successful, or None to fall back to legacy.
@@ -3848,6 +3956,7 @@ Apply this narrative style to:
 
         try:
             from .schemas.story_events import RoundSynthesis
+            result_type = result_type or RoundSynthesis
 
             logger.debug("DM: Attempting structured output for round synthesis")
 
@@ -3862,13 +3971,13 @@ Apply this narrative style to:
 
             # Include round number in system prompt to help DM track pacing
             round_display = f" **Session Round {current_round}**" if current_round is not None else ""
-            system_prompt = f"You are the DM for Aeonisk YAGS, synthesizing a round of actions.{round_display}"
+            system_prompt = system_prompt or f"You are the DM for Aeonisk YAGS, synthesizing a round of actions.{round_display}"
 
             # Generate structured synthesis using Pydantic AI
             # Token tracking now handled internally
-            synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
+            synthesis = await self.llm_provider.generate_structured(
                 prompt=prompt,
-                result_type=RoundSynthesis,
+                result_type=result_type,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -3877,11 +3986,6 @@ Apply this narrative style to:
             )
 
             logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, story_advance={synthesis.story_advancement is not None}")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
 
             # Also log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
@@ -3895,7 +3999,10 @@ Apply this narrative style to:
                         response=synthesis.model_dump_json(indent=2),
                         model=model,
                         temperature=temperature,
-                        metadata={'purpose': 'round_synthesis_structured', 'note': 'Pydantic AI structured output (RoundSynthesis schema)'}
+                        metadata={
+                            'purpose': 'round_synthesis_structured',
+                            'note': f'Pydantic structured output ({result_type.__name__} schema)'
+                        }
                     )
                 except Exception as e:
                     logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
@@ -4085,11 +4192,6 @@ Void Level: {self.current_scenario.void_level}/10"""
                         f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
                         f"{len(decisions.enemy_spawns)} enemy spawns")
 
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
             # 8. Also log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
                 try:
@@ -4178,9 +4280,6 @@ Void Level: {self.current_scenario.void_level}/10"""
                 current_round=round_number
             )
 
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
             logger.info(
                 f"DM round assessment: "
                 f"{[(a.character_name, a.difficulty) for a in assessment.assessments]}")
@@ -4240,13 +4339,197 @@ Void Level: {self.current_scenario.void_level}/10"""
                 llm_logger=self.llm_logger,
                 current_round=round_number
             )
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
             return rulings
         except Exception as e:
             logger.warning(f"Post-resolution adjudication failed (experiment "
                            f"continues without this round): {e}")
             return None
+
+    async def _synthesize_applied_outcomes(
+        self,
+        resolutions: List[Dict[str, Any]],
+        round_num: int,
+        entity_lifecycle_result=None,
+    ):
+        """Generate the sole literary account from authoritative applied outcomes."""
+        import json
+
+        from .outcome_pipeline import (
+            AppliedOutcome,
+            OutcomeRoundSynthesis,
+            RoundSynthesisFailClosed,
+            SynthesisValidationError,
+            canonicalize_synthesis_visibility,
+            finalize_synthesis_narration,
+            prose_safe_outcome_payload,
+            snapshot_shared_state,
+            validate_outcome_synthesis,
+        )
+
+        outcomes = [
+            AppliedOutcome.model_validate(resolution['applied_outcome'])
+            for resolution in resolutions
+            if resolution.get('applied_outcome')
+        ]
+        if not outcomes:
+            raise RuntimeError("Outcome-first synthesis received no applied outcomes")
+
+        previous_ending = self._round_synthesis_history[-1][1] if self._round_synthesis_history else ""
+        safe_payload = prose_safe_outcome_payload(outcomes)
+        lifecycle_data = entity_lifecycle_result or {}
+        if not isinstance(lifecycle_data, dict):
+            lifecycle_data = lifecycle_data.to_jsonl_dict(round_num)
+
+        def lifecycle_name(entity_id: str) -> str:
+            if not self.shared_state:
+                return entity_id
+            entities = list(getattr(self.shared_state, 'player_agents', []) or [])
+            entities += list(getattr(self.shared_state, 'npc_agents', []) or [])
+            enemy_combat = getattr(self.shared_state, 'enemy_combat', None)
+            entities += list(getattr(enemy_combat, 'enemy_agents', []) or [])
+            entities += list(getattr(self.shared_state, 'current_env_objects', []) or [])
+            for entity in entities:
+                if (getattr(entity, 'agent_id', None) == entity_id
+                        or getattr(entity, 'object_id', None) == entity_id):
+                    state = getattr(entity, 'character_state', None)
+                    return str(getattr(state, 'name', None) or getattr(entity, 'name', entity_id))
+            return entity_id
+
+        safe_lifecycle = {
+            'morale_events': [
+                {
+                    'type': event.get('type'),
+                    'character_name': event.get('character_name'),
+                }
+                for event in lifecycle_data.get('morale_events', [])
+            ],
+        }
+        for key in (
+            'enemies_spawned', 'npcs_spawned', 'enemies_converted',
+            'npcs_escalated', 'npcs_departed', 'enemies_departed',
+            'env_objects_spawned',
+        ):
+            safe_lifecycle[key] = [lifecycle_name(item) for item in lifecycle_data.get(key, [])]
+        prompt = f"""Write the canonical literary narration for round {round_num}.
+
+AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
+{json.dumps(safe_payload, indent=2)}
+
+PRIOR CANONICAL ENDING:
+{previous_ending or '(opening round)'}
+
+ACCEPTED ENTITY LIFECYCLE CHANGES:
+{json.dumps(safe_lifecycle, indent=2, default=str)}
+
+BINDING CONTRACT:
+- Narrate only the supplied applied outcomes. Intent is not outcome.
+- Preserve chronological and causal order.
+- Establish the setting once; do not restart every paragraph with the location.
+- Merge causally compatible actions when useful, but preserve each distinct consequence.
+- Order segments by their earliest outcome; a beat may absorb later reactions,
+  but never narrate an effect before its cause.
+- Render a restricted-visibility outcome in its own segment whose visibility
+  exactly matches that outcome's viewers; never mix restricted and public
+  outcomes in one segment.
+- Integrate only useful declared dialogue. Omit repetitive or inert speech.
+- Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
+- Use the supplied prose-facing names, not registry labels.
+- Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
+- `segments[].source_outcome_ids` must identify every outcome represented by that text.
+- Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
+- Every state claim must identify its subject, causing actor, and source outcome.
+- Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+  after-state actually changes that subject. Attitude, cooperation, mood, or other
+  soft observations use claim_kind `other` (or no claim at all).
+- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+  never a sentence.
+- Set `narration` to the segment texts joined in order with blank lines.
+- Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
+
+Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
+specificity, motive, and a changed final tableau over repeated action summaries.
+"""
+        max_attempts = max(1, int(self.session_config.get('outcome_synthesis_attempts', 3)))
+        validation_errors: List[str] = []
+        prior_response_json: Optional[str] = None
+        for attempt in range(1, max_attempts + 1):
+            retry_context = ""
+            if validation_errors:
+                # Without the prior response the model regenerates from scratch
+                # and oscillates — fixing one error while reverting another.
+                # Anchor the retry on its own output so it edits instead.
+                prior_block = (
+                    f"\n\nYOUR PRIOR RESPONSE:\n{prior_response_json}"
+                    if prior_response_json else ""
+                )
+                retry_context = (
+                    prior_block
+                    + "\n\nTHE PRIOR RESPONSE WAS REJECTED. Return a corrected "
+                    "version of it: fix every error below and change nothing "
+                    "else.\n- "
+                    + "\n- ".join(validation_errors)
+                )
+            synthesis = await self._generate_round_synthesis_structured(
+                prompt + retry_context,
+                result_type=OutcomeRoundSynthesis,
+                system_prompt=(
+                    "You are the literary DM for Aeonisk YAGS. Mechanics are already "
+                    "resolved. Render supplied facts without changing them."
+                ),
+            )
+            if synthesis is None:
+                validation_errors = ["structured synthesis returned no result"]
+                continue
+            # Presentation and viewer ids are enforced in code: narration is
+            # derived from segments, and proposed visibility lists are mapped
+            # onto the real entity roster before set logic runs over them.
+            finalize_synthesis_narration(synthesis)
+            canonicalize_synthesis_visibility(
+                synthesis,
+                {
+                    entity_id: snap.name
+                    for entity_id, snap in snapshot_shared_state(self.shared_state).items()
+                },
+            )
+            if getattr(self.shared_state, 'session', None) and getattr(
+                    self.shared_state.session, 'replay_mode', False):
+                # Cached synthesis carries the source run's UUIDs. Requiring
+                # those UUIDs to match freshly-created replay entities would
+                # turn a valid cache hit into a false divergence.
+                return synthesis
+            try:
+                style_warnings = validate_outcome_synthesis(synthesis, outcomes)
+                for warning in style_warnings:
+                    logger.info("Synthesis style warning (non-blocking): %s", warning)
+                return synthesis
+            except SynthesisValidationError as exc:
+                validation_errors = exc.errors
+                prior_response_json = synthesis.model_dump_json()
+                logger.warning(
+                    "Outcome synthesis validation failed (attempt %s/%s): %s",
+                    attempt,
+                    max_attempts,
+                    "; ".join(validation_errors),
+                )
+
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
+        if mechanics and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_event(
+                'round_synthesis_failed',
+                {
+                    'schema_version': '3.0.0',
+                    'attempts': max_attempts,
+                    'outcome_ids': [outcome.outcome_id for outcome in outcomes],
+                    'validation_errors': validation_errors,
+                    'resume_phase': 'synthesis',
+                },
+                round_num,
+            )
+        raise RoundSynthesisFailClosed(
+            "Outcome-first synthesis exhausted validation attempts: "
+            + "; ".join(validation_errors)
+        )
 
     async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None, expired_clocks=None, entity_lifecycle_result=None):
         """
@@ -4265,6 +4548,13 @@ Void Level: {self.current_scenario.void_level}/10"""
         """
         if not resolutions:
             return "The moment passes without incident."
+
+        if self._outcome_first_enabled():
+            return await self._synthesize_applied_outcomes(
+                resolutions,
+                round_num,
+                entity_lifecycle_result=entity_lifecycle_result,
+            )
 
         # Build context about what happened
         outcomes_summary = []
@@ -5079,7 +5369,6 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -5149,6 +5438,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
         logger.debug(f"Purchase transaction for {character_name}: executed={executed}, item={item_name}")
 
+        if self._outcome_first_enabled():
+            return self._build_mechanics_only_resolution(
+                executed=executed,
+                reasoning=(
+                    f"Validated purchase of {item_name} completed."
+                    if executed else f"Validated purchase failed: {failure_reason}"
+                ),
+            )
+
         # Load purchase-specific prompt
         try:
             system_prompt_obj = load_modular_prompt(
@@ -5195,11 +5493,6 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
 
             narration = purchase_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
 
         except Exception as e:
             logger.warning(f"Purchase LLM call failed: {e}, using fallback narration")
@@ -5274,6 +5567,15 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
 
         logger.debug(f"Transfer transaction: {sender_name} → {receiver_name}, executed={executed}, currency={currency}")
 
+        if self._outcome_first_enabled():
+            return self._build_mechanics_only_resolution(
+                executed=executed,
+                reasoning=(
+                    f"Validated transfer from {sender_name} to {receiver_name} completed."
+                    if executed else f"Validated transfer failed: {failure_reason}"
+                ),
+            )
+
         # Load transfer-specific prompt
         try:
             system_prompt_obj = load_modular_prompt(
@@ -5328,11 +5630,6 @@ Read the action intent to understand WHY this transfer is happening:
 
             narration = transfer_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
 
         except Exception as e:
             logger.warning(f"Transfer LLM call failed: {e}, using fallback narration")
@@ -5423,6 +5720,45 @@ Read the action intent to understand WHY this transfer is happening:
 
         return None
 
+    def _build_mechanics_only_resolution(
+        self,
+        *,
+        executed: bool,
+        reasoning: str,
+        margin: int = 0,
+        effects: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Build a non-literary resolution for deterministic/specialized actions."""
+        from .outcome_pipeline import ActionAdjudication
+        from .schemas.action_resolution import MechanicalEffects, SuccessTier
+
+        adjudication = ActionAdjudication(
+            success_tier=SuccessTier.MODERATE if executed else SuccessTier.FAILURE,
+            margin=margin,
+            effects=effects or MechanicalEffects(),
+            reasoning_short=reasoning,
+        )
+        self._last_structured_resolution = adjudication
+        return {
+            'resolution': adjudication,
+            'narration': '',
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': adjudication.effects.model_dump(mode='json'),
+            'outcome': {
+                'dm_response': '',
+                'success': executed,
+                'consequences': [],
+                'narration': '',
+                'resolution': {
+                    'success_tier': adjudication.success_tier.value,
+                    'margin': margin,
+                    'success': executed,
+                },
+            },
+        }
+
     async def _resolve_failed_attunement(self, action: Dict[str, Any]) -> Dict[str, Any]:
         """
         Resolve an attunement action that failed pre-validation (no dice roll needed).
@@ -5439,6 +5775,13 @@ Read the action intent to understand WHY this transfer is happening:
         failure_reason = validation.get('failure_reason', 'Prerequisites not met')
         character_name = action.get('character_name', 'Character')
         intent = action.get('intent', 'attune a seed')
+
+        if self._outcome_first_enabled():
+            return self._build_mechanics_only_resolution(
+                executed=False,
+                reasoning=f"Attunement prerequisites were not met: {failure_reason}",
+                margin=-999,
+            )
 
         # Generate simple auto-failure narration
         narration = (
@@ -5531,6 +5874,7 @@ Read the action intent to understand WHY this transfer is happening:
             character_name = action.get('character_name', 'NPC')
             npc_action_type = action.get('action_type', 'unknown')  # action_type is in the action dict
             target = action.get('target')
+            outcome_first = self._outcome_first_enabled()
 
             # Resolve target ID to character name for dialogue/plead actions
             target_display = 'no specific target'
@@ -5557,12 +5901,22 @@ Read the action intent to understand WHY this transfer is happening:
                 if len(narration) < 200:
                     narration = narration + " " * (200 - len(narration))
 
-                npc_resolution = ActionResolution(
-                    narration=narration,
-                    success_tier=SuccessTier.MODERATE,
-                    margin=0,
-                    effects=MechanicalEffects()
-                )
+                if outcome_first:
+                    from .outcome_pipeline import ActionAdjudication
+                    npc_resolution = ActionAdjudication(
+                        success_tier=SuccessTier.MODERATE,
+                        margin=0,
+                        effects=MechanicalEffects(),
+                        reasoning_short=f"{character_name} deliberately takes no action.",
+                    )
+                    narration = ''
+                else:
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=SuccessTier.MODERATE,
+                        margin=0,
+                        effects=MechanicalEffects()
+                    )
             else:
                 # All other NPC actions: Generate LLM narration
                 dialogue_info = ""
@@ -5607,38 +5961,40 @@ For **other actions** (flee, hide, assist, attack):
 **Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
 
                 # Step 1: Generate narration (LLM or fallback)
-                try:
+                if outcome_first:
+                    narration = ''
+                    is_fallback = False
+                else:
+                    try:
                     # Call LLM for simple text narration (not structured output - faster and smaller)
-                    from pydantic import BaseModel, Field
+                        from pydantic import BaseModel, Field
 
-                    class SimpleNarration(BaseModel):
-                        """Narrative text for NPC actions with dialogue and movement."""
-                        text: str = Field(..., min_length=400, max_length=1000, description="Cinematic narration of NPC action with quoted dialogue, body language, and consequences (400-1000 chars)")
+                        class SimpleNarration(BaseModel):
+                            """Narrative text for NPC actions with dialogue and movement."""
+                            text: str = Field(..., min_length=400, max_length=1000, description="Cinematic narration of NPC action with quoted dialogue, body language, and consequences (400-1000 chars)")
 
                     # Token tracking now handled internally
-                    npc_narration_response = await self.llm_provider.generate_structured(
-                        prompt=npc_prompt,
-                        result_type=SimpleNarration,
-                        system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
-                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=self.llm_config.get('temperature', 1.0),
-                        llm_logger=self.llm_logger,  # Enable automatic token tracking
-                        current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
-                    )
-                    narration = npc_narration_response.text
-                    is_fallback = False
+                        npc_narration_response = await self.llm_provider.generate_structured(
+                            prompt=npc_prompt,
+                            result_type=SimpleNarration,
+                            system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
+                            max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                            temperature=self.llm_config.get('temperature', 1.0),
+                            llm_logger=self.llm_logger,  # Enable automatic token tracking
+                            current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
+                        )
+                        narration = npc_narration_response.text
+                        is_fallback = False
 
-                except Exception as e:
-                    logger.warning(f"NPC LLM narration failed: {e}, using fallback")
-                    # Create more substantial fallback narration
-                    base_narration = f"{character_name} {description}. The NPC's action completes, their presence shifting the dynamics of the scene."
-                    if action.get('dialogue_content'):
-                        base_narration = f"{character_name} speaks: \"{action['dialogue_content']}\" Their words hang in the air as the scene unfolds around them."
-                    # Pad to minimum 400 chars
-                    if len(base_narration) < 400:
-                        base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
-                    narration = base_narration
-                    is_fallback = True
+                    except Exception as e:
+                        logger.warning(f"NPC LLM narration failed: {e}, using fallback")
+                        base_narration = f"{character_name} {description}. The NPC's action completes, their presence shifting the dynamics of the scene."
+                        if action.get('dialogue_content'):
+                            base_narration = f"{character_name} speaks: \"{action['dialogue_content']}\" Their words hang in the air as the scene unfolds around them."
+                        if len(base_narration) < 400:
+                            base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
+                        narration = base_narration
+                        is_fallback = True
 
                 # Step 2: Apply mechanical effects (runs regardless of narration source)
                 effects = MechanicalEffects()
@@ -5817,12 +6173,22 @@ For **other actions** (flee, hide, assist, attack):
                         logger.warning(f"NPC {character_name} attack failed: entity not found for {npc_agent_id}")
 
                 # Step 3: Build resolution and process effects
-                npc_resolution = ActionResolution(
-                    narration=narration,
-                    success_tier=success_tier,
-                    margin=margin,
-                    effects=effects
-                )
+                if outcome_first:
+                    from .outcome_pipeline import ActionAdjudication
+                    npc_resolution = ActionAdjudication(
+                        success_tier=success_tier,
+                        margin=margin,
+                        effects=effects,
+                        reasoning_short=f"Resolved {character_name}'s {npc_action_type} action mechanically.",
+                    )
+                    narration = ''
+                else:
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=success_tier,
+                        margin=margin,
+                        effects=effects
+                    )
 
                 # Process healing effects if any (applies HP changes to target)
                 if effects.healing:
@@ -5837,7 +6203,8 @@ For **other actions** (flee, hide, assist, attack):
                 # Step 4: Log resolution
                 if self.shared_state and self.shared_state.mechanics_engine:
                     mechanics = self.shared_state.mechanics_engine
-                    if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    if (hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger
+                            and not self._outcome_first_enabled()):
                         current_round = mechanics.current_round
 
                         # Build context with roll data for JSONL
@@ -5876,6 +6243,8 @@ For **other actions** (flee, hide, assist, attack):
                             context=log_context,
                         )
 
+            self._last_structured_resolution = npc_resolution
+
             # Return lightweight resolution matching player format (with outcome dict)
             return {
                 'resolution': npc_resolution,  # ActionResolution Pydantic model
@@ -5885,13 +6254,13 @@ For **other actions** (flee, hide, assist, attack):
                 'inventory_changes': [],  # No inventory changes
                 'outcome': {
                     'dm_response': narration,
-                    'success': True,  # NPCs always succeed (simple narration)
+                    'success': npc_resolution.success_tier != SuccessTier.FAILURE,
                     'consequences': [],
                     'narration': narration,  # Needed by session.py
                     'resolution': {
-                        'success_tier': 'moderate',  # String value for backwards compat
-                        'margin': 5,
-                        'success': True
+                        'success_tier': npc_resolution.success_tier.value,
+                        'margin': npc_resolution.margin,
+                        'success': npc_resolution.success_tier != SuccessTier.FAILURE
                     }
                 }
             }
@@ -6841,8 +7210,13 @@ For **other actions** (flee, hide, assist, attack):
             logger.info(f"Suppressing effects dict for skipped action (reason: {skip_reason})")
             effects_dict = None
 
+        resolution_payload = (
+            self._last_structured_resolution
+            if self._outcome_first_enabled() and self._last_structured_resolution is not None
+            else resolution
+        )
         return {
-            'resolution': resolution,
+            'resolution': resolution_payload,
             'narration': narration,
             'state_changes': state_changes,  # Include state_changes for logging
             'combat_data': combat_data,  # Include combat triplet if present
@@ -7340,7 +7714,7 @@ For **other actions** (flee, hide, assist, attack):
                 narration += f"\n\n{clock_triggers}"
 
             # JSONL Logging: Log complete action resolution
-            if mechanics.jsonl_logger:
+            if mechanics.jsonl_logger and not self._outcome_first_enabled():
                 # Get character name from action payload
                 character_name = action.get('character', player_id)
 
@@ -7790,6 +8164,10 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         logger.info(f"Retry response for {marker_type}: {response[:200]}")
         return response
 
+    def _outcome_first_enabled(self) -> bool:
+        from .outcome_pipeline import outcome_pipeline_enabled
+        return outcome_pipeline_enabled(self.session_config)
+
     async def _generate_action_resolution_structured(
         self,
         player_id: str,
@@ -7801,7 +8179,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         """
         Generate DM action resolution using structured output (Pydantic AI).
 
-        Returns ActionResolution object if structured output succeeds,
+        Returns ActionResolution (legacy) or ActionAdjudication (outcome-first)
+        if structured output succeeds,
         or None if it should fall back to legacy text generation.
 
         This is Phase 2 of the Pydantic AI migration.
@@ -7819,12 +8198,25 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         try:
             from .structured_output_helpers import generate_dm_resolution_structured
             from .schemas.action_resolution import ActionResolution
+            from .outcome_pipeline import ActionAdjudication, outcome_pipeline_enabled
 
             # Build the same prompt as legacy method
             # (We'll refactor this to share code in future iterations)
             prompt = await self._build_resolution_prompt(
                 player_id, action_type, description, resolution, action
             )
+            outcome_first = outcome_pipeline_enabled(self.session_config)
+            result_type = ActionAdjudication if outcome_first else ActionResolution
+            if outcome_first:
+                prompt += """
+
+**OUTCOME-FIRST ADJUDICATION CONTRACT (BINDING):**
+- Return structured mechanics only. Do not write literary narration.
+- The declaration states intent, not what happened.
+- Populate effects for the mechanical result; the engine applies them afterward.
+- `reasoning_short` is concise rules rationale, not scene prose.
+- Do not infer final death or consciousness state; the engine computes it.
+"""
 
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
@@ -7855,6 +8247,12 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 # Fallback to simple prompt
                 system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
 
+            if outcome_first:
+                system_prompt = (
+                    "You are an expert Aeonisk YAGS adjudicator. Return mechanics "
+                    "only and never narrate an outcome.\n\n" + system_prompt
+                )
+
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
             max_tokens = self.llm_config.get('max_tokens', 6000)  # Increased for complex ActionResolution schemas
             temperature = self.llm_config.get('temperature', 1.0)
@@ -7873,18 +8271,22 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 temperature=temperature,
                 # Pass llm_logger and current_round for token tracking
                 llm_logger=self.llm_logger,
-                current_round=current_round
+                current_round=current_round,
+                result_type=result_type,
                 # fallback_to_text defaults to False - strict mode
             )
 
-            if isinstance(resolution_obj, ActionResolution):
+            if isinstance(resolution_obj, (ActionResolution, ActionAdjudication)):
                 has_outcome_tiers = hasattr(resolution_obj, 'outcome_tiers') and resolution_obj.outcome_tiers is not None
                 outcome_tiers_count = len(resolution_obj.outcome_tiers) if has_outcome_tiers else 0
                 logger.debug(f"✓ DM structured resolution: outcome_tiers: {outcome_tiers_count}/6 {'✓' if outcome_tiers_count == 6 else '✗ MISSING'}")
 
                 # Validate structured output completeness
                 from .structured_output_helpers import validate_resolution_completeness
-                validation_warnings = validate_resolution_completeness(resolution_obj, action)
+                validation_warnings = (
+                    [] if outcome_first
+                    else validate_resolution_completeness(resolution_obj, action)
+                )
                 if validation_warnings:
                     logger.info(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
                     for warning in validation_warnings:
@@ -7941,7 +8343,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                 declared_action=action,
                                 available_targets=available_targets,
                                 error_description=error,
-                                dm_narration=resolution_obj.narration
+                                dm_narration=(
+                                    getattr(resolution_obj, 'narration', None)
+                                    or description
+                                    or (action or {}).get('intent', '')
+                                )
                             )
 
                             # Apply LLM-corrected target
@@ -8023,9 +8429,9 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     mechanics = self.shared_state.mechanics_engine
                     if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                         # Calculate completeness score (0.0-1.0)
-                        expected_fields = 7  # narration, success_tier, margin, effects, soulcredit_changes, etc.
+                        expected_fields = 6 if outcome_first else 7
                         populated_fields = 0
-                        if len(resolution_obj.narration) >= 200:
+                        if outcome_first or len(resolution_obj.narration) >= 200:
                             populated_fields += 1
                         if resolution_obj.effects:
                             if resolution_obj.effects.soulcredit_changes:
@@ -8049,29 +8455,12 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             completeness_score=completeness_score
                         )
 
-                # Log LLM call for replay (structured output path)
-                if self.llm_logger:
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ]
-                    estimated_input_tokens = count_chat_tokens(messages, model)
-                    estimated_output_tokens = count_text_tokens(resolution_obj.narration, model)
-
-                    self.llm_logger._log_llm_call(
-                        messages=messages,
-                        response=resolution_obj.narration,  # Log narration as response
-                        model=model,
-                        temperature=temperature,
-                        tokens={
-                            'input': estimated_input_tokens,
-                            'output': estimated_output_tokens,
-                            'total': estimated_input_tokens + estimated_output_tokens,
-                        },
-                        current_round=current_round,
-                        call_sequence=self.llm_logger.call_count
-                    )
-                    self.llm_logger.call_count += 1
+                # NOTE: do NOT _log_llm_call here — generate_dm_resolution_structured
+                # already logs this call internally (llm_logger passed through to
+                # provider.generate_structured). A manual re-log here produced a
+                # phantom narration-only duplicate per adjudication (6/24 DM
+                # "calls" in a 3-round smoke were phantoms), poisoning the
+                # replay cache with calls the engine never made.
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -8085,7 +8474,10 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             response=resolution_obj.model_dump_json(indent=2),
                             model=model,
                             temperature=temperature,
-                            metadata={'purpose': 'action_resolution_structured', 'note': 'Pydantic AI structured output (ActionResolution schema)'}
+                            metadata={
+                                'purpose': 'action_adjudication_structured' if outcome_first else 'action_resolution_structured',
+                                'note': f'Pydantic structured output ({result_type.__name__} schema)'
+                            }
                         )
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
@@ -8146,7 +8538,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     )
 
                     # Append damage outcome messages to narration
-                    if damage_messages:
+                    if damage_messages and not outcome_first:
                         additional_narration = "\n\n" + "\n\n".join(damage_messages)
                         resolution_obj.narration += additional_narration
                         logger.debug(f"Appended {len(damage_messages)} damage messages to narration")
@@ -8165,7 +8557,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     )
 
                     # Append healing outcome messages to narration
-                    if healing_messages:
+                    if healing_messages and not outcome_first:
                         additional_narration = "\n\n" + "\n\n".join(healing_messages)
                         resolution_obj.narration += additional_narration
                         logger.debug(f"Appended {len(healing_messages)} healing messages to narration")
@@ -8183,7 +8575,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                 return resolution_obj
             else:
-                error_msg = "DM: Structured output returned text instead of ActionResolution object"
+                error_msg = f"DM: Structured output returned text instead of {result_type.__name__} object"
                 logger.error(error_msg)
                 raise TypeError(error_msg)
 
@@ -8255,7 +8647,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         round_num=current_round,
                         agent_type='dm',
                         agent_id=self.agent_id,
-                        schema_name='ActionResolution',
+                        schema_name=(
+                            'ActionAdjudication'
+                            if self._outcome_first_enabled()
+                            else 'ActionResolution'
+                        ),
                         exception_type=error_type,
                         error_message=error_message,
                         attempt_number=4,  # We don't know the exact attempt here, using max
@@ -8914,6 +9310,9 @@ Roll: {attr_name} {attr_val} × {skill_name} {skill_val} + d20({d20_roll}) = {to
                     )
                 logger.debug(f"✓ Attunement field validated: {structured_resolution.effects.attunement.energy_type}, success={structured_resolution.effects.attunement.success}")
 
+            if self._outcome_first_enabled():
+                tier = getattr(structured_resolution.success_tier, 'value', structured_resolution.success_tier)
+                return f"Adjudicated mechanically: {tier} (margin {structured_resolution.margin:+d})."
             return structured_resolution.narration
 
         # Fall back to legacy text generation
@@ -9308,7 +9707,6 @@ When adjudicating:
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -9375,7 +9773,6 @@ When adjudicating:
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 return narration
 
@@ -9468,7 +9865,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:
@@ -9591,7 +9987,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
-                    self.llm_logger.call_count += 1
 
                 # Also log to human-readable agent prompt log if enabled
                 if self.agent_prompt_logger:

@@ -365,7 +365,8 @@ async def generate_structured_openai_native(
                 temperature=temperature,
                 tokens=tokens,
                 current_round=current_round,
-                call_sequence=call_sequence
+                call_sequence=call_sequence,
+                call_type=f"structured:{result_type.__name__}"
             )
         except Exception as e:
             logger.warning(f"Failed to log LLM call to JSONL: {e}")
