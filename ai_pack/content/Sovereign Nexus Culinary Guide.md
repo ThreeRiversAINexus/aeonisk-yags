@@ -1,6 +1,8 @@
-# Sovereign Nexus Culinary Guide — Currency Edition (v2.0)
+# Sovereign Nexus Culinary Guide — Currency Edition
 
-*Expanded consumables, kitchen tech, and prestige upgrades for Aeonisk campaigns set in the Sovereign Nexus. Canon-compliant with the Economy & Money-Making Guide v1.3.0; recalibrated 2026-05-17.*
+**Version 1.4.0**
+
+*Expanded consumables, kitchen tech, and prestige upgrades for Aeonisk campaigns set in the Sovereign Nexus. Canon-compliant with the Economy & Money-Making Guide v1.4.0; recalibrated 2026-05-17.*
 
 ------
 

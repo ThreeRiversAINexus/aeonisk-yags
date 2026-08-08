@@ -1,6 +1,6 @@
 # Aeonisk - Economy & Money-Making Guide
 
-**Version 1.3.0**
+**Version 1.4.0**
 *A comprehensive guide to currency, commerce, and survival in the Aeonisk economy*
 
 ---

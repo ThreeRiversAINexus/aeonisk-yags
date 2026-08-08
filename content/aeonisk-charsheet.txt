@@ -1,6 +1,7 @@
 YAGS character sheet
 
 # YAGS Character Sheet
+# Version 1.4.0
 
 # --------------------------------------
 # Basic Information

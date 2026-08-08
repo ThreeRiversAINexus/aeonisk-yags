@@ -20,11 +20,11 @@ from typing import Dict, Any, List, Optional, Tuple
 # skips missing paths silently, so drift here is invisible at runtime.
 RULE_FILES: List[str] = [
     "content/AEONISK_PRIMER.md",
-    "content/Aeonisk - YAGS Module - v1.3.0.md",
-    "content/Aeonisk - System Neutral Lore - v1.3.0.md",
-    "content/Aeonisk - Gear & Tech Reference - v1.2.2.md",
-    "content/Aeonisk - Economy & Money-Making Guide - v1.3.0.md",
-    "content/experimental/Aeonisk - Tactical Module - v1.3.0.md",
+    "content/Aeonisk - YAGS Module - v1.4.0.md",
+    "content/Aeonisk - System Neutral Lore - v1.4.0.md",
+    "content/Aeonisk - Gear & Tech Reference - v1.4.0.md",
+    "content/Aeonisk - Economy & Money-Making Guide - v1.4.0.md",
+    "content/experimental/Aeonisk - Tactical Module - v1.4.0.md",
     "content/supplemental/NEXUS_LAW.md",
     "content/supplemental/FACTION_REFERENCE.md",
     "content/supplemental/LINES_REFERENCE.md",

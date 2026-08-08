@@ -22,14 +22,14 @@ PACK_CONTENT = REPO_ROOT / "ai_pack" / "content"
 # Source documents, in the reading order the pack README presents them.
 PACK_SOURCES = [
     "content/AEONISK_PRIMER.md",
-    "content/Aeonisk - System Neutral Lore - v1.3.0.md",
-    "content/Aeonisk - YAGS Module - v1.3.0.md",
+    "content/Aeonisk - System Neutral Lore - v1.4.0.md",
+    "content/Aeonisk - YAGS Module - v1.4.0.md",
     "content/supplemental/NEXUS_LAW.md",
     "content/supplemental/FACTION_REFERENCE.md",
     "content/supplemental/LINES_REFERENCE.md",
-    "content/Aeonisk - Economy & Money-Making Guide - v1.3.0.md",
-    "content/Aeonisk - Gear & Tech Reference - v1.2.2.md",
-    "content/experimental/Aeonisk - Tactical Module - v1.3.0.md",
+    "content/Aeonisk - Economy & Money-Making Guide - v1.4.0.md",
+    "content/Aeonisk - Gear & Tech Reference - v1.4.0.md",
+    "content/experimental/Aeonisk - Tactical Module - v1.4.0.md",
     "content/Sovereign Nexus Culinary Guide.md",
     "content/aeonisk-charsheet.txt",
 ]

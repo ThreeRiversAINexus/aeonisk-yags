@@ -26,8 +26,8 @@ pack matches canon.
 
 | File | What it is |
 |---|---|
-| `Aeonisk - System Neutral Lore - v1.3.0.md` | The setting. Sovereign Civics, Soulcredit, factions, worlds, trade routes. System-agnostic. |
-| `Aeonisk - YAGS Module - v1.3.0.md` | The rules. Attributes, skills, rolls, Void, Bonds, character creation. |
+| `Aeonisk - System Neutral Lore - v1.4.0.md` | The setting. Sovereign Civics, Soulcredit, factions, worlds, trade routes. System-agnostic. |
+| `Aeonisk - YAGS Module - v1.4.0.md` | The rules. Attributes, skills, rolls, Void, Bonds, character creation. |
 | `NEXUS_LAW.md` | The **Sovereign Nexus Constitution** — the ratified law the Codex Nexum judges by, and *is*. What it punishes and what it costs. **Governs where it and the Module differ in wording.** |
 | `FACTION_REFERENCE.md` | 🔒 **LOCKED.** Short-form authority on the 8 factions. Check faction claims here first. |
 | `LINES_REFERENCE.md` | House Lines and Covenant Rings. Illustrative, not exhaustive — you may invent Lines, not factions. |
@@ -36,9 +36,9 @@ pack matches canon.
 
 | File | What it is |
 |---|---|
-| `Aeonisk - Economy & Money-Making Guide - v1.3.0.md` | Currency, vendors, seed economics, how a broke party gets paid. |
-| `Aeonisk - Gear & Tech Reference - v1.2.2.md` | Weapons, armor, vehicles, automata. (Content is v1.2.4; filename is a pinned dependency.) |
-| `Aeonisk - Tactical Module - v1.3.0.md` | ⚗️ **Playtest.** Range bands, defense tokens, positioning. Optional layer. |
+| `Aeonisk - Economy & Money-Making Guide - v1.4.0.md` | Currency, vendors, seed economics, how a broke party gets paid. |
+| `Aeonisk - Gear & Tech Reference - v1.4.0.md` | Weapons, armor, vehicles, automata. |
+| `Aeonisk - Tactical Module - v1.4.0.md` | ⚗️ **Playtest.** Range bands, defense tokens, positioning. Optional layer. |
 | `Sovereign Nexus Culinary Guide.md` | Food, drink, and hospitality priced against currency canon. Flavor for social scenes. |
 | `aeonisk-charsheet.txt` | Blank YAGS character sheet, YAML. |
 

@@ -63,7 +63,7 @@ def test_codex_nexum_identity_is_consistent():
     assert "# The Sovereign Nexus Constitution" in STATUTE
     assert "The **Codex Nexum** is the astral computer" in STATUTE
 
-    glossary = (ROOT / "content/Aeonisk - YAGS Module - v1.3.0.md").read_text()
+    glossary = (ROOT / "content/Aeonisk - YAGS Module - v1.4.0.md").read_text()
     assert "**Sovereign Nexus Constitution:**" in glossary, (
         "the law needs its own glossary entry"
     )
