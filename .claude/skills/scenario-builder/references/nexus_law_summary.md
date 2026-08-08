@@ -1,4 +1,4 @@
-# Sovereign Nexus Constitution — clause index (Codex Nexum v1.4)
+# Sovereign Nexus Constitution — clause index (Codex Nexum v1.5)
 
 A one-line index of the ratified statute so authored `scenario_hint`s can cite **real** clauses
 (e.g. "written as a killing (IV.3)", "excessive force against the helpless (II.1)", "lawful
@@ -57,9 +57,10 @@ other clause is ratified and binding.
 - **IV.4** Necessity — lesser offense to avert grave imminent harm, lawful path unavailable,
   submitting to review after: 0..−1; concealment voids it
 - **IV.5** Superior Orders launder nothing — the *orderer* falls −1 beyond the actor
-- **IV.6** Consent and Purification — cleansing another's Void without consent is an offense
-  EXCEPT under lawful mandate (void ≥ 5). ⚖️ open: whether *voluntary* self-corruption is an
-  offense at all, and whether the mandate is permissive or obligatory
+- **IV.6** Consent and Purification — **voluntary self-corruption is NOT an offense**; a soul may
+  stand at void 7 with a clean ledger. Judge what an actor *does* with the Void (III.3), never what
+  the Void has done to them. Forced cleansing below void 5 is the offense (III.5); at void 5+ the
+  mandate makes it lawful but **permissive** — nobody is obliged to cleanse
 - **IV.7** **The Criminal Principle** — the tragic reading: fidelity to a criminal Principle earns
   its I.4 credit AND the crime earns its penalty. The ledger records BOTH and nets negative
 

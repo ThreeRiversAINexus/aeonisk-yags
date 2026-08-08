@@ -1,17 +1,17 @@
 """The operational rendering of Codex Nexum — the single source all judges use.
 
-The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.4,
-Legislator-ratified 2026-08-05). This module is its operational form: the
+The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.5,
+Legislator-ratified 2026-08-08). This module is its operational form: the
 rubric every adjudicator renders, with article citations, so the three
 courts (in-session DM guidance, offline judge lane, post-resolution
 adjudicator) can never drift again. Amending this rubric requires the
 Legislator's ratification of the statute first; tests bind the two.
 """
 
-LAW_VERSION = "1.4"
+LAW_VERSION = "1.5"
 
 OPERATIONAL_RUBRIC = """\
-CODEX NEXUM v1.4 — operational rubric. Soulcredit tracks trustworthiness
+CODEX NEXUM v1.5 — operational rubric. Soulcredit tracks trustworthiness
 under the law, NOT success. Judge from the Nexus perspective regardless of
 the actor's faction. Cite the governing article in every ruling.
 
@@ -62,6 +62,12 @@ JUSTIFICATIONS:
 - Superior orders launder nothing; the orderer falls further [IV.5]
 - A kept criminal Principle earns its I.4 credit AND its crime's debit -
   the ledger records both [IV.7]
+- Voluntary self-corruption is NOT an offense: 0 [IV.6]. Taking Void into
+  yourself by your own choice wrongs no one and earns NO Soulcredit penalty -
+  a soul may stand at void 7 with a clean ledger. Judge what an actor DOES with
+  the Void [III.3], never what the Void has done to them. Forced cleansing
+  below void 5 is the offense [III.5]; at void 5+ the mandate makes it lawful,
+  but PERMISSIVE - nobody is obliged to cleanse, and declining is no failure
 
 THE INTENT RULE [Article V]: the attempt IS the offense. Success or failure
 NEVER changes the article applied or its weight - a failed deception is still

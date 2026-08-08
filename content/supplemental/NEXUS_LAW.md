@@ -1,9 +1,8 @@
 # The Sovereign Nexus Constitution
 #### The law that the Codex Nexum is, and enforces
-### v1.4 — RATIFIED (v1.0 statute + Amendments A1, A2, A3; all 🔨 clauses ratified), 2026-08-05
-*(Two deferred items — the only ⚖️ marks remaining in the body: IV.6's
-Dissolution Question, and Appendix A's reserved +2/+3 tier, which awaits
-definition through practice.)*
+### v1.5 — RATIFIED (v1.0 statute + Amendments A1, A2, A3; IV.6 answered), 2026-08-08
+*(One deferred item — the only ⚖️ mark remaining in the body: Appendix A's
+reserved +2/+3 tier, which awaits definition through practice.)*
 
 *Consolidates the three drifting rubric copies (dm_state_tracking,
 fidelity_harness.NEXUS_LAW, dm_post_adjudication) with YAGS Module §3.2 and the
@@ -13,8 +12,8 @@ this document and cite its articles.*
 *Markers: ✅ ratified law, in force · ⚖️ LEGISLATOR'S CHOICE (open question,
 options given). As of v1.4 every clause that was formerly marked 🔨 "proposed
 codification" has been ratified outright — the statute no longer distinguishes
-between law inherited from the lore and law codified here. Two ⚖️ questions
-remain open; everything else binds.*
+between law inherited from the lore and law codified here. One ⚖️ question
+remains open; everything else binds.*
 
 ---
 
@@ -192,11 +191,27 @@ EXCEPT for legitimate purposes by those the Codex trusts.*
   penalty.
 - **IV.6** ✅ **Consent and Purification**: cleansing another's Void without
   consent is an offense (III.5 territory) — EXCEPT under lawful mandate (the
-  Codex's cleansing mandates at void ≥ 5). ⚖️ The Dissolution Question: is
-  *voluntary* self-corruption (controlled dissolution) an offense at all, or
-  only a danger the Codex may lawfully contain? This is scenario 11's dilemma
-  and the statute currently takes the Nexus position: the mandate is lawful,
-  autonomy does not extend to becoming a breach risk. Ratify or soften.
+  Codex's cleansing mandates at void ≥ 5).
+  ✅ (ratified 2026-08-08) **The Dissolution Question, answered — softened from
+  the Nexus position.** Voluntary self-corruption is **not an offense**. A soul
+  that takes Void into itself by its own choice has wronged no one, and the
+  Codex writes no fall for it. Dissolution is not a crime; it is a road.
+
+  What the law reaches is not the choice but its *reach*. At void ≥ 5 a soul
+  passively warps the reality around it — and that warping is felt by people
+  who did not consent to stand near it. There the cleansing mandate attaches,
+  on precisely the ground A3.2 uses everywhere else: harm felt by someone other
+  than the actor.
+
+  ✅ (ratified) **The mandate is permissive, never obligatory.** Enforcers, the
+  Cathedral, and Confessors *may* cleanse without consent at void ≥ 5; none of
+  them is required to, and declining is no dereliction. Below 5, consent
+  governs absolutely and forced cleansing remains an offense (III.5).
+
+  Note the line this draws against III.3: unlawful *use* of the Void is an
+  offense; being corrupted is not. A soul may stand at void 7 with a clean
+  ledger, having only ever spent that corruption on itself. What the Codex
+  answers is what you do with the Void — never what it has done to you.
 - **IV.7** ✅ **The Criminal Principle** (the Legislator's question): Soulcredit
   rewards fidelity to one's Guiding Principle (I.4) — what if the Principle
   itself is criminal ("always take the score")? Options:
