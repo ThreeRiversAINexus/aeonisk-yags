@@ -911,3 +911,58 @@ def test_mismatched_coverage_segment_auto_repairs_when_unambiguous():
     warnings = validate_outcome_synthesis(synthesis, [outcome])
     assert synthesis.coverage[0].segment_id == "beat_1"
     assert any("auto-repair" in w for w in warnings)
+
+
+def _party_before():
+    return {
+        eid: EntityStateSnapshot(
+            entity_id=eid, entity_type="player", name=name, narrative_name=name,
+            health=20, max_health=20, life_state="alive",
+            consciousness="conscious", combat_state="active",
+        )
+        for eid, name in (("player_01", "Oathkeeper Sela"), ("player_02", "Cold Tarn"))
+    }
+
+
+def test_physically_observable_outcome_cannot_be_privately_restricted():
+    # Adjudicator noise: a knockdown restricted to a subset. You cannot hide a
+    # defeated/unconscious/damaged body from co-present agents — force public.
+    before = _party_before()
+    before["enemy_vane"] = _state(health=30)
+    ko = _state(health=0, consciousness="unconscious", combat_state="defeated")
+    outcome = build_applied_outcome(
+        round_num=1,
+        sequence=1,
+        actor_id="player_01",
+        actor_name="Oathkeeper Sela",
+        action={"intent": "Drop the guard"},
+        resolution_data={
+            "success": True,
+            "aware_agents": ["dm", "player_01"],  # spurious restriction
+            "resolution": {},
+        },
+        before=before,
+        after={"enemy_vane": ko},
+    )
+    assert outcome.visibility == []
+
+
+def test_genuinely_concealed_soft_action_stays_restricted():
+    # A stealth/social action with no loud physical consequence keeps its
+    # restriction — the backstop must not erase legitimate secrecy.
+    before = _party_before()
+    outcome = build_applied_outcome(
+        round_num=1,
+        sequence=1,
+        actor_id="player_01",
+        actor_name="Oathkeeper Sela",
+        action={"intent": "Slip the note across the table"},
+        resolution_data={
+            "success": True,
+            "aware_agents": ["dm", "player_01"],  # legitimately private
+            "resolution": {},
+        },
+        before=before,
+        after=before,
+    )
+    assert outcome.visibility == ["dm", "player_01"]
