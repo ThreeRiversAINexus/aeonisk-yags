@@ -163,6 +163,11 @@ class EnemyCombatManager:
 
     def __init__(self, shared_state=None):
         self.enemy_agents: List[EnemyAgent] = []
+        # Every enemy id issued this session, including retired ones. Defeated
+        # enemies leave `enemy_agents` (`self.enemy_agents = surviving`), so the
+        # live roster cannot decide uniqueness — reissuing a dead unit's id
+        # would collide with its identity in the JSONL log.
+        self.issued_enemy_ids: set = set()
         self.shared_intel = SharedIntel()
         self.enemy_declarations: Dict[str, EnemyDeclaration] = {}
         self.current_round: int = 0
@@ -347,9 +352,11 @@ class EnemyCombatManager:
                     tactics_override=spawn.custom_traits or "adaptive",
                     current_round=self.current_round,
                     faction=spawn.faction,
+                    taken_ids=self.issued_enemy_ids,
                 )
 
                 if enemy:
+                    self.issued_enemy_ids.add(enemy.agent_id)
                     self.enemy_agents.append(enemy)
                     notifications.append(
                         f"⚔️  **{enemy.name}** spawned! "

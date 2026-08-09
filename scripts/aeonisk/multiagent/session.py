@@ -4148,7 +4148,7 @@ Generate narratives (numbered list only):"""
                     # Process NPC spawns from conversion check
                     if conversion_decisions.npc_spawns and self.shared_state:
                         from .schemas.story_events import NPCSpawn
-                        from .npc_agent import NPCAgent
+                        from .npc_agent import NPCAgent, next_npc_agent_id
 
                         # Collect PC names to prevent NPC spawns that duplicate player characters
                         pc_names = set()
@@ -4176,7 +4176,8 @@ Generate narratives (numbered list only):"""
 
                             # Create NPC agent
                             npc = NPCAgent(
-                                agent_id=f"npc_{uuid.uuid4().hex[:8]}",
+                                agent_id=next_npc_agent_id(
+                                    npc_spawn.name, self.shared_state.issued_npc_ids),
                                 name=npc_spawn.name,
                                 faction=npc_spawn.faction,
                                 disposition=npc_spawn.disposition,
@@ -7684,7 +7685,7 @@ NO conversions/morale checks needed (scene just started).
                     # Process NPC spawns for new scene
                     if post_advancement_decisions.npc_spawns and self.shared_state:
                         from .schemas.story_events import NPCSpawn
-                        from .npc_agent import NPCAgent
+                        from .npc_agent import NPCAgent, next_npc_agent_id
                         import uuid
 
                         # Collect PC names to prevent NPC spawns that duplicate player characters
@@ -7708,7 +7709,8 @@ NO conversions/morale checks needed (scene just started).
                                 continue
 
                             npc = NPCAgent(
-                                agent_id=f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
+                                agent_id=next_npc_agent_id(
+                                    npc_spawn.name, self.shared_state.issued_npc_ids),
                                 name=npc_spawn.name,
                                 entity_type=npc_spawn.entity_type,
                                 threat_level=npc_spawn.threat_level,

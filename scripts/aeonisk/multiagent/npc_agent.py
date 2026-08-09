@@ -24,6 +24,34 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def next_npc_agent_id(name: str, taken) -> str:
+    """Derive a stable NPC agent_id from the display name.
+
+    These were `npc_{uuid4().hex[:8]}` (`session.py:4179`) and
+    `npc_{slug}_{uuid4().hex[:8]}` (`:7711`). The random half made the id differ
+    on every run, so replay — keyed on `(agent_id, call_sequence)` — could never
+    find an NPC's recorded stream. Both spawn sites already refuse to create a
+    second NPC with an existing name, so the name alone identifies the entity
+    and the uuid was redundant.
+
+    `taken` should hold every id issued this session; a name collision falls
+    through to `_02`, `_03`, ... rather than reusing a retired identity.
+    """
+    import re
+
+    slug = re.sub(r'[^a-z0-9]+', '_', (name or '').lower()).strip('_')
+    # The `npc_` prefix is load-bearing: `session.py:6671` and the invariants
+    # route entities on it, so a nameless NPC still has to carry it.
+    base = f"npc_{slug}" if slug else "npc_unnamed"
+    taken = set(taken or ())
+    if base not in taken:
+        return base
+    index = 2
+    while f"{base}_{index:02d}" in taken:
+        index += 1
+    return f"{base}_{index:02d}"
+
+
 @dataclass
 class NPCMemory:
     """

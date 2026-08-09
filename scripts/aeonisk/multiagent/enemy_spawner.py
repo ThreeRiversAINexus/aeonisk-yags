@@ -30,6 +30,32 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# AGENT IDs
+# =============================================================================
+
+
+def next_enemy_agent_id(template_key: str, taken) -> str:
+    """Lowest unused index for this template: `enemy_grunt_01`, `_02`, ...
+
+    Deterministic on purpose. These were `uuid.uuid4().hex[:8]`, which ignores
+    the session's `random_seed`, so the same config and seed produced different
+    ids on every run and replay — keyed on `(agent_id, call_sequence)` — missed
+    every enemy's recorded stream.
+
+    `taken` must hold every id the session has EVER issued, not just the live
+    roster. `enemy_combat.py` drops defeated enemies with
+    `self.enemy_agents = surviving`, and reissuing a dead unit's id would
+    collide with its identity in the JSONL corpus. Indices are spent, not
+    recycled, so gaps are expected and correct.
+    """
+    taken = set(taken or ())
+    index = 1
+    while f"enemy_{template_key}_{index:02d}" in taken:
+        index += 1
+    return f"enemy_{template_key}_{index:02d}"
+
+
+# =============================================================================
 # SPAWN PROCESSING
 # =============================================================================
 
@@ -41,7 +67,9 @@ def spawn_enemy(
     tactics_override: Optional[str] = None,
     personality_override: Optional[str] = None,
     current_round: int = 0,
-    faction: Optional[str] = None
+    faction: Optional[str] = None,
+    taken_ids=None,
+    agent_id: Optional[str] = None
 ) -> EnemyAgent:
     """
     Create an enemy agent from spawn parameters.
@@ -82,9 +110,11 @@ def spawn_enemy(
     except Exception as e:
         raise ValueError(f"Invalid position '{position_str}': {e}")
 
-    # Generate unique agent ID
-    import uuid
-    agent_id = f"enemy_{template_key}_{uuid.uuid4().hex[:8]}"
+    # Deterministic agent ID (see next_enemy_agent_id). The caller owns the set
+    # of ids already issued this session, because uniqueness spans the whole
+    # session and not just the surviving roster.
+    if not agent_id:
+        agent_id = next_enemy_agent_id(template_key, taken_ids)
 
     # Use template health as-is (no scaling)
     max_health = template["health"]
