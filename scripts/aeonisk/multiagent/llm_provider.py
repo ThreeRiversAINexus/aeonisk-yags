@@ -398,6 +398,29 @@ class LLMResponse:
     raw_response: Any = None
 
 
+def serialize_structured_response(output: Any) -> str:
+    """Render a structured LLM result for the JSONL `response` field.
+
+    Must be JSON whenever the output is a Pydantic model. `str(model)` gives the
+    `field=value` repr — `success_tier=<SuccessTier.FAILURE: 'failure'>` — which
+    no parser reads and only `eval` reverses. The OpenAI path already logs the
+    API's raw JSON (`openai_structured.py:363`); this keeps the Claude path
+    recording the same shape, so the corpus does not vary by provider.
+
+    Never raises: this feeds telemetry, and a logging failure must not take down
+    an LLM call that already succeeded.
+    """
+    if isinstance(output, str):
+        return output
+    dump = getattr(output, "model_dump_json", None)
+    if callable(dump):
+        try:
+            return dump()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"Could not serialize structured response as JSON: {exc}")
+    return str(output)
+
+
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.
@@ -837,7 +860,7 @@ This field is used for ML training and game mechanics - it is NOT optional when 
 
                         llm_logger._log_llm_call(
                             messages=[{"role": "user", "content": prompt}],
-                            response=str(result.output),
+                            response=serialize_structured_response(result.output),
                             model=self.config.model,
                             temperature=temperature,
                             tokens=tokens,

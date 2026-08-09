@@ -150,6 +150,64 @@ class TestReplay:
         assert "no recorded calls" in caplog.text
 
 
+class TestAlignment:
+    """Position alone is not enough, and the first end-to-end replay proved it.
+
+    The engine asked for its 6th DM call as `ActionAdjudication`; position 6 in
+    the recording was `PostRulings`. Pydantic caught that one only because the
+    schemas differed — two adjacent `ActionAdjudication` calls would have served
+    the wrong response in silence. `call_type` is a second, independent record of
+    what each call was, so replay checks it and stops on a mismatch.
+    """
+
+    @pytest.fixture
+    def typed(self, tmp_path):
+        path = tmp_path / "session_typed.jsonl"
+        with open(path, "w") as fh:
+            for seq, (ct, resp) in enumerate([
+                ("structured:RoundAssessment", '{"a": 1}'),
+                ("structured:PostRulings", '{"b": 2}'),
+            ]):
+                fh.write(json.dumps({
+                    "event_type": "llm_call", "agent_id": "dm_01",
+                    "call_sequence": seq, "call_type": ct, "response": resp,
+                }) + "\n")
+        return str(path)
+
+    @pytest.mark.asyncio
+    async def test_mismatched_schema_raises(self, typed):
+        class PostRulings:
+            @staticmethod
+            def model_validate_json(text):
+                return "parsed"
+
+        provider = make(typed, "dm_01")
+
+        with pytest.raises(ReplayExhausted, match="RoundAssessment"):
+            await provider.generate_structured("x", PostRulings)
+
+    @pytest.mark.asyncio
+    async def test_matching_schema_replays(self, typed):
+        class RoundAssessment:
+            @staticmethod
+            def model_validate_json(text):
+                return json.loads(text)
+
+        provider = make(typed, "dm_01")
+
+        assert await provider.generate_structured("x", RoundAssessment) == {"a": 1}
+
+    @pytest.mark.asyncio
+    async def test_untyped_recordings_still_replay(self, recording):
+        """Older sessions logged no call_type; they must not become unreplayable."""
+        class Thing:
+            @staticmethod
+            def model_validate_json(text):
+                return text
+
+        assert await make(recording, "dm_01").generate_structured("x", Thing) == "dm-zero"
+
+
 class TestWiring:
 
     def test_registered_in_the_provider_factory(self, recording):
