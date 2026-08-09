@@ -1113,6 +1113,22 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+        # Keep this round's rows so the log-fidelity oracle can diff what was
+        # actually written against live engine state. Buffering the written
+        # event (rather than recomputing) is what makes the check meaningful:
+        # a writer that logs a hardcoded constant is caught precisely because
+        # the buffer holds the constant.
+        if getattr(self, "_fidelity_round", None) != round_num:
+            self._fidelity_round = round_num
+            self._fidelity_rows = {}
+        self._fidelity_rows[character_id] = dict(event)
+
+    def character_rows_for_round(self, round_num) -> Dict[str, Dict[str, Any]]:
+        """Rows written by log_character_state for `round_num` ({} if none)."""
+        if getattr(self, "_fidelity_round", None) != round_num:
+            return {}
+        return dict(getattr(self, "_fidelity_rows", {}) or {})
+
     def log_enemy_spawn(
         self,
         round_num: int,

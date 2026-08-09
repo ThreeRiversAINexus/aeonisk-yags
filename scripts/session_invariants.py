@@ -759,7 +759,34 @@ def inv_stun_weapon_dealt_wounds(events, cfg) -> List[Violation]:
 # ---------------------------------------------------------------------------
 # Registry + driver
 # ---------------------------------------------------------------------------
+def inv_log_fidelity(events, cfg) -> List[Violation]:
+    """The session's own oracle found the log disagreeing with live state.
+
+    Emitted at round end by session._check_log_fidelity. Warn-only at runtime so
+    telemetry never gates play; an ERROR here so it cannot be ignored in the
+    corpus. A divergence means the JSONL is not a faithful record of the game —
+    which invalidates anything measured from it.
+    """
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "log_fidelity_divergence":
+            continue
+        b = _body(e)
+        for d in (b.get("divergences") or []):
+            if not isinstance(d, dict):
+                continue
+            detail = (f"{d.get('field')} logged {d.get('logged')!r} "
+                      f"but engine held {d.get('expected')!r}"
+                      if d.get("kind") == "value_mismatch"
+                      else str(d.get("kind")))
+            out.append(Violation(
+                "log_fidelity_divergence", ERROR, detail,
+                e.get("round"), d.get("name") or d.get("agent_id")))
+    return out
+
+
 CHECKS: List[Callable] = [
+    inv_log_fidelity,
     inv_weapon_substituted,
     inv_stun_weapon_dealt_wounds,
     inv_single_session_end,
