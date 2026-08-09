@@ -4479,6 +4479,9 @@ Generate narratives (numbered list only):"""
                             **character_state_row(npc, mechanics, agent='npc')
                         )
 
+                # Cross-check what was just written against live engine state.
+                self._check_log_fidelity(mechanics, player_agents)
+
                 # Log round summary for balance analysis
                 active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
                 player_wounds_total = sum(player.wounds for player in player_agents if hasattr(player, 'wounds'))
@@ -5942,6 +5945,55 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Otherwise session continues
         return False
         
+    def _check_log_fidelity(self, mechanics, player_agents) -> None:
+        """Diff this round's character_state rows against live engine state.
+
+        Warn-only. Five of the nine defects in the 2026-08-09 audit were the log
+        and the state disagreeing with nothing watching — an entity kind nobody
+        logged, a hardcoded `soulcredit=0`, a snapshot contradicting its own
+        oracle. Each would have announced itself here, in the run that produced
+        it, for free.
+
+        Wrapped end to end: this is telemetry, and telemetry must never gate play.
+        """
+        try:
+            from .log_fidelity import compare_rows, live_state
+
+            logged = mechanics.character_rows_for_round(mechanics.current_round)
+            if not logged:
+                return
+
+            enemies = (getattr(self.enemy_combat, 'enemy_agents', None) or []
+                       if getattr(self, 'enemy_combat', None) else [])
+            npcs = getattr(self.shared_state, 'npc_agents', None) or []
+
+            expected = live_state(players=player_agents, enemies=enemies,
+                                  npcs=npcs, mechanics=mechanics)
+            names = {}
+            for entity in list(player_agents) + list(enemies) + list(npcs):
+                agent_id = getattr(entity, 'agent_id', None)
+                if not agent_id:
+                    continue
+                cs = getattr(entity, 'character_state', None)
+                names[agent_id] = getattr(cs, 'name', None) or getattr(entity, 'name', agent_id)
+
+            divergences = compare_rows(expected, logged, names)
+            if not divergences:
+                return
+
+            for d in divergences:
+                logger.warning(f"LOG FIDELITY: {d}")
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_event(
+                    event_type="log_fidelity_divergence",
+                    data={"round": mechanics.current_round,
+                          "count": len(divergences),
+                          "divergences": [d.as_dict() for d in divergences]},
+                    round_num=mechanics.current_round,
+                )
+        except Exception as e:  # pragma: no cover - never break a session
+            logger.debug(f"Log-fidelity check unavailable: {e}")
+
     def _heartbeat(self, round_count: int) -> None:
         """Stamp the liveness sidecar at a round boundary.
 
