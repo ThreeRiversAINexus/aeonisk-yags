@@ -68,11 +68,37 @@ def extract_faction(enemy_name: str) -> str:
         VOID_FACTIONS
     )
 
+    # Earliest match wins; ties break toward the longest (most specific) name.
+    #
+    # Returning the first hit from a *set* made the answer depend on iteration
+    # order rather than on the name, and had no notion of specificity. The
+    # vocabulary holds both canonical names and short aliases ("Vox" alongside
+    # "House of Vox", "Nexus" alongside "Sovereign Nexus"), so the alias often
+    # won: every House of Vox unit came back as "Vox", which is not a canonical
+    # faction at all. Enumerating faction x archetype showed 34 of 176
+    # combinations misparsing.
+    #
+    # Length matters because "House of Vox" starts where "Vox" does not.
+    # Position matters because a short faction name can lose to a longer word in
+    # the archetype: "ACG Void Theorist" reads as Void under longest-match alone,
+    # since "Void" (4) outranks "ACG" (3) — and a commerce house employing a Void
+    # theorist is perfectly plausible. Generated names lead with the faction, so
+    # the leading match wins.
+    #
+    # This is also what produced the #79 faction flattening:
+    # "Tempest Industries Void Theorist" -> "Void", because the archetype word
+    # outranked the faction words.
+    best_key = None
+    best_faction = None
     for faction in all_factions:
-        if faction.lower() in name_lower:
-            return faction
+        position = name_lower.find(faction.lower())
+        if position == -1:
+            continue
+        key = (position, -len(faction))
+        if best_key is None or key < best_key:
+            best_key, best_faction = key, faction
 
-    return "Unknown"
+    return best_faction or "Unknown"
 
 
 def are_factions_allied(faction_a: str, faction_b: str) -> bool:
