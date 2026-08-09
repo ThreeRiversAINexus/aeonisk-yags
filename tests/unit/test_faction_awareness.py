@@ -11,6 +11,7 @@ Tests cover:
 
 import pytest
 from unittest.mock import MagicMock, patch, PropertyMock
+from scripts.aeonisk.multiagent.enemy_agent import Position
 from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
 
 
@@ -29,8 +30,7 @@ def _make_mock_player(agent_id, name, faction, pronouns="they/them", health=20, 
     player.health = health
     player.max_health = max_health
     player.wounds = wounds
-    player.position = MagicMock()
-    player.position.__str__ = lambda self: "Near-PC"
+    player.position = Position.from_string("Near-PC")
     player.defence_token = None
     # AIPlayerAgent does NOT have .name directly — it uses character_state.name
     # We deliberately do NOT set player.name to test that code handles this correctly
@@ -48,8 +48,7 @@ def _make_mock_enemy(agent_id, name, faction, pronouns="they/them", health=15, m
     enemy.health = health
     enemy.max_health = max_health
     enemy.is_active = True
-    enemy.position = MagicMock()
-    enemy.position.__str__ = lambda self: "Near-Enemy"
+    enemy.position = Position.from_string("Near-Enemy")
     enemy.tactics = "aggressive"
     enemy.threat_priority = "closest_threat"
     enemy.initiative = 10
