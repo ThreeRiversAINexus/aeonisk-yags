@@ -104,6 +104,36 @@ def entity_soulcredit(mechanics, agent_id: str) -> int:
     return getattr(state, 'score', 0) if state is not None else 0
 
 
+def character_state_row(entity, mechanics, agent: str) -> Dict[str, Any]:
+    """Build one `character_state` payload for any entity kind.
+
+    Players, enemies and NPCs all land in the same oracle through this, so the
+    three loops cannot drift apart — the enemy path previously duplicated the
+    death-state thresholds and hardcoded `void_score=0` and `soulcredit=0`, and
+    the NPC path did not exist at all, so an arrested prisoner vanished from the
+    record at the moment of arrest.
+
+    `agent` is the entity kind recorded on the event: 'player', 'enemy' or 'npc'.
+    """
+    death_state = derive_death_state(entity)
+    agent_id = getattr(entity, 'agent_id', None)
+    return {
+        'character_id': agent_id,
+        'character_name': getattr(entity, 'name', None),
+        'health': getattr(entity, 'health', 0) or 0,
+        'max_health': getattr(entity, 'max_health', 0) or 0,
+        'wounds': getattr(entity, 'wounds', 0) or 0,
+        'stuns': getattr(entity, 'stuns', 0) or 0,
+        'void_score': getattr(entity, 'void_score', 0) or 0,
+        'soulcredit': entity_soulcredit(mechanics, agent_id),
+        'position': str(getattr(entity, 'position', 'Unknown')),
+        'conditions': _serialize_conditions(mechanics, agent_id),
+        'is_defeated': death_state != "alive",
+        'death_state': death_state,
+        'agent': agent,
+    }
+
+
 def party_snapshot_entry(agent) -> Dict[str, Any]:
     """One end_state_snapshot party member, life-state taken from the oracle."""
     char = getattr(agent, 'character_state', None)
@@ -536,10 +566,16 @@ def _log_ko_check(jsonl_logger, round_num, agent_id, name, side,
 
 
 def _ko_health_attr(entity) -> int:
-    """Toughness attribute for the KO health check, handling both entity shapes:
-    players expose it on `character_state.attributes['Health']` (as
-    Player.check_death_save reads it); enemies on `attributes['Endurance']` (the
-    Aeonisk YAGS Health-equivalent, per enemy_agent.py). Falls back to 3."""
+    """Toughness attribute for the KO health check, handling both entity shapes.
+
+    Aeonisk uses Endurance as the YAGS Health-equivalent; players carry it on
+    `character_state.attributes`, enemies on `attributes`. Both key orders are
+    tried because enemy templates still ship a legacy 'Health' entry. Falls back
+    to 3.
+
+    (Player.check_death_save reads Endurance-first too, since #82 — it used to
+    read 'Health', which no character built from a config actually has, so every
+    death save silently rolled the fallback.)"""
     cs = getattr(entity, 'character_state', None)
     cs_attrs = getattr(cs, 'attributes', None)
     if isinstance(cs_attrs, dict):
@@ -4428,38 +4464,20 @@ Generate narratives (numbered list only):"""
                 if self.enemy_combat.enabled:
                     for enemy in self.enemy_combat.enemy_agents:
                         if enemy.is_active:  # Only log active enemies
-                            # Calculate death state for enemies (wounds, health, stuns)
-                            enemy_wounds = enemy.wounds if hasattr(enemy, 'wounds') else 0
-                            enemy_health = enemy.health if hasattr(enemy, 'health') else 0
-                            enemy_stuns = enemy.stuns if hasattr(enemy, 'stuns') else 0
-                            if enemy_wounds >= 6:
-                                enemy_death_state = "dead"
-                            elif enemy_health <= 0:
-                                enemy_death_state = "unconscious"
-                            elif enemy_stuns >= 6:
-                                enemy_death_state = "unconscious"  # Stun KO
-                            else:
-                                enemy_death_state = "alive"
-
                             mechanics.jsonl_logger.log_character_state(
                                 round_num=mechanics.current_round,
-                                character_id=enemy.agent_id,
-                                character_name=enemy.name,
-                                health=enemy_health,
-                                max_health=enemy.max_health if hasattr(enemy, 'max_health') else 0,
-                                wounds=enemy_wounds,
-                                void_score=0,  # Enemies typically don't track void
-                                # Enemies carry real ledgers now that the enforce
-                            # magistrate can name them — report what was written,
-                            # not a hardcoded 0.
-                            soulcredit=entity_soulcredit(mechanics, enemy.agent_id),
-                                position=str(getattr(enemy, 'position', 'Unknown')),
-                                conditions=_serialize_conditions(mechanics, enemy.agent_id),
-                                is_defeated=(enemy_death_state != "alive"),
-                                death_state=enemy_death_state,  # NEW: Track death vs unconscious
-                                stuns=enemy_stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
-                                agent='enemy'  # Add agent field to identify this as enemy state
+                                **character_state_row(enemy, mechanics, agent='enemy')
                             )
+
+                # ...and for active NPCs. Without this an entity de-escalated to
+                # prisoner vanished from the oracle at the moment of arrest —
+                # the lawful outcome was the one that went unobserved.
+                for npc in (getattr(self.shared_state, 'npc_agents', None) or []):
+                    if getattr(npc, 'is_active', True):
+                        mechanics.jsonl_logger.log_character_state(
+                            round_num=mechanics.current_round,
+                            **character_state_row(npc, mechanics, agent='npc')
+                        )
 
                 # Log round summary for balance analysis
                 active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
