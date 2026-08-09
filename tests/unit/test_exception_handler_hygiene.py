@@ -117,3 +117,52 @@ class TestRangeCalculationIsNotSilentlyZeroed:
         assert not silent, (
             "a range-calculation failure silently becomes zero penalty, which "
             "changes combat outcomes with no trace:\n  " + "\n  ".join(silent))
+
+    @pytest.mark.parametrize("filename", ["dm.py", "enemy_prompts.py", "player.py"])
+    def test_range_display_fallbacks_log_too(self, filename):
+        """`Range: Unknown` goes into the *prompt*.
+
+        The agent then plans its attack with range information missing, and the
+        output reads like an ordinary band. Same family as the penalty bug, one
+        layer up: the model is misinformed rather than the arithmetic.
+        """
+        source = (_PKG / filename).read_text()
+        tree = ast.parse(source)
+        lines = source.splitlines()
+
+        silent = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ExceptHandler):
+                continue
+            body_src = "\n".join(
+                lines[node.lineno - 1: node.end_lineno or node.lineno])
+            if "Unknown range" not in body_src and "Range: Unknown" not in body_src:
+                continue
+            if "logger" not in body_src:
+                silent.append(f"{filename}:{node.lineno}")
+
+        assert not silent, (
+            "range display falls back to Unknown with no trace, so the agent "
+            "plans blind:\n  " + "\n  ".join(silent))
+
+
+class TestStateSerialisationIsNotSilentlyEmptied:
+    """A collection that empties itself on error makes an afflicted character
+    read as clean in the corpus — a log-fidelity failure of the #98 kind."""
+
+    def test_condition_serialisation_logs_before_returning_empty(self):
+        source = (_PKG / "session.py").read_text()
+        tree = ast.parse(source)
+        lines = source.splitlines()
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            if node.name != "_serialize_conditions":
+                continue
+            body_src = "\n".join(lines[node.lineno - 1: node.end_lineno])
+            assert "logger" in body_src, (
+                "_serialize_conditions returns [] on failure without saying so; "
+                "conditions then vanish from character_state silently")
+            return
+        pytest.fail("_serialize_conditions not found")
