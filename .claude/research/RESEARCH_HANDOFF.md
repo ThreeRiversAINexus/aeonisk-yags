@@ -91,6 +91,37 @@ n's and caveats. The statute itself is now a citable artifact.
 **8. HF upload — ONLY when the user says go.** They've said "not yet" twice.
 v2+v3 with canon-regime labels, dataset card citing the writeup.
 
+## Dissemination notes (important framing)
+- The user's current publication concern is not just venue fit but the stigma
+  around "AI-generated content." Do **not** lead the project pitch with that
+  phrase unless discussing policy/compliance directly.
+- Better framing for external discussion: **multi-agent TTRPG testbed**,
+  **behavioral corpus**, **judge/eval pipeline**, **moral adjudication
+  experiments**, **reproducible artifacts**.
+- Reputable venues may tolerate AI-assisted writing with human verification and
+  disclosure, but they are not looking to "welcome AI-written papers" as such.
+  The safest path is: human-edited paper, explicit disclosure, strong artifact
+  release.
+- Recommended release stack when the user is ready:
+  `arXiv` preprint + `Hugging Face` artifacts/dataset + `Zenodo` or `OSF` DOI
+  record + optional public-facing writeup (site/Substack).
+
+## Casual/community venues (lower-stakes feedback)
+- `Hugging Face Forums` / `Hugging Face Discord`: best first stop for casual
+  but technically literate discussion; good for early framing checks, artifact
+  previews, and requests for feedback/collaboration.
+- `r/LocalLLaMA`: practical, lively, and open-model friendly; useful for "look
+  what I built" posts, but not always gentle or academically precise.
+- `r/MachineLearning`: better for presenting Aeonisk as an eval/testbed/dataset
+  project; still far lower-friction than formal review.
+- `LessWrong`: reasonable venue for longer-form argument if the post emphasizes
+  behavioral findings, evals, or governance/moral-reasoning implications.
+- `Alignment Forum`: only after the framing is polished; good for serious
+  alignment feedback, not a morale-recovery venue.
+- If posting in any of these spaces, lead with the strongest defensible claim:
+  **measured agent behavior in a reproducible sandbox**, not "AI-generated
+  content."
+
 ## Known open items
 - Session-hang robustness: DM agent handler errors leave sessions without
   session_end (runner waits out timeout). Known, unfixed.
