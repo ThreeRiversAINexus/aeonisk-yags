@@ -231,8 +231,41 @@ def validate_session_config(config: Dict,
     if freq is not None and (not isinstance(freq, int) or freq < -1):
         errors.append(f"{p}vendor_spawn_frequency must be an int >= -1")
 
+    errors.extend(_validate_initial_enemies(config, p))
     errors.extend(_validate_players(players, p))
     errors.extend(_validate_clocks(config, p))
+    return errors
+
+
+def _validate_initial_enemies(config: Dict, p: str) -> List[str]:
+    """Reject unknown enemy templates before the run starts.
+
+    An unmapped template used to fall through to Grunt silently, so an authored
+    void_cultist spawned with a Grunt's loadout and nothing said so. Catch it
+    here, where it costs nothing, rather than after paying for a session.
+    """
+    errors: List[str] = []
+    entries = config.get("initial_enemies")
+    if not isinstance(entries, list):
+        return errors
+
+    try:
+        from .enemy_templates import ENEMY_TEMPLATES
+    except Exception:  # pragma: no cover - import guard for standalone use
+        return errors
+
+    for idx, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            continue
+        raw = entry.get("template")
+        if raw is None:
+            continue
+        if str(raw).strip().lower() not in ENEMY_TEMPLATES:
+            available = ", ".join(sorted(ENEMY_TEMPLATES))
+            errors.append(
+                f"{p}initial_enemies[{idx}].template {raw!r} is not a known "
+                f"enemy template. Available: {available}"
+            )
     return errors
 
 

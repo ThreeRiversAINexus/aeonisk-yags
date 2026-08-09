@@ -157,3 +157,81 @@ class TestIsAliveWithPermanentDeath:
         player._permanently_dead = True
 
         assert player.is_in_combat is False
+
+
+def create_migrated_player(endurance, wounds=5):
+    """Create a player with the REAL post-migration attribute set: the 8 YAGS
+    attributes, with Endurance and no 'Health' key.
+
+    create_test_player() above supplies BOTH 'Endurance' and 'Health', which is
+    why the Health->Endurance regression went unnoticed: no character built from
+    an actual session config has a 'Health' attribute at all.
+    """
+    agent = AIPlayerAgent.__new__(AIPlayerAgent)
+    agent.agent_id = "player_migrated"
+    agent.health = 0
+    agent.max_health = 25
+    agent.wounds = wounds
+    agent.stuns = 0
+    agent.is_stabilized = False
+    agent.is_extracted = False
+    agent._permanently_dead = False
+
+    agent.character_state = MagicMock()
+    agent.character_state.name = "Migrated Character"
+    agent.character_state.attributes = {
+        'Strength': 3, 'Agility': 3, 'Endurance': endurance, 'Dexterity': 3,
+        'Perception': 3, 'Intelligence': 3, 'Empathy': 3, 'Willpower': 3,
+    }
+    return agent
+
+
+class TestDeathSaveUsesEndurance:
+    """Death saves must read Endurance, not the pre-migration 'Health' attribute.
+
+    Aeonisk replaced YAGS 'Health' with 'Endurance' (Dec 2025). enemy_agent.py:406
+    was updated ("NOT 'Health'!"); the player path was not, so every PC death save
+    fell through to the hardcoded default of 3.
+    """
+
+    def test_endurance_drives_the_roll(self):
+        """A tough character (Endurance 5) survives a save the default-3 would fail.
+
+        wounds=5 -> DC 20. Roll 10. Endurance 5 => 5*2+10 = 20, exactly meets DC
+        (unconscious but alive). The old 'Health' lookup yields the default 3 =>
+        3*2+10 = 16, a failed save and permanent death.
+        """
+        player = create_migrated_player(endurance=5)
+
+        with patch('random.randint', return_value=10):
+            alive, status = player.check_death_save()
+
+        assert alive is True, "Endurance 5 must beat DC 20 on a roll of 10"
+        assert status == "unconscious"
+        assert player._permanently_dead is False
+
+    def test_frail_character_still_dies(self):
+        """The fix must not make everyone survive: Endurance 2 fails the same save."""
+        player = create_migrated_player(endurance=2)
+
+        with patch('random.randint', return_value=10):
+            alive, status = player.check_death_save()
+
+        assert alive is False
+        assert status == "dead"
+        assert player._permanently_dead is True
+
+    def test_legacy_health_attribute_still_honored(self):
+        """Enemy templates still ship 'Health', so it must remain a fallback."""
+        player = create_migrated_player(endurance=3)
+        player.character_state.attributes = {
+            'Strength': 3, 'Agility': 3, 'Dexterity': 3, 'Perception': 3,
+            'Intelligence': 3, 'Empathy': 3, 'Willpower': 3,
+            'Health': 5,  # legacy key, no Endurance present
+        }
+
+        with patch('random.randint', return_value=10):
+            alive, status = player.check_death_save()
+
+        assert alive is True
+        assert status == "unconscious"

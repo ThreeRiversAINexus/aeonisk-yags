@@ -21,6 +21,7 @@ Features:
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Dict, Any, List
@@ -636,6 +637,71 @@ def format_statistics_summary(round_num: int, narratives: List[Dict[str, Any]]) 
     return "".join(lines)
 
 
+# Element types that carry prose a reader should see. Strict allowlist: anything
+# new is excluded until deliberately opted in, so round headers, stat blocks and
+# raw declarations (which quote HP and tgt_* ids) cannot leak back into a story.
+PROSE_ELEMENT_TYPES = frozenset({
+    'scenario',
+    'round_synthesis',
+    'action_resolution',
+    'mission_debrief',
+})
+
+
+def select_prose_elements(narratives: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Story-bearing elements only, in order.
+
+    The default reconstruction is a debug report: it interleaves `# Round N`
+    headers, `### Round N Synthesis`, stat blocks and verbatim player
+    declarations. The DM's narration itself is clean, so producing a readable
+    story is a matter of dropping the scaffolding around it.
+    """
+    kept: List[Dict[str, Any]] = []
+    for element in narratives:
+        if element.get('type') not in PROSE_ELEMENT_TYPES:
+            continue
+        if not (element.get('content') or '').strip():
+            continue
+        kept.append(element)
+    return kept
+
+
+_METADATA_LINE = re.compile(r'^\*\*[^*]{1,40}:\*\*')
+
+
+def strip_scaffolding(content: str) -> str:
+    """Drop markdown headings and rule lines from an element's own content.
+
+    Story-bearing elements still carry their formatter's furniture inline —
+    round_synthesis content opens with "### Round N Synthesis". Selecting the
+    right elements is not enough; the headers inside them have to go too.
+    """
+    lines = []
+    for line in (content or '').splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            continue
+        if stripped and set(stripped) <= {'=', '-', '*', '_'} and len(stripped) >= 3:
+            continue
+        # Key-value metadata headers ("**Void Level:** 4", "**Location:** ...").
+        # Void level is game state, and prose should carry setting in sentences
+        # rather than a field list.
+        if _METADATA_LINE.match(stripped):
+            continue
+        lines.append(line)
+    return '\n'.join(lines).strip()
+
+
+def print_prose(narratives: List[Dict[str, Any]]):
+    """Print story prose only — the transmedia pipeline's input."""
+    for element in select_prose_elements(narratives):
+        text = strip_scaffolding(element['content'])
+        if not text:
+            continue
+        print(text)
+        print()
+
+
 def print_narrative(narratives: List[Dict[str, Any]]):
     """Print narrative elements in story order."""
     print("# Campaign Session Narrative\n")
@@ -678,20 +744,33 @@ def print_statistics(narratives: List[Dict[str, Any]]):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python reconstruct_narrative.py <session_file.jsonl>", file=sys.stderr)
+    args = [a for a in sys.argv[1:]]
+    prose_only = False
+    for flag in ('--prose', '--prose-only'):
+        if flag in args:
+            prose_only = True
+            args.remove(flag)
+
+    if not args:
+        print("Usage: python reconstruct_narrative.py <session_file.jsonl> [--prose]", file=sys.stderr)
         print("\nExamples:", file=sys.stderr)
         print("  python reconstruct_narrative.py session_abc123.jsonl", file=sys.stderr)
         print("  python reconstruct_narrative.py session_abc123.jsonl > story.md", file=sys.stderr)
+        print("  python reconstruct_narrative.py session_abc123.jsonl --prose > story.md", file=sys.stderr)
+        print("\n  --prose  Story prose only: no round headers, stat blocks, or raw", file=sys.stderr)
+        print("           declarations. This is what the transmedia pipeline consumes.", file=sys.stderr)
         sys.exit(1)
 
-    log_file = Path(sys.argv[1])
+    log_file = Path(args[0])
 
     if not log_file.exists():
         print(f"Error: File not found: {log_file}", file=sys.stderr)
         sys.exit(1)
 
     narratives = extract_narrative_elements(log_file)
+    if prose_only:
+        print_prose(narratives)
+        return
     print_narrative(narratives)
     print_statistics(narratives)
 

@@ -703,8 +703,13 @@ class AIPlayerAgent(Agent):
         extra_wounds = self.wounds - 5
         dc = 20 + (5 * extra_wounds)
 
-        # Roll Health check (Health attribute × 2 + d20)
-        health_attr = self.character_state.attributes.get('Health', 3)
+        # Roll toughness check (Endurance × 2 + d20)
+        # Aeonisk uses Endurance where YAGS says Health — no character built from
+        # a session config has a 'Health' attribute, so reading 'Health' first
+        # silently pinned every player death save to the default of 3.
+        # 'Health' stays as a fallback because enemy templates still ship it.
+        attrs = self.character_state.attributes
+        health_attr = attrs.get('Endurance', attrs.get('Health', 3))
         roll = random.randint(1, 20)
         total = (health_attr * 2) + roll
 

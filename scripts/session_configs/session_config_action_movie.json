@@ -58,7 +58,7 @@
   "initial_enemies": [
     {
       "name": "Pantheon Advance Squad",
-      "template": "tactical_soldier",
+      "template": "enforcer",
       "count": 3,
       "position": "Near-Enemy",
       "tactics": "professional_assault",

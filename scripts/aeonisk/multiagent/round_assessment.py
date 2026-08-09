@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
+from .constants import ATTRIBUTES_STRING, YAGS_ATTRIBUTES
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,11 +102,25 @@ def apply_assessments(
             attributes, skills = character_sheets.get(name, ({}, {}))
 
             if ruling.attribute and ruling.attribute != action.get('attribute'):
-                old = action.get('attribute')
-                action['attribute'] = ruling.attribute
-                action['attribute_value'] = attributes.get(ruling.attribute, 3)
-                changes.append(f"{name}: attribute {old} → {ruling.attribute} "
-                               f"(DM reframe)")
+                if ruling.attribute not in YAGS_ATTRIBUTES:
+                    # There are exactly eight attributes; a name outside that set
+                    # cannot exist. Applying it anyway silently resolved to the
+                    # `.get(..., 3)` default, rolling the action against a stat
+                    # the character does not have (observed: "Presence").
+                    # The player's framing stands; the difficulty ruling still does.
+                    logger.warning(
+                        f"Rejected DM attribute reframe for {name}: "
+                        f"{ruling.attribute!r} is not a YAGS attribute "
+                        f"({ATTRIBUTES_STRING})")
+                    changes.append(
+                        f"{name}: attribute reframe to {ruling.attribute} "
+                        f"REJECTED (not a YAGS attribute)")
+                else:
+                    old = action.get('attribute')
+                    action['attribute'] = ruling.attribute
+                    action['attribute_value'] = attributes.get(ruling.attribute, 3)
+                    changes.append(f"{name}: attribute {old} → {ruling.attribute} "
+                                   f"(DM reframe)")
 
             if ruling.skill and ruling.skill != action.get('skill'):
                 old = action.get('skill')

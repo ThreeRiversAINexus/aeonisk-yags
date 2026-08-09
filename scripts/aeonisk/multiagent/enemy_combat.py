@@ -330,20 +330,21 @@ class EnemyCombatManager:
         for spawn in enemy_spawns:
             # Spawn each enemy from the structured data
             for i in range(spawn.count):
-                # Generate unique name for each unit
-                if spawn.count > 1:
-                    enemy_name = f"{spawn.faction} {spawn.archetype} #{i+1}"
-                else:
-                    enemy_name = f"{spawn.faction} {spawn.archetype}"
+                # Authored name wins; otherwise generate "<faction> <archetype>"
+                authored = (getattr(spawn, 'name', '') or '').strip()
+                base_name = authored or f"{spawn.faction} {spawn.archetype}"
+                enemy_name = f"{base_name} #{i+1}" if spawn.count > 1 else base_name
 
-                # Use the template-based spawner
-                # spawn_enemy signature: (name, template_key, position_str, tactics_override, personality_override, current_round)
+                # faction is passed explicitly: the spawner otherwise infers it by
+                # parsing the display name, which misreads any archetype carrying a
+                # faction word ("Void Theorist" -> faction "Void").
                 enemy = spawn_enemy(
                     name=enemy_name,
                     template_key=spawn.template.lower(),
                     position_str=spawn.initial_position.value,  # Convert Position enum to string
                     tactics_override=spawn.custom_traits or "adaptive",
-                    current_round=self.current_round
+                    current_round=self.current_round,
+                    faction=spawn.faction,
                 )
 
                 if enemy:

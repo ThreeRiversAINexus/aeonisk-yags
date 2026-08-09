@@ -56,7 +56,7 @@
     {
       "name": "Pantheon Reclamation Patrol",
       "faction": "Pantheon Security",
-      "template": "tactical_soldier",
+      "template": "enforcer",
       "count": 2,
       "position": "Near-Enemy",
       "tactics": "secure_cache_and_suppress",
@@ -65,7 +65,7 @@
     {
       "name": "Survey Drone",
       "faction": "Pantheon Security",
-      "template": "drone",
+      "template": "security_drone",
       "count": 1,
       "position": "Far-Enemy",
       "tactics": "mark_targets_and_call_lockdown",
