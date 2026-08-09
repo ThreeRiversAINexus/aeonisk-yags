@@ -9050,7 +9050,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     else:
                         penalty_str = f"({range_penalty:+d})"
                     range_str = f" | Range: {range_name} {penalty_str}"
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"range unavailable for the prompt; the agent will plan without it and the fallback band looks ordinary in the output ({type(e).__name__}: {e})")
                     range_str = " | Range: Unknown"
 
             # Build health text

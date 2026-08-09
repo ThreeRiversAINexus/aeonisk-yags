@@ -528,7 +528,11 @@ def _serialize_conditions(mechanics, agent_id) -> list:
         return [{"name": c.name, "type": c.type, "penalty": c.penalty,
                  "duration": c.duration, "affects": list(c.affects)}
                 for c in conds]
-    except Exception:
+    except Exception as e:
+        # Conditions feed character_state; dropping them silently makes an
+        # afflicted character read as clean in the corpus.
+        logger.warning(f"Could not serialize conditions for {agent_id}: "
+                       f"{type(e).__name__}: {e}")
         return []
 
 
