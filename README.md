@@ -106,6 +106,10 @@ Output goes to `multiagent_output/session_*.jsonl`
 
 **Full developer guide:** [scripts/README.md](scripts/README.md)
 
+**Complete user and developer book:** [docs/README.md](docs/README.md)
+
+The book covers installation, session configuration, the multi-agent architecture, round lifecycle, mechanics/state ownership, JSONL output, replay/debugging, prompt/schema extension, and testing. It also distinguishes the current structured simulator from the older interactive CLI.
+
 ---
 
 ## Example Output
