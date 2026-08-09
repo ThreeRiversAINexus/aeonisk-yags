@@ -1,10 +1,11 @@
 {
   "schema_version": "1.3",
-  "last_updated": "2025-12-01",
+  "last_updated": "2026-08-09",
   "notes": [
     "All fixtures regenerated with OpenAI gpt-5-mini (2025-12-01)",
     "Schema updated: character_state now includes energy/seeds, combat_action.attack allows empty",
-    "10 fixtures total, all valid"
+    "10 fixtures total, all valid",
+    "2026-08-09: added golden_lawful_arrest_complete.jsonl. The ten fixtures above were captured 2025-12-01, before the #79-#91 fixes, and are extracts rather than whole sessions. Treat their silence on terminal invariants as untested, not clean."
   ],
   "fixtures": {
     "regression_soulcredit_logging_bug.jsonl": {
@@ -12,7 +13,9 @@
       "status": "valid",
       "purpose": "Regression test for soulcredit logging",
       "size_kb": 1248,
-      "used_by_tests": ["tests/unit/test_session_010212a1_soulcredit.py"]
+      "used_by_tests": [
+        "tests/unit/test_session_010212a1_soulcredit.py"
+      ]
     },
     "replay_test_fresh.jsonl": {
       "created": "2025-12-01",
@@ -22,7 +25,10 @@
       "rounds": 3,
       "size_kb": 937,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_replay_test_openai.json",
-      "used_by_tests": ["tests/unit/test_replay_mocked.py", "tests/integration/test_replay_system.py"]
+      "used_by_tests": [
+        "tests/unit/test_replay_mocked.py",
+        "tests/integration/test_replay_system.py"
+      ]
     },
     "session_starting_clocks.jsonl": {
       "created": "2025-12-01",
@@ -32,7 +38,9 @@
       "rounds": 4,
       "size_kb": 837,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_starting_clocks_test_openai.json",
-      "used_by_tests": ["tests/unit/test_story_advancement.py"]
+      "used_by_tests": [
+        "tests/unit/test_story_advancement.py"
+      ]
     },
     "session_void_story_advancement_partial.jsonl": {
       "created": "2025-12-01",
@@ -42,7 +50,9 @@
       "rounds": 3,
       "size_kb": 607,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_void_story_advancement_test_openai.json",
-      "used_by_tests": ["tests/unit/test_story_advancement.py"]
+      "used_by_tests": [
+        "tests/unit/test_story_advancement.py"
+      ]
     },
     "golden_npc_deescalation.jsonl": {
       "created": "2025-12-01",
@@ -52,7 +62,9 @@
       "rounds": 4,
       "size_kb": 1462,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_npc_deescalation_test_openai.json",
-      "used_by_tests": ["tests/integration/test_npc_system.py"]
+      "used_by_tests": [
+        "tests/integration/test_npc_system.py"
+      ]
     },
     "golden_npc_escalation_lifecycle.jsonl": {
       "created": "2025-12-01",
@@ -62,7 +74,9 @@
       "rounds": 4,
       "size_kb": 1282,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_npc_escalation_lifecycle_openai.json",
-      "used_by_tests": ["tests/integration/session/test_npc_lifecycle_integration.py"]
+      "used_by_tests": [
+        "tests/integration/session/test_npc_lifecycle_integration.py"
+      ]
     },
     "golden_clock_lifecycle_complete.jsonl": {
       "created": "2025-12-01",
@@ -72,7 +86,9 @@
       "rounds": 5,
       "size_kb": 2094,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_clock_lifecycle_test_openai.json",
-      "used_by_tests": ["tests/integration/session/test_clock_lifecycle.py"]
+      "used_by_tests": [
+        "tests/integration/session/test_clock_lifecycle.py"
+      ]
     },
     "session_status_effect_tactical_test.jsonl": {
       "created": "2025-12-01",
@@ -82,7 +98,9 @@
       "rounds": 2,
       "size_kb": 336,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_status_effect_tactical_openai.json",
-      "used_by_tests": ["tests/unit/test_status_effect_targeting.py"]
+      "used_by_tests": [
+        "tests/unit/test_status_effect_targeting.py"
+      ]
     },
     "session_status_effect_narrative_test.jsonl": {
       "created": "2025-12-01",
@@ -92,7 +110,9 @@
       "rounds": 2,
       "size_kb": 301,
       "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_status_effect_narrative_openai.json",
-      "used_by_tests": ["tests/unit/test_status_effect_targeting.py"]
+      "used_by_tests": [
+        "tests/unit/test_status_effect_targeting.py"
+      ]
     },
     "session_debt_auction_ambush.jsonl": {
       "created": "2025-12-01",
@@ -108,6 +128,24 @@
         "tests/integration/session/test_targeting_integration.py",
         "tests/integration/session/test_combat_round_integration.py",
         "tests/integration/session/test_clock_lifecycle.py"
+      ]
+    },
+    "golden_lawful_arrest_complete.jsonl": {
+      "purpose": "Reference golden: a COMPLETE, invariant-clean session demonstrating the lawful subdue path (II.8)",
+      "session_id": "9b3596c3-e099-46aa-957f-83007693ffac",
+      "captured": "2026-08-09",
+      "rounds": 4,
+      "why_complete_not_extracted": "Every other fixture is an extracted round range, so it contains no session_end, end_state_snapshot or post_resolution_adjudication \u2014 the terminal invariants cannot fire on any of them, and 'all fixtures pass' was absence of evidence rather than evidence of absence. This one is kept whole so those checkers have data.",
+      "demonstrates": [
+        "declared weapon resolves as declared (#88): tranquilizer -> stun, 0 wounds",
+        "a subject subdued alive rather than killed ('knocked unconscious by stun damage')",
+        "NPC rows in character_state (#89): 7 npc / 8 player / 4 enemy",
+        "soulcredit_states present in session_end (#90)",
+        "exactly one session_end, one clock_removal sweep",
+        "zero ghost agents, zero unmatched enforce rulings, zero Faction: Void"
+      ],
+      "does_not_cover": [
+        "the stun cap (#91): peak stuns reached 4 of 8, so the ceiling was never hit"
       ]
     }
   },

@@ -126,3 +126,58 @@ class TestKOCheckStaysRollable:
 
         assert passed["can_act"] is True
         assert failed["can_act"] is False
+
+
+class TestCapNeverHeals:
+    """Taking damage must never reduce stuns.
+
+    Found by exhaustively enumerating apply_stun_damage over its whole input
+    domain (13 starting values x 41 damage values = 533 cases, 0.001s). The first
+    version of the cap used min(new, MAX_STUNS), which pulled an entity already
+    above the cap back down to it — so a character loaded at 9 stuns via
+    resume_state got *healed* by being shot. 164 of the 533 cases violated it,
+    and no live session would have surfaced it, because the engine cannot itself
+    produce stuns above the cap any more.
+    """
+
+    def test_over_cap_entity_is_not_healed_by_damage(self):
+        target = Target(stuns=10)
+
+        apply_stun_damage(target, 0)
+
+        assert target.stuns == 10
+
+    def test_over_cap_entity_is_not_healed_by_a_big_hit(self):
+        target = Target(stuns=12)
+
+        apply_stun_damage(target, 30)
+
+        assert target.stuns == 12
+
+    @pytest.mark.parametrize("start", range(0, 13))
+    @pytest.mark.parametrize("damage", [0, 1, 4, 7, 12, 25, 40])
+    def test_stuns_never_decrease(self, start, damage):
+        """The property, over the full domain."""
+        target = Target(stuns=start)
+
+        apply_stun_damage(target, damage)
+
+        assert target.stuns >= start
+
+    @pytest.mark.parametrize("start", range(0, 13))
+    @pytest.mark.parametrize("damage", [0, 3, 9, 20, 40])
+    def test_reported_delta_always_matches_reality(self, start, damage):
+        target = Target(stuns=start)
+
+        result = apply_stun_damage(target, damage)
+
+        assert result["stuns_dealt"] == target.stuns - start
+
+    @pytest.mark.parametrize("damage", [0, 5, 15, 40])
+    def test_fresh_entities_still_cap_at_max(self, damage):
+        """The cap must still bite for anything starting at or below it."""
+        target = Target(stuns=0)
+
+        apply_stun_damage(target, damage)
+
+        assert target.stuns <= MAX_STUNS

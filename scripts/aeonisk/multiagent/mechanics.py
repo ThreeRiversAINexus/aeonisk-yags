@@ -5810,7 +5810,11 @@ def apply_stun_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
     # Clamp so the consciousness check stays a roll rather than arithmetic
     # theater (see MAX_STUNS). stuns_dealt is recomputed from the clamped value
     # so callers tallying it cannot drift past the cap.
-    new_stuns = min(new_stuns, MAX_STUNS)
+    # Clamp upward only. A plain min(new, MAX_STUNS) *reduces* an entity that is
+    # already above the cap — resume_state or a pre-cap save can carry stuns of
+    # 9-12 — so taking damage would heal them. Cap new accumulation, never undo
+    # existing.
+    new_stuns = min(new_stuns, max(MAX_STUNS, old_stuns))
     stuns_dealt = max(0, new_stuns - old_stuns)
 
     target.stuns = new_stuns

@@ -15,14 +15,22 @@ from scripts.aeonisk.multiagent.player import AIPlayerAgent
 
 
 def create_test_player(health=25, max_health=25, wounds=0, health_attr=3):
-    """Create a minimal AIPlayerAgent for testing death saves."""
+    """Create a minimal AIPlayerAgent for testing death saves.
+
+    `health_attr` sets **Endurance**, the attribute the engine actually reads.
+    This fixture used to supply both 'Endurance' and 'Health' — a shape no
+    session config produces — which is exactly why #82 survived: check_death_save
+    read 'Health', every real character lacked it, and every player death save
+    silently rolled the hardcoded default of 3. The test covering death saves
+    could not catch it, because its character was not one the engine makes.
+    """
     config = {
         'name': 'Test Character',
         'faction': 'Freeborn',
         'attributes': {
-            'Strength': 3, 'Agility': 3, 'Endurance': 3, 'Dexterity': 3,
-            'Perception': 3, 'Intelligence': 3, 'Empathy': 3, 'Willpower': 3,
-            'Health': health_attr,
+            'Strength': 3, 'Agility': 3, 'Endurance': health_attr,
+            'Dexterity': 3, 'Perception': 3, 'Intelligence': 3,
+            'Empathy': 3, 'Willpower': 3,
         },
         'skills': {'Guns': 3, 'Awareness': 2},
         'personality': {'description': 'Test'},

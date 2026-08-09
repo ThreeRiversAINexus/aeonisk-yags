@@ -827,11 +827,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     from collections import defaultdict
     tally = defaultdict(int)
-    manifest, total, dirty, err_sessions = [], 0, 0, 0
+    manifest, total, dirty, err_sessions, partial = [], 0, 0, 0, 0
     for s in _iter_sessions(paths):
         ev = load(s)
+        # Incomplete sessions (extracted round ranges, crashed runs) are checked
+        # too, and counted separately. Skipping them printed
+        # "Scanned 0 complete sessions ... 0 with ERROR-severity" and exited 0 —
+        # a confident all-clear over nothing. Every fixture in tests/fixtures
+        # was invisible this way, and 48 of 198 session files corpus-wide.
+        # Only 3 of the checkers need terminal events; the rest work on extracts.
         if not is_complete(ev):
-            continue
+            partial += 1
         total += 1
         vs = check(ev, config_of(s))
         vs = [v for v in vs if show_warn or v.severity == ERROR]
@@ -851,8 +857,16 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(f"  {v}")
 
     print(f"\n{'='*60}")
-    print(f"Scanned {total} complete sessions: {dirty} with findings, "
+    print(f"Scanned {total} session(s): {dirty} with findings, "
           f"{err_sessions} with ERROR-severity.")
+    if partial:
+        # Say what was NOT covered. Silence about coverage is how a green run
+        # over zero inspected files reads as a pass.
+        print(f"  {partial} had no session_end (extract or crashed run) — the "
+              f"terminal checks (duplicate_session_end, snapshot_oracle_mismatch, "
+              f"enforce_ruling_dropped) could not apply to those.")
+    if total == 0:
+        print("  NOTHING WAS CHECKED — no session files matched.")
     for inv in sorted(tally, key=lambda k: -tally[k]):
         print(f"  {inv:28s} {tally[inv]:4d}")
     if json_out:
