@@ -57,6 +57,16 @@ DYNAMIC_KEY_PARENTS = {
     "action_context.character_skills",       # pydantic_validation_failure
     "entity_states_before",                  # applied_outcome (keys are entity ids)
     "entity_states_after",                   # applied_outcome (keys are entity ids)
+    # Maps whose keys are data, not schema. Left unregistered, every new item
+    # the DM invents and every per-session agent id became permanent drift —
+    # and a gate that cries wolf gets regenerated reflexively, which defeats the
+    # "deliberate reviewed act" this contract exists to force.
+    "applied_effects.item_discovery.items_added",    # applied_outcome (item names)
+    "applied_effects.item_discovery.items_removed",  # applied_outcome (item names)
+    "state_summary.soulcredit_states",       # end_state_snapshot (agent ids)
+    "state_summary.void_states",             # end_state_snapshot (agent ids)
+    "final_state.soulcredit_states",         # session_end (agent ids)
+    "final_state.void_states",               # session_end (agent ids)
 }
 
 # Per-event identity/envelope fields: their values are unique by construction
