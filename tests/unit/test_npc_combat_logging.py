@@ -12,6 +12,8 @@ TDD: Tests written FIRST, then implementation.
 import pytest
 import random
 from unittest.mock import MagicMock, patch, call
+
+from scripts.aeonisk.multiagent.enemy_agent import Position
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -103,8 +105,7 @@ def _make_target(
     target.wounds = wounds
     target.stuns = stuns
     target.is_active = True
-    target.position = MagicMock()
-    target.position.__str__ = MagicMock(return_value="Near-PC")
+    target.position = Position.from_string("Near-PC")
     target.character_state = MagicMock()
     target.character_state.name = name
     return target

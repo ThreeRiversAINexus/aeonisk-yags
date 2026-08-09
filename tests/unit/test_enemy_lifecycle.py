@@ -14,6 +14,8 @@ TDD: These tests are written FIRST before implementation.
 import warnings
 import pytest
 from unittest.mock import MagicMock, patch, PropertyMock
+
+from scripts.aeonisk.multiagent.enemy_agent import Position
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 
@@ -97,8 +99,7 @@ def create_test_player(agent_id: str = "player_01", name: str = "Sera"):
     player.soak = 12
     player.wounds = 0
     player.stuns = 0
-    player.position = MagicMock()
-    player.position.__str__ = lambda self: "Near-Right"
+    player.position = Position.from_string("Near-Right")
     player.defence_token = None
     player.is_active = True
     return player
