@@ -78,11 +78,16 @@ def extract_faction(enemy_name: str) -> str:
     # faction at all. Enumerating faction x archetype showed 34 of 176
     # combinations misparsing.
     #
-    # Position matters because generated names lead with the faction
-    # ("ArcGen Tempest Operative" is an ArcGen unit), and length matters because
-    # "House of Vox" starts where "Vox" does not. This is also what produced the
-    # #79 faction flattening: "Tempest Industries Void Theorist" -> "Void",
-    # because the archetype word outranked the faction words.
+    # Length matters because "House of Vox" starts where "Vox" does not.
+    # Position matters because a short faction name can lose to a longer word in
+    # the archetype: "ACG Void Theorist" reads as Void under longest-match alone,
+    # since "Void" (4) outranks "ACG" (3) — and a commerce house employing a Void
+    # theorist is perfectly plausible. Generated names lead with the faction, so
+    # the leading match wins.
+    #
+    # This is also what produced the #79 faction flattening:
+    # "Tempest Industries Void Theorist" -> "Void", because the archetype word
+    # outranked the faction words.
     best_key = None
     best_faction = None
     for faction in all_factions:

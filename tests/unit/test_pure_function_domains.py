@@ -212,10 +212,19 @@ class TestFactionExtraction:
     combinations, including *every* House of Vox unit.
     """
 
+    # Roles a unit can plausibly hold. Deliberately excludes archetypes that
+    # embed a *rival* faction's name ("Tempest Operative", "Vox Broadcaster"):
+    # pairing those with an opposed faction produces units that cannot exist —
+    # are_factions_allied('ArcGen', 'Tempest Industries') is False — and
+    # asserting behaviour over impossible inputs is the same mistake as the
+    # death-save fixture that carried both 'Health' and 'Endurance'.
+    #
+    # "Void Theorist"/"Void Cultist" stay: Void is a role and a corruption
+    # state, not a rival corporation, so any faction can field one.
     ARCHETYPES = ("Void Theorist", "Void Cultist", "Enforcer", "Sniper", "Grunt",
-                  "Elite", "Boss", "Nexus Warden", "Security Drone", "Ritualist",
-                  "Scanner", "Medic", "Vox Broadcaster", "Arc Technician",
-                  "Tempest Operative", "Commerce Agent")
+                  "Elite", "Boss", "Security Drone", "Ritualist", "Scanner",
+                  "Medic", "Technician", "Operative", "Broker", "Warden",
+                  "Archivist")
 
     @pytest.mark.parametrize("faction", sorted(
         f for f in CANONICAL_SPAWN_FACTIONS if f != "Unknown"))
@@ -226,12 +235,18 @@ class TestFactionExtraction:
 
     def test_house_of_vox_is_not_shortened_to_its_alias(self):
         """'Vox' is an alias, not a canonical faction. Every House of Vox unit
-        used to come back as 'Vox'."""
+        used to come back as 'Vox' — 16 archetypes, all wrong."""
         assert extract_faction("House of Vox Enforcer") == "House of Vox"
 
-    def test_the_leading_faction_wins_over_a_later_one(self):
-        """'ArcGen Tempest Operative' is an ArcGen unit."""
-        assert extract_faction("ArcGen Tempest Operative") == "ArcGen"
+    def test_a_short_faction_name_beats_a_longer_archetype_word(self):
+        """Why position matters, and not merely specificity.
+
+        Longest-match alone reads 'ACG Void Theorist' as Void, because 'Void'
+        (4) outranks 'ACG' (3). A commerce house employing a Void theorist is
+        entirely plausible, so the leading name has to win.
+        """
+        assert extract_faction("ACG Void Theorist") == "ACG"
+        assert extract_faction("ACG Void Cultist") == "ACG"
 
     def test_result_is_deterministic(self):
         """The old implementation iterated a set, so which alias won depended on
