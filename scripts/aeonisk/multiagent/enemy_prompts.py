@@ -533,7 +533,8 @@ def _format_battlefield(
                         range_str = f" | Range: {range_name} (no penalty)"
                     else:
                         range_str = f" | Range: {range_name} ({range_penalty:+d})"
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"range unavailable for the prompt; the agent will plan without it and the fallback band looks ordinary in the output ({type(e).__name__}: {e})")
                     range_str = " | Range: Unknown"
 
                 combatants.append(f"- [{tgt_id}] {pc_name} ({pc_faction}) | {pc_position}{range_str} | {pc_health}/{pc_max_health} HP")
@@ -553,7 +554,8 @@ def _format_battlefield(
                             range_str = f" | Range: {range_name} (no penalty)"
                         else:
                             range_str = f" | Range: {range_name} ({range_penalty:+d})"
-                    except Exception:
+                    except Exception as e:
+                        logger.warning(f"range unavailable for the prompt; the agent will plan without it and the fallback band looks ordinary in the output ({type(e).__name__}: {e})")
                         range_str = " | Range: Unknown"
 
                     combatants.append(f"- [{tgt_id}] {other_enemy.name} ({enemy_faction}) | {other_enemy.position}{range_str} | {other_enemy.health}/{other_enemy.max_health} HP")

@@ -110,7 +110,8 @@ def build_position_context(player) -> str:
                     target_ranges.append(
                         f"  - {enemy.name}: {range_name} {penalty_str}"
                     )
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"range unavailable for the prompt; the agent will plan without it and the fallback band looks ordinary in the output ({type(e).__name__}: {e})")
                     target_ranges.append(f"  - {enemy.name}: Unknown range")
 
     if target_ranges:
