@@ -1416,11 +1416,20 @@ class LocalModelProvider(LLMProvider):
 from .llm_batch_provider import BatchProxyProvider
 
 # Provider registry
+def _scripted_provider(config):
+    """Imported lazily: scripted_provider imports from this module."""
+    from .scripted_provider import ScriptedProvider
+    return ScriptedProvider(config)
+
+
 PROVIDERS = {
     "claude": ClaudeProvider,
     "openai": OpenAIProvider,
     "batch_proxy": BatchProxyProvider,
-    "local": LocalModelProvider
+    "local": LocalModelProvider,
+    # Replays a recorded session's responses. No network, no cost, and
+    # deterministic — a replay diff isolates code changes from model variance.
+    "scripted": _scripted_provider,
 }
 
 

@@ -259,6 +259,8 @@ class EnemyCombatManager:
                 if enemy_llm_config:
                     from .llm_provider import LLMConfig
 
+                    # Enemies share one manager-level provider, so replay keys off a
+                    # single stream; per-enemy streams would need a provider each.
                     config = LLMConfig.from_dict(enemy_llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
                     logger.debug(f"EnemyCombatManager: Using {config_source} LLM config ({config.provider}:{config.model})")
