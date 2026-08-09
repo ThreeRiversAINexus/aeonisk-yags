@@ -28,6 +28,28 @@ PROXY_STRATEGY_CHOICES = ("auto", "direct", "batch")
 _PROXY_ENV_VARS = ("LLM_PROXY_MODE", "USE_LLM_PROXY", "LLM_PROXY_URL")
 
 
+# The config-schema registry is the single source of truth for the config surface.
+# Import it defensively (mirrors the weapon-library loader below) and fall back to the
+# historical hardcoded values if it can't be loaded, so validation never breaks.
+try:  # pragma: no cover - import shim
+    from aeonisk.multiagent import config_schema as _cfg_schema
+except ImportError:  # pragma: no cover - import shim
+    try:
+        from . import config_schema as _cfg_schema
+    except ImportError:
+        _cfg_schema = None
+
+_REQUIRED_TOP_LEVEL: List[str] = (
+    _cfg_schema.required_top_level() if _cfg_schema
+    else ["session_name", "max_turns", "party_size", "agents"])
+_DEPRECATIONS: Dict[str, str] = (
+    _cfg_schema.deprecations() if _cfg_schema else {})
+_ENEMY_DEPENDS_ON: str = (
+    (_cfg_schema.by_path("enemy_agents_enabled").depends_on if _cfg_schema
+     and _cfg_schema.by_path("enemy_agents_enabled") else None)
+    or "tactical_module_enabled")
+
+
 def iter_agent_llm_configs(config: Dict) -> Iterator[Tuple[str, Dict]]:
     """Yield (agent_label, llm_dict) for DM, players, and enemy agents.
 
@@ -173,7 +195,7 @@ def validate_session_config(config: Dict,
     if not isinstance(config, dict):
         return [f"{p}config must be a JSON object"]
 
-    for field in ("session_name", "max_turns", "party_size", "agents"):
+    for field in _REQUIRED_TOP_LEVEL:
         if field not in config:
             errors.append(f"{p}missing required field: {field}")
     agents = config.get("agents")
@@ -189,19 +211,20 @@ def validate_session_config(config: Dict,
         errors.append(f"{p}agents.players must be a non-empty list")
         players = []
 
-    # Deprecated patterns
+    # Deprecated patterns (replacement key sourced from the registry)
     if isinstance(config.get("scenario"), dict) and \
             "initial_clocks" in config["scenario"]:
+        replacement = _DEPRECATIONS.get("scenario.initial_clocks", "starting_clocks")
         errors.append(
             f"{p}uses deprecated 'scenario.initial_clocks'; "
-            f"use root-level 'starting_clocks'")
+            f"use root-level '{replacement}'")
 
-    # Tactical module dependency
+    # Tactical module dependency (pair sourced from the registry)
     if config.get("enemy_agents_enabled") and \
-            not config.get("tactical_module_enabled"):
+            not config.get(_ENEMY_DEPENDS_ON):
         errors.append(
             f"{p}enemy_agents_enabled=true requires "
-            f"tactical_module_enabled=true")
+            f"{_ENEMY_DEPENDS_ON}=true")
 
     # Vendor system
     freq = config.get("vendor_spawn_frequency")
@@ -237,8 +260,9 @@ def _validate_players(players: List, p: str) -> List[str]:
                                   f"missing '{field}'")
 
         if "void_score" in player:
+            replacement = _DEPRECATIONS.get("agents.players[].void_score", "void")
             errors.append(f"{p}player {idx} ({name}) uses deprecated "
-                          f"'void_score'; use 'void'")
+                          f"'void_score'; use '{replacement}'")
         if "void" in player:
             void = player["void"]
             if not isinstance(void, int) or not 0 <= void <= 10:

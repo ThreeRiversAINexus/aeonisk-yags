@@ -1,7 +1,7 @@
 """
 tests/unit/test_tactical_module.py
 
-Validate positioning rules from content/experimental/Aeonisk - Tactical Module - v1.2.3.md
+Validate positioning rules from content/experimental/Aeonisk - Tactical Module - v1.4.0.md
 
 Tests tactical positioning mechanics:
 - Valid tactical positions (Engaged/Near/Far/Extreme)

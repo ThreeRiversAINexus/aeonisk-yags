@@ -183,3 +183,6 @@ releases/
 archive/*
 agent_logs/
 output/
+
+# Build artifact — regenerate with scripts/build_ai_pack.py
+ai_pack.zip

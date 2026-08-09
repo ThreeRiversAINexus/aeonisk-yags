@@ -122,36 +122,36 @@ class TestCurrencyConversions:
     """Test currency conversion mechanics."""
 
     def test_convert_spark_to_drip(self):
-        """Test converting Spark to Drip (1 Spark = 3 Drip default)."""
+        """Test converting Spark to Drip (1 Spark = 400 Drip, canon ladder)."""
         inv = EnergyPurse(spark=2, drip=0)
 
         assert inv.convert_currency("spark", "drip", 1) is True
         assert inv.spark == 1
-        assert inv.drip == 3  # 1 Spark → 3 Drip
+        assert inv.drip == 400  # 1 Spark → 400 Drip
 
     def test_convert_drip_to_spark(self):
-        """Test converting Drip to Spark (3 Drip = 1 Spark default)."""
-        inv = EnergyPurse(spark=0, drip=6)
+        """Test converting Drip to Spark (400 Drip = 1 Spark, canon ladder)."""
+        inv = EnergyPurse(spark=0, drip=800)
 
-        assert inv.convert_currency("drip", "spark", 3) is True
-        assert inv.drip == 3
-        assert inv.spark == 1  # 3 Drip → 1 Spark
+        assert inv.convert_currency("drip", "spark", 400) is True
+        assert inv.drip == 400
+        assert inv.spark == 1  # 400 Drip → 1 Spark
 
     def test_convert_drip_to_breath(self):
-        """Test converting Drip to Breath (1 Drip = 4 Breath default)."""
+        """Test converting Drip to Breath (1 Drip = 20 Breath, canon ladder)."""
         inv = EnergyPurse(drip=2, breath=0)
 
         assert inv.convert_currency("drip", "breath", 1) is True
         assert inv.drip == 1
-        assert inv.breath == 4  # 1 Drip → 4 Breath
+        assert inv.breath == 20  # 1 Drip → 20 Breath
 
     def test_convert_breath_to_drip(self):
-        """Test converting Breath to Drip (4 Breath = 1 Drip default)."""
-        inv = EnergyPurse(breath=12, drip=0)
+        """Test converting Breath to Drip (20 Breath = 1 Drip, canon ladder)."""
+        inv = EnergyPurse(breath=60, drip=0)
 
-        assert inv.convert_currency("breath", "drip", 8) is True
-        assert inv.breath == 4
-        assert inv.drip == 2  # 8 Breath → 2 Drip
+        assert inv.convert_currency("breath", "drip", 40) is True
+        assert inv.breath == 20
+        assert inv.drip == 2  # 40 Breath → 2 Drip
 
     def test_convert_insufficient_currency(self):
         """Test conversion with insufficient source currency."""

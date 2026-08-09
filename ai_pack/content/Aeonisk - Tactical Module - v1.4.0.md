@@ -1,8 +1,14 @@
-# Aeonisk Tactical Module - v1.3.0
+# Aeonisk Tactical Module
+
+**Version 1.4.0**
 
 **Integrating the Aeonisk Tactical Layer with YAGS Core**
 
 This document clarifies and summarizes the key rules introduced by the Aeonisk Tactical Addendum to the YAGS Core system, based on v1.2 and subsequent refinements discussed in the source material.
+
+**Version 1.4.0 Changes:**
+- No rules changes. Version aligned to the unified v1.4.0 content release so
+  every canon document carries one version number.
 
 **Version 1.3.0 Changes:**
 - Synced attribute naming to canon (Health → Endurance; abbreviation Hea → End)

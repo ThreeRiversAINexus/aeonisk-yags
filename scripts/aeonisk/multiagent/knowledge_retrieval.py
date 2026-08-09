@@ -91,10 +91,10 @@ class KnowledgeRetrieval:
 
         # Load key content files
         key_files = [
-            "Aeonisk - YAGS Module - v1.2.2.md",
-            "Aeonisk - System Neutral Lore - v1.2.2.md",
-            "Aeonisk - Gear & Tech Reference - v1.2.2.md",
-            "experimental/Aeonisk - Tactical Module - v1.2.2.md"
+            "Aeonisk - YAGS Module - v1.4.0.md",
+            "Aeonisk - System Neutral Lore - v1.4.0.md",
+            "Aeonisk - Gear & Tech Reference - v1.4.0.md",
+            "experimental/Aeonisk - Tactical Module - v1.4.0.md",
         ]
 
         for filename in key_files:

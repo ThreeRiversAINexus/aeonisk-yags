@@ -7,7 +7,7 @@ their own tactical decisions via LLM prompts and integrate with the existing
 declare/resolve combat flow.
 
 Design Document: /content/experimental/Enemy Agent System - Design Document.md
-Tactical Module: /content/experimental/Aeonisk - Tactical Module - v1.3.0.md
+Tactical Module: /content/experimental/Aeonisk - Tactical Module - v1.4.0.md
 
 Author: Three Rivers AI Nexus
 Date: 2025-10-22

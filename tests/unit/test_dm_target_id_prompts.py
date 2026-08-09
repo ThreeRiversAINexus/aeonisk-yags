@@ -142,6 +142,7 @@ class TestActionResolutionPromptTargetIDs:
         mock_shared_state.get_mechanics_engine = Mock(return_value=mock_shared_state.mechanics_engine)
         mock_shared_state.player_agents = []  # Empty list - iterable
         mock_shared_state.registered_players = []  # For _get_party_personalities()
+        mock_shared_state.enemy_combat.enemy_agents = []  # Iterable - _get_combatant_state_tag loops this
 
         with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'}):
             dm = AIDMAgent(

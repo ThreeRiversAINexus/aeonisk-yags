@@ -202,7 +202,8 @@ class EnergyPurse:
     - Spark (largest standard unit)
     - Hollow (illicit void energy, 3x power, +1 Void per use)
 
-    Market rate: 1 Spark ≈ 2-5 Drips (varies by location)
+    Canon ladder: 1 Drip = 20 Breath, 1 Grain = 20 Drip, 1 Spark = 20 Grain
+    (= 400 Drip = 8 000 Breath). Markets float +/-20-30% in fiction.
     """
     # Talismanic currencies
     breath: int = 5
@@ -214,10 +215,12 @@ class EnergyPurse:
     # Seeds (list of Seed objects)
     seeds: List[Seed] = field(default_factory=list)
 
-    # Conversion rates (for standard markets)
-    drips_per_spark: int = 3  # Market-dependent (2-5 range)
-    grains_per_spark: int = 2
-    breaths_per_drip: int = 4
+    # Conversion rates — the canonical 20x ladder (Economy Guide §0).
+    # Markets float +/-20-30% in fiction; the baseline ladder does not.
+    breaths_per_drip: int = 20
+    drips_per_grain: int = 20
+    grains_per_spark: int = 20
+    drips_per_spark: int = 400  # 20 Grain x 20 Drip
 
     def add_currency(self, currency_type: str, amount: int):
         """Add currency to inventory."""
@@ -348,12 +351,12 @@ class EnergyPurse:
             ('grain', 'spark'): lambda x: x // self.grains_per_spark,
             ('drip', 'breath'): lambda x: x * self.breaths_per_drip,
             ('breath', 'drip'): lambda x: x // self.breaths_per_drip,
-            ('grain', 'drip'): lambda x: x * 2,  # 1 Grain ≈ 2 Drips
-            ('drip', 'grain'): lambda x: x // 2,
+            ('grain', 'drip'): lambda x: x * self.drips_per_grain,
+            ('drip', 'grain'): lambda x: x // self.drips_per_grain,
             ('spark', 'breath'): lambda x: x * self.drips_per_spark * self.breaths_per_drip,
             ('breath', 'spark'): lambda x: x // (self.drips_per_spark * self.breaths_per_drip),
-            ('grain', 'breath'): lambda x: x * 2 * self.breaths_per_drip,
-            ('breath', 'grain'): lambda x: x // (2 * self.breaths_per_drip),
+            ('grain', 'breath'): lambda x: x * self.drips_per_grain * self.breaths_per_drip,
+            ('breath', 'grain'): lambda x: x // (self.drips_per_grain * self.breaths_per_drip),
         }
 
         conversion_key = (from_type, to_type)

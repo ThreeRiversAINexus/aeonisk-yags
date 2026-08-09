@@ -49,3 +49,54 @@ def test_in_session_guidance_drift_guard():
     for clause in ("record tampering", "JUDGE THE DEED",
                    "Sovereign Nexus universal morality"):
         assert clause in guidance
+
+
+def test_codex_nexum_identity_is_consistent():
+    """The Legislator's 2026-08-04 ruling: the Codex Nexum IS the law, running.
+
+    'Codex Nexum' formerly named both the astral computer (statute preamble,
+    dm_prompt) and a governing legal *text* (Module glossary), while the law
+    itself had no name of its own. The ruling: the Codex Nexum is the astral
+    computer and is identical with its law; that law is the Sovereign Nexus
+    Constitution. Guard both halves against re-drift.
+    """
+    assert "# The Sovereign Nexus Constitution" in STATUTE
+    assert "The **Codex Nexum** is the astral computer" in STATUTE
+
+    glossary = (ROOT / "content/Aeonisk - YAGS Module - v1.4.0.md").read_text()
+    assert "**Sovereign Nexus Constitution:**" in glossary, (
+        "the law needs its own glossary entry"
+    )
+    assert "**Codex Nexum:** The astral computer" in glossary
+    assert "Governing legal-mnemonic text" not in glossary, (
+        "the Codex Nexum is not a text; that reading was overruled"
+    )
+
+
+def test_scenario_builder_summary_does_not_invert_the_statute():
+    """The skill's clause index drifted badly once — guard the rulings it got wrong.
+
+    As found 2026-08-05 it still carried v1.1, marked two ratified articles as
+    open questions, stated IV.7 as option (a) when the ratified ruling is (b)
+    (the tragic reading), and described reverse moral luck as judge *behaviour*
+    rather than as the JUDGE ERROR Article V declares it to be. A scenario
+    author reading it would have built against the opposite of the law.
+    """
+    summary = (ROOT / ".claude/skills/scenario-builder/references/"
+               "nexus_law_summary.md").read_text()
+
+    assert f"v{LAW_VERSION}" in summary, "clause index is pinned to a stale statute version"
+
+    # IV.7 — the tragic reading: the ledger records BOTH.
+    assert "The ledger records BOTH" in summary
+    assert "Principle-fidelity never excuses temporal crimes" not in summary
+
+    # Article V — harsher-on-failure is error, not expected behaviour.
+    assert "JUDGE ERROR" in summary
+    assert "failed crimes can be judged harder" not in summary
+
+    # IV.3 — the tribunal holds the affirmative defense.
+    assert "TRIBUNAL" in summary
+
+    # Only genuinely open questions may carry the scales.
+    assert summary.count("⚖️") <= 3, "summary marks ratified law as open"
