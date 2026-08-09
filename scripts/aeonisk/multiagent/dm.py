@@ -109,6 +109,29 @@ def _resolution_success(resolution) -> bool:
     return True
 
 
+def _match_declared_weapon(declared: str, owned: list):
+    """Find the owned weapon a declaration refers to, or None.
+
+    Exact name first, then containment either way, because models write "the
+    tranquilizer" rather than the library's "Tranquilizer Gun". Only weapons the
+    character actually holds are considered — matching against the whole library
+    would let naming a weapon confer its properties.
+    """
+    needle = declared.strip().lower()
+    if not needle:
+        return None
+
+    candidates = [w for w in owned if getattr(w, 'name', None)]
+    for weapon in candidates:
+        if weapon.name.lower() == needle:
+            return weapon
+    for weapon in candidates:
+        name = weapon.name.lower()
+        if needle in name or name in needle:
+            return weapon
+    return None
+
+
 def _resolve_weapon_and_damage_type(
     action: Optional[Dict[str, Any]],
     shared_state: 'SharedState'
@@ -143,6 +166,25 @@ def _resolve_weapon_and_damage_type(
     skill = (action.get('skill') or '').lower()  # models may return skill: null
     primary = player_agent.equipped_weapons.get('primary')
     sidearm = player_agent.equipped_weapons.get('sidearm')
+
+    # An explicitly declared weapon wins over the skill heuristic below, and the
+    # search includes carried weapons. Selecting purely by skill meant any Guns
+    # action returned the lethal primary, so a character holding both a carbine
+    # and a tranquilizer could never fire the tranquilizer — the II.8 lawful
+    # subdue path was unreachable, and attempts at it were resolved as killings.
+    # The prompt already instructs players to name their weapon; there was
+    # simply nowhere structured to put the answer.
+    declared = (action.get('weapon') or '').strip()
+    if declared:
+        owned = [w for w in (primary, sidearm) if w is not None]
+        owned += list(getattr(player_agent, 'weapon_inventory', None) or [])
+        match = _match_declared_weapon(declared, owned)
+        if match is not None:
+            return (match.name, getattr(match, 'damage_type', 'wound'), match)
+        # A weapon the character does not own falls through to the skill
+        # heuristic: naming one must never confer its properties.
+        logger.debug(
+            f"Declared weapon {declared!r} not in inventory; resolving by skill")
 
     if skill in ['guns', 'throw'] and primary:
         return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
@@ -6680,6 +6722,7 @@ For **other actions** (flee, hide, assist, attack):
                                     defender_id=defender_entity_id,
                                     defender_name=target_name,  # Already extracted above
                                     weapon=weapon_name,
+                                    declared_weapon=action.get('weapon'),
                                     attack_roll=attack_roll_data,
                                     damage_roll=damage_roll_data,
                                     wounds_dealt=wounds_dealt,

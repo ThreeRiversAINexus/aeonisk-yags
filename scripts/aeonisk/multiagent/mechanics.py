@@ -1010,7 +1010,8 @@ class JSONLLogger:
         attack_roll: Dict[str, Any],
         damage_roll: Optional[Dict[str, Any]] = None,
         wounds_dealt: int = 0,
-        defender_state_after: Optional[Dict[str, Any]] = None
+        defender_state_after: Optional[Dict[str, Any]] = None,
+        declared_weapon: Optional[str] = None
     ):
         """
         Log a combat action (attack with damage).
@@ -1035,6 +1036,11 @@ class JSONLLogger:
             "attacker": {"id": attacker_id, "name": attacker_name},
             "defender": {"id": defender_id, "name": defender_name},
             "weapon": weapon,
+            # What the actor asked for, so a substitution is auditable. Without
+            # this the record shows only the resolved weapon: a session where
+            # every declared tranquilizer resolved as a carbine looked, in the
+            # typed log, like a session where nobody ever reached for one.
+            "declared_weapon": declared_weapon,
             "attack": attack_roll,
             "damage": damage_roll,
             "wounds_dealt": wounds_dealt,
@@ -5342,6 +5348,17 @@ Calculation: {formula} = **{total}**
                 }
                 for agent_id, state in self.void_states.items()
             },
+            # The magistrate rules on every entity present, not just the party,
+            # so this covers whatever agent_ids the ledger holds. Where each soul
+            # finished is the headline result of an enforce run; omitting it left
+            # the terminal event silent on the antagonists' standing entirely.
+            'soulcredit_states': {
+                agent_id: {
+                    'score': state.score,
+                    'changes': len(state.history)
+                }
+                for agent_id, state in self.soulcredit_states.items()
+            },
             'recent_actions': [
                 {
                     'intent': action.intent,
@@ -5701,6 +5718,26 @@ KO_CHECK_THRESHOLD = 6
 # Left as a one-line lever: set >0 to re-enable per-round bleed-off.
 STUN_RECOVERY_PER_ROUND = 0
 
+# Ceiling on accumulated stuns. resolve_ko_check scales DC = 20 + 5*(level-6)
+# without limit, but the roll is Endurance*2 + d20 — capped at 26 (End 3), 30
+# (End 5), 36 (End 8). Past level 7 the consciousness check stops being a roll:
+#
+#     level  DC   End 3        End 5        End 8
+#         6   20  35%          55%          85%
+#         7   25  10%          30%          60%
+#         8   30  knocked out  5%           35%
+#        10   40  knocked out  knocked out  knocked out
+#
+# One heavy blow used to set stuns straight to 10 (the non-cumulative rule below
+# assigns rather than adds), silently converting "Beaten, might rally" into
+# permanent removal with no dice worth rolling.
+#
+# 8 rather than 6: a genuine knockout has to be reachable or non-lethal takedowns
+# never stick, and stun damage is how a lawful subdue-and-arrest works. At 8 an
+# ordinary character is out for the scene while a tough one keeps a long shot.
+# Five tranquilizer darts (4 damage each) land exactly here.
+MAX_STUNS = 8
+
 
 def resolve_ko_check(stuns: int, wounds: int, health_attr: int,
                      roll: Optional[int] = None) -> Dict[str, Any]:
@@ -5769,6 +5806,12 @@ def apply_stun_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
     else:
         new_stuns = old_stuns
         stuns_dealt = 0
+
+    # Clamp so the consciousness check stays a roll rather than arithmetic
+    # theater (see MAX_STUNS). stuns_dealt is recomputed from the clamped value
+    # so callers tallying it cannot drift past the cap.
+    new_stuns = min(new_stuns, MAX_STUNS)
+    stuns_dealt = max(0, new_stuns - old_stuns)
 
     target.stuns = new_stuns
     effect = get_stun_effect(new_stuns)

@@ -679,9 +679,89 @@ def inv_clock_without_spawn(events, cfg) -> List[Violation]:
 
 
 # ---------------------------------------------------------------------------
+# The non-lethal off-ramp (#88)
+# ---------------------------------------------------------------------------
+def _weapon_damage_type(name) -> Optional[str]:
+    """Library damage_type for a weapon name, or None if it isn't one of ours."""
+    if not name:
+        return None
+    try:
+        from aeonisk.multiagent.weapons import WEAPON_LIBRARY
+    except Exception:  # pragma: no cover - invariants must run standalone
+        return None
+    needle = str(name).strip().lower()
+    for weapon in WEAPON_LIBRARY.values():
+        if getattr(weapon, "name", "").lower() == needle:
+            return getattr(weapon, "damage_type", None)
+    return None
+
+
+def inv_weapon_substituted(events, cfg) -> List[Violation]:
+    """The weapon that resolved must be the weapon that was declared.
+
+    Resolution used to select by skill, so any Guns action returned the equipped
+    primary. An officer declared the Tranquilizer Gun in all four rounds of
+    session a8ca2b7f and every combat_action recorded the Oathpiercer Carbine —
+    wound damage, 2-3 wounds a time, and a "killed by tranquilizer" in the prose.
+
+    That session cannot trigger this check: the substitution happened before
+    logging and there was no declared_weapon field to compare against. It exists
+    so the class of fault is auditable from here on.
+    """
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "combat_action":
+            continue
+        b = _body(e)
+        declared = (b.get("declared_weapon") or "").strip()
+        resolved = (b.get("weapon") or "").strip()
+        if not declared or not resolved:
+            continue
+        d, r = declared.lower(), resolved.lower()
+        if d == r or d in r or r in d:
+            continue
+        out.append(Violation(
+            "weapon_substituted", ERROR,
+            f"declared {declared!r} but resolved {resolved!r} "
+            f"({b.get('wounds_dealt', 0)} wounds dealt)",
+            e.get("round"),
+            (b.get("attacker") or {}).get("name")))
+    return out
+
+
+def inv_stun_weapon_dealt_wounds(events, cfg) -> List[Violation]:
+    """A non-lethal weapon must not produce wounds.
+
+    enemy_agent.apply_damage and the dm.py routing both handle stun correctly —
+    stuns rise, health does not fall. A wound from a stun weapon means the
+    damage type never reached the router, which is what makes a lawful subdue
+    read as a killing.
+    """
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "combat_action":
+            continue
+        b = _body(e)
+        if _weapon_damage_type(b.get("weapon")) != "stun":
+            continue
+        wounds = b.get("wounds_dealt") or 0
+        applied = ((b.get("damage") or {}).get("damage_type") or "").lower()
+        if wounds > 0 or (applied and applied != "stun"):
+            out.append(Violation(
+                "stun_weapon_dealt_wounds", ERROR,
+                f"{b.get('weapon')!r} is non-lethal but dealt {wounds} wound(s) "
+                f"as {applied or 'unknown'} damage",
+                e.get("round"),
+                (b.get("attacker") or {}).get("name")))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Registry + driver
 # ---------------------------------------------------------------------------
 CHECKS: List[Callable] = [
+    inv_weapon_substituted,
+    inv_stun_weapon_dealt_wounds,
     inv_single_session_end,
     inv_snapshot_matches_oracle,
     inv_enforce_rulings_dropped,

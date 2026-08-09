@@ -2679,6 +2679,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             # Action-specific fields (may be None for non-applicable action types)
             target=getattr(action_details, 'target', None),
             target_position=getattr(action_details, 'target_position', None),
+            weapon=getattr(action_details, 'weapon', None),
             ambient_speech=(
                 action_details.ambient_speech.to_dict()
                 if getattr(action_details, 'ambient_speech', None)

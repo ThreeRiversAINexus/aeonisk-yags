@@ -65,6 +65,11 @@ class ActionDeclaration:
     altar_id: Optional[str] = None  # Altar ID (alt_xxxx) for bonus
     use_echo_calibrator: Optional[bool] = None  # Using portable Echo-Calibrator
 
+    # Which of the actor's own weapons this action uses. Decides lethality:
+    # resolution previously picked by skill alone, so a Guns action always used
+    # the equipped primary and a carried non-lethal weapon was unreachable.
+    weapon: Optional[str] = None
+
     # Optional modifiers
     situational_modifiers: Dict[str, int] = None
 

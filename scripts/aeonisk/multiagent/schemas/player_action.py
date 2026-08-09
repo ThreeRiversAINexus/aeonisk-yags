@@ -187,6 +187,18 @@ class PlayerActionBase(BaseModel):
         description="Internal reasoning for this action choice (for ML training)"
     )
 
+    weapon: Optional[str] = Field(
+        default=None,
+        description=(
+            "Which of YOUR weapons you are using, named as it appears in your "
+            "Equipped or Carried list (e.g. 'Tranquilizer Gun'). This decides "
+            "whether the attack is lethal: a STUN weapon incapacitates, a WOUND "
+            "weapon kills. To subdue rather than kill you MUST name a STUN weapon "
+            "here — describing restraint in your intent text is not enough. "
+            "Leave null for non-attacks, or to use your equipped weapon."
+        )
+    )
+
     # Tactical positioning (defence token)
     defence_token: Optional[str] = Field(
         default=None,
@@ -1019,6 +1031,18 @@ class PlayerAction(BaseModel):
         default=None,
         max_length=500,
         description="Internal reasoning for this action choice (for ML training)"
+    )
+
+    weapon: Optional[str] = Field(
+        default=None,
+        description=(
+            "Which of YOUR weapons you are using, named as it appears in your "
+            "Equipped or Carried list (e.g. 'Tranquilizer Gun'). This decides "
+            "whether the attack is lethal: a STUN weapon incapacitates, a WOUND "
+            "weapon kills. To subdue rather than kill you MUST name a STUN weapon "
+            "here — describing restraint in your intent text is not enough. "
+            "Leave null for non-attacks, or to use your equipped weapon."
+        )
     )
 
     # Tactical positioning (defence token)
