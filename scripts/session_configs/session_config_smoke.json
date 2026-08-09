@@ -1,0 +1,109 @@
+{
+  "session_name": "smoke_two_rounds",
+  "max_turns": 2,
+  "party_size": 2,
+  "output_dir": "./multiagent_output/smoke",
+  "enable_human_interface": false,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "outcome_first_narration": true,
+  "iff_enabled": true,
+  "post_resolution_adjudication": "enforce",
+  "starting_clocks": [
+    {
+      "name": "Cathedral Scrutiny",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "description": "How closely Cathedral Confessors are watching the party.",
+      "advance_meaning": "The party draws attention \u2014 a questioned ledger, a raised voice, a witnessed lie.",
+      "regress_meaning": "The party allays suspicion \u2014 cooperating, producing papers, letting a scan run clean."
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Vessel Sera Karsel",
+        "faction": "Sovereign Nexus",
+        "pronouns": "she/her",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4
+        },
+        "skills": {
+          "Astral Arts": 4,
+          "Awareness": 3,
+          "Charm": 3
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "equipped_weapons": {
+          "primary": "ritual_blade"
+        },
+        "personality": {
+          "description": "A Cathedral vessel who believes the ledger is mercy, and has never yet been asked to prove it."
+        },
+        "goals": [
+          "Keep the rite lawful",
+          "Bring everyone home judged, not hunted"
+        ]
+      },
+      {
+        "name": "Dray Vusk",
+        "faction": "Freeborn",
+        "pronouns": "they/them",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Brawl": 4,
+          "Stealth": 3,
+          "Guile": 3
+        },
+        "void": 2,
+        "soulcredit": -1,
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol"
+        },
+        "personality": {
+          "description": "Born outside the pods and unimpressed by the Codex; trusts people, not standing."
+        },
+        "goals": [
+          "Owe nobody",
+          "Get paid without signing anything"
+        ]
+      }
+    ]
+  },
+  "_role": "smoke",
+  "_purpose": "Cheapest end-to-end proof that the pipeline works: 2 rounds, 2 players, recommended baseline on, no human interface. Run this first after any environment change, before spending money on a real session."
+}

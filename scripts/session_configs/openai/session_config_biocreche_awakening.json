@@ -354,7 +354,7 @@
     "The Choice - kill 47 children, let 'her' return, or find a third option",
     "Resolution - whatever they chose, consequences echo forward"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Investigate the anomaly at Biocreche Station Umbra-9",
       "type": "investigation",

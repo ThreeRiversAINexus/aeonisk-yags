@@ -7700,50 +7700,97 @@ def _should_escalate_npc(entity_type: str, action_type: str) -> bool:
     return True
 
 
-# Configuration example
+# Configuration example.
+#
+# This is what `--create-config` writes, so it is the first config most people
+# ever see. It must therefore validate clean, carry the recommended research
+# baseline, and use only canon factions/attributes — see
+# tests/unit/test_example_config.py, which enforces exactly that.
+#
+# It is deliberately smoke-sized (max_turns=2): cheap to run, enough to prove the
+# pipeline works end to end. Raise max_turns once a smoke run comes back clean.
 EXAMPLE_CONFIG = {
-    "session_name": "test_session",
-    "max_turns": 20,
+    "session_name": "example_smoke_session",
+    "max_turns": 2,
+    "party_size": 2,
     "output_dir": "./multiagent_output",
-    "enable_human_interface": True,
+
+    # Non-interactive: an interactive run opens an "[Observer]>" stdin prompt.
+    "enable_human_interface": False,
+
+    # The recommended research baseline (config_schema.recommended_overrides()).
+    "tactical_module_enabled": True,
+    "enemy_agents_enabled": True,
+    "outcome_first_narration": True,
+    "iff_enabled": True,
+    "post_resolution_adjudication": "enforce",
+
+    # Clocks must stay regressable — never a one-way ratchet.
+    "starting_clocks": [
+        {
+            "name": "Cathedral Scrutiny",
+            "current_ticks": 0,
+            "max_ticks": 6,
+            "description": "How closely Cathedral Confessors are watching the party.",
+            "advance_meaning": "The party draws attention — a questioned ledger, a raised voice, a witnessed lie.",
+            "regress_meaning": "The party allays suspicion — cooperating, producing papers, letting a scan run clean."
+        }
+    ],
+
     "agents": {
         "dm": {
             "llm": {
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-mini",
                 "temperature": 0.7
             }
         },
         "players": [
             {
-                "name": "Zara Nightwhisper",
-                "faction": "Tempest Industries",
-                "personality": {
-                    "riskTolerance": 8,
-                    "voidCuriosity": 9,
-                    "bondPreference": "avoids",
-                    "ritualConservatism": 2
+                "name": "Vessel Sera Karsel",
+                "faction": "Sovereign Nexus",
+                "pronouns": "she/her",
+                "llm": {
+                    "provider": "openai",
+                    "model": "gpt-5-mini",
+                    "temperature": 0.7
                 },
-                "attributes": {"Body": 6, "Mind": 8, "Soul": 7},
-                "skills": {"Astral Arts": 5, "Investigation": 4},
-                "void_score": 2,
-                "soulcredit": 15,
-                "goals": ["Explore void manipulation", "Advance Tempest interests"]
+                "attributes": {
+                    "Strength": 3, "Agility": 3, "Endurance": 3, "Dexterity": 4,
+                    "Perception": 4, "Intelligence": 4, "Empathy": 5, "Willpower": 4
+                },
+                "skills": {"Astral Arts": 4, "Awareness": 3, "Charm": 3},
+                "void": 1,
+                "soulcredit": 3,
+                "equipped_weapons": {"primary": "ritual_blade"},
+                "personality": {
+                    "description": "A Cathedral vessel who believes the ledger is mercy, "
+                                   "and has never yet been asked to prove it."
+                },
+                "goals": ["Keep the rite lawful", "Bring everyone home judged, not hunted"]
             },
             {
-                "name": "Echo Resonance",
-                "faction": "Resonance Communes",
-                "personality": {
-                    "riskTolerance": 4,
-                    "voidCuriosity": 3,
-                    "bondPreference": "seeks",
-                    "ritualConservatism": 6
+                "name": "Dray Vusk",
+                "faction": "Freeborn",
+                "pronouns": "they/them",
+                "llm": {
+                    "provider": "openai",
+                    "model": "gpt-5-mini",
+                    "temperature": 0.7
                 },
-                "attributes": {"Body": 5, "Mind": 6, "Soul": 9},
-                "skills": {"Astral Arts": 6, "Social": 5},
-                "void_score": 0,
-                "soulcredit": 12,
-                "goals": ["Form meaningful bonds", "Support community harmony"]
+                "attributes": {
+                    "Strength": 4, "Agility": 4, "Endurance": 4, "Dexterity": 3,
+                    "Perception": 4, "Intelligence": 3, "Empathy": 3, "Willpower": 4
+                },
+                "skills": {"Brawl": 4, "Stealth": 3, "Guile": 3},
+                "void": 2,
+                "soulcredit": -1,
+                "equipped_weapons": {"primary": "union_heavy_pistol"},
+                "personality": {
+                    "description": "Born outside the pods and unimpressed by the Codex; "
+                                   "trusts people, not standing."
+                },
+                "goals": ["Owe nobody", "Get paid without signing anything"]
             }
         ]
     }

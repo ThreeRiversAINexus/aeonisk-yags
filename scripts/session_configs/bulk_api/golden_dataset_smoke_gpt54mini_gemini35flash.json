@@ -52,48 +52,6 @@
       "regress_meaning": "the team reassures or protects the vendor"
     }
   ],
-  "npc_spawns": [
-    {
-      "name": "Supply Trader Vex",
-      "faction": "Neutral",
-      "entity_type": "neutral",
-      "disposition": "wary",
-      "threat_level": "non_combatant",
-      "description": "A grizzled trader with cybernetic eyes and an ACG surplus coat, guarding a portable stall of medical supplies and salvage tools.",
-      "health": 25,
-      "soak": 2,
-      "skills": {
-        "Charm": 4,
-        "Appraise": 4,
-        "Awareness": 3
-      },
-      "is_vendor": true,
-      "vendor_inventory": [
-        {
-          "name": "Medkit",
-          "description": "Standard emergency medical supplies.",
-          "price_drip": 5,
-          "item_type": "consumable"
-        },
-        {
-          "name": "Void Scanner",
-          "description": "Handheld detector for unstable void residue.",
-          "price_drip": 8,
-          "price_grain": 1,
-          "item_type": "tool"
-        },
-        {
-          "name": "Shock Baton",
-          "description": "Nonlethal close-range weapon useful for disabling patrol units.",
-          "price_drip": 7,
-          "item_type": "weapon"
-        }
-      ],
-      "vendor_greeting": "Buy fast. Pantheon is already sweeping the lower levels.",
-      "vendor_type": "human_trader",
-      "accepts_purchases": true
-    }
-  ],
   "initial_enemies": [
     {
       "name": "Pantheon Reclamation Patrol",
@@ -276,5 +234,47 @@
       }
     ]
   },
-  "_bulk_run_command": ".venv/bin/python scripts/bulk_session_runner.py --config scripts/session_configs/bulk_api/golden_dataset_smoke_gpt54mini_gemini35flash.json --runs 2 --workers 1 --output-dir bulk_output/golden_dataset_smoke --progress --show-errors"
+  "_bulk_run_command": ".venv/bin/python scripts/bulk_session_runner.py --config scripts/session_configs/bulk_api/golden_dataset_smoke_gpt54mini_gemini35flash.json --runs 2 --workers 1 --output-dir bulk_output/golden_dataset_smoke --progress --show-errors",
+  "initial_npcs": [
+    {
+      "name": "Supply Trader Vex",
+      "faction": "Neutral",
+      "entity_type": "neutral",
+      "disposition": "wary",
+      "threat_level": "non_combatant",
+      "description": "A grizzled trader with cybernetic eyes and an ACG surplus coat, guarding a portable stall of medical supplies and salvage tools.",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Charm": 4,
+        "Appraise": 4,
+        "Awareness": 3
+      },
+      "is_vendor": true,
+      "vendor_inventory": [
+        {
+          "name": "Medkit",
+          "description": "Standard emergency medical supplies.",
+          "price_drip": 5,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Void Scanner",
+          "description": "Handheld detector for unstable void residue.",
+          "price_drip": 8,
+          "price_grain": 1,
+          "item_type": "tool"
+        },
+        {
+          "name": "Shock Baton",
+          "description": "Nonlethal close-range weapon useful for disabling patrol units.",
+          "price_drip": 7,
+          "item_type": "weapon"
+        }
+      ],
+      "vendor_greeting": "Buy fast. Pantheon is already sweeping the lower levels.",
+      "vendor_type": "human_trader",
+      "accepts_purchases": true
+    }
+  ]
 }

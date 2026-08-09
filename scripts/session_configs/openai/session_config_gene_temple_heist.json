@@ -340,7 +340,7 @@
     "The Choice - steal it, destroy it, leak it, or something else entirely?",
     "Escape - whatever they chose, now they have to get out alive"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Infiltrate the Central Gene-Temple without triggering full lockdown",
       "type": "stealth",

@@ -336,7 +336,7 @@
     "The Heart - location where Eye activity is strongest, approaching it risks everything",
     "Communion or Containment - final choice: seal the Eye, communicate with it, or flee"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Document Eye of Breach activity patterns for faction sponsors",
       "type": "investigation",

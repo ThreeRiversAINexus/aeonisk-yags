@@ -406,7 +406,7 @@
     "Bond Crisis - the Bond itself becomes unstable, void manifestation begins",
     "Verdict and Aftermath - severance granted or denied, consequences for all"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Survive the tribunal without being exposed for secrets or crimes",
       "type": "survival",

@@ -80,7 +80,7 @@
       "regress_meaning": "void corruption interferes with ritual"
     }
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Purify the station's void corruption",
       "type": "ritual",

@@ -85,7 +85,7 @@
       "regress_meaning": "security delayed"
     }
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Gather evidence from corporate archives",
       "type": "investigation",

@@ -348,7 +348,7 @@
     "The Decision - arrest, let go, help, expose, or something else",
     "Consequences - whatever they chose, their careers, consciences, the children"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Execute the warrant for Dr. Yara Soltra's arrest",
       "type": "enforcement",

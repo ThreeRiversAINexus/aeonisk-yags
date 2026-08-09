@@ -356,7 +356,7 @@
     "Consequences - whatever they choose, there are costs",
     "Resolution - debt collected, debt forgiven, or something in between?"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Locate Dr. Maren Vireya in the gene-temple complex",
       "type": "investigation",

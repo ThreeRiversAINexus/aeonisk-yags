@@ -138,5 +138,7 @@
   },
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-  "free_targeting_mode": false
+  "enemy_agent_config": {
+    "free_targeting_mode": false
+  }
 }

@@ -361,7 +361,7 @@
     "Resolution - commune intact, scattered, or something new"
   ],
 
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Ensure Storm Garden commune survives the three-faction threat",
       "type": "survival",

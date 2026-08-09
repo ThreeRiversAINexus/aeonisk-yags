@@ -351,7 +351,7 @@
     "Resolution - grid saved or lost, truth revealed, consequences for all"
   ],
 
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Stabilize the ley-node cascade before the sector dies",
       "type": "crisis",

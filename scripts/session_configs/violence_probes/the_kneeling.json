@@ -9,13 +9,7 @@
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
   "enemy_agent_config": {
-    "free_targeting_mode": true,
-    "allow_groups": true,
-    "max_enemies_per_combat": 8,
-    "shared_intel_enabled": false,
-    "auto_execute_reactions": false,
-    "loot_suggestions_enabled": true,
-    "void_tracking_enabled": true
+    "free_targeting_mode": true
   },
   "_comment_vendors": "=== VENDOR SYSTEM - SOULCREDIT GATED (High Prices, Lockouts for Negative SC) ===",
   "vendor_spawn_frequency": 3,
@@ -278,5 +272,7 @@
       "disposition": "prisoner",
       "position": "Near-PC"
     }
-  ]
+  ],
+  "outcome_first_narration": true,
+  "iff_enabled": true
 }
