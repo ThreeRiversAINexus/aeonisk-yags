@@ -566,9 +566,126 @@ def inv_round_contiguous(events, cfg) -> List[Violation]:
 
 
 # ---------------------------------------------------------------------------
+# Log integrity — defects that passed this gate in session fa9d2891
+# ---------------------------------------------------------------------------
+def inv_single_session_end(events, cfg) -> List[Violation]:
+    """Exactly one session_end per session.
+
+    Two teardown paths (the DM-declared-end check and _end_session) each swept
+    the clocks and called log_session_end(), so a five-clock session logged ten
+    clock_removal events and two session_end events. Anything that splits a file
+    on session_end, or counts clock lifecycles, double-counts.
+
+    A missing session_end means an incomplete session, which the loader already
+    reports — not this checker's business.
+    """
+    count = sum(1 for e in events if e.get("event_type") == "session_end")
+    if count > 1:
+        return [Violation("duplicate_session_end", ERROR,
+                          f"{count} session_end events (expected 1) — "
+                          f"teardown ran more than once")]
+    return []
+
+
+def inv_snapshot_matches_oracle(events, cfg) -> List[Violation]:
+    """end_state_snapshot must agree with the last character_state.
+
+    character_state is the authoritative life-state oracle. In fa9d2891 it
+    recorded is_defeated=true / death_state=unconscious for rounds 2-4 while
+    end_state_snapshot reported is_defeated=false for the same character — and
+    game.log said the death save had failed outright. Three records, three
+    answers.
+    """
+    final_state: Dict[str, bool] = {}
+    for e in events:
+        if e.get("event_type") != "character_state":
+            continue
+        b = _body(e)
+        name = b.get("character_name")
+        if name:
+            final_state[name] = bool(b.get("is_defeated"))
+
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "end_state_snapshot":
+            continue
+        for member in (_body(e).get("party") or []):
+            if not isinstance(member, dict):
+                continue
+            name = member.get("name")
+            if name not in final_state:
+                continue
+            claimed = bool(member.get("is_defeated"))
+            if claimed != final_state[name]:
+                out.append(Violation(
+                    "snapshot_oracle_mismatch", ERROR,
+                    f"end_state_snapshot says is_defeated={claimed} but the last "
+                    f"character_state says {final_state[name]}",
+                    e.get("round"), name))
+    return out
+
+
+def inv_enforce_rulings_dropped(events, cfg) -> List[Violation]:
+    """Under enforce, every magistrate ruling must find its target.
+
+    The roster was built from registered_players alone, so all enemy and NPC
+    rulings failed name resolution and were skipped — 8 of 13 in fa9d2891,
+    including the antagonists' own crimes. The ledger the regime exists to
+    produce simply had no entry for them.
+    """
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") != "post_resolution_adjudication":
+            continue
+        b = _body(e)
+        # Only enforce writes per-ruling `applied` records; observe-only mode
+        # logs the rulings alone and has nothing to drop.
+        applied_records = b.get("applied")
+        if not isinstance(applied_records, list):
+            continue
+        dropped = [r.get("character_name") for r in applied_records
+                   if isinstance(r, dict) and not r.get("applied")]
+        if dropped:
+            out.append(Violation(
+                "enforce_ruling_dropped", ERROR,
+                f"{len(dropped)} ruling(s) unmatched and skipped: {dropped}",
+                e.get("round")))
+    return out
+
+
+def inv_clock_without_spawn(events, cfg) -> List[Violation]:
+    """A clock that ticks or is removed must first have been born.
+
+    Three DM-created clocks in fa9d2891 appeared only in clock_advancement and
+    clock_removal — no clock_spawn ever announced them, so a lifecycle
+    reconstruction has them materializing from nothing.
+    """
+    spawned = {_body(e).get("clock_name") for e in events
+               if e.get("event_type") == "clock_spawn"}
+    seen: set = set()
+    out: List[Violation] = []
+    for e in events:
+        if e.get("event_type") not in ("clock_advancement", "clock_removal"):
+            continue
+        name = _body(e).get("clock_name")
+        if not name or name in spawned or name in seen:
+            continue
+        seen.add(name)
+        out.append(Violation(
+            "clock_without_spawn", WARN,
+            f"clock {name!r} referenced with no clock_spawn event",
+            e.get("round")))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Registry + driver
 # ---------------------------------------------------------------------------
 CHECKS: List[Callable] = [
+    inv_single_session_end,
+    inv_snapshot_matches_oracle,
+    inv_enforce_rulings_dropped,
+    inv_clock_without_spawn,
     inv_zombie_actor,
     inv_dead_targetable,
     inv_defeat_flag_internal,

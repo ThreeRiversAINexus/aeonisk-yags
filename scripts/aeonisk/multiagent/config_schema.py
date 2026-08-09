@@ -386,8 +386,13 @@ CONFIG_SCHEMA: list[FieldSpec] = [
     _f("initial_npcs[].position", "enemies", "str", default=None, note="initial_spawns.py (npc.position)"),
 
     # ---- economy / vendors ----------------------------------------------
-    _f("vendor_spawn_frequency", "economy", "int", default=3,
-       help="Spawn a vendor every N rounds; -1 = never, 0 = off (legacy)."),
+    _f("vendor_spawn_frequency", "economy", "int", default=-1,
+       help="Spawn a random vendor every N rounds; -1 = never (default), "
+            "0 = off (legacy). Off by default because the DM already spawns "
+            "vendors when the scene warrants one, via NPCSpawn(is_vendor=True). "
+            "On a timer they arrive regardless of scene — a courier drone "
+            "offering barter inside a sealed sanctuary mid-raid. Raise it only "
+            "for economy-exercise corpus runs."),
     _f("persistent_vendors", "economy", "list", default=[],
        help="Vendors that persist across all rounds."),
     _f("persistent_vendors[].name", "economy", "str", required=True,
@@ -607,6 +612,13 @@ def explain_config(config: dict) -> str:
     vendors = config.get("persistent_vendors") or []
     (will if vendors else wont).append(
         f"have {len(vendors)} persistent vendor(s)" if vendors else "include persistent vendors")
+    # Spontaneous spawning is a separate mechanism from persistent_vendors.
+    # Reporting only the latter let a config promise "no vendors" and then put a
+    # trader in the scene on a timer.
+    vendor_freq = config.get("vendor_spawn_frequency", -1)
+    if isinstance(vendor_freq, int) and vendor_freq > 0:
+        will.append(
+            f"spawn a random vendor every {vendor_freq} round(s), regardless of scene")
     checkpoints = config.get("starting_checkpoints") or []
     if checkpoints:
         will.append(f"gate movement at {len(checkpoints)} SC checkpoint(s)")

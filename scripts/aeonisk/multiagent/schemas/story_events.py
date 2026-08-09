@@ -496,6 +496,16 @@ If the faction doesn't match a canonical name, use "Independent" for criminals/m
         description="Special traits or modifications (optional)"
     )
 
+    name: str = Field(
+        default="",
+        max_length=100,
+        description=(
+            "Explicit display name. When empty (the default) the spawner "
+            "generates '<faction> <archetype>'. Set this to author a named "
+            "antagonist, e.g. 'Matron Ysolde Xalith'."
+        )
+    )
+
 
 class AltarSpawn(BaseModel):
     """

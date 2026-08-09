@@ -84,7 +84,7 @@ class TestDefaultsMatchCode:
         "outcome_synthesis_attempts": 3,
         "party_capabilities_enabled": True,
         "party_chat_enabled": True,
-        "vendor_spawn_frequency": 3,
+        "vendor_spawn_frequency": -1,
         "enemy_agent_config.free_targeting_mode": True,
         "scenario.situation": "Something mysterious is happening",
         "scenario.altars[].quality": 5,

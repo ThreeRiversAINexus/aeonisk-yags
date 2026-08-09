@@ -4775,6 +4775,24 @@ class MechanicsEngine:
             terminal_outcome=terminal_outcome
         )
         self.scene_clocks[name] = clock
+
+        # Announce the birth here, at the single chokepoint every creation path
+        # goes through. Logging this in the callers instead meant the DM's
+        # scenario-generation clocks were never announced at all — they showed up
+        # in the log only as advancements and removals of something that, on the
+        # record, had never been created.
+        if self.jsonl_logger:
+            self.jsonl_logger.log_clock_spawn(
+                name,
+                maximum,
+                description,
+                round_num=self.current_round,
+                current_ticks=clock.current,
+                advance_meaning=advance_meaning,
+                regress_meaning=regress_meaning,
+                filled_consequence=filled_consequence,
+            )
+
         return clock
 
     def _log_clock_spawn_rejected(self, name: str, reason: str) -> None:

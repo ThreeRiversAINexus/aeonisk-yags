@@ -40,7 +40,8 @@ def spawn_enemy(
     position_str: str,
     tactics_override: Optional[str] = None,
     personality_override: Optional[str] = None,
-    current_round: int = 0
+    current_round: int = 0,
+    faction: Optional[str] = None
 ) -> EnemyAgent:
     """
     Create an enemy agent from spawn parameters.
@@ -99,9 +100,16 @@ def spawn_enemy(
     # Determine tactics
     tactics = tactics_override or template["default_tactics"]
 
-    # Extract faction from name
-    from .faction_utils import extract_faction
-    faction = extract_faction(name)
+    # Faction comes from the structured spawn field when the caller has it.
+    # Falling back to parsing the display name is a last resort for legacy
+    # callers: extract_faction("Tempest Industries Void Theorist") returns
+    # "Void", because the archetype word outranks the faction words. That
+    # misparse silently reassigned both antagonists in session fa9d2891 and
+    # broke faction-based IFF for the whole run. Deriving mechanics from name
+    # strings is the keyword-detection anti-pattern CLAUDE.md forbids.
+    if not faction:
+        from .faction_utils import extract_faction
+        faction = extract_faction(name)
 
     # Initialize ammo
     ammo = {}
