@@ -2109,6 +2109,7 @@ Generate narratives (numbered list only):"""
                         git_commit = result.stdout.strip()
                         print(f"Git commit: {git_commit}")
                 except Exception:
+                    # Git metadata is optional provenance; absence is not an error.
                     pass
 
         print(f"Max rounds: {max_rounds}")

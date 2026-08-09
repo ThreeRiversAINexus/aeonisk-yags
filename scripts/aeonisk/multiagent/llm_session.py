@@ -245,7 +245,7 @@ Return JSON with: theme, location, stakes, complication, void_influence_level (1
             # Try to parse as JSON, fall back to structured generation
             try:
                 return json.loads(content)
-            except:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 # Fallback structured scenario
                 return {
                     "theme": "Corporate Memory Theft Investigation",
@@ -312,7 +312,7 @@ Return JSON with:
             
             try:
                 return json.loads(content)
-            except:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 # Fallback action based on faction
                 fallback_actions = {
                     'Sovereign Nexus': {

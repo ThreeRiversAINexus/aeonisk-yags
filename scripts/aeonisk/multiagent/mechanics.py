@@ -287,6 +287,7 @@ class JSONLLogger:
                     commit += '-dirty'
                 return commit
         except Exception:
+            # Git metadata is optional provenance; a repo-less or detached checkout is fine.
             pass
         return None
 

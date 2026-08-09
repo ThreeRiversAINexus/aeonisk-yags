@@ -155,7 +155,7 @@ class AeoniskVectorStore:
                 existing = self.collection.get()
                 if existing['ids']:
                     self.collection.delete(ids=existing['ids'])
-            except:
+            except Exception:
                 pass  # Collection might be empty
                 
             self.collection.add(

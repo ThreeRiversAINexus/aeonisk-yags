@@ -28,8 +28,13 @@ def _make_mock_enemy():
     enemy.wounds = 0
     enemy.stuns = 0
     enemy.void_score = 0
-    enemy.position = MagicMock()
-    enemy.position.name = "Near-PC"
+    # A real Position, not a MagicMock. A mock returns a mock from
+    # calculate_range(), which unpacks as empty and raises
+    # "not enough values to unpack (expected 2, got 0)" — a failure the bare
+    # except handlers in enemy_prompts.py used to swallow, so the prompt
+    # silently lost its range information and the test still passed.
+    from scripts.aeonisk.multiagent.enemy_agent import Position
+    enemy.position = Position(ring="Near", side="PC")
     enemy.initiative = 10
     enemy.stance = "aggressive"
     enemy.weapons = []
@@ -221,12 +226,23 @@ def enemy_resolution_dict():
 @pytest.fixture
 def mock_player_agents_with_declarations():
     """Create mock player agents with declared_actions_this_round."""
+    # Real strings and a real Position. A bare MagicMock returns a mock from
+    # character_state.name and calculate_range(), which the bare except handlers
+    # in enemy_prompts.py used to swallow — so the prompt lost its PC names and
+    # range bands while the test still passed.
+    from scripts.aeonisk.multiagent.enemy_agent import Position
     agent1 = MagicMock()
+    agent1.character_state.name = 'Kael Dren'
+    agent1.character_state.faction = 'Freeborn'
+    agent1.position = Position(ring='Near', side='PC')
     agent1.declared_actions_this_round = {
         'Kael Dren': ('Negotiate ceasefire', 'Negotiate a ceasefire', 'tgt_a1b2', None, 'Diplomatic approach', 14),
     }
 
     agent2 = MagicMock()
+    agent2.character_state.name = 'Riven Ashford'
+    agent2.character_state.faction = 'Freeborn'
+    agent2.position = Position(ring='Near', side='PC')
     agent2.declared_actions_this_round = {
         'Riven Ashford': ('Cover fire', 'Provide suppressing fire', 'tgt_c3d4', 'Kinetic Rifle', 'Support teammates', 16),
     }
@@ -237,7 +253,15 @@ def mock_player_agents_with_declarations():
 @pytest.fixture
 def mock_player_agents_no_declarations():
     """Create mock player agents with no declarations."""
+    # Real strings and a real Position. A bare MagicMock returns a mock from
+    # character_state.name and calculate_range(), which the bare except handlers
+    # in enemy_prompts.py used to swallow — so the prompt lost its PC names and
+    # range bands while the test still passed.
+    from scripts.aeonisk.multiagent.enemy_agent import Position
     agent1 = MagicMock()
+    agent1.character_state.name = 'Kael Dren'
+    agent1.character_state.faction = 'Freeborn'
+    agent1.position = Position(ring='Near', side='PC')
     agent1.declared_actions_this_round = {}
     return [agent1]
 

@@ -1305,7 +1305,8 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         try:
                             error_details['http_status'] = e.response.status_code
                             error_details['response_body'] = str(e.response.text)[:1000]
-                        except:
+                        except (AttributeError, TypeError, UnicodeDecodeError):
+                            # Diagnostic only; the original error still propagates.
                             pass
 
                     # Try to extract underlying error

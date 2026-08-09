@@ -630,14 +630,15 @@ def _format_pc_target(enemy: EnemyAgent, pc: Any) -> Optional[str]:
                 return None
             elif isinstance(condition, dict) and condition.get('type') == 'Unseen':
                 return None
-    except:
+    except (AttributeError, TypeError, KeyError):
         pass  # No conditions or error checking
 
     # Calculate range
     try:
         pc_position = Position.from_string(str(pc.position if hasattr(pc, 'position') else "Near-PC"))
         range_name, range_penalty = enemy.position.calculate_range(pc_position)
-    except:
+    except (AttributeError, TypeError, ValueError) as e:
+        logger.warning(f"range calculation failed; falling back to no penalty. Zeroing this silently improves every attack and the fallback band looks ordinary in the log ({type(e).__name__}: {e})")
         range_name, range_penalty = "Unknown", 0
 
     # Get PC health estimate (if available)
@@ -654,14 +655,14 @@ def _format_pc_target(enemy: EnemyAgent, pc: Any) -> Optional[str]:
             health_str = f"~{health_pct}% (bloodied)"
         else:
             health_str = f"~{health_pct}% (CRITICAL)"
-    except:
+    except (AttributeError, TypeError, ZeroDivisionError):
         health_str = "Unknown"
 
     # Check if PC is watching this enemy
     try:
         pc_defence_token = getattr(pc, 'defence_token', None)
         is_watching = pc_defence_token == enemy.agent_id
-    except:
+    except (AttributeError, TypeError, KeyError):
         is_watching = False
 
     watching_str = "WATCHING YOU (-2 to hit them)" if is_watching else "NOT watching you (+2 Flanking if you attack)"
@@ -674,7 +675,7 @@ def _format_pc_target(enemy: EnemyAgent, pc: Any) -> Optional[str]:
             weapons_str = ", ".join(weapon_names)
         else:
             weapons_str = "Unknown"
-    except:
+    except (AttributeError, TypeError, KeyError):
         weapons_str = "Unknown"
 
     # Get PC name and faction
@@ -720,7 +721,8 @@ def _assess_threat_level(enemy: EnemyAgent, pc: Any, range_name: str, is_watchin
 
         if health_pct < 0.3:
             threat_score -= 2  # Weakened
-    except:
+    except (AttributeError, TypeError, KeyError):
+        # Threat scoring is heuristic; a missing field leaves the score unadjusted.
         pass
 
     # Map to threat level
@@ -739,7 +741,8 @@ def _format_other_enemy(observer: EnemyAgent, other: EnemyAgent) -> str:
     # Calculate range
     try:
         range_name, range_penalty = observer.position.calculate_range(other.position)
-    except:
+    except (AttributeError, TypeError, ValueError) as e:
+        logger.warning(f"range calculation failed; falling back to no penalty. Zeroing this silently improves every attack and the fallback band looks ordinary in the log ({type(e).__name__}: {e})")
         range_name, range_penalty = "Unknown", 0
 
     health_pct = other.get_health_percentage()
@@ -908,7 +911,8 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
             range_name, _ = enemy.position.calculate_range(pc_position)
             pc_name = _resolve_pc_name(pc)
             range_counts[range_name].append(pc_name)
-        except:
+        except (AttributeError, TypeError, KeyError, ValueError):
+            # Range grouping is prompt garnish; an unplaceable PC is simply omitted.
             pass
 
     for range_name, pcs in range_counts.items():
@@ -946,7 +950,8 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
 
             threat = _assess_threat_level(enemy, pc, range_name, is_watching)
             threat_order.append((threat, pc_name, range_name, is_watching))
-        except:
+        except (AttributeError, TypeError, KeyError):
+            # Threat ordering is prompt garnish; an unscorable PC is simply omitted.
             pass
 
     # Sort by threat level
