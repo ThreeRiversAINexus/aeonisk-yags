@@ -1072,7 +1072,8 @@
     ],
     "values": [
      "<None>",
-     "Tranquilizer Gun"
+     "Tranquilizer Gun",
+     "Unarmed"
     ]
    },
    "character_name": {
@@ -2860,27 +2861,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "tgt_52ve",
-     "tgt_55j3",
-     "tgt_632f",
-     "tgt_7kp2",
-     "tgt_9i3a",
-     "tgt_gg2z",
-     "tgt_i74j",
-     "tgt_j263",
-     "tgt_l7s9",
-     "tgt_njus",
-     "tgt_of0x",
-     "tgt_r69e",
-     "tgt_rpbs",
-     "tgt_rxyp",
-     "tgt_tec4",
-     "tgt_vyfq",
-     "tgt_wexb",
-     "tgt_yf34",
-     "tgt_ym2d"
-    ]
+    "values": "freeform"
    },
    "applied_effects.inventory_changes": {
     "types": [
@@ -3561,14 +3542,17 @@
      "Focused",
      "Forewarned",
      "Observed",
+     "Off-Balance",
      "Overwatch",
      "Psychic Strain",
      "Restrained",
      "Revealed",
+     "Ritual Backlash",
      "Ritual Disruption",
      "Sedated",
      "Separated",
      "Stunned",
+     "Suppressed",
      "Suppressed Fire",
      "Tactical Advantage",
      "Tactical Coordination",
@@ -3611,14 +3595,17 @@
      "Focused",
      "Forewarned",
      "Observed",
+     "Off-Balance",
      "Overwatch",
      "Psychic Strain",
      "Restrained",
      "Revealed",
+     "Ritual Backlash",
      "Ritual Disruption",
      "Sedated",
      "Separated",
      "Stunned",
+     "Suppressed",
      "Suppressed Fire",
      "Tactical Advantage",
      "Tactical Coordination",
@@ -4463,10 +4450,12 @@
    },
    "declared_weapon": {
     "types": [
-     "NoneType"
+     "NoneType",
+     "str"
     ],
     "values": [
-     "<None>"
+     "<None>",
+     "Tranquilizer Gun"
     ]
    },
    "defender": {
@@ -4823,7 +4812,8 @@
      "str"
     ],
     "values": [
-     "alive"
+     "alive",
+     "unconscious"
     ]
    },
    "party[].faction": {
@@ -4847,7 +4837,8 @@
      "bool"
     ],
     "values": [
-     "False"
+     "False",
+     "True"
     ]
    },
    "party[].name": {
@@ -4939,6 +4930,7 @@
     ],
     "values": [
      "<None>",
+     "Coven Compliance",
      "Coven Surrender",
      "Custody Arbitration",
      "Custody Transfer",
@@ -5053,52 +5045,18 @@
      "dict"
     ]
    },
-   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5": {
+   "state_summary.soulcredit_states.*": {
     "types": [
      "dict"
     ]
    },
-   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5.changes": {
+   "state_summary.soulcredit_states.*.changes": {
     "numeric": true,
     "types": [
      "int"
     ]
    },
-   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.soulcredit_states.player_01": {
-    "types": [
-     "dict"
-    ]
-   },
-   "state_summary.soulcredit_states.player_01.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.soulcredit_states.player_01.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.soulcredit_states.player_02": {
-    "types": [
-     "dict"
-    ]
-   },
-   "state_summary.soulcredit_states.player_02.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.soulcredit_states.player_02.score": {
+   "state_summary.soulcredit_states.*.score": {
     "numeric": true,
     "types": [
      "int"
@@ -6861,11 +6819,13 @@
     ],
     "values": [
      "enemy_boss_0e0a04dc",
+     "enemy_boss_2937e857",
      "enemy_boss_cbc37dd9",
      "enemy_enforcer_6085e7fa",
      "enemy_enforcer_84cc5fa1",
      "enemy_enforcer_89eab3f9",
      "enemy_void_cultist_c554b219",
+     "enemy_void_cultist_f0b42bac",
      "enemy_void_cultist_fd9f7bb5",
      "npc_coven_adept_kael_thresh_3024",
      "npc_coven_guardian_ren_halsk_304",
@@ -8564,52 +8524,18 @@
      "dict"
     ]
    },
-   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5": {
+   "final_state.soulcredit_states.*": {
     "types": [
      "dict"
     ]
    },
-   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5.changes": {
+   "final_state.soulcredit_states.*.changes": {
     "numeric": true,
     "types": [
      "int"
     ]
    },
-   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.soulcredit_states.player_01": {
-    "types": [
-     "dict"
-    ]
-   },
-   "final_state.soulcredit_states.player_01.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.soulcredit_states.player_01.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.soulcredit_states.player_02": {
-    "types": [
-     "dict"
-    ]
-   },
-   "final_state.soulcredit_states.player_02.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.soulcredit_states.player_02.score": {
+   "final_state.soulcredit_states.*.score": {
     "numeric": true,
     "types": [
      "int"
@@ -10310,11 +10236,7 @@
      "NoneType",
      "str"
     ],
-    "values": [
-     "<None>",
-     "tgt_prisoner_01",
-     "tgt_subdued_operative"
-    ]
+    "values": "freeform"
    },
    "correction_method": {
     "types": [
@@ -10335,11 +10257,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "restrained detainees",
-     "tgt_prisoner_01",
-     "tgt_subdued_operative"
-    ]
+    "values": "freeform"
    },
    "error_description": {
     "types": [
@@ -10385,11 +10303,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "tgt_ij1u",
-     "tgt_lcn4",
-     "tgt_unk1"
-    ]
+    "values": "freeform"
    },
    "parent_event_id": {
     "types": [

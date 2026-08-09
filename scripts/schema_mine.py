@@ -57,6 +57,8 @@ DYNAMIC_KEY_PARENTS = {
     "action_context.character_skills",       # pydantic_validation_failure
     "entity_states_before",                  # applied_outcome (keys are entity ids)
     "entity_states_after",                   # applied_outcome (keys are entity ids)
+    "final_state.soulcredit_states",         # session_end (keys are entity ids)
+    "state_summary.soulcredit_states",       # end_state_snapshot (keys are entity ids)
 }
 
 # Per-event identity/envelope fields: their values are unique by construction
@@ -70,6 +72,9 @@ IDENTITY_FIELDS = {
     "actor_id", "subject_id", "causing_actor_id", "source_outcome_id",
     "reasoning_short", "prose_safe_summary", "symbolic_value",
     "intent", "method", "text", "synthesis",
+    # free-targeting ids (`tgt_5912`) are minted per session, and entity ids
+    # carry a uuid suffix — both churn as enums on every run
+    "target", "declared_target", "corrected_target", "original_target",
 }
 
 
