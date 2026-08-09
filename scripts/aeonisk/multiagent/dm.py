@@ -811,7 +811,8 @@ def _process_structured_damage_effects(
     attacker_name: str = "Unknown Attacker",
     weapon: str = "Unknown Weapon",
     attack_roll: Optional[Dict[str, Any]] = None,
-    resolved_damage_type: Optional[str] = None
+    resolved_damage_type: Optional[str] = None,
+    declared_weapon: Optional[str] = None
 ) -> List[str]:
     """
     Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
@@ -1114,6 +1115,7 @@ def _process_structured_damage_effects(
                     defender_id=entity_id,
                     defender_name=target_name,
                     weapon=weapon,
+                    declared_weapon=declared_weapon,
                     attack_roll=attack_roll or {},
                     damage_roll=damage_roll_data,
                     wounds_dealt=wounds_dealt,
@@ -8578,7 +8580,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         attacker_name=attacker_name,
                         weapon=weapon_name,
                         attack_roll=attack_roll_data,
-                        resolved_damage_type=resolved_damage_type
+                        resolved_damage_type=resolved_damage_type,
+                        declared_weapon=action.get('weapon')
                     )
 
                     # Append damage outcome messages to narration
