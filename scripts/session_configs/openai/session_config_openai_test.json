@@ -81,9 +81,9 @@
           "basic_armor": 1,
           "medkit": 1
         },
-        "void_score": 2,
         "wounds": 0,
-        "money": 500
+        "money": 500,
+        "void": 2
       }
     ]
   },

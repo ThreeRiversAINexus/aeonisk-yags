@@ -299,7 +299,7 @@
       "regress_meaning": "repairs stabilize sections"
     }
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Locate the source of the void anomaly readings",
       "type": "investigation",

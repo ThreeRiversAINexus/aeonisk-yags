@@ -323,7 +323,7 @@
     "expected_flow": "Start with neutral NPCs, mix of escalations and de-escalations through the session based on player choices"
   },
 
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Plant tracking beacons on station infrastructure (command center, armory, docking control)",
       "type": "infiltration",

@@ -169,7 +169,7 @@
     "void_level": 3
   },
   "scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Resolve situation with minimal casualties",
       "type": "negotiation",

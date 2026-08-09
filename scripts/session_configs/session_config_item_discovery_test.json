@@ -78,7 +78,7 @@
     "void_level": 4,
     "scenario_hint": "DM should spawn: (1) leyline plant with Raw Seeds (DC 14 Awareness check), (2) corpse with currency/items (DC 10 Awareness check), (3) supply cache with mixed loot (DC 16 Investigation check), (4) friendly NPC scavenger willing to gift minor items if asked nicely (DC 12 Charm check)"
   },
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Collect Raw Seeds from leyline plants",
       "type": "investigation",

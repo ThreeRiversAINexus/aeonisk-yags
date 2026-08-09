@@ -353,7 +353,7 @@
     "Consequences - whatever they choose, there are costs",
     "Resolution - story controlled or truth released, what does the public believe?"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Contain the leak and control the public narrative",
       "type": "information",

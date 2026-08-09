@@ -23,7 +23,31 @@ _NONHOSTILE_DISPOSITION_TO_ENTITY = {
     "neutral": "neutral",
 }
 
-_TEMPLATE_MAP = {"grunt": "Grunt", "elite": "Elite", "boss": "Boss"}
+def _resolve_template(raw: Any) -> str:
+    """Resolve a config template string against the real template catalogue.
+
+    Previously a 3-entry dict ({grunt, elite, boss}) with a silent
+    `.get(..., "Grunt")` fallback, so any of the other twelve templates —
+    void_cultist, enforcer, sniper, support, ambusher, security_drone,
+    seedwalker_heavy, voidcradle_antibot, ... — was quietly downgraded to a
+    Grunt. An authored void_cultist spawned with a Grunt's pistol and baton
+    instead of a ritual blade, and nothing in the log said so.
+
+    Unknown values now raise instead of downgrading: a typo should stop the
+    run, not silently reshape the scene.
+    """
+    from .enemy_templates import ENEMY_TEMPLATES
+
+    if raw is None:
+        return "grunt"
+    key = str(raw).strip().lower()
+    if key not in ENEMY_TEMPLATES:
+        available = ", ".join(sorted(ENEMY_TEMPLATES))
+        raise ValueError(
+            f"unknown enemy template {raw!r} in initial_enemies. "
+            f"Available templates: {available}"
+        )
+    return key
 
 
 def _position(position_str: str):
@@ -90,15 +114,17 @@ def build_initial_spawns(
                 nm = name if count == 1 else f"{name} #{i + 1}"
                 npc_spawns.append(_npc_from_config(cfg, entity_type, disposition, nm))
             continue
-        template = _TEMPLATE_MAP.get(cfg.get("template", "grunt").lower(), "Grunt")
         enemy_spawns.append(EnemySpawn(
-            template=template,
+            template=_resolve_template(cfg.get("template")),
             faction=cfg.get("faction", "Hostile"),
             archetype=cfg.get("archetype", name),
             count=cfg.get("count", 1),
             spawn_reason=cfg.get("spawn_reason", f"{name} present at scenario start"),
             initial_position=_position(cfg.get("position", "Far-Enemy")),
             custom_traits=cfg.get("tactics"),
+            # Authored name wins over the generated "<faction> <archetype>" form.
+            # Dropping it meant a named antagonist could not be authored at all.
+            name=cfg.get("name") or "",
         ))
 
     for cfg in initial_npcs_config or []:

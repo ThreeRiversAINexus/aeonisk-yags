@@ -182,7 +182,7 @@
     "void_level": 4
   },
   "scenario_hint": "Round 1: Jax's aggressive approach should trigger escalation of hostile/wary NPCs to enemies. Round 2: Combat with escalated enemies. Round 3: Mercy attempts de-escalation, at least one enemy surrenders to prisoner. Tests full NPC lifecycle.",
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Recover the stolen data cache",
       "type": "retrieval",

@@ -48,7 +48,8 @@
       "max_ticks": 6,
       "direction": "progress",
       "description": "Environmental hazards activating. At 3: steam vents. At 6: electrified floor zones.",
-      "advance_meaning": "arena becomes more dangerous"
+      "advance_meaning": "arena becomes more dangerous",
+      "regress_meaning": "A hazard is vented, grounded, or shut down \u2014 the arena briefly becomes survivable again."
     }
   ],
   "agents": {
@@ -108,7 +109,9 @@
         "equipped_weapons": {
           "primary": "ash_pulse_pike"
         },
-        "carried_weapons": ["ritual_blade"],
+        "carried_weapons": [
+          "ritual_blade"
+        ],
         "inventory": {
           "ash_pulse_pike": 1,
           "ritual_blade": 1,

@@ -100,7 +100,7 @@
           "Disable security before reboot completes"
         ],
         "equipped_weapons": {
-          "primary": "emp_pistol"
+          "primary": "compact_emp_pistol"
         },
         "carried_weapons": [],
         "inventory": {
@@ -155,10 +155,10 @@
           "Find hidden cargo caches"
         ],
         "equipped_weapons": {
-          "primary": "plasma_cutter"
+          "primary": "custom_energy_weapon"
         },
         "carried_weapons": [
-          "crowbar"
+          "baton"
         ],
         "inventory": {
           "plasma_cutter": 1,

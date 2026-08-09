@@ -343,7 +343,7 @@
       }
     ]
   },
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Execute the warrant for Dr. Yara Soltra's arrest",
       "type": "enforcement",

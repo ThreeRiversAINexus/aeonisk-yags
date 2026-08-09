@@ -29,7 +29,7 @@ are not double-counted). Corpus label flips to v1.1-law-LIVE.
 """
 
 import logging
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -87,6 +87,42 @@ def rulings_event_data(
     if regime:
         data["regime"] = regime
     return data
+
+
+def build_adjudication_roster(
+    players: Optional[Iterable[dict]],
+    enemies: Optional[Iterable[Any]] = None,
+    npcs: Optional[Iterable[Any]] = None,
+) -> List[dict]:
+    """Everyone the magistrate may lawfully name, as {'agent_id', 'name'} dicts.
+
+    The Codex judges every soul present, not just the player characters. Building
+    this from `registered_players` alone meant every ruling against an enemy or
+    NPC failed name resolution and was silently dropped — 8 of 13 in session
+    fa9d2891, including the antagonists' own crimes.
+
+    Deduplicated by agent_id, because an entity converted enemy->NPC keeps its id
+    and can appear in both collections.
+    """
+    roster: List[dict] = []
+    seen: set = set()
+
+    def _add(agent_id: Any, name: Any) -> None:
+        agent_id = (agent_id or "").strip() if isinstance(agent_id, str) else agent_id
+        name = (name or "").strip() if isinstance(name, str) else name
+        if not agent_id or not name or agent_id in seen:
+            return
+        seen.add(agent_id)
+        roster.append({"agent_id": agent_id, "name": name})
+
+    for entry in players or []:
+        if isinstance(entry, dict):
+            _add(entry.get("agent_id"), entry.get("name"))
+
+    for agent in list(enemies or []) + list(npcs or []):
+        _add(getattr(agent, "agent_id", None), getattr(agent, "name", None))
+
+    return roster
 
 
 def apply_rulings(

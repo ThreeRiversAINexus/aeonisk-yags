@@ -68,6 +68,90 @@ def _format_npc_declaration_reason(reason: str) -> str:
     return f"         \u2514\u2500 {reason}"
 
 
+def derive_death_state(agent) -> str:
+    """The life-state oracle: 'alive' | 'unconscious' | 'dead'.
+
+    Health, wounds and stuns live on the *agent*, not on CharacterState. Reading
+    a defeat flag off CharacterState silently yields the getattr default, which
+    is how end_state_snapshot came to report is_defeated=False for a character
+    the character_state rows had marked defeated for three rounds running.
+
+    Thresholds: 6+ wounds is dead; 0 health or 6+ stuns (YAGS Beaten) is
+    unconscious.
+    """
+    wounds = getattr(agent, 'wounds', 0) or 0
+    health = getattr(agent, 'health', 0) or 0
+    stuns = getattr(agent, 'stuns', 0) or 0
+    if wounds >= 6:
+        return "dead"
+    if health <= 0 or stuns >= 6:
+        return "unconscious"
+    return "alive"
+
+
+def entity_soulcredit(mechanics, agent_id: str) -> int:
+    """Current Soulcredit for any entity, read from the mechanics ledger.
+
+    Enemies and NPCs carry real ledgers now that the enforce magistrate can name
+    them, so the character_state oracle must report what was actually written
+    instead of a hardcoded 0. Read-only: never mints a ledger entry for an
+    entity nobody has judged.
+    """
+    if mechanics is None:
+        return 0
+    states = getattr(mechanics, 'soulcredit_states', None) or {}
+    state = states.get(agent_id)
+    return getattr(state, 'score', 0) if state is not None else 0
+
+
+def party_snapshot_entry(agent) -> Dict[str, Any]:
+    """One end_state_snapshot party member, life-state taken from the oracle."""
+    char = getattr(agent, 'character_state', None)
+    death_state = derive_death_state(agent)
+    return {
+        'name': getattr(char, 'name', None),
+        'faction': getattr(char, 'faction', None),
+        'is_defeated': death_state != "alive",
+        'death_state': death_state,
+        'void_score': getattr(char, 'void_score', None),
+    }
+
+
+# Tiers that clear the DC (mirrors dm._resolution_success).
+_SUCCESS_TIERS = frozenset({
+    'marginal', 'moderate', 'good', 'excellent', 'exceptional'})
+
+
+def prior_declarations(
+    declared_actions: Optional[Dict[str, List[Dict[str, Any]]]],
+) -> List[tuple]:
+    """Every action already declared this round, as (actor_name, initiative, text).
+
+    Sorted slowest-declared first, matching declaration order.
+
+    `_declared_actions` is cleared at round start and declaration runs
+    slowest-initiative-first, so everything in the buffer belongs to an agent
+    that has already gone — there is nothing to filter out. The previous inline
+    version selected `initiative > mine`, which given that ordering matched
+    nothing, so NPCs never actually saw prior declarations. It also compared a
+    possibly-None initiative against an int (`dict.get` returns its default only
+    for an ABSENT key, not a present None), raising TypeError into a broad
+    `except` that cost the NPC its whole turn.
+    """
+    collected: List[tuple] = []
+    for agent_id, actions in (declared_actions or {}).items():
+        for action in actions or []:
+            initiative = action.get('initiative') or 0
+            actor_name = action.get('character_name') or agent_id
+            text = (action.get('description')
+                    or action.get('intent')
+                    or 'unknown action')
+            collected.append((actor_name, initiative, text))
+
+    collected.sort(key=lambda entry: entry[1])
+    return collected
+
+
 def _format_clock_progress_bar(current: int, maximum: int, bar_width: int = 8) -> str:
     """Format a visual progress bar for a scene clock.
 
@@ -788,6 +872,7 @@ class SelfPlayingSession:
         self._pending_declarations: Dict[str, asyncio.Event] = {}  # Track when declarations complete
         self._declared_actions: Dict[str, List[Dict[str, Any]]] = {}  # Buffer actions during declaration phase (supports multiple actions per agent)
         self._in_declaration_phase: bool = False  # Track current phase
+        self._session_finalized: bool = False  # Teardown claimed (see _claim_session_finalization)
         self._scenario_ready: asyncio.Event = asyncio.Event()  # Track when scenario is generated
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
@@ -2684,28 +2769,17 @@ Generate narratives (numbered list only):"""
                                 narrative_context += f"{i}. {narration}\n"
                             narrative_context += "\n"
 
-                        # PHASE 1: Show declarations from higher-initiative agents this round
-                        # NPCs need to see what's already been declared before their turn
-                        current_round_declarations = []
-                        for agent_id, actions in self._declared_actions.items():
-                            for action in actions:
-                                # Only show declarations from agents acting before this NPC
-                                if action.get('initiative', 0) > initiative_score:
-                                    actor_name = action.get('character_name', agent_id)
-                                    # Use description (full narrative) if available, fallback to intent
-                                    declaration_text = action.get('description', '') or action.get('intent', 'unknown action')
-                                    # Keep full declarations - agents need context to coordinate!
-                                    current_round_declarations.append(
-                                        (actor_name, action.get('initiative', 0), declaration_text)
-                                    )
+                        # PHASE 1: Show what has already been declared this round
+                        # NPCs need to see it before taking their turn. Declaration
+                        # runs slowest-first, so the buffer holds exactly the agents
+                        # that went before this one.
+                        sorted_declarations = prior_declarations(self._declared_actions)
 
-                        if current_round_declarations:
+                        if sorted_declarations:
                             if not narrative_context:
                                 narrative_context += "\n\n# 📖 Recent Story Events\n\n"
                             narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
                             narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
-                            # Sort by initiative (slowest first, matching declaration order)
-                            sorted_declarations = sorted(current_round_declarations, key=lambda x: x[1])
                             for actor_name, initiative, declaration_text in sorted_declarations:
                                 narrative_context += f"- **{actor_name}** [Init {initiative}]: {declaration_text}\n"
                             narrative_context += "\n"
@@ -2948,6 +3022,19 @@ Generate narratives (numbered list only):"""
                             )
                             await self.coordinator.message_bus._route_message(broadcast_message)
 
+                    except (TypeError, AttributeError, KeyError, IndexError) as e:
+                        # Programming errors, not LLM/transport failures. Forfeiting a
+                        # turn here manufactures "ghost agents" that the round-end
+                        # check then reports with no cause — log the traceback loudly
+                        # so the defect is visible instead of looking like an NPC
+                        # that simply chose not to act.
+                        logger.error(
+                            f"NPC {agent.name} declaration hit an internal error "
+                            f"({type(e).__name__}: {e}) — this is a bug, not a "
+                            f"failed LLM call",
+                            exc_info=True,
+                        )
+                        print(f"[{agent.name}] unable to act this round (internal error)")
                     except Exception as e:
                         logger.warning(f"NPC {agent.name} failed to declare action: {e}")
                         # NPCs can skip their turn if declaration fails
@@ -3307,6 +3394,11 @@ Generate narratives (numbered list only):"""
                                     after=snapshot_shared_state(self.shared_state),
                                 )
                                 resolution_data['applied_outcome'] = applied_outcome.model_dump(mode='json')
+                                # Round-summary counters: the legacy dm.py path
+                                # tracks player action resolutions, but the
+                                # outcome-first pipeline bypasses it, so every
+                                # round_summary reported 0 actions and +0.0 margin.
+                                self.track_outcome_statistics(applied_outcome)
                                 if mechanics and mechanics.jsonl_logger:
                                     adjudication = resolution_data.get('adjudication') or {}
                                     mechanics.jsonl_logger.log_action_adjudication(
@@ -4263,14 +4355,9 @@ Generate narratives (numbered list only):"""
                         wounds = player.wounds if hasattr(player, 'wounds') else 0
                         health = player.health if hasattr(player, 'health') else 0
                         stuns = player.stuns if hasattr(player, 'stuns') else 0
-                        if wounds >= 6:
-                            death_state = "dead"
-                        elif health <= 0:
-                            death_state = "unconscious"
-                        elif stuns >= 6:
-                            death_state = "unconscious"  # Stun KO: Beaten threshold per YAGS
-                        else:
-                            death_state = "alive"
+                        # Shared oracle — end_state_snapshot reads the same function,
+                        # so the two records cannot disagree again.
+                        death_state = derive_death_state(player)
 
                         # Extract economic data from energy_purse
                         energy_data = {}
@@ -4344,7 +4431,10 @@ Generate narratives (numbered list only):"""
                                 max_health=enemy.max_health if hasattr(enemy, 'max_health') else 0,
                                 wounds=enemy_wounds,
                                 void_score=0,  # Enemies typically don't track void
-                                soulcredit=0,  # Enemies don't track soulcredit
+                                # Enemies carry real ledgers now that the enforce
+                            # magistrate can name them — report what was written,
+                            # not a hardcoded 0.
+                            soulcredit=entity_soulcredit(mechanics, enemy.agent_id),
                                 position=str(getattr(enemy, 'position', 'Unknown')),
                                 conditions=_serialize_conditions(mechanics, enemy.agent_id),
                                 is_defeated=(enemy_death_state != "alive"),
@@ -4468,6 +4558,36 @@ Generate narratives (numbered list only):"""
             self._round_stats['success_count'] += 1
         self._round_stats['total_margin'] += margin
 
+    def track_outcome_statistics(self, applied_outcome) -> None:
+        """Record an outcome-first resolution in the round-summary counters.
+
+        track_action_resolution() is only reached from the legacy dm.py path.
+        With outcome_first_narration on — the recommended baseline — resolution
+        runs through the outcome pipeline instead, so every round_summary logged
+        actions_attempted 0 and average_margin +0.0 no matter what happened.
+        """
+        if applied_outcome is None:
+            return
+
+        # AppliedOutcome keeps the dice under `roll_result`; there are no
+        # top-level .margin / .success_tier attributes to read.
+        roll = getattr(applied_outcome, 'roll_result', None)
+        if not isinstance(roll, dict) or not roll:
+            # No roll happened (e.g. pure dialogue) — not an attempted action.
+            return
+
+        margin = roll.get('margin') or 0
+        try:
+            margin = int(margin)
+        except (TypeError, ValueError):
+            margin = 0
+
+        success = roll.get('success')
+        if success is None:
+            success = str(roll.get('success_tier') or '').lower() in _SUCCESS_TIERS
+
+        self.track_action_resolution(success=bool(success), margin=margin)
+
     def track_player_damage_dealt(self, damage: int):
         """Track damage dealt by players for round summary."""
         self._round_stats['damage_dealt_by_players'] += damage
@@ -4505,7 +4625,7 @@ Generate narratives (numbered list only):"""
 
     async def _check_vendor_spawn(self, round_count: int):
         """Check if a vendor should randomly spawn this round."""
-        vendor_frequency = self.config.get('vendor_spawn_frequency', 3)
+        vendor_frequency = self.config.get('vendor_spawn_frequency', -1)
 
         # -1 means vendors never spawn randomly
         if vendor_frequency <= 0:
@@ -5154,7 +5274,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         rulings logged as post_resolution_adjudication events, never
         applied. See post_adjudication.py for the hypothesis."""
         from .post_adjudication import (
-            ENFORCE_REGIME_LABEL, apply_rulings, rulings_event_data)
+            ENFORCE_REGIME_LABEL, apply_rulings, build_adjudication_roster,
+            rulings_event_data)
 
         dm_agent = getattr(self, 'dm_agent', None)
         if dm_agent is None or mechanics is None:
@@ -5182,7 +5303,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if mode == 'enforce':
             # The magistrate is the sole ledger writer this round (narration
             # economy deltas were suppressed upstream). Apply and log applied.
-            roster = self.shared_state.registered_players if self.shared_state else []
+            # Everyone present, not just the PCs: the Codex judges every soul in
+            # the room. A players-only roster silently dropped every ruling
+            # against an enemy or NPC — including the antagonists' own crimes.
+            roster = build_adjudication_roster(
+                self.shared_state.registered_players if self.shared_state else [],
+                getattr(getattr(self, 'enemy_combat', None), 'enemy_agents', None),
+                getattr(self.shared_state, 'npc_agents', None) if self.shared_state else None,
+            )
             applied = apply_rulings(rulings, mechanics, roster,
                                     round_num=mechanics.current_round)
             if mechanics.jsonl_logger:
@@ -5193,8 +5321,18 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         applied_records=applied, regime=ENFORCE_REGIME_LABEL),
                     round_num=mechanics.current_round,
                 )
-            logger.info(f"Post-resolution adjudication (ENFORCE, applied): "
-                        f"{[(r.character_name, r.soulcredit_delta, r.void_delta) for r in rulings.rulings]}")
+            # Report what actually landed. Printing rulings here read as though
+            # every delta applied, while dropped ones had gone nowhere.
+            landed = [r for r in applied if r.get('applied')]
+            dropped = [r for r in applied if not r.get('applied')]
+            logger.info(
+                f"Post-resolution adjudication (ENFORCE): "
+                f"{len(landed)} applied, {len(dropped)} dropped — "
+                f"{[(r.get('character_name'), r.get('soulcredit_delta'), r.get('void_delta')) for r in landed]}")
+            if dropped:
+                logger.warning(
+                    f"ENFORCE dropped {len(dropped)} ruling(s) with unmatched "
+                    f"targets: {[r.get('character_name') for r in dropped]}")
             return
 
         if mechanics.jsonl_logger:
@@ -5495,18 +5633,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'consequence': clock.filled_consequence if clock else ''
             })
 
-            # Log the new clock
-            if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(
-                    name,
-                    max_ticks,
-                    description,
-                    round_num=mechanics.current_round,
-                    current_ticks=0,
-                    advance_meaning=clock.advance_meaning if clock else None,
-                    regress_meaning=clock.regress_meaning if clock else None,
-                    filled_consequence=clock.filled_consequence if clock else None
-                )
+            # clock_spawn is emitted by create_scene_clock itself, so every
+            # creation path announces exactly once.
 
     def _spawn_new_clocks_structured(self, new_clocks: List['NewClock']):
         """Spawn new clocks from structured output (Phase 5: Pydantic AI migration)."""
@@ -5549,18 +5677,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'consequence': scene_clock.filled_consequence if scene_clock else ''
             })
 
-            # Log the new clock
-            if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(
-                    clock.name,
-                    clock.max_ticks,
-                    clock.description,
-                    round_num=mechanics.current_round,
-                    current_ticks=clock.current_ticks,
-                    advance_meaning=clock.advance_meaning,
-                    regress_meaning=clock.regress_meaning,
-                    filled_consequence=clock.filled_consequence
-                )
+            # clock_spawn is emitted by create_scene_clock itself, so every
+            # creation path announces exactly once.
 
     async def _check_and_trigger_story_advancement(self):
         """Check if all clocks are complete and trigger DM to advance the story."""
@@ -5613,15 +5731,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         """
         party = []
         for agent in self.agents:
-            char = getattr(agent, 'character_state', None)
-            if char is None:
+            if getattr(agent, 'character_state', None) is None:
                 continue
-            party.append({
-                'name': getattr(char, 'name', None),
-                'faction': getattr(char, 'faction', None),
-                'is_defeated': getattr(char, 'is_defeated', False),
-                'void_score': getattr(char, 'void_score', None),
-            })
+            party.append(party_snapshot_entry(agent))
 
         if terminal:
             outcome = terminal['outcome']
@@ -5764,7 +5876,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Log session end
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
-                if mechanics.jsonl_logger:
+                if mechanics.jsonl_logger and self._claim_session_finalization():
                     # Log any remaining clocks before session ends
                     if mechanics.scene_clocks:
                         for clock_name, clock in mechanics.scene_clocks.items():
@@ -5794,6 +5906,21 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Otherwise session continues
         return False
         
+    def _claim_session_finalization(self) -> bool:
+        """Claim the right to write session teardown. True for exactly one caller.
+
+        Two paths tear a session down — `_check_session_end()` when the DM
+        declares an ending, and `_end_session()` always. Both swept the scene
+        clocks emitting `clock_removal` and both called `log_session_end()`, so a
+        five-clock session logged ten removals and two `session_end` events.
+        Whichever path gets here first does the writing; the other stands down.
+        """
+        if getattr(self, '_session_finalized', False):
+            logger.debug("Session teardown already logged — skipping duplicate")
+            return False
+        self._session_finalized = True
+        return True
+
     async def _end_session(self):
         """End the session and save data."""
         print(f"\n=== Session {self.session_id} Ending ===")
@@ -5872,7 +5999,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Log session end event
             mechanics = self.shared_state.mechanics_engine
-            if mechanics.jsonl_logger:
+            if mechanics.jsonl_logger and self._claim_session_finalization():
                 # Log any remaining clocks before session ends (timeout path)
                 if mechanics.scene_clocks:
                     for clock_name, clock in mechanics.scene_clocks.items():
@@ -5901,6 +6028,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         })
 
                 mechanics.jsonl_logger.log_session_end(state_summary)
+
+            # Always report where the log landed, even when the DM-declared-end
+            # path already claimed teardown above.
+            if mechanics.jsonl_logger:
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
 
         # Collect voice profiles for ONLY the players in this session (not entire pool)
@@ -7700,50 +7831,97 @@ def _should_escalate_npc(entity_type: str, action_type: str) -> bool:
     return True
 
 
-# Configuration example
+# Configuration example.
+#
+# This is what `--create-config` writes, so it is the first config most people
+# ever see. It must therefore validate clean, carry the recommended research
+# baseline, and use only canon factions/attributes — see
+# tests/unit/test_example_config.py, which enforces exactly that.
+#
+# It is deliberately smoke-sized (max_turns=2): cheap to run, enough to prove the
+# pipeline works end to end. Raise max_turns once a smoke run comes back clean.
 EXAMPLE_CONFIG = {
-    "session_name": "test_session",
-    "max_turns": 20,
+    "session_name": "example_smoke_session",
+    "max_turns": 2,
+    "party_size": 2,
     "output_dir": "./multiagent_output",
-    "enable_human_interface": True,
+
+    # Non-interactive: an interactive run opens an "[Observer]>" stdin prompt.
+    "enable_human_interface": False,
+
+    # The recommended research baseline (config_schema.recommended_overrides()).
+    "tactical_module_enabled": True,
+    "enemy_agents_enabled": True,
+    "outcome_first_narration": True,
+    "iff_enabled": True,
+    "post_resolution_adjudication": "enforce",
+
+    # Clocks must stay regressable — never a one-way ratchet.
+    "starting_clocks": [
+        {
+            "name": "Cathedral Scrutiny",
+            "current_ticks": 0,
+            "max_ticks": 6,
+            "description": "How closely Cathedral Confessors are watching the party.",
+            "advance_meaning": "The party draws attention — a questioned ledger, a raised voice, a witnessed lie.",
+            "regress_meaning": "The party allays suspicion — cooperating, producing papers, letting a scan run clean."
+        }
+    ],
+
     "agents": {
         "dm": {
             "llm": {
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-mini",
                 "temperature": 0.7
             }
         },
         "players": [
             {
-                "name": "Zara Nightwhisper",
-                "faction": "Tempest Industries",
-                "personality": {
-                    "riskTolerance": 8,
-                    "voidCuriosity": 9,
-                    "bondPreference": "avoids",
-                    "ritualConservatism": 2
+                "name": "Vessel Sera Karsel",
+                "faction": "Sovereign Nexus",
+                "pronouns": "she/her",
+                "llm": {
+                    "provider": "openai",
+                    "model": "gpt-5-mini",
+                    "temperature": 0.7
                 },
-                "attributes": {"Body": 6, "Mind": 8, "Soul": 7},
-                "skills": {"Astral Arts": 5, "Investigation": 4},
-                "void_score": 2,
-                "soulcredit": 15,
-                "goals": ["Explore void manipulation", "Advance Tempest interests"]
+                "attributes": {
+                    "Strength": 3, "Agility": 3, "Endurance": 3, "Dexterity": 4,
+                    "Perception": 4, "Intelligence": 4, "Empathy": 5, "Willpower": 4
+                },
+                "skills": {"Astral Arts": 4, "Awareness": 3, "Charm": 3},
+                "void": 1,
+                "soulcredit": 3,
+                "equipped_weapons": {"primary": "ritual_blade"},
+                "personality": {
+                    "description": "A Cathedral vessel who believes the ledger is mercy, "
+                                   "and has never yet been asked to prove it."
+                },
+                "goals": ["Keep the rite lawful", "Bring everyone home judged, not hunted"]
             },
             {
-                "name": "Echo Resonance",
-                "faction": "Resonance Communes",
-                "personality": {
-                    "riskTolerance": 4,
-                    "voidCuriosity": 3,
-                    "bondPreference": "seeks",
-                    "ritualConservatism": 6
+                "name": "Dray Vusk",
+                "faction": "Freeborn",
+                "pronouns": "they/them",
+                "llm": {
+                    "provider": "openai",
+                    "model": "gpt-5-mini",
+                    "temperature": 0.7
                 },
-                "attributes": {"Body": 5, "Mind": 6, "Soul": 9},
-                "skills": {"Astral Arts": 6, "Social": 5},
-                "void_score": 0,
-                "soulcredit": 12,
-                "goals": ["Form meaningful bonds", "Support community harmony"]
+                "attributes": {
+                    "Strength": 4, "Agility": 4, "Endurance": 4, "Dexterity": 3,
+                    "Perception": 4, "Intelligence": 3, "Empathy": 3, "Willpower": 4
+                },
+                "skills": {"Brawl": 4, "Stealth": 3, "Guile": 3},
+                "void": 2,
+                "soulcredit": -1,
+                "equipped_weapons": {"primary": "union_heavy_pistol"},
+                "personality": {
+                    "description": "Born outside the pods and unimpressed by the Codex; "
+                                   "trusts people, not standing."
+                },
+                "goals": ["Owe nobody", "Get paid without signing anything"]
             }
         ]
     }

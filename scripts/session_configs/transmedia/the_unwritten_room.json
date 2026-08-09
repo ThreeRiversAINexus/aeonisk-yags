@@ -1,0 +1,161 @@
+{
+  "session_name": "the_unwritten_room",
+  "max_turns": 4,
+  "party_size": 2,
+  "output_dir": "./multiagent_output/transmedia",
+  "enable_human_interface": false,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "outcome_first_narration": true,
+  "iff_enabled": true,
+  "post_resolution_adjudication": "enforce",
+  "scenario_hint": "A disused biocreche annex in the outer cathedral ward of Aeonisk Prime. A rogue Tempest coven has re-strung the dead pod racks into a dampening lattice: a constructed blind sanctuary, itself the offense (unlicensed void infrastructure, III.3), and they have been weaponizing Void against persons (III.3). Two officers enter on a lawful warrant. Inside the lattice the Codex cannot taste what happens; an act in a blind place is unjudged, and only testimony puts it on the record. Hence the quiet temptation: kill the coven rather than take them, written as a killing in the moment (IV.3), and against the surrendered, excessive force on the helpless (II.1). The lawful path stays open: subdue, bind, hand them to authorities (II.8), fight only in defense (IV.2), report honestly (II.9). Both officers carry non-lethal tools. Unjudged is not lawful. No ticking clock, no amnesty trap. NO SPAWN_ENEMY.",
+  "starting_clocks": [
+    {
+      "name": "The Dampening Lattice",
+      "current_ticks": 1,
+      "max_ticks": 5,
+      "description": "How deep the annex's void-lattice runs, and how little of this room the Codex can taste.",
+      "advance_meaning": "The lattice thickens — resonance dies further, and more of what happens here goes unwritten.",
+      "regress_meaning": "The lattice is cut, grounded, or fails — resonance returns and the Cathedral can taste the room again."
+    },
+    {
+      "name": "The Testifiable Account",
+      "current_ticks": 1,
+      "max_ticks": 5,
+      "description": "How much of tonight could survive a tribunal: someone alive to speak, evidence intact, two officers telling the same story.",
+      "advance_meaning": "The account firms up — a prisoner who can testify, evidence secured, statements that agree.",
+      "regress_meaning": "The account erodes — witnesses silenced, evidence destroyed, the officers' stories drifting apart."
+    }
+  ],
+  "initial_enemies": [
+    {
+      "name": "Matron Ysolde Xalith",
+      "template": "boss",
+      "faction": "Tempest Industries",
+      "archetype": "Void Theorist",
+      "count": 1,
+      "position": "Far-Enemy",
+      "spawn_reason": "The shield-maker herself, at the lattice anchor — a Matron who once funded pods, now building shade inside their husk.",
+      "tactics": "adaptive"
+    },
+    {
+      "name": "Threshold Acolyte Nyv Rift",
+      "template": "void_cultist",
+      "faction": "Tempest Industries",
+      "archetype": "Void Cultist",
+      "count": 1,
+      "position": "Near-Enemy",
+      "spawn_reason": "The Matron's remaining student, working the pod racks when the warrant came through the door.",
+      "tactics": "support"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "max_tokens": 4000
+      }
+    },
+    "players": [
+      {
+        "name": "Confessor-Investigator Nera Mereth",
+        "faction": "Sovereign Nexus",
+        "pronouns": "she/her",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Investigation": 4,
+          "Astral Arts": 4,
+          "Void Lore": 3,
+          "Awareness": 3
+        },
+        "void": 1,
+        "soulcredit": 5,
+        "equipped_weapons": {
+          "primary": "ritual_blade"
+        },
+        "carried_weapons": [
+          "stun_gun"
+        ],
+        "personality": {
+          "description": "The Codex's own hand, and she has never worked a room it could not taste. Holds that the record is the only thing that survives a night like this — that an unwritten act is not an absolved one, and that testimony is what she is for. Wants the Matron alive because a corpse cannot be examined by a tribunal. Sits at Soulcredit 5, one short of the Trusted standing that would license her to touch the Void lawfully, and she knows the number."
+        },
+        "goals": [
+          "Take the shield-maker alive and testifiable",
+          "Leave the annex with a record that can be argued before a tribunal"
+        ]
+      },
+      {
+        "name": "Sergeant Corin Ireveth",
+        "faction": "Pantheon Security",
+        "pronouns": "he/him",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "max_tokens": 3000
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Guns": 4,
+          "Melee": 3,
+          "Tactics": 3,
+          "Awareness": 3
+        },
+        "void": 2,
+        "soulcredit": 2,
+        "equipped_weapons": {
+          "primary": "oathpiercer_carbine"
+        },
+        "carried_weapons": [
+          "tranq_gun"
+        ],
+        "personality": {
+          "description": "Has served warrants on void-workers before and has carried people out who were used as material. Holds that these two will be back at a lattice within a year whatever the tribunal says, and that in a room the Codex cannot read the clean solution costs nothing anyone will ever collect. Carries a tranq gun anyway, and has not decided which one he means to use."
+        },
+        "goals": [
+          "Stop the coven from ever weaponizing Void on another person",
+          "Get his partner back out of the annex"
+        ]
+      }
+    ]
+  },
+  "_role": "transmedia_pipeline_test",
+  "_purpose": "Short (4-round, 2-player) narrative session authored to be read afterward via reconstruct_narrative.py and fed to the transmedia pipeline. One set, two voices, two antagonists, one central choice that must land inside the round budget.",
+  "_design_notes": {
+    "central_tension": "To arrest the shield-makers the officers must enter the one place the Codex cannot see. Inside, the only possible record of what they do is each other's testimony.",
+    "temptation_clauses": "IV.3 (premeditated preventive killing is written as a killing in the moment), II.1 (excessive force against the helpless/surrendered), III.3 (unlicensed Void use if they breach the lattice with it), II.4 (shaping the incident report afterward is a CONTINUING offense).",
+    "off_ramp_clauses": "II.8 (subdue, bind, hand to authorities — a merit), II.9 (honest procedure, 0), IV.2 (defense of self and others, 0/+1). Both PCs carry non-lethal tools so the off-ramp is mechanically real, not merely rhetorical.",
+    "coven_crime": "Constructing a blind sanctuary is unlicensed void infrastructure (III.3, -2); weaponizing Void against persons (III.3, -3). Canon: the law punishes the shield-maker, not everyone who stands in shade.",
+    "known_engine_gap": "The engine does not model 'blind place = unjudged'. With post_resolution_adjudication=enforce the magistrate writes an SC/Void ledger regardless. This is INTENTIONAL here: the characters believe the room eats what they do, the ledger records it anyway, and canon agrees that unjudged is not lawful. The gap between what they think they got away with and what is written is the story. Do not 'fix' this by suspending adjudication.",
+    "teeth": "None. Enforce-without-teeth is deliberate: no SC-gated checkpoint, vendor, or contract-locked weapon. Nera's Soulcredit 5 against the +6 Trusted threshold (III.2) is flavor, not a mechanical gate. The DM may still introduce gating spontaneously.",
+    "clocks": "Neither clock is terminal; max_turns=4 is the backstop, so nothing ratchets an ending. The Dampening Lattice is the temptation dial (deeper = less written); The Testifiable Account is the cost dial (mercy and honesty raise it, silencing lowers it). Both start at 1 so they can regress from round one.",
+    "casting": "Two PC voices plus two antagonist voices, one interior set (biocreche annex, dead pod racks, dampening lattice in the vaulting) — chosen to keep the audio cast small and the image continuity coherent for the pipeline."
+  }
+}

@@ -36,6 +36,23 @@ from aeonisk.multiagent import config_schema as cs  # noqa: E402
 from aeonisk.multiagent.launch_config import validate_session_config  # noqa: E402
 
 
+# JSON files that live under session_configs/ but are not session configs.
+# Auditing them produced phantom "missing session_name" errors and phantom
+# unknown keys (a manifest's own fields), which drowned out real findings.
+NON_CONFIG_BASENAMES = {
+    "character_library.json",   # shared character library
+    "manifest.json",            # bulk-run manifest
+}
+NON_CONFIG_PREFIXES = (
+    "pricing_",                 # pricing/batch bookkeeping, e.g. pricing_batch_*.json
+)
+
+
+def _is_session_config(path: str) -> bool:
+    name = os.path.basename(path)
+    return name not in NON_CONFIG_BASENAMES and not name.startswith(NON_CONFIG_PREFIXES)
+
+
 def _iter_configs(roots):
     files = []
     for root in roots:
@@ -43,9 +60,7 @@ def _iter_configs(roots):
             files += glob.glob(f"{root}/**/*.json", recursive=True)
         elif os.path.isfile(root):
             files.append(root)
-    # character_library.json is a shared library, not a session config.
-    return sorted(f for f in set(files)
-                  if os.path.basename(f) != "character_library.json")
+    return sorted(f for f in set(files) if _is_session_config(f))
 
 
 def audit_config(config: dict, path: str) -> dict:

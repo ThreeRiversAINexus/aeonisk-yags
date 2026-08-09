@@ -365,7 +365,7 @@
     "Storm Approaches - extraction window closing, final decisions",
     "Resolution - mission success/failure, who they've become"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Locate Echo Child Wisp-7 and confirm status",
       "type": "search",

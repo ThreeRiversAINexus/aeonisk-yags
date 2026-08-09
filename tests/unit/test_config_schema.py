@@ -84,7 +84,7 @@ class TestDefaultsMatchCode:
         "outcome_synthesis_attempts": 3,
         "party_capabilities_enabled": True,
         "party_chat_enabled": True,
-        "vendor_spawn_frequency": 3,
+        "vendor_spawn_frequency": -1,
         "enemy_agent_config.free_targeting_mode": True,
         "scenario.situation": "Something mysterious is happening",
         "scenario.altars[].quality": 5,
@@ -179,7 +179,8 @@ class TestRegistryIntegrity:
 
     def test_categories_valid(self):
         valid = {"identity", "agents", "party", "mechanics", "scenario", "clocks",
-                 "checkpoints", "enemies", "economy", "bonds", "names", "meta"}
+                 "checkpoints", "enemies", "economy", "bonds", "names", "meta",
+                 "experiment"}
         bad = {fs.path: fs.category for fs in cs.CONFIG_SCHEMA if fs.category not in valid}
         assert not bad, f"unknown categories: {bad}"
 
@@ -205,3 +206,45 @@ class TestRegistryIntegrity:
             "iff_enabled": True,
             "post_resolution_adjudication": "enforce",
         }
+
+
+class TestExplainShape:
+    """The size/cost header must be read off the config, never narrated."""
+
+    BASE_CFG = {
+        "session_name": "probe", "max_turns": 2, "party_size": 1,
+        "agents": {
+            "dm": {"llm": {"provider": "openai", "model": "gpt-5-mini"}},
+            "players": [{"name": "Sera",
+                         "llm": {"provider": "openai", "model": "gpt-5-mini"}}],
+        },
+    }
+
+    def test_states_rounds_party_and_scale(self):
+        out = cs.explain_config(self.BASE_CFG)
+        assert "2 round(s) max" in out
+        assert "1 player(s)" in out
+        assert "smoke-sized" in out
+
+    def test_full_length_above_smoke_threshold(self):
+        cfg = {**self.BASE_CFG, "max_turns": 10}
+        assert "full-length" in cs.explain_config(cfg)
+
+    def test_names_the_model_each_agent_uses(self):
+        out = cs.explain_config(self.BASE_CFG)
+        assert "openai/gpt-5-mini" in out
+        assert "DM" in out and "Sera" in out
+
+    def test_unwraps_batch_proxy_to_the_real_provider(self):
+        cfg = {**self.BASE_CFG, "agents": {
+            "dm": {"llm": {"provider": "batch_proxy", "underlying_provider": "openai",
+                           "model": "gpt-5-mini"}},
+            "players": self.BASE_CFG["agents"]["players"]}}
+        assert "proxy→openai/gpt-5-mini" in cs.explain_config(cfg)
+
+    def test_warns_when_interactive(self):
+        """enable_human_interface defaults true and blocks on stdin — say so."""
+        cfg = {**self.BASE_CFG, "enable_human_interface": True}
+        assert "[Observer]>" in cs.explain_config(cfg)
+        assert "[Observer]>" not in cs.explain_config(
+            {**self.BASE_CFG, "enable_human_interface": False})

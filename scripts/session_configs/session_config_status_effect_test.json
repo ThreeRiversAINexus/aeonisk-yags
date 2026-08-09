@@ -71,7 +71,7 @@
     "situation": "You stand in a training arena. Three weak practice dummies animated by minor void energy stand before you. Use your telekinetic abilities to stun them. [SPAWN_ENEMY: Practice Dummy Alpha | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Beta | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Gamma | grunt | 1 | Near-Enemy | defensive_ranged] DM: When the player attacks, include 'Stunned' conditions in structured output with target='None' to test the fix.",
     "void_level": 2
   },
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Successfully stun enemies without getting stunned yourself",
       "type": "combat",

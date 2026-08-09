@@ -386,8 +386,13 @@ CONFIG_SCHEMA: list[FieldSpec] = [
     _f("initial_npcs[].position", "enemies", "str", default=None, note="initial_spawns.py (npc.position)"),
 
     # ---- economy / vendors ----------------------------------------------
-    _f("vendor_spawn_frequency", "economy", "int", default=3,
-       help="Spawn a vendor every N rounds; -1 = never, 0 = off (legacy)."),
+    _f("vendor_spawn_frequency", "economy", "int", default=-1,
+       help="Spawn a random vendor every N rounds; -1 = never (default), "
+            "0 = off (legacy). Off by default because the DM already spawns "
+            "vendors when the scene warrants one, via NPCSpawn(is_vendor=True). "
+            "On a timer they arrive regardless of scene — a courier drone "
+            "offering barter inside a sealed sanctuary mid-raid. Raise it only "
+            "for economy-exercise corpus runs."),
     _f("persistent_vendors", "economy", "list", default=[],
        help="Vendors that persist across all rounds."),
     _f("persistent_vendors[].name", "economy", "str", required=True,
@@ -452,6 +457,16 @@ CONFIG_SCHEMA: list[FieldSpec] = [
        help="Replace DM-hallucinated NPC names with canon Pattern-B names."),
     _f("names_mcp.from_pool", "names", "bool", default=True,
        help="Draw from the reserved name pool."),
+
+    # ---- experiment toggles ----------------------------------------------
+    # Real, live config surface that the registry simply never learned about,
+    # so 19 configs audited as carrying an "unknown" key. dm.py reads it.
+    _f("experiment", "experiment", "dict", default={},
+       help="Per-run experiment toggles that swap engine behaviour for a study."),
+    _f("experiment.include_suppression_resolution_example", "experiment", "bool",
+       default=False,
+       help="Swap the combat resolution prompt module for the suppression-inclusive "
+            "variant (dm.py:_build_module_list). Used by the suppression study."),
 ]
 
 
@@ -597,6 +612,13 @@ def explain_config(config: dict) -> str:
     vendors = config.get("persistent_vendors") or []
     (will if vendors else wont).append(
         f"have {len(vendors)} persistent vendor(s)" if vendors else "include persistent vendors")
+    # Spontaneous spawning is a separate mechanism from persistent_vendors.
+    # Reporting only the latter let a config promise "no vendors" and then put a
+    # trader in the scene on a timer.
+    vendor_freq = config.get("vendor_spawn_frequency", -1)
+    if isinstance(vendor_freq, int) and vendor_freq > 0:
+        will.append(
+            f"spawn a random vendor every {vendor_freq} round(s), regardless of scene")
     checkpoints = config.get("starting_checkpoints") or []
     if checkpoints:
         will.append(f"gate movement at {len(checkpoints)} SC checkpoint(s)")
@@ -613,7 +635,8 @@ def explain_config(config: dict) -> str:
                     if terminal else "no terminal clock")
         will.append(f"run {len(clocks)} scene clock(s) [{', '.join(names)}] — {term_txt}")
 
-    lines = ["This session WILL:"]
+    lines = _shape_lines(config)
+    lines += ["", "This session WILL:"]
     lines += [f"  • {w}" for w in will] or ["  • (nothing notable enabled)"]
     lines += ["", "This session will NOT:"]
     lines += [f"  • {w}" for w in wont] or ["  • (no notable disables)"]
@@ -621,3 +644,38 @@ def explain_config(config: dict) -> str:
         lines += ["", "Notes:"]
         lines += [f"  • {n}" for n in notes]
     return "\n".join(lines)
+
+
+def _shape_lines(config: dict) -> list:
+    """Size and cost shape: rounds, party, and which model each agent actually uses.
+
+    Read off the config rather than narrated by an agent, so an author cannot be
+    told one thing and run another.
+    """
+    name = config.get("session_name", "(unnamed)")
+    rounds = _effective(config, "max_turns")
+    agents = config.get("agents") or {}
+    players = agents.get("players") or []
+    party = config.get("party_size", len(players))
+
+    scale = "smoke-sized" if isinstance(rounds, int) and rounds <= 3 else "full-length"
+    lines = [f"{name}: {rounds} round(s) max, {party} player(s) — {scale}."]
+
+    def model_of(block):
+        llm = (block or {}).get("llm") or {}
+        provider, model = llm.get("provider", "?"), llm.get("model", "?")
+        if provider == "batch_proxy":
+            provider = f"proxy→{llm.get('underlying_provider', '?')}"
+        return f"{provider}/{model}"
+
+    used = {}
+    used.setdefault(model_of(agents.get("dm")), []).append("DM")
+    for player in players:
+        if isinstance(player, dict) and not player.get("character_ref"):
+            used.setdefault(model_of(player), []).append(player.get("name", "player"))
+    lines += [f"Models: " + "; ".join(f"{m} ({', '.join(who)})" for m, who in used.items())]
+
+    if _effective(config, "enable_human_interface"):
+        lines.append("Interactive: opens an '[Observer]>' stdin prompt — not suitable "
+                     "for an unattended or piped run.")
+    return lines

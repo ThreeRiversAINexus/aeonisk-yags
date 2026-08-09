@@ -258,7 +258,7 @@
           "primary": "pistol"
         },
         "carried_weapons": [
-          "tool_club"
+          "baton"
         ],
         "inventory": {
           "pistol": 1,
@@ -345,7 +345,7 @@
     "Mutiny or Unity - crew fractures or comes together under pressure",
     "Arrival - Nimbus in sight, but what's left of them? What's left of the cargo?"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Survive the Hollow Vector transit to Nimbus",
       "type": "survival",

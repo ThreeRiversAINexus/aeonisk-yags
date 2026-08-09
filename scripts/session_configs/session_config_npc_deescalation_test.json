@@ -201,7 +201,7 @@
       "jsonl": "agent_conversion events with stable agent_id, healing_effect logs"
     }
   },
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Resolve situation with minimal casualties",
       "type": "negotiation",

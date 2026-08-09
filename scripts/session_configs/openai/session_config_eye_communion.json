@@ -334,7 +334,7 @@
     "The Choice - sever connection and lose the truth, or push deeper and risk everything",
     "Aftermath - what they learned, what it cost, can they unsee what they saw"
   ],
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Conduct communion with the Eye of Breach safely",
       "type": "ritual",

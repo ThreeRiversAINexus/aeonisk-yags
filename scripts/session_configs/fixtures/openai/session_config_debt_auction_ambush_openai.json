@@ -169,7 +169,7 @@
     "void_level": 3
   },
   "scenario_hint": "Environmental void level 3 - some void effects in the area. Player Ash has void 4, may use void abilities. Collector should be aggressive. Clocks should advance each round. Tests: enemy AI targeting, void changes (environmental and character), state persistence across rounds, combat mechanics, structured output validation.",
-  "mission_objectives": [
+  "_mission_objectives": [
     {
       "description": "Survive the ambush and escape the Basilica",
       "type": "combat",

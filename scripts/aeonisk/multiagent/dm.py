@@ -92,7 +92,8 @@ def _resolution_success(resolution) -> bool:
     Safely check if ActionResolution succeeded.
 
     Handles both old dataclass (has .success field) and new Pydantic schema (has .success_tier enum).
-    For new schema, success = success_tier in (MODERATE, GOOD, EXCELLENT, EXCEPTIONAL).
+    For new schema, success = success_tier in (MARGINAL, MODERATE, GOOD, EXCELLENT, EXCEPTIONAL) —
+    a marginal result still clears the DC, so it counts as a success.
     """
     # Old schema: has .success field
     if hasattr(resolution, 'success'):
@@ -2006,7 +2007,7 @@ Apply this narrative style to:
 
         # Scenario-aware vendor encounter
         # Only spawn random vendors if vendor_spawn_frequency is enabled (>= 0)
-        vendor_spawn_freq = self.session_config.get('vendor_spawn_frequency', 3)
+        vendor_spawn_freq = self.session_config.get('vendor_spawn_frequency', -1)
         if vendor_spawn_freq >= 0:
             # If vendor-gated scenario, force specific vendor type
             if scenario_data.get('required_vendor_type'):
