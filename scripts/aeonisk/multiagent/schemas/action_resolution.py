@@ -416,17 +416,27 @@ class ActionResolution(BaseModel):
 
     aware_agents: List[str] = Field(
         default_factory=list,
-        description="""Which agents are aware of this action's outcome.
+        description="""SECRECY EXCEPTION for this action's outcome. NOT a roster
+        of who is present.
 
-        VISIBILITY CONTROL for stealth, secrets, and hidden information:
-        - Empty list [] = PUBLIC (all agents see this narration) - use for loud combat, failures noticed by others
-        - Populated list = PRIVATE (only listed agents see it) - use for stealth success, secret actions
+        DEFAULT IS PUBLIC — leave empty [] unless the action is deliberately
+        concealed AND succeeded at hiding. Most actions (combat, movement,
+        guarding, dialogue, failures) are public.
+        - Empty list [] = PUBLIC (everyone present sees this narration)
+        - Populated list = PRIVATE (secret from everyone NOT listed)
+
+        DO NOT list an agent merely because they are present, nearby, allied,
+        or watching. Listing the whole party (or a subset) for an ordinary
+        action is the most common mistake and creates a false secret.
+
+        Physically observable consequences (damage, knockdown, KO, death) are
+        NEVER private — a body dropping cannot be hidden from people in the
+        room, and such outcomes are forced public downstream regardless.
 
         Examples:
-        - Stealth success: ["dm", "player_echo"] - only DM and acting player know
+        - Stealth success: ["dm", "player_echo"] - only the quiet, unwitnessed part
         - Failed stealth: [] - everyone nearby heard/saw the failure
-        - Secret conversation: ["dm", "player_ash", "npc_informant"] - only participants know
-        - Loud combat: [] - public, everyone in area aware
+        - Loud combat / any damage: [] - public, everyone in area aware
 
         Agent ID formats: "dm", "player_<name>", "npc_<name>", "enemy_<template>_<id>"
         """

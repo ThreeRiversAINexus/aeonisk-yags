@@ -35,6 +35,9 @@ class ActionAdjudication(BaseModel):
     skill_override: Optional[Dict[str, str]] = None
     action_skipped: bool = False
     skip_reason: Optional[str] = Field(default=None, min_length=5, max_length=300)
+    # Secrecy exception, not a presence roster: default [] (public). Populate
+    # only for deliberately concealed, successful actions. Full-party and
+    # physically-observable restrictions are dropped downstream.
     aware_agents: List[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -490,6 +493,7 @@ def build_applied_outcome(
         visibility=_effective_visibility(
             resolution_data.get("aware_agents", []) or [],
             before,
+            facts,
         ),
         consequential=consequential,
     )
@@ -569,17 +573,30 @@ def canonicalize_viewer_ids(
     return result
 
 
+# Consequences that co-present agents physically witness — a restriction on an
+# outcome carrying any of these is adjudicator noise, not real concealment. A
+# body dropping, a wound, a kill cannot be hidden from people in the room.
+_UNHIDEABLE_FACT_KINDS = frozenset({"damage", "defeat", "unconscious", "death"})
+
+
 def _effective_visibility(
     raw_ids: Sequence[str],
     before: Dict[str, EntityStateSnapshot],
+    facts: Sequence["ObservableFact"] = (),
 ) -> List[str]:
-    """Canonicalize proposed viewers; collapse full-party awareness to public.
+    """Canonicalize proposed viewers; drop restrictions that cannot be real.
 
-    Adjudications often list the whole party (+ dm) as aware_agents. Visibility
-    only carries meaning when someone is excluded, so a set covering every
-    player collapses to [] rather than forcing synthesis segments to copy the
-    roster verbatim.
+    Two deterministic corrections to noisy adjudicator `aware_agents`:
+    - A set covering every player collapses to [] (public); visibility only
+      carries meaning when someone is excluded, and copying the full roster
+      forces synthesis segments to echo it verbatim.
+    - A restriction on an outcome with a physically-observable consequence
+      (damage, defeat, KO, death) collapses to []: you cannot conceal a loud
+      physical event from co-present agents. Soft/stealthy actions with no
+      such fact keep their restriction.
     """
+    if any(fact.fact_kind in _UNHIDEABLE_FACT_KINDS for fact in facts):
+        return []
     viewers = canonicalize_viewer_ids(
         raw_ids,
         {entity_id: snap.name for entity_id, snap in before.items()},
