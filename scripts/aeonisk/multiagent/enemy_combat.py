@@ -1001,7 +1001,8 @@ class EnemyCombatManager:
         try:
             target_position = Position.from_string(str(target.position if hasattr(target, 'position') else "Near-PC"))
             range_name, range_penalty = enemy.position.calculate_range(target_position)
-        except:
+        except (AttributeError, TypeError, ValueError) as e:
+            logger.warning(f"range calculation failed; falling back to no penalty. Zeroing this silently improves every attack and the fallback band looks ordinary in the log ({type(e).__name__}: {e})")
             range_name, range_penalty = "Unknown", 0
 
         # Roll attack
@@ -1362,7 +1363,8 @@ class EnemyCombatManager:
         try:
             target_position = Position.from_string(str(target.position if hasattr(target, 'position') else "Near-PC"))
             range_name, range_penalty = enemy.position.calculate_range(target_position)
-        except:
+        except (AttributeError, TypeError, ValueError) as e:
+            logger.warning(f"range calculation failed; falling back to no penalty. Zeroing this silently improves every attack and the fallback band looks ordinary in the log ({type(e).__name__}: {e})")
             range_name, range_penalty = "Unknown", 0
 
         attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
@@ -1739,7 +1741,8 @@ class EnemyCombatManager:
                 # Move to same ring as target
                 enemy.position = Position(ring=target_position.ring, side=target_position.side)
                 resolution_state.record_position_change(enemy.agent_id, str(enemy.position))
-            except:
+            except (AttributeError, TypeError, KeyError):
+                # Position bookkeeping is best-effort; the move itself already applied.
                 pass
 
         # Execute attack with charge bonus
@@ -1981,7 +1984,8 @@ class EnemyCombatManager:
                 pc_position = Position.from_string(str(getattr(pc, 'position', "Near-PC")))
                 if str(pc_position) == target_location and not resolution_state.is_defeated(pc.agent_id):
                     affected.append(('PC', pc.name if hasattr(pc, 'name') else str(pc.agent_id), pc.agent_id))
-            except:
+            except (AttributeError, TypeError, KeyError):
+                # Position bookkeeping is best-effort; the move itself already applied.
                 pass
 
         # Check enemies (only include if not already defeated)

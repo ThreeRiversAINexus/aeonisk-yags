@@ -3410,7 +3410,8 @@ Now that you have this information, declare your action using the required forma
                         data['difficulty_estimate'] = int(value.split()[0])
                         if '-' in value:
                             data['difficulty_justification'] = value.split('-', 1)[1].strip()
-                    except:
+                    except (ValueError, IndexError):
+                        # Free-text justification is optional; the caller has a default.
                         pass
                 elif 'justification' in key:
                     data['difficulty_justification'] = value

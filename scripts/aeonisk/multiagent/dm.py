@@ -2704,8 +2704,12 @@ Apply this narrative style to:
                 elif clean_line.startswith('VOID_LEVEL:'):
                     try:
                         scenario_data['void_level'] = int(clean_line.split(':', 1)[1].strip())
-                    except:
-                        pass
+                    except (ValueError, IndexError) as e:
+                        # The author stated a void level and it did not parse.
+                        # Dropping it silently leaves the scene at 0, which is a
+                        # plausible route to the scene_void_level: 0 seen in #86.
+                        logger.warning(
+                            f"Could not parse VOID_LEVEL from {clean_line!r}: {e}")
                 elif clean_line.startswith('CLOCK'):
                     # Format: CLOCK1: Name | 6 | Description | ADVANCE=... | REGRESS=... | FILLED=...
                     parts = clean_line.split(':', 1)[1].split('|')
@@ -2713,7 +2717,7 @@ Apply this narrative style to:
                         name = parts[0].strip().strip('*').strip()
                         try:
                             max_ticks = int(parts[1].strip())
-                        except:
+                        except (ValueError, IndexError):
                             max_ticks = 6
                         description = parts[2].strip()
 
@@ -6795,7 +6799,7 @@ For **other actions** (flee, hide, assist, attack):
                                 try:
                                     target_entity.position = Position.from_string(new_position)
                                     narration += f"\n\n🚶 **{target_name} forced to {new_position}!**"
-                                except:
+                                except (AttributeError, TypeError, KeyError):
                                     narration += f"\n\n🚶 **{target_name} disrupted: {movement_desc}!**"
                             else:
                                 narration += f"\n\n🚶 **{target_name} disrupted: {movement_desc}!**"
