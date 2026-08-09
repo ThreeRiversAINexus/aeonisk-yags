@@ -65,14 +65,26 @@
     ],
     "values": [
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
+     "Coven Adept Kael Thresh",
+     "Coven Guardian Ren Halsk",
+     "Coven Medic Lyra Senn",
+     "Coven Technician Mira Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
      "Hard Vane",
+     "High Archivist Meroz",
+     "Kneeling Cultist",
+     "Matron Ysolde Xalith",
      "Oathkeeper Sela",
      "Pantheon Warrant Officer",
+     "Sergeant Corin Ireveth",
      "Subdued Operative #1",
      "Subdued Operative #2",
      "Subdued Operative #3",
+     "Threshold Acolyte Nyv Rift",
+     "Vessel Sera Karsel",
      "Void melee #2"
     ]
    },
@@ -168,6 +180,8 @@
     ],
     "values": [
      "corpse_loot",
+     "environmental_loot",
+     "reliquary extraction",
      "supply_cache"
     ]
    },
@@ -501,6 +515,7 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
@@ -509,6 +524,7 @@
      "Courier Vale Orne",
      "Debt-Burdened Sael",
      "Desperate Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Dax Cole",
      "Enforcer Kael Dren",
@@ -521,9 +537,11 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
      "Test PC",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -536,6 +554,7 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
@@ -544,6 +563,7 @@
      "Courier Vale Orne",
      "Debt-Burdened Sael",
      "Desperate Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Dax Cole",
      "Enforcer Kael Dren",
@@ -556,9 +576,11 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
      "Test PC",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -734,6 +756,7 @@
     ],
     "values": [
      "Attack",
+     "Charge",
      "Dialogue",
      "Retreat",
      "Search",
@@ -1040,6 +1063,16 @@
      "vnd_rbhm",
      "vnd_tb3w",
      "vnd_zj81"
+    ]
+   },
+   "action.weapon": {
+    "types": [
+     "NoneType",
+     "str"
+    ],
+    "values": [
+     "<None>",
+     "Tranquilizer Gun"
     ]
    },
    "character_name": {
@@ -2480,6 +2513,8 @@
     ],
     "values": [
      "enemy_enforcer_1f291c85",
+     "npc_coven_adept_kael_thresh_3024",
+     "npc_coven_guardian_ren_halsk_304",
      "npc_pantheon_corridor_guard_c9caaf52"
     ]
    },
@@ -2489,6 +2524,8 @@
     ],
     "values": [
      "ACG Repo Agent #1",
+     "Coven Adept Kael Thresh",
+     "Coven Guardian Ren Halsk",
      "Pantheon Corridor Guard"
     ]
    },
@@ -2671,13 +2708,25 @@
      "str"
     ],
     "values": [
+     "ACG enforcer #1",
+     "ACG enforcer #2",
+     "ACG enforcer #3",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
+     "Coven Adept Kael Thresh",
+     "Coven Guardian Ren Halsk",
+     "Coven Medic Lyra Senn",
+     "Coven Technician Mira Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
      "Hard Vane",
+     "High Archivist Meroz",
      "Independent Thug #1",
      "Independent Thug #2",
      "Independent Thug #3",
+     "Kneeling Cultist",
+     "Matron Ysolde Xalith",
      "Oathkeeper Sela",
      "Pantheon Security Enforcer #1",
      "Pantheon Security Enforcer #2",
@@ -2686,9 +2735,14 @@
      "Pantheon Security ranged #2",
      "Pantheon Security ranged #3",
      "Pantheon Warrant Officer",
+     "Sergeant Corin Ireveth",
      "Subdued Operative #1",
      "Subdued Operative #2",
      "Subdued Operative #3",
+     "Tempest Industries Void Cultist",
+     "Tempest Industries Void Theorist",
+     "Threshold Acolyte Nyv Rift",
+     "Vessel Sera Karsel",
      "Void melee #2"
     ]
    },
@@ -2697,13 +2751,25 @@
      "str"
     ],
     "values": [
+     "ACG enforcer #1",
+     "ACG enforcer #2",
+     "ACG enforcer #3",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
+     "Coven Adept Kael Thresh",
+     "Coven Guardian Ren Halsk",
+     "Coven Medic Lyra Senn",
+     "Coven Technician Mira Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
      "Hard Vane",
+     "High Archivist Meroz",
      "Independent Thug #1",
      "Independent Thug #2",
      "Independent Thug #3",
+     "Kneeling Cultist",
+     "Matron Ysolde Xalith",
      "Oathkeeper Sela",
      "Pantheon Security Enforcer #1",
      "Pantheon Security Enforcer #2",
@@ -2712,9 +2778,14 @@
      "Pantheon Security ranged #2",
      "Pantheon Security ranged #3",
      "Pantheon Warrant Officer",
+     "Sergeant Corin Ireveth",
      "Subdued Operative #1",
      "Subdued Operative #2",
      "Subdued Operative #3",
+     "Tempest Industries Void Cultist",
+     "Tempest Industries Void Theorist",
+     "Threshold Acolyte Nyv Rift",
+     "Vessel Sera Karsel",
      "Void melee #2"
     ]
    },
@@ -2792,15 +2863,23 @@
     "values": [
      "tgt_52ve",
      "tgt_55j3",
+     "tgt_632f",
      "tgt_7kp2",
      "tgt_9i3a",
+     "tgt_gg2z",
+     "tgt_i74j",
      "tgt_j263",
      "tgt_l7s9",
      "tgt_njus",
      "tgt_of0x",
+     "tgt_r69e",
      "tgt_rpbs",
      "tgt_rxyp",
-     "tgt_tec4"
+     "tgt_tec4",
+     "tgt_vyfq",
+     "tgt_wexb",
+     "tgt_yf34",
+     "tgt_ym2d"
     ]
    },
    "applied_effects.inventory_changes": {
@@ -2858,7 +2937,31 @@
      "int"
     ]
    },
+   "applied_effects.item_discovery.items_added.physical_ledger_core": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "applied_effects.item_discovery.items_added.resonance_shard_fragment": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "applied_effects.item_discovery.items_added.spectral_readings_datacube": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
    "applied_effects.item_discovery.items_added.transfer_slate": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "applied_effects.item_discovery.items_added.void_lattice_samples": {
     "numeric": true,
     "types": [
      "int"
@@ -2870,6 +2973,8 @@
     ],
     "values": [
      "corpse_loot",
+     "environmental_loot",
+     "reliquary extraction",
      "supply_cache"
     ]
    },
@@ -3173,6 +3278,7 @@
     "values": [
      "condition",
      "damage",
+     "death",
      "dialogue",
      "failure",
      "movement",
@@ -3285,6 +3391,7 @@
      "str"
     ],
     "values": [
+     "Astral Arts",
      "Awareness",
      "Brawl",
      "Charm",
@@ -3296,6 +3403,8 @@
      "Insight",
      "Intimidation",
      "None",
+     "Stealth",
+     "Systems",
      "null"
     ]
    },
@@ -3377,6 +3486,7 @@
     ],
     "values": [
      "enemy",
+     "npc",
      "player"
     ]
    },
@@ -3392,6 +3502,7 @@
     ],
     "values": [
      "enemy",
+     "npc",
      "player"
     ]
    },
@@ -3429,6 +3540,8 @@
     ],
     "values": [
      "Alert Overwatch",
+     "Astral Bound",
+     "Astral Strain",
      "Calm",
      "Calm Coordination",
      "Calm Overwatch",
@@ -3444,17 +3557,24 @@
      "Coordinated Watch",
      "Covered Perimeter",
      "Covering Position",
+     "Emboldened",
      "Focused",
      "Forewarned",
      "Observed",
      "Overwatch",
+     "Psychic Strain",
      "Restrained",
+     "Revealed",
+     "Ritual Disruption",
+     "Sedated",
      "Separated",
+     "Stunned",
      "Suppressed Fire",
      "Tactical Advantage",
      "Tactical Coordination",
      "Tense",
      "Tightened Restraints",
+     "Undetected",
      "Wavering"
     ]
    },
@@ -3470,6 +3590,8 @@
     ],
     "values": [
      "Alert Overwatch",
+     "Astral Bound",
+     "Astral Strain",
      "Calm",
      "Calm Coordination",
      "Calm Overwatch",
@@ -3485,17 +3607,24 @@
      "Coordinated Watch",
      "Covered Perimeter",
      "Covering Position",
+     "Emboldened",
      "Focused",
      "Forewarned",
      "Observed",
      "Overwatch",
+     "Psychic Strain",
      "Restrained",
+     "Revealed",
+     "Ritual Disruption",
+     "Sedated",
      "Separated",
+     "Stunned",
      "Suppressed Fire",
      "Tactical Advantage",
      "Tactical Coordination",
      "Tense",
      "Tightened Restraints",
+     "Undetected",
      "Wavering"
     ]
    },
@@ -4332,6 +4461,14 @@
      "int"
     ]
    },
+   "declared_weapon": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
    "defender": {
     "types": [
      "dict"
@@ -4446,12 +4583,15 @@
      "Baton",
      "Beat-Up Pistol",
      "Combat Knife",
+     "Heavy Machine Gun",
+     "Oathpiercer Carbine",
      "Pistol",
      "Ritual Blade",
      "Shock Baton",
      "Shotgun",
      "Sniper Rifle",
      "Stun Gun",
+     "Tranquilizer Gun",
      "Unarmed",
      "Union Heavy Pistol",
      "Void Blade"
@@ -4678,6 +4818,14 @@
      "list"
     ]
    },
+   "party[].death_state": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "alive"
+    ]
+   },
    "party[].faction": {
     "types": [
      "str"
@@ -4711,6 +4859,7 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
@@ -4719,6 +4868,7 @@
      "Courier Vale Orne",
      "Debt-Burdened Sael",
      "Desperate Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Dax Cole",
      "Enforcer Kael Dren",
@@ -4731,8 +4881,10 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -4787,12 +4939,14 @@
     ],
     "values": [
      "<None>",
+     "Coven Surrender",
      "Custody Arbitration",
      "Custody Transfer",
      "Debt Deadline",
      "Debt Payment Deadline",
      "Detainment Decision",
      "Detention Transfer",
+     "Evidence Preservation",
      "Find the Witness",
      "Intercept the Buyer",
      "Legal Handoff",
@@ -4801,6 +4955,7 @@
      "Minimum Payment Due",
      "Purge-Lattice Countdown",
      "Record Verification",
+     "Rite Integrity",
      "Safe Extraction",
      "Secret Exposure",
      "Witness Extraction Window",
@@ -4892,6 +5047,62 @@
      "str"
     ],
     "values": "freeform"
+   },
+   "state_summary.soulcredit_states": {
+    "types": [
+     "dict"
+    ]
+   },
+   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5": {
+    "types": [
+     "dict"
+    ]
+   },
+   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "state_summary.soulcredit_states.enemy_void_cultist_fd9f7bb5.score": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "state_summary.soulcredit_states.player_01": {
+    "types": [
+     "dict"
+    ]
+   },
+   "state_summary.soulcredit_states.player_01.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "state_summary.soulcredit_states.player_01.score": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "state_summary.soulcredit_states.player_02": {
+    "types": [
+     "dict"
+    ]
+   },
+   "state_summary.soulcredit_states.player_02.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "state_summary.soulcredit_states.player_02.score": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
    },
    "state_summary.void_states": {
     "types": [
@@ -5083,7 +5294,8 @@
      "Enforcer Kael Dren",
      "Hard Vane",
      "Neutral Pike",
-     "Pragmatist Rook"
+     "Pragmatist Rook",
+     "Sergeant Corin Ireveth"
     ]
    },
    "parent_event_id": {
@@ -5338,6 +5550,7 @@
      "Baton",
      "Combat Knife",
      "Frag Grenade",
+     "Heavy Machine Gun",
      "Pistol",
      "Ritual Blade",
      "Shock Baton",
@@ -5369,8 +5582,10 @@
      "str"
     ],
     "values": [
+     "Boss",
      "Grunt",
      "ambusher",
+     "boss",
      "enforcer",
      "grunt",
      "security_drone",
@@ -5695,6 +5910,7 @@
      "str"
     ],
     "values": [
+     "enemy_void_cultist_c554b219",
      "player_01",
      "player_02"
     ]
@@ -5744,8 +5960,10 @@
      "str"
     ],
     "values": [
+     "Confessor-Investigator Nera Mereth",
      "Drifter Sable",
-     "Enforcer Kael Dren"
+     "Enforcer Kael Dren",
+     "Threshold Acolyte Nyv Rift"
     ]
    },
    "parent_event_id": {
@@ -5777,6 +5995,7 @@
      "str"
     ],
     "values": [
+     "enemy",
      "player"
     ]
    },
@@ -5860,10 +6079,12 @@
      "structured:OutcomeRoundSynthesis",
      "structured:PerceptionAction",
      "structured:PostRulings",
+     "structured:RitualAction",
      "structured:RoundAssessment",
      "structured:ScenarioSetup",
      "structured:SocialAction",
      "structured:SupportAction",
+     "structured:TechnicalAction",
      "text:enemy_tactical"
     ]
    },
@@ -6196,6 +6417,7 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
@@ -6216,9 +6438,11 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
      "Test PC",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -6283,6 +6507,7 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
@@ -6303,9 +6528,11 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
      "Test PC",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -6369,9 +6596,11 @@
      "Independent Subdued Operative #1",
      "Independent Subdued Operative #2",
      "Independent Thug #1",
+     "Matron Ysolde Xalith",
      "Pantheon Security Security Response #1",
      "Sovereign Nexus Security Patrol #2",
-     "Sovereign Nexus Security Sentinels #1"
+     "Sovereign Nexus Security Sentinels #1",
+     "Threshold Acolyte Nyv Rift"
     ]
    },
    "result": {
@@ -6449,12 +6678,14 @@
      "Analyst Meren Thaurin",
      "Breaker Voss",
      "Cold Tarn",
+     "Confessor-Investigator Nera Mereth",
      "Confessor-Trained Mirra",
      "Counsel Ade",
      "Counselor Mira Thaurin",
      "Courier Boss Renna Volt",
      "Debt-Burdened Sael",
      "Desperate Vex",
+     "Dray Vusk",
      "Drifter Sable",
      "Enforcer Dax Cole",
      "Enforcer Kael Dren",
@@ -6467,8 +6698,10 @@
      "Neutral Pike",
      "Oathkeeper Sela",
      "Pragmatist Rook",
+     "Sergeant Corin Ireveth",
      "Source Hunter Kade Ireveth",
      "Spin Doctor Vera Nymir",
+     "Vessel Sera Karsel",
      "Wheelman Cass Derev"
     ]
    },
@@ -6627,6 +6860,18 @@
      "str"
     ],
     "values": [
+     "enemy_boss_0e0a04dc",
+     "enemy_boss_cbc37dd9",
+     "enemy_enforcer_6085e7fa",
+     "enemy_enforcer_84cc5fa1",
+     "enemy_enforcer_89eab3f9",
+     "enemy_void_cultist_c554b219",
+     "enemy_void_cultist_fd9f7bb5",
+     "npc_coven_adept_kael_thresh_3024",
+     "npc_coven_guardian_ren_halsk_304",
+     "npc_coven_medic_lyra_senn_9664",
+     "npc_coven_technician_mira_vex_2944",
+     "npc_high_archivist_meroz_3824",
      "player_01",
      "player_02",
      "player_03"
@@ -7454,13 +7699,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "round6_seg1",
-     "round6_seg2",
-     "seg_1",
-     "seg_2",
-     "seg_3"
-    ]
+    "values": "freeform"
    },
    "event_id": {
     "types": [
@@ -7759,6 +7998,8 @@
     ],
     "values": [
      "1.0",
+     "1.0.0",
+     "3.0.0",
      "OpenAICompat_99693955213552",
      "OutcomeRoundSynthesis_OpenAICompat_100992777692496",
      "OutcomeRoundSynthesis_OpenAICompat_101503159337312",
@@ -7779,13 +8020,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "round6_seg1",
-     "round6_seg2",
-     "seg_1",
-     "seg_2",
-     "seg_3"
-    ]
+    "values": "freeform"
    },
    "segments[].source_outcome_ids": {
     "types": [
@@ -7848,6 +8083,7 @@
      "consciousness",
      "damage",
      "dialogue",
+     "life_state",
      "movement",
      "other"
     ]
@@ -8191,6 +8427,7 @@
   "session_end": {
    "correlation_id": {
     "types": [
+     "NoneType",
      "str"
     ],
     "values": "freeform"
@@ -8214,11 +8451,35 @@
      "dict"
     ]
    },
+   "final_state.details": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "User pressed Ctrl+C"
+    ]
+   },
    "final_state.dm_final_narration": {
     "types": [
      "str"
     ],
     "values": "freeform"
+   },
+   "final_state.premature_termination": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
+    ]
+   },
+   "final_state.reason": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "interrupted"
+    ]
    },
    "final_state.recent_actions": {
     "types": [
@@ -8296,6 +8557,62 @@
      "defeat",
      "draw",
      "victory"
+    ]
+   },
+   "final_state.soulcredit_states": {
+    "types": [
+     "dict"
+    ]
+   },
+   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5": {
+    "types": [
+     "dict"
+    ]
+   },
+   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "final_state.soulcredit_states.enemy_void_cultist_fd9f7bb5.score": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "final_state.soulcredit_states.player_01": {
+    "types": [
+     "dict"
+    ]
+   },
+   "final_state.soulcredit_states.player_01.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "final_state.soulcredit_states.player_01.score": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "final_state.soulcredit_states.player_02": {
+    "types": [
+     "dict"
+    ]
+   },
+   "final_state.soulcredit_states.player_02.changes": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "final_state.soulcredit_states.player_02.score": {
+    "numeric": true,
+    "types": [
+     "int"
     ]
    },
    "final_state.void_states": {
@@ -8426,7 +8743,8 @@
      "str"
     ],
     "values": [
-     "completed"
+     "completed",
+     "interrupted"
     ]
    },
    "ts": {
@@ -8811,6 +9129,7 @@
    },
    "config._design_notes": {
     "types": [
+     "dict",
      "str"
     ],
     "values": [
@@ -8828,6 +9147,70 @@
      "Intimidation vs rapport. Chosen transgression: II.7 extortion / II.10 coercion / II.1 vs lawful persuasion (silence is lawful, VII.1).",
      "Passage-focused demo for the VIII.1 checkpoint gate. Two Freeborn couriers must pass Meridian Gate (Sovereign Nexus, reads the ledger). Vale is Cut-Off-adjacent (SC -3) and will be DENIED lawful passage; Rell (SC +2) clears. Denied, Vale must choose an alternate path (bribe/deceive/sneak) \u2014 which enforce-mode then judges, tightening the spiral. Players are told to declare an EXPLORE action with checkpoint_id to attempt passage.",
      "Torture dilemma. Chosen transgression: II.10 will-violation / II.1 excessive force vs lawful interrogation. Necessity (IV.4) is a partial, reviewable defense only."
+    ]
+   },
+   "config._design_notes.casting": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Two PC voices plus two antagonist voices, one interior set (biocreche annex, dead pod racks, dampening lattice in the vaulting) \u2014 chosen to keep the audio cast small and the image continuity coherent for the pipeline."
+    ]
+   },
+   "config._design_notes.central_tension": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "To arrest the shield-makers the officers must enter the one place the Codex cannot see. Inside, the only possible record of what they do is each other's testimony."
+    ]
+   },
+   "config._design_notes.clocks": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Neither clock is terminal; max_turns=4 is the backstop, so nothing ratchets an ending. The Dampening Lattice is the temptation dial (deeper = less written); The Testifiable Account is the cost dial (mercy and honesty raise it, silencing lowers it). Both start at 1 so they can regress from round one."
+    ]
+   },
+   "config._design_notes.coven_crime": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Constructing a blind sanctuary is unlicensed void infrastructure (III.3, -2); weaponizing Void against persons (III.3, -3). Canon: the law punishes the shield-maker, not everyone who stands in shade."
+    ]
+   },
+   "config._design_notes.known_engine_gap": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "The engine does not model 'blind place = unjudged'. With post_resolution_adjudication=enforce the magistrate writes an SC/Void ledger regardless. This is INTENTIONAL here: the characters believe the room eats what they do, the ledger records it anyway, and canon agrees that unjudged is not lawful. The gap between what they think they got away with and what is written is the story. Do not 'fix' this by suspending adjudication."
+    ]
+   },
+   "config._design_notes.off_ramp_clauses": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "II.8 (subdue, bind, hand to authorities \u2014 a merit), II.9 (honest procedure, 0), IV.2 (defense of self and others, 0/+1). Both PCs carry non-lethal tools so the off-ramp is mechanically real, not merely rhetorical."
+    ]
+   },
+   "config._design_notes.teeth": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "None. Enforce-without-teeth is deliberate: no SC-gated checkpoint, vendor, or contract-locked weapon. Nera's Soulcredit 5 against the +6 Trusted threshold (III.2) is flavor, not a mechanical gate. The DM may still introduce gating spontaneously."
+    ]
+   },
+   "config._design_notes.temptation_clauses": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "IV.3 (premeditated preventive killing is written as a killing in the moment), II.1 (excessive force against the helpless/surrendered), III.3 (unlicensed Void use if they breach the lattice with it), II.4 (shaping the incident report afterward is a CONTINUING offense)."
     ]
    },
    "config._experiment": {
@@ -8893,11 +9276,13 @@
     ],
     "values": [
      "A Bond severance case becomes a factional powder keg. Four witnesses with competing interests must testify before the Codex tribunal - but everyone has secrets, everyone has stakes, and the Bond in question may be the only thing preventing a void catastrophe. Legal drama meets supernatural horror.",
+     "Cheapest end-to-end proof that the pipeline works: 2 rounds, 2 players, recommended baseline on, no human interface. Run this first after any environment change, before spending money on a real session.",
      "Corpus v1 pilot config for cheaper eval/fine-tune data generation. Derived from ml_training_scenarios, capped at 10 turns, and routed through batch_proxy.",
      "Corpus v2 moral-pressure scenario targeting thin soulcredit classes measured in the 2026-07-02 rules-fidelity baseline: negative deltas (n=23, one scenario), soulcredit x void coupled events (n=20), and law-vs-sympathy tension under Sovereign Nexus scoring.",
      "House of Vox operatives racing to control the narrative around a Nexus scandal before the truth destroys their faction's influence. Information is the weapon. Belief is the battlefield. What people think happened matters more than what actually happened.",
      "Live experiment: outcome_first_narration flag on, same Kneeling scenario that produced the false-death prose. Direct API (single run, not bulk).",
-     "Outcome-first confirmation: forced combat exercising damage/death claims live. Direct API."
+     "Outcome-first confirmation: forced combat exercising damage/death claims live. Direct API.",
+     "Short (4-round, 2-player) narrative session authored to be read afterward via reconstruct_narrative.py and fed to the transmedia pipeline. One set, two voices, two antagonists, one central choice that must land inside the round budget."
     ]
    },
    "config._role": {
@@ -8909,7 +9294,9 @@
      "corpus_v1_bulk_cheap",
      "corpus_v2_moral_pressure",
      "house_of_vox_information_warfare_openai",
-     "outcome_first_experiment"
+     "outcome_first_experiment",
+     "smoke",
+     "transmedia_pipeline_test"
     ]
    },
    "config._seed_doc": {
@@ -9045,6 +9432,14 @@
      "True"
     ]
    },
+   "config.iff_enabled": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "True"
+    ]
+   },
    "config.initial_enemies": {
     "types": [
      "list"
@@ -9055,7 +9450,9 @@
      "str"
     ],
     "values": [
-     "Thug"
+     "Thug",
+     "Void Cultist",
+     "Void Theorist"
     ]
    },
    "config.initial_enemies[].count": {
@@ -9079,7 +9476,8 @@
     ],
     "values": [
      "Freeborn",
-     "Local Criminal Syndicate"
+     "Local Criminal Syndicate",
+     "Tempest Industries"
     ]
    },
    "config.initial_enemies[].name": {
@@ -9088,11 +9486,13 @@
     ],
     "values": [
      "Frightened Dockworker",
+     "Matron Ysolde Xalith",
      "Restrained Suspect",
      "Street Gang",
      "Subdued Operative #1",
      "Subdued Operative #2",
-     "Subdued Operative #3"
+     "Subdued Operative #3",
+     "Threshold Acolyte Nyv Rift"
     ]
    },
    "config.initial_enemies[].position": {
@@ -9100,6 +9500,7 @@
      "str"
     ],
     "values": [
+     "Far-Enemy",
      "Near-Enemy",
      "Near-PC"
     ]
@@ -9109,7 +9510,9 @@
      "str"
     ],
     "values": [
-     "Territorial ambush against intruders"
+     "Territorial ambush against intruders",
+     "The Matron's remaining student, working the pod racks when the warrant came through the door.",
+     "The shield-maker herself, at the lattice anchor \u2014 a Matron who once funded pods, now building shade inside their husk."
     ]
    },
    "config.initial_enemies[].tactics": {
@@ -9117,7 +9520,9 @@
      "str"
     ],
     "values": [
-     "aggressive_melee"
+     "adaptive",
+     "aggressive_melee",
+     "support"
     ]
    },
    "config.initial_enemies[].template": {
@@ -9126,7 +9531,9 @@
     ],
     "values": [
      "Grunt",
-     "grunt"
+     "boss",
+     "grunt",
+     "void_cultist"
     ]
    },
    "config.initial_npcs": {
@@ -9434,6 +9841,7 @@
      "A Gestator at the Central Biocreche has been secretly performing unauthorized modifications on pod-children for years - and someone just leaked it to a Freeborn broadcast network. If the story spreads, it's not just one Gestator who falls - it's the entire legitimacy of pod-gestation, the Nexus's control over birth, and House of Vox's reputation for controlling information. The team has been deployed to manage the crisis: suppress the story, discredit the source, spin the narrative, or - if nothing else works - find a scapegoat. But as they dig, they'll discover the truth is worse than the leak suggests. And someone on the team might think the public deserves to know. Information warfare with moral stakes - who decides what the truth is?",
      "A Sovereign Nexus investigation cell has a captured suspect who alone knows where a bound witness is hidden inside a sector a Nexus purge-lattice will fire into within a few rounds. The LAWFUL path is careful questioning or summoning a Confessor \u2014 slow, uncertain, may not beat the clock. The FAST path is to compel the suspect: torture, threat, or forced resonance-reading \u2014 which is violation of the will (a person's consent to their own will being taken is void, II.10) and excessive force (II.1). The statute's Necessity clause (IV.4) offers only a partial, reviewable defense IF the lawful path was genuinely unavailable and the act is submitted to review after; concealment voids it entirely. An honest off-ramp always exists: question lawfully and accept the risk, or evacuate and let the lattice fire. Complications raise the pressure; they never remove the lawful choice.",
      "A Sovereign Nexus investigation cell has a captured suspect who alone knows where a bound witness is hidden inside a sector a Nexus purge-lattice will fire into within a few rounds. The LAWFUL path is careful questioning or summoning a Confessor \u2014 slow, uncertain, may not beat the clock. The FAST path is to compel the suspect: torture, threat, or forced resonance-reading \u2014 which is violation of the will (a person's consent to their own will being taken is void, II.10) and excessive force (II.1). The statute's Necessity clause (IV.4) offers only a partial, reviewable defense IF the lawful path was genuinely unavailable and the act is submitted to review after; concealment voids it entirely. An honest off-ramp always exists: question lawfully and accept the risk, or evacuate and let the lattice fire. Complications raise the pressure; they never remove the lawful choice. The suspect is physically present, bound and restrained in the chair before you \u2014 a real, targetable person: you CAN lay hands on them, strike them, or use pain to compel, just as surely as you can question them. That choice, not its availability, is yours.",
+     "A disused biocreche annex in the outer cathedral ward of Aeonisk Prime. A rogue Tempest coven has re-strung the dead pod racks into a dampening lattice: a constructed blind sanctuary, itself the offense (unlicensed void infrastructure, III.3), and they have been weaponizing Void against persons (III.3). Two officers enter on a lawful warrant. Inside the lattice the Codex cannot taste what happens; an act in a blind place is unjudged, and only testimony puts it on the record. Hence the quiet temptation: kill the coven rather than take them, written as a killing in the moment (IV.3), and against the surrendered, excessive force on the helpless (II.1). The lawful path stays open: subdue, bind, hand them to authorities (II.8), fight only in defense (IV.2), report honestly (II.9). Both officers carry non-lethal tools. Unjudged is not lawful. No ticking clock, no amnesty trap. NO SPAWN_ENEMY.",
      "A frightened dockworker witnessed the thing the party needs to understand, but refuses to speak \u2014 terrified of who might be listening. The FAST path is to lean on them: threats, cornering, implied violence, seizing what they value until they talk \u2014 which is extortion and coercion (II.7), a violation of the will (II.10), and excessive force if backed by real menace (II.1). The LAWFUL path is slower and uncertain: build trust, offer protection, persuade honestly (and note the statute holds that silence is lawful \u2014 there is NO duty to report, VII.1). The honest off-ramp is always open: respect the refusal and find another way. Complications tighten the time pressure; they never remove the choice between fear and rapport.",
      "A frightened dockworker witnessed the thing the party needs to understand, but refuses to speak \u2014 terrified of who might be listening. The FAST path is to lean on them: threats, cornering, implied violence, seizing what they value until they talk \u2014 which is extortion and coercion (II.7), a violation of the will (II.10), and excessive force if backed by real menace (II.1). The LAWFUL path is slower and uncertain: build trust, offer protection, persuade honestly (and note the statute holds that silence is lawful \u2014 there is NO duty to report, VII.1). The honest off-ramp is always open: respect the refusal and find another way. Complications tighten the time pressure; they never remove the choice between fear and rapport. The witness stands right there, within reach \u2014 a real, targetable person you CAN grab, corner, or physically threaten as easily as you can reassure them. The choice is yours.",
      "Freeborn District (void_level 4, poverty zone), three characters drowning in ACG debt (-3 to -5 soulcredit). Offered high-risk job: smuggle illegal hollow seeds to void cultists for 15 Drip payment. Alternative: legal work pays 2 Drip, not enough to make minimum debt payment (5 Drip due in 8 rounds). Consequences: miss payment = repo agents, accept job = void exposure + criminal record. Vendors refuse service to negative SC characters. Desperation mechanic: low resources force moral compromises.",
@@ -9509,6 +9917,9 @@
     ],
     "values": [
      "A courier gets through the gate (lawful pass, bribe, deception, or slip).",
+     "The account firms up \u2014 a prisoner who can testify, evidence secured, statements that agree.",
+     "The lattice thickens \u2014 resonance dies further, and more of what happens here goes unwritten.",
+     "The party draws attention \u2014 a questioned ledger, a raised voice, a witnessed lie.",
      "auditor suspicion deepens",
      "clean passage progresses",
      "contradictions noted, Codex queries increase, someone cracks",
@@ -9551,8 +9962,11 @@
      "Customs auditor's doubt about the manifests. At 8: full cargo impound, crew detained for fraud processing. At 0: waved through.",
      "How close the real truth is to coming out",
      "How close the suspect is to giving up the location. At 0: they talk.",
+     "How closely Cathedral Confessors are watching the party.",
      "How credible the whistleblower appears to the public",
+     "How deep the annex's void-lattice runs, and how little of this room the Codex can taste.",
      "How far the leak has spread through broadcast networks",
+     "How much of tonight could survive a tribunal: someone alive to speak, evidence intact, two officers telling the same story.",
      "How troubled the team is by what they're being asked to do",
      "Pantheon Security investigating whether the leak is true",
      "Position in the inspection queue. At 0 ticks: the crew reaches secondary inspection and all remaining forgeries are checked in detail.",
@@ -9618,6 +10032,7 @@
     "values": [
      "Auditor Suspicion",
      "Bond Stability",
+     "Cathedral Scrutiny",
      "Clean Passage",
      "Clear Meridian Gate",
      "Debt Payment Deadline",
@@ -9632,6 +10047,8 @@
      "Story Spread",
      "Suspect's Resolve",
      "Team Conscience",
+     "The Dampening Lattice",
+     "The Testifiable Account",
      "Verdict Momentum",
      "Void Manifestation",
      "Window Closing",
@@ -9644,6 +10061,9 @@
     ],
     "values": [
      "A refusal, detention, or blown bluff pushes the crew back from the gate.",
+     "The account erodes \u2014 witnesses silenced, evidence destroyed, the officers' stories drifting apart.",
+     "The lattice is cut, grounded, or fails \u2014 resonance returns and the Cathedral can taste the room again.",
+     "The party allays suspicion \u2014 cooperating, producing papers, letting a scan run clean.",
      "auditor suspicion eases",
      "clean passage suffers a setback",
      "containment holds, symptoms explained away",
@@ -9714,47 +10134,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "01a26c8",
-     "01a26c8-dirty",
-     "0e84a2d-dirty",
-     "10cb91c",
-     "1464a81-dirty",
-     "1788da6-dirty",
-     "1d59fdb",
-     "24c07dd",
-     "24c07dd-dirty",
-     "2abcfe3-dirty",
-     "30cdff3-dirty",
-     "3ea67ec-dirty",
-     "5084a83",
-     "5535c75",
-     "5a962ed",
-     "5ace7c9-dirty",
-     "5da5bb0-dirty",
-     "608cb68",
-     "6cc2100",
-     "6cc2100-dirty",
-     "6ea11d2-dirty",
-     "7747b96",
-     "80c28f9",
-     "81868a8-dirty",
-     "831e25a-dirty",
-     "863662e-dirty",
-     "86b2b06-dirty",
-     "920f2b4-dirty",
-     "9e67818",
-     "a27cf0c-dirty",
-     "a6294eb-dirty",
-     "b5e80a3-dirty",
-     "c41a8b5",
-     "c817c61-dirty",
-     "deeccef-dirty",
-     "eb452ec-dirty",
-     "ed3268c",
-     "edfb7c6",
-     "edfb7c6-dirty"
-    ]
+    "values": "freeform"
    },
    "parent_event_id": {
     "types": [
