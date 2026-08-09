@@ -291,12 +291,31 @@ def main():
         await session.start_session()
         return session
 
+    def _mark(state, error=None):
+        """Record the run's outcome in the liveness sidecar.
+
+        This is the real process boundary, so it is the only place that can tell
+        'finished' from 'crashed' from 'Ctrl-C'. Without it, a watcher has to
+        grep stdout for a line a killed run never prints.
+        """
+        session = session_holder.get('session')
+        if session is not None and hasattr(session, 'mark_session_status'):
+            try:
+                session.mark_session_status(state, error=error)
+            except Exception:
+                pass  # telemetry must never mask the real outcome
+
     try:
         asyncio.run(run_with_tracking())
+        from .session_status import COMPLETED
+        _mark(COMPLETED)
     except KeyboardInterrupt:
         # Session info already printed by signal handler
-        pass
+        from .session_status import INTERRUPTED
+        _mark(INTERRUPTED)
     except Exception as e:
+        from .session_status import FAILED
+        _mark(FAILED, error=f"{type(e).__name__}: {e}")
         # Log crash to JSONL before re-raising
         print(f"\n\n=== Session crashed ===", file=sys.stderr, flush=True)
         print(f"Error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
