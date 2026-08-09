@@ -1256,6 +1256,23 @@ class SelfPlayingSession:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
 
+        # Liveness sidecar: makes "finished", "crashed" and "hung" separable from
+        # outside the process, so watchers don't have to grep stdout for a line a
+        # killed run never prints. Best-effort — never let it break a session.
+        self._status_output_dir = output_dir
+        try:
+            from .session_status import RUNNING, prune_status_files, write_status
+            prune_status_files(output_dir)
+            write_status(
+                output_dir, self.session_id, RUNNING,
+                round=0,
+                max_turns=self.config.get('max_turns'),
+                jsonl=str(jsonl_logger.log_file),
+                config=self.config.get('session_name'),
+            )
+        except Exception as e:  # pragma: no cover - telemetry must not gate play
+            logger.debug(f"Status sidecar unavailable: {e}")
+
         # Initialize agent prompt logger if requested
         if self.log_agents_separately:
             self.agent_prompt_logger = AgentPromptLogger(
@@ -2080,6 +2097,7 @@ Generate narratives (numbered list only):"""
             round_count += 1
             print(f"\n--- Round {round_count} ---")
             self._turn_history.append(f"Round {round_count} begins")
+            self._heartbeat(round_count)
 
             # Reset void caps for all characters at round start
             if self.shared_state and self.shared_state.mechanics_engine:
@@ -5906,6 +5924,36 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Otherwise session continues
         return False
         
+    def _heartbeat(self, round_count: int) -> None:
+        """Stamp the liveness sidecar at a round boundary.
+
+        Without this, a hung run and a slow one are indistinguishable from
+        outside — both just stop producing output. Best-effort by design.
+        """
+        output_dir = getattr(self, '_status_output_dir', None)
+        if not output_dir or not getattr(self, 'session_id', None):
+            return
+        try:
+            from .session_status import RUNNING, write_status
+            write_status(output_dir, self.session_id, RUNNING, round=round_count)
+        except Exception as e:  # pragma: no cover
+            logger.debug(f"Status heartbeat failed: {e}")
+
+    def mark_session_status(self, state: str, error: Optional[str] = None) -> None:
+        """Record a terminal state in the liveness sidecar.
+
+        Called from every exit path so 'finished' and 'died' are distinguishable
+        without inspecting the JSONL or the process table.
+        """
+        output_dir = getattr(self, '_status_output_dir', None)
+        if not output_dir or not getattr(self, 'session_id', None):
+            return
+        try:
+            from .session_status import write_status
+            write_status(output_dir, self.session_id, state, error=error)
+        except Exception as e:  # pragma: no cover
+            logger.debug(f"Status finalize failed: {e}")
+
     def _claim_session_finalization(self) -> bool:
         """Claim the right to write session teardown. True for exactly one caller.
 
