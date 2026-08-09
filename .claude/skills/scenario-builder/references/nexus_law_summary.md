@@ -1,4 +1,4 @@
-# Sovereign Nexus Constitution — clause index (Codex Nexum v1.5)
+# Sovereign Nexus Constitution — clause index (Codex Nexum v1.6)
 
 A one-line index of the ratified statute so authored `scenario_hint`s can cite **real** clauses
 (e.g. "written as a killing (IV.3)", "excessive force against the helpless (II.1)", "lawful

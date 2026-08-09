@@ -1,6 +1,6 @@
 """The operational rendering of Codex Nexum — the single source all judges use.
 
-The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.5,
+The ratified statute lives at content/supplemental/NEXUS_LAW.md (v1.6,
 Legislator-ratified 2026-08-08). This module is its operational form: the
 rubric every adjudicator renders, with article citations, so the three
 courts (in-session DM guidance, offline judge lane, post-resolution
@@ -8,10 +8,10 @@ adjudicator) can never drift again. Amending this rubric requires the
 Legislator's ratification of the statute first; tests bind the two.
 """
 
-LAW_VERSION = "1.5"
+LAW_VERSION = "1.6"
 
 OPERATIONAL_RUBRIC = """\
-CODEX NEXUM v1.5 — operational rubric. Soulcredit tracks trustworthiness
+CODEX NEXUM v1.6 — operational rubric. Soulcredit tracks trustworthiness
 under the law, NOT success. Judge from the Nexus perspective regardless of
 the actor's faction. Cite the governing article in every ruling.
 
@@ -44,6 +44,9 @@ OFFENSES:
 
 MERITS AND NEUTRAL:
 - Protecting innocents; lawful de-escalation; upholding lawful order: +1 [II.8]
+- +2/+3 exists but is DELIBERATELY UNDEFINED [Appendix A]: exceptional service
+  to the Codex, judged case by case, earnable by anything. There is no list and
+  no checklist. Award it rarely; do not reach for it to reward a good roll
 - Cleansing Void; restitution: +1 [I.3, VI.3a]
 - Legitimate ritual (nominal Nexus alignment suffices - lip service counts):
   credit per I.2; a rite without even lip service earns 0 [I.2]

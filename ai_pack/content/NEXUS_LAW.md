@@ -1,19 +1,20 @@
 # The Sovereign Nexus Constitution
 #### The law that the Codex Nexum is, and enforces
-### v1.5 — RATIFIED (v1.0 statute + Amendments A1, A2, A3; IV.6 answered), 2026-08-08
-*(One deferred item — the only ⚖️ mark remaining in the body: Appendix A's
-reserved +2/+3 tier, which awaits definition through practice.)*
+### v1.6 — FULLY RATIFIED (v1.0 statute + Amendments A1, A2, A3), 2026-08-08
+*(No deferred items. Every clause binds. Appendix A's +2/+3 tier is ratified as
+**deliberately undefined** — the Codex's own judgment, not a list — so its
+variance is the law working, not a gap in it.)*
 
 *Consolidates the three drifting rubric copies (dm_state_tracking,
 fidelity_harness.NEXUS_LAW, dm_post_adjudication) with YAGS Module §3.2 and the
 2026-07-05 legislative guidance. Once ratified, all judge rubrics render from
 this document and cite its articles.*
 
-*Markers: ✅ ratified law, in force · ⚖️ LEGISLATOR'S CHOICE (open question,
-options given). As of v1.4 every clause that was formerly marked 🔨 "proposed
-codification" has been ratified outright — the statute no longer distinguishes
-between law inherited from the lore and law codified here. One ⚖️ question
-remains open; everything else binds.*
+*Markers: ✅ ratified law, in force. As of v1.6 there are no others — every
+clause formerly marked 🔨 "proposed codification" or ⚖️ "Legislator's choice"
+has been ratified. The statute no longer distinguishes between law inherited
+from the lore and law codified here, and holds no open questions. Future
+amendments reopen it; until then, all of it binds.*
 
 ---
 
@@ -349,7 +350,7 @@ Once ratified, this table replaces the three rubric copies; judges cite articles
 | −1 | Selfish deception; smuggling (simple); minor unlawful force; vigilante deception; ritual without offering; unsanctioned production | II.3, II.6, IV.1, I.6, II.12 |
 | 0 | Lawful/licensed acts; honest failure; sanctioned undercover deception; necessity-excused acts (with review) | II.9, III.2, IV.1, IV.4 |
 | +1 | Protecting innocents; lawful de-escalation; cleansing Void; restitution | II.8, I.3, VI.3 |
-| +2/+3 | Reserved: exceptional service to the Codex ⚖️ (define or delete — corpus shows +2 awarded rarely and inconsistently) | — |
+| +2/+3 | Exceptional service to the Codex. ✅ (ratified 2026-08-08) **Deliberately undefined**: no enumerated act earns this tier. It is the Codex's own judgment, and it may fall on anything. Award it rarely and never by checklist. | — |
 
 *Attempts: per Article V ruling. Continuing offenses: each sustaining act is a
 new violation (II.4). Success/failure alone never changes the article applied.*
