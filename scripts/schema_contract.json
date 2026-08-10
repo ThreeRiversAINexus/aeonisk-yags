@@ -2872,67 +2872,7 @@
      "dict"
     ]
    },
-   "applied_effects.item_discovery.items_added.bind-cuffs": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.bind_cuffs_key": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.contraband_token": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.custody_token": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.drip": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.paperwork_bundle": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.physical_ledger_core": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.resonance_shard_fragment": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.spectral_readings_datacube": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.transfer_slate": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "applied_effects.item_discovery.items_added.void_lattice_samples": {
+   "applied_effects.item_discovery.items_added.*": {
     "numeric": true,
     "types": [
      "int"
@@ -5031,107 +4971,24 @@
      "dict"
     ]
    },
-   "state_summary.void_states.player_01": {
+   "state_summary.void_states.*": {
     "types": [
      "dict"
     ]
    },
-   "state_summary.void_states.player_01.changes": {
+   "state_summary.void_states.*.changes": {
     "numeric": true,
     "types": [
      "int"
     ]
    },
-   "state_summary.void_states.player_01.level": {
+   "state_summary.void_states.*.level": {
     "types": [
      "str"
     ],
-    "values": [
-     "Pure",
-     "Shadowed",
-     "Touched"
-    ]
+    "values": "freeform"
    },
-   "state_summary.void_states.player_01.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_02": {
-    "types": [
-     "dict"
-    ]
-   },
-   "state_summary.void_states.player_02.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_02.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Pure",
-     "Shadowed",
-     "Touched"
-    ]
-   },
-   "state_summary.void_states.player_02.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_03": {
-    "types": [
-     "dict"
-    ]
-   },
-   "state_summary.void_states.player_03.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_03.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Shadowed",
-     "Touched"
-    ]
-   },
-   "state_summary.void_states.player_03.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_04": {
-    "types": [
-     "dict"
-    ]
-   },
-   "state_summary.void_states.player_04.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "state_summary.void_states.player_04.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Pure",
-     "Shadowed"
-    ]
-   },
-   "state_summary.void_states.player_04.score": {
+   "state_summary.void_states.*.score": {
     "numeric": true,
     "types": [
      "int"
@@ -8464,107 +8321,24 @@
      "dict"
     ]
    },
-   "final_state.void_states.player_01": {
+   "final_state.void_states.*": {
     "types": [
      "dict"
     ]
    },
-   "final_state.void_states.player_01.changes": {
+   "final_state.void_states.*.changes": {
     "numeric": true,
     "types": [
      "int"
     ]
    },
-   "final_state.void_states.player_01.level": {
+   "final_state.void_states.*.level": {
     "types": [
      "str"
     ],
-    "values": [
-     "Pure",
-     "Shadowed",
-     "Touched"
-    ]
+    "values": "freeform"
    },
-   "final_state.void_states.player_01.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_02": {
-    "types": [
-     "dict"
-    ]
-   },
-   "final_state.void_states.player_02.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_02.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Pure",
-     "Shadowed",
-     "Touched"
-    ]
-   },
-   "final_state.void_states.player_02.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_03": {
-    "types": [
-     "dict"
-    ]
-   },
-   "final_state.void_states.player_03.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_03.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Shadowed",
-     "Touched"
-    ]
-   },
-   "final_state.void_states.player_03.score": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_04": {
-    "types": [
-     "dict"
-    ]
-   },
-   "final_state.void_states.player_04.changes": {
-    "numeric": true,
-    "types": [
-     "int"
-    ]
-   },
-   "final_state.void_states.player_04.level": {
-    "types": [
-     "str"
-    ],
-    "values": [
-     "Pure",
-     "Shadowed"
-    ]
-   },
-   "final_state.void_states.player_04.score": {
+   "final_state.void_states.*.score": {
     "numeric": true,
     "types": [
      "int"
