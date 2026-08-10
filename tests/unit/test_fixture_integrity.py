@@ -39,7 +39,15 @@ _MUTUALLY_EXCLUSIVE = ("Health", "Endurance")
 
 
 def fixture_files():
-    return sorted(_FIXTURES.glob("*.jsonl"))
+    """Recursive: `sessions/golden_seed/` holds five more fixtures.
+
+    A non-recursive glob left those five checked by nothing at all — not this
+    test, and not `session_invariants.py`/`schema_mine.py`, which globbed
+    `session_*.jsonl` and skipped them on the filename too. One of them
+    (`golden_seed_combat.jsonl`) had been freezing a zombie_actor violation the
+    whole time.
+    """
+    return sorted(_FIXTURES.rglob("*.jsonl"))
 
 
 def load_events(path):
@@ -77,6 +85,23 @@ LEGACY_CALL_SEQUENCE_DEBT = {
     "session_status_effect_narrative_test.jsonl",
     "session_status_effect_tactical_test.jsonl",
     "session_void_story_advancement_partial.jsonl",
+    # Only visible once fixture_files() went recursive; same [0, 0, ...] shape.
+    "golden_seed_combat.jsonl",
+    "golden_seed_conversion.jsonl",
+    "golden_seed_ritual.jsonl",
+    "golden_seed_social.jsonl",
+    "golden_seed_vendor.jsonl",
+}
+
+# Debt that is NOT call_sequence: a fixture freezing a genuine engine bug.
+# `golden_seed_combat.jsonl` has "r3 [Enforcer Kael Dren]: dealt 10 damage while
+# defeated" — a defeated entity acting. It sat unchecked because the fixture
+# lived in a subdirectory the test never walked.
+#
+# Recorded per-file and per-invariant rather than waived wholesale, so the
+# amnesty cannot silently widen. It goes away when the fixture is re-recorded.
+LEGACY_INVARIANT_DEBT = {
+    "golden_seed_combat.jsonl": {"zombie_actor"},
 }
 
 
@@ -95,6 +120,10 @@ def test_fixture_has_no_invariant_errors(path):
         violations = [v for v in violations
                       if v.invariant != "call_sequence_collision"]
 
+    waived = LEGACY_INVARIANT_DEBT.get(path.name, set())
+    if waived:
+        violations = [v for v in violations if v.invariant not in waived]
+
     assert not violations, (
         f"{path.name} violates invariants:\n  " +
         "\n  ".join(str(v) for v in violations))
@@ -106,10 +135,11 @@ def test_legacy_debt_list_has_no_stale_entries():
     Otherwise the allowlist quietly grants amnesty to files that no longer need
     it, and a real regression hides behind a stale exemption.
     """
+    by_name = {p.name: p for p in fixture_files()}
     stale = []
     for name in sorted(LEGACY_CALL_SEQUENCE_DEBT):
-        path = _FIXTURES / name
-        if not path.exists():
+        path = by_name.get(name)
+        if path is None:
             stale.append(f"{name} (file is gone)")
             continue
         collisions = [v for v in check(load_events(path))
@@ -118,6 +148,27 @@ def test_legacy_debt_list_has_no_stale_entries():
             stale.append(f"{name} (no longer collides — drop the exemption)")
 
     assert not stale, "stale entries in LEGACY_CALL_SEQUENCE_DEBT:\n  " + "\n  ".join(stale)
+
+
+def test_invariant_debt_list_has_no_stale_entries():
+    """The same rule for the non-call_sequence waivers.
+
+    A waived invariant that no longer fires is amnesty for a bug nobody is
+    committing any more — and it would hide the next one that fires.
+    """
+    by_name = {p.name: p for p in fixture_files()}
+    stale = []
+    for name, waived in sorted(LEGACY_INVARIANT_DEBT.items()):
+        path = by_name.get(name)
+        if path is None:
+            stale.append(f"{name} (file is gone)")
+            continue
+        firing = {v.invariant for v in check(load_events(path))
+                  if v.severity == ERROR}
+        for invariant in sorted(waived - firing):
+            stale.append(f"{name}:{invariant} (no longer fires — drop it)")
+
+    assert not stale, "stale entries in LEGACY_INVARIANT_DEBT:\n  " + "\n  ".join(stale)
 
 
 class TestReferenceFixtureIsWhole:

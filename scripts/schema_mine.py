@@ -125,11 +125,43 @@ def _walk(prefix, obj, stats, depth):
             _walk(prefix + "[]", el, stats, depth + 1)
 
 
+def looks_like_session(path, probe_lines=5):
+    """Does this .jsonl hold game events? Decided by content, not filename.
+
+    Globbing `session_*.jsonl` silently skipped every fixture named otherwise —
+    7 of 12, including all four goldens. A bare `*.jsonl` glob is wrong the
+    other way: `evals/rules_fidelity/*.jsonl` are LLM eval records, not
+    sessions, and mining them as game events would corrupt the contract.
+    `event_type` is what actually distinguishes the two.
+    """
+    try:
+        with open(path) as handle:
+            for _ in range(probe_lines):
+                line = handle.readline()
+                if not line:
+                    break
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(event, dict) and "event_type" in event:
+                    return True
+    except OSError:
+        return False
+    return False
+
+
 def iter_session_files(roots):
     files = []
     for root in roots:
         if os.path.isdir(root):
-            files += glob.glob(f"{root}/**/session_*.jsonl", recursive=True)
+            # An explicitly named file is always honoured; only directory
+            # scanning sniffs, so a deliberate path is never second-guessed.
+            files += [p for p in glob.glob(f"{root}/**/*.jsonl", recursive=True)
+                      if looks_like_session(p)]
         elif os.path.isfile(root):
             files.append(root)
     return sorted(set(files))
