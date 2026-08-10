@@ -34,7 +34,7 @@ so it belongs in `prose_safe_summary` where the narrator actually reads it.
 import pytest
 
 from aeonisk.multiagent.outcome_pipeline import (
-    build_applied_outcome, _weapon_of,
+    build_applied_outcome, prose_safe_outcome_payload, _weapon_of,
 )
 
 from tests.unit.test_outcome_pipeline import _state
@@ -84,6 +84,27 @@ class TestTheWeaponReachesTheOutcome:
         outcome = _build({"intent": "investigate the terminal"})
 
         assert outcome.weapon is None
+
+
+class TestItSurvivesTheProseSafeWhitelist:
+    """`prose_safe_outcome_payload` is an explicit whitelist, so a field on the
+    outcome that is not listed there never reaches the prompt however faithfully
+    it was populated. That is how this fix could have shipped as a no-op."""
+
+    def test_the_weapon_is_in_the_payload(self):
+        outcome = _build({"intent": "attack", "weapon": "Heavy Machine Gun"})
+
+        payload = prose_safe_outcome_payload([outcome])
+
+        assert payload[0]["weapon"] == "Heavy Machine Gun"
+
+    def test_the_payload_still_carries_no_numbers(self):
+        outcome = _build({"intent": "attack", "weapon": "Heavy Machine Gun"})
+
+        import json
+        blob = json.dumps(prose_safe_outcome_payload([outcome]))
+
+        assert "27" not in blob and "13" not in blob, blob
 
 
 class TestTheNarratorCanSeeIt:

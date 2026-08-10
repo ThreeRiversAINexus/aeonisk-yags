@@ -620,6 +620,12 @@ def prose_safe_outcome_payload(outcomes: Sequence[AppliedOutcome]) -> List[Dict[
             "actor_name": outcome.actor_narrative_name,
             "intent": outcome.intent,
             "method": outcome.method,
+            # Explicit, not merely embedded in a fact summary: this payload is a
+            # whitelist, so a field absent here never reaches the narrator no
+            # matter what the outcome carries. A weapon name is fiction — no
+            # number, no registry label — and without it the model narrated a
+            # Heavy Machine Gun as void lightning (#141).
+            "weapon": outcome.weapon,
             "target_names": outcome.target_names,
             "declared_dialogue": outcome.declared_dialogue,
             "facts": [fact.model_dump() for fact in outcome.observable_facts],
