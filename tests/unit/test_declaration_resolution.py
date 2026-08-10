@@ -17,18 +17,24 @@ The asymmetry is what makes this urgent rather than cosmetic: every failure mode
 falls through to `equipped_weapons['primary']`, which is a WOUND weapon in
 nearly every loadout. There is no safe miss.
 
-Known defects are `xfail(strict=True)` so they flip the moment #134 lands.
+Nine of the ten defects this file was filed on are fixed by #134's resolver and
+now assert directly. The tenth — an unresolvable declaration still falling
+through to the equipped slot rather than the declared damage class — is #134
+step 3 and remains `xfail(strict=True)`.
 """
 
 import itertools
+from collections import namedtuple
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from scripts.aeonisk.multiagent.dm import (
-    _match_declared_weapon, _resolve_weapon_and_damage_type,
+    _match_declared_weapon, _resolve_declared_weapon,
+    _resolve_weapon_and_damage_type,
 )
+from scripts.aeonisk.multiagent.resolution import Policy, resolve
 from scripts.aeonisk.multiagent.weapons import WEAPON_LIBRARY, get_weapon
 from tests.factories import FakeAgent, FakeSharedState
 
@@ -68,8 +74,6 @@ class TestTheInvariantHolds:
     tell you which *combinations* are.
     """
 
-    @pytest.mark.xfail(strict=True, reason="#134: bidirectional containment "
-                                           "crosses damage class 6 ways")
     def test_no_declared_name_resolves_to_a_different_damage_class(self):
         crossings = []
         for declared, held in itertools.permutations(LIBRARY, 2):
@@ -108,7 +112,6 @@ class TestLongerDeclarationsDoNotCollapse:
     loadout element in the repo — plain `pistol`, in 149 configs.
     """
 
-    @pytest.mark.xfail(strict=True, reason="#134: `name in needle` matches")
     @pytest.mark.parametrize("declared,held", [
         ("Compact EMP Pistol", "pistol"),
         ("EMP Pistol", "pistol"),
@@ -137,14 +140,14 @@ class TestParaphraseIsAccepted:
         match = _match_declared_weapon(declared, owned("tranq_gun"))
         assert match is not None and match.damage_type == "stun"
 
-    @pytest.mark.xfail(strict=True, reason="#134: substring is the wrong "
-                                           "primitive; needs token subset")
     @pytest.mark.parametrize("declared", [
-        "the tranquilizer",   # the example in _match_declared_weapon's docstring
-        "tranq gun",
+        "the tranquilizer",   # the example the old matcher refused
+        "tranq gun",          # abbreviation, reached by prefix rather than fuzzing
+        "my tranquilizer gun",
     ])
-    def test_refused_today(self, declared):
-        assert _match_declared_weapon(declared, owned("tranq_gun")) is not None
+    def test_recognised_since_134(self, declared):
+        match = _match_declared_weapon(declared, owned("tranq_gun"))
+        assert match is not None and match.damage_type == "stun"
 
 
 class TestAmbiguityIsRefused:
@@ -155,7 +158,6 @@ class TestAmbiguityIsRefused:
     inventory ordering.
     """
 
-    @pytest.mark.xfail(strict=True, reason="#134: first containment hit wins")
     def test_a_stem_matching_two_owned_weapons_refuses(self):
         held = owned("shock_baton", "dripshock_baton")
         assert _match_declared_weapon("baton", held) is None
@@ -176,6 +178,79 @@ class TestDegenerateInputs:
 
     def test_empty_loadout_returns_none(self):
         assert _match_declared_weapon("Pistol", []) is None
+
+
+# ---------------------------------------------------------------------------
+# The resolver's own branches, isolated
+# ---------------------------------------------------------------------------
+class TestResolverMechanics:
+    """Two guards in `resolution.py` are unreachable through the weapon policy,
+    because another guard refuses first.
+
+    Mutation testing found both. Making token matching bidirectional again
+    changed nothing, because every weapon case that *looks* directional is
+    actually refused for having an extra token; and letting the first
+    containment hit win changed nothing, because the damage-class invariant
+    refused it anyway. Two checks that could not fail.
+
+    So they are exercised here against a synthetic domain with no invariant,
+    which is the honest way round: `resolution.py` is general machinery, and
+    these are its rules rather than the weapon policy's.
+    """
+
+    Thing = namedtuple("Thing", "name")
+    PLAIN = Policy(name_of=lambda t: t.name)
+
+    def test_a_declared_token_never_matches_a_shorter_candidate_token(self):
+        """The directional rule. `declared.startswith(candidate)` is the
+        direction that lets a short, different name answer a long, specific
+        request — the shape behind `'the stun pistol'` -> Pistol."""
+        result = resolve("tranquilizer", [self.Thing("Tranq")], self.PLAIN)
+
+        assert result.value is None
+        assert result.path == "refused"
+
+    def test_a_declared_token_may_match_a_longer_candidate_token(self):
+        """The generous direction, kept: abbreviations resolve."""
+        result = resolve("tranq", [self.Thing("Tranquilizer Gun")], self.PLAIN)
+
+        assert result.value is not None
+        assert result.path == "token_subset"
+
+    def test_a_prefix_shorter_than_the_floor_is_refused(self):
+        """Three characters would let 'gun' reach anything gun-shaped."""
+        assert resolve("tra", [self.Thing("Tranquilizer")], self.PLAIN).value is None
+
+    def test_two_candidates_matching_the_same_stem_refuse(self):
+        result = resolve("baton", [self.Thing("Shock Baton"),
+                                   self.Thing("Drip Baton")], self.PLAIN)
+
+        assert result.value is None
+        assert "ambiguous" in (result.reason or "")
+
+    def test_an_exact_name_beats_an_ambiguous_stem(self):
+        result = resolve("Baton", [self.Thing("Baton"),
+                                   self.Thing("Shock Baton")], self.PLAIN)
+
+        assert result.value.name == "Baton"
+        assert result.path == "exact"
+
+
+class TestPathIsReported:
+    """`path` is the auditability contract: an analysis must be able to restrict
+    to exactly-resolved rows and check whether a finding survives without the
+    inferred ones. That only works if the paths are distinguishable."""
+
+    @pytest.mark.parametrize("declared,expected", [
+        ("Tranquilizer Gun", "exact"),
+        ("the Tranquilizer Gun!", "normalized"),
+        ("tranquilizer", "token_subset"),
+        ("Shrike Cannon", "refused"),
+    ])
+    def test_each_route_is_labelled(self, declared, expected):
+        result = _resolve_declared_weapon(declared, owned("tranq_gun"))
+
+        assert result.path == expected
 
 
 # ---------------------------------------------------------------------------

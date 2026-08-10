@@ -109,27 +109,26 @@ def _resolution_success(resolution) -> bool:
     return True
 
 
-def _match_declared_weapon(declared: str, owned: list):
-    """Find the owned weapon a declaration refers to, or None.
+def _resolve_declared_weapon(declared: str, owned: list) -> 'Resolution':
+    """Resolve a declared weapon against the ones the character actually holds.
 
-    Exact name first, then containment either way, because models write "the
-    tranquilizer" rather than the library's "Tranquilizer Gun". Only weapons the
-    character actually holds are considered — matching against the whole library
-    would let naming a weapon confer its properties.
+    Delegates to the shared resolver (#134). The policy that matters here is the
+    invariant: a match may never cross lethality class. The previous matcher
+    used bidirectional substring containment, which accepted `'the stun pistol'`
+    as a lethal Pistol — on the loadout element used by 149 configs — while
+    refusing `'the tranquilizer'`, the example in its own docstring.
+
+    Returns the full `Resolution` rather than the weapon, because `path` is what
+    makes an inferred match auditable downstream.
     """
-    needle = declared.strip().lower()
-    if not needle:
-        return None
+    from .resolution import WEAPON_POLICY, resolve
+    return resolve(declared, [w for w in owned if getattr(w, 'name', None)],
+                   WEAPON_POLICY)
 
-    candidates = [w for w in owned if getattr(w, 'name', None)]
-    for weapon in candidates:
-        if weapon.name.lower() == needle:
-            return weapon
-    for weapon in candidates:
-        name = weapon.name.lower()
-        if needle in name or name in needle:
-            return weapon
-    return None
+
+def _match_declared_weapon(declared: str, owned: list):
+    """The weapon a declaration refers to, or None. See `_resolve_declared_weapon`."""
+    return _resolve_declared_weapon(declared, owned).value
 
 
 def _resolve_weapon_and_damage_type(
