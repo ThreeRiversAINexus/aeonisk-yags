@@ -235,7 +235,9 @@ class LLMConfig:
     # When True, providers truncate strings to maxLength on first attempt
     force_truncate: bool = False
 
-    # Provider-specific kwargs
+    # Provider-specific kwargs. Two unrelated kinds live here: genuine
+    # pass-through API parameters, and provider construction metadata that must
+    # never reach the API — see PROVIDER_ONLY_KEYS / api_extra_params below.
     extra_params: Dict[str, Any] = None
 
     def __post_init__(self):
@@ -313,6 +315,67 @@ class LLMConfig:
                 extra[key] = value
 
         return cls(**known, extra_params=extra)
+
+
+#: `extra_params` keys that configure the *provider* rather than the API call.
+#: They are load-bearing where they are — ScriptedProvider selects its response
+#: stream by `agent_id`, the batch proxy reads its routing here — but splatting
+#: them into a completion request is a TypeError. Every enemy declaration in
+#: session 9e9ad880 died on `Messages.create() got an unexpected keyword
+#: argument 'agent_id'`, leaving the enemies mute for the whole session.
+PROVIDER_ONLY_KEYS = frozenset({
+    'agent_id',
+    'agent_prompt_logger',
+    'call_sequence',
+    'current_round',
+    'llm_logger',
+    'proxy_priority',
+    'proxy_strategy',
+    'proxy_url',
+    'replay_source',
+    'underlying_provider',
+    'use_proxy',
+})
+
+
+def api_extra_params(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """`extra_params` with provider metadata removed, safe to send to an API.
+
+    The OpenAI structured path pops these by hand
+    (`generate_structured`, ~:1272); this is the same list, shared, so the
+    Anthropic path cannot drift out of sync with it again.
+    """
+    return {k: v for k, v in (extra or {}).items() if k not in PROVIDER_ONLY_KEYS}
+
+
+def build_anthropic_api_params(
+    config: 'LLMConfig',
+    prompt: str,
+    system_prompt: Optional[str],
+    max_tokens: int,
+    temperature: float,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Exactly what gets handed to `anthropic.messages.create`.
+
+    Extracted so the filtering is testable at the point it matters. Asserting
+    `api_extra_params` alone passes even if the caller stops using it — a check
+    that cannot fail, which mutation testing caught.
+    """
+    params: Dict[str, Any] = {
+        "model": config.model,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system_prompt:
+        params["system"] = system_prompt
+    # Provider metadata (agent_id, proxy routing, the loggers) is filtered from
+    # both sources: it lives in the config and the call kwargs for other
+    # reasons, and messages.create rejects anything it does not recognise.
+    params.update(api_extra_params(config.extra_params))
+    params.update(api_extra_params(kwargs))
+    return params
 
 
 # =============================================================================
@@ -628,24 +691,8 @@ class ClaudeProvider(LLMProvider):
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
 
-        # Build messages
-        messages = [{"role": "user", "content": prompt}]
-
-        # Prepare API call parameters
-        api_params = {
-            "model": self.config.model,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "messages": messages
-        }
-
-        # Add system prompt if provided
-        if system_prompt:
-            api_params["system"] = system_prompt
-
-        # Merge any extra params
-        api_params.update(self.config.extra_params)
-        api_params.update(kwargs)
+        api_params = build_anthropic_api_params(
+            self.config, prompt, system_prompt, max_tokens, temperature, kwargs)
 
         # Acquire rate limiter slot if enabled
         if self.config.use_rate_limiter:
