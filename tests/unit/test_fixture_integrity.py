@@ -101,7 +101,19 @@ LEGACY_CALL_SEQUENCE_DEBT = {
 # Recorded per-file and per-invariant rather than waived wholesale, so the
 # amnesty cannot silently widen. It goes away when the fixture is re-recorded.
 LEGACY_INVARIANT_DEBT = {
-    "golden_seed_combat.jsonl": {"zombie_actor"},
+    "golden_seed_combat.jsonl": {"zombie_actor", "clock_without_spawn"},
+    # clock_without_spawn was raised WARN -> ERROR in #119. Every occurrence
+    # predates 0898af3 (2026-08-09 06:52), which moved log_clock_spawn into
+    # create_scene_clock — the single chokepoint — so these recordings show
+    # clocks that genuinely existed but were never announced. Unfixable without
+    # re-recording; the condition is impossible under current code.
+    "golden_clock_lifecycle_complete.jsonl": {"clock_without_spawn"},
+    "golden_seed_social.jsonl": {"clock_without_spawn"},
+    "negative_health_bug.jsonl": {"clock_without_spawn"},
+    "regression_soulcredit_logging_bug.jsonl": {"clock_without_spawn"},
+    "session_debt_auction_ambush.jsonl": {"clock_without_spawn"},
+    "session_starting_clocks.jsonl": {"clock_without_spawn"},
+    "session_void_story_advancement_partial.jsonl": {"clock_without_spawn"},
 }
 
 

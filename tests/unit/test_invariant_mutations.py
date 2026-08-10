@@ -225,3 +225,28 @@ class TestCheckerRobustness:
 
     def test_a_reversed_session_never_crashes(self, base):
         self.assert_no_crash(list(reversed(base)))
+
+
+class TestClockWithoutSpawnIsAnError:
+    """#119: it was WARN, so all 693 corpus occurrences went unread for months.
+
+    A checker whose findings never surface in a default run is doing the work
+    and throwing the answer away.
+    """
+
+    def test_severity_is_error(self, base):
+        m = copy.deepcopy(base)
+        i = first(m, "clock_advancement")
+        _event_body(m[i])["clock_name"] = "A Clock That Was Never Born"
+
+        found = [v for v in check(m) if v.invariant == "clock_without_spawn"]
+
+        assert found, "mutation did not trip the checker"
+        assert all(v.severity == ERROR for v in found)
+
+    def test_it_still_fires_only_for_the_mutated_clock(self, base):
+        m = copy.deepcopy(base)
+        i = first(m, "clock_advancement")
+        _event_body(m[i])["clock_name"] = "A Clock That Was Never Born"
+
+        assert new_findings(base, m) == {"clock_without_spawn": 1}

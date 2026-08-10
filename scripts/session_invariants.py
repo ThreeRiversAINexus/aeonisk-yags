@@ -659,6 +659,19 @@ def inv_clock_without_spawn(events, cfg) -> List[Violation]:
     Three DM-created clocks in fa9d2891 appeared only in clock_advancement and
     clock_removal — no clock_spawn ever announced them, so a lifecycle
     reconstruction has them materializing from nothing.
+
+    ERROR since #119. It was WARN, which meant all 693 corpus occurrences were
+    invisible in every default run and nobody looked for two months. Raising it
+    costs 10 newly quarantined sessions out of 330 (288 were already quarantined
+    by other errors) and cannot interrupt play — this module is post-hoc and is
+    never imported by session.py. The bulk runner marks such a run
+    `quarantined: true`, excluding it from datasets while keeping the JSONL and
+    a violations sidecar.
+
+    The condition is now impossible under current code: log_clock_spawn moved
+    into create_scene_clock, the single chokepoint, in 0898af3 (2026-08-09
+    06:52), and every corpus occurrence predates it. So this is a regression
+    guard, not a backlog.
     """
     spawned = {_body(e).get("clock_name") for e in events
                if e.get("event_type") == "clock_spawn"}
@@ -672,7 +685,7 @@ def inv_clock_without_spawn(events, cfg) -> List[Violation]:
             continue
         seen.add(name)
         out.append(Violation(
-            "clock_without_spawn", WARN,
+            "clock_without_spawn", ERROR,
             f"clock {name!r} referenced with no clock_spawn event",
             e.get("round")))
     return out

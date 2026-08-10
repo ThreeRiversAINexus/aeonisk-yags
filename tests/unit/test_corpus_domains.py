@@ -322,3 +322,70 @@ class TestStealthAndDetectionAreNowDeterministic:
         from scripts.aeonisk.multiagent.mechanics import resolve_stealth_check
 
         assert 1 <= resolve_stealth_check(self.Agent(), 15)["d20"] <= 20
+
+
+class TestMixedDamageRespectsTheStunCap:
+    """#117: `apply_mixed_damage` used to bypass `MAX_STUNS` entirely.
+
+    `apply_stun_damage` clamped; `apply_mixed_damage` did `old_stuns +
+    stun_damage` with no bound, and mixed is 313 of 997 recorded damage
+    applications — the common path, not an edge case. Real `character_state`
+    rows reached 28 stuns, and seven of the eight recorded `ko_check` events sat
+    above the cap.
+
+    The clamp is **upward-only**, matching `apply_stun_damage`: a plain
+    `min(new, MAX_STUNS)` would pull an already-over-cap entity down, which is
+    the #91 bug where taking damage healed you.
+
+    KO outcomes are unchanged — level 8 already puts the DC at 30 against a
+    ceiling of `health_attr*2 + 20`, so at or above the cap it was unwinnable
+    either way. What changes is that the invariant holds and the logs stop
+    recording states the cap says cannot exist.
+    """
+
+    @pytest.mark.parametrize("damage", range(0, 40, 3))
+    def test_never_exceeds_the_cap_from_a_normal_start(self, damage):
+        b = Body(health=30, max_health=30, wounds=0, stuns=0)
+
+        apply_mixed_damage(b, damage)
+
+        assert b.stuns <= MAX_STUNS, f"mixed damage {damage} -> {b.stuns} stuns"
+
+    @pytest.mark.parametrize("start", range(0, MAX_STUNS + 1))
+    @pytest.mark.parametrize("damage", (0, 1, 5, 17, 40))
+    def test_never_exceeds_the_cap_from_any_legal_start(self, start, damage):
+        b = Body(health=30, max_health=30, wounds=0, stuns=start)
+
+        apply_mixed_damage(b, damage)
+
+        assert b.stuns <= MAX_STUNS, f"start={start} damage={damage} -> {b.stuns}"
+
+    @pytest.mark.parametrize("start", range(MAX_STUNS, 30))
+    @pytest.mark.parametrize("damage", (0, 1, 9, 25))
+    def test_never_heals_an_entity_already_over_the_cap(self, start, damage):
+        """The upward-only half. Legacy saves and resume_state reach these."""
+        b = Body(health=30, max_health=30, wounds=0, stuns=start)
+
+        apply_mixed_damage(b, damage)
+
+        assert b.stuns >= start, f"start={start} damage={damage} -> {b.stuns}"
+
+    def test_the_reported_delta_matches_the_clamped_change(self):
+        """A result that reports more stuns than it applied would corrupt any
+        ledger built from the return value."""
+        b = Body(stuns=MAX_STUNS - 1)
+
+        result = apply_mixed_damage(b, 30)
+
+        assert result["new_stuns"] == b.stuns
+        assert result["new_stuns"] - result["old_stuns"] == result["stuns_dealt"]
+
+    def test_wounds_are_unaffected_by_the_stun_clamp(self):
+        """Clamping the stun half must not change the wound half."""
+        capped = Body(stuns=MAX_STUNS)
+        fresh = Body(stuns=0)
+
+        apply_mixed_damage(capped, 20)
+        apply_mixed_damage(fresh, 20)
+
+        assert capped.wounds == fresh.wounds
