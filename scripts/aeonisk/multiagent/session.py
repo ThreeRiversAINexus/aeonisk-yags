@@ -779,7 +779,12 @@ class EnemyFallbackLLMClient:
             # Use llm_provider instead of direct Anthropic client
             from .llm_provider import LLMConfig, create_provider
 
-            provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
+            # agent_id must reach the provider: the client already knows which
+            # enemy it serves, and replay selects a response stream by it.
+            # Without this every enemy's provider looked anonymous and replay
+            # found no recorded calls for any of them.
+            provider_config = LLMConfig.from_dict(
+                llm_config, max_tokens=500, agent_id=agent_id)
             self.provider = create_provider(provider_config)
 
     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
@@ -933,6 +938,10 @@ class SelfPlayingSession:
             random_seed = int(time.time() * 1000) % (2**31)
         self.random_seed = random_seed
         random.seed(random_seed)
+        # Outcome ids are referenced by the DM's synthesis, so they have to come
+        # out the same on a replay of the same session.
+        from .outcome_pipeline import reset_outcome_ids
+        reset_outcome_ids()
         if replay_mode:
             print(f"🔁 Replay mode - Random seed: {random_seed}")
         else:

@@ -75,6 +75,8 @@ IDENTITY_FIELDS = {
     # free-targeting ids (`tgt_5912`) are minted per session, and entity ids
     # carry a uuid suffix — both churn as enums on every run
     "target", "declared_target", "corrected_target", "original_target",
+    # entity ids and authored clock names are per-scenario data, not schema
+    "agent_id", "entity_id", "enemy_id", "npc_id", "resolved_by_clock",
 }
 
 

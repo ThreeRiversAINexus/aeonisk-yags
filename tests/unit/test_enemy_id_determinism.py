@@ -177,3 +177,57 @@ class TestNPCIdsAreDeterministicToo:
         state.npc_agents = []   # the NPC is gone; its identity is not
 
         assert next_npc_agent_id("Ren Halsk", state.issued_npc_ids) == "npc_ren_halsk_02"
+
+
+class TestEachEnemyOwnsItsStream:
+    """Enemies shared one manager-level provider until now.
+
+    Deterministic ids alone did not make replay work: with a single shared
+    provider there is one response stream for every enemy, so replay cannot tell
+    `enemy_boss_01` from `enemy_void_cultist_01` and serves neither.
+    """
+
+    @pytest.fixture
+    def manager(self, tmp_path):
+        import json as _json
+        from scripts.aeonisk.multiagent.enemy_combat import EnemyCombatManager
+
+        # The scripted provider is the case this exists for, and it builds
+        # without credentials — an openai config here would raise and silently
+        # take the fallback branch, making the test assert nothing.
+        source = tmp_path / "session_rec.jsonl"
+        source.write_text("\n".join(
+            _json.dumps({"event_type": "llm_call", "agent_id": agent,
+                         "call_sequence": 0, "response": "{}"})
+            for agent in ("enemy_boss_01", "enemy_void_cultist_01")))
+
+        manager = EnemyCombatManager(shared_state=None)
+        manager._enemy_llm_config = {"provider": "scripted", "model": "replay",
+                                     "replay_source": str(source)}
+        manager.llm_provider = object()
+        return manager
+
+    def enemy(self, agent_id):
+        from tests.factories import FakeAgent
+        return FakeAgent(agent_id=agent_id)
+
+    def test_distinct_enemies_get_distinct_providers(self, manager):
+        first = manager.provider_for(self.enemy("enemy_boss_01"))
+        second = manager.provider_for(self.enemy("enemy_void_cultist_01"))
+
+        assert first is not second
+
+    def test_the_provider_carries_the_agent_id(self, manager):
+        provider = manager.provider_for(self.enemy("enemy_boss_01"))
+
+        assert provider.config.extra_params["agent_id"] == "enemy_boss_01"
+
+    def test_one_enemy_reuses_its_provider(self, manager):
+        """A fresh provider per call would restart the replay cursor each time."""
+        assert manager.provider_for(self.enemy("enemy_boss_01")) is \
+            manager.provider_for(self.enemy("enemy_boss_01"))
+
+    def test_falls_back_when_no_config_was_captured(self, manager):
+        manager._enemy_llm_config = None
+
+        assert manager.provider_for(self.enemy("enemy_boss_01")) is manager.llm_provider

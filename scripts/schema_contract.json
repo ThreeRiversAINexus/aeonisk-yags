@@ -381,12 +381,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "player_01",
-     "player_02",
-     "player_03",
-     "player_04"
-    ]
+    "values": "freeform"
    },
    "action.altar_id": {
     "types": [
@@ -2512,12 +2507,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "enemy_enforcer_1f291c85",
-     "npc_coven_adept_kael_thresh_3024",
-     "npc_coven_guardian_ren_halsk_304",
-     "npc_pantheon_corridor_guard_c9caaf52"
-    ]
+    "values": "freeform"
    },
    "agent_name": {
     "types": [
@@ -4928,33 +4918,7 @@
      "NoneType",
      "str"
     ],
-    "values": [
-     "<None>",
-     "Coven Compliance",
-     "Coven Surrender",
-     "Custody Arbitration",
-     "Custody Transfer",
-     "Debt Deadline",
-     "Debt Payment Deadline",
-     "Detainment Decision",
-     "Detention Transfer",
-     "Evidence Preservation",
-     "Find the Witness",
-     "Intercept the Buyer",
-     "Legal Handoff",
-     "Maintenance Spine Escape",
-     "Manual Recovery",
-     "Minimum Payment Due",
-     "Purge-Lattice Countdown",
-     "Record Verification",
-     "Rite Integrity",
-     "Safe Extraction",
-     "Secret Exposure",
-     "Witness Extraction Window",
-     "Witness Rescue Window",
-     "Witness Survival Window",
-     "Witness Trust"
-    ]
+    "values": "freeform"
    },
    "round": {
     "numeric": true,
@@ -5641,16 +5605,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "enemy_enforcer_4e4facf0",
-     "enemy_grunt_1135698b",
-     "enemy_grunt_1f02d244",
-     "enemy_grunt_2a7ba758",
-     "enemy_grunt_6e254bdb",
-     "enemy_grunt_82d57baf",
-     "enemy_grunt_89bd8ed4",
-     "enemy_grunt_dae0ceb7"
-    ]
+    "values": "freeform"
    },
    "morale_events[].narration": {
     "types": [
@@ -5867,11 +5822,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "enemy_void_cultist_c554b219",
-     "player_01",
-     "player_02"
-    ]
+    "values": "freeform"
    },
    "can_act": {
     "types": [
@@ -6179,12 +6130,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "dm_01",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "agent_type": {
     "types": [
@@ -6620,12 +6566,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "player_01",
-     "player_02",
-     "player_03",
-     "player_04"
-    ]
+    "values": "freeform"
    },
    "character_name": {
     "types": [
@@ -6817,25 +6758,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "enemy_boss_0e0a04dc",
-     "enemy_boss_2937e857",
-     "enemy_boss_cbc37dd9",
-     "enemy_enforcer_6085e7fa",
-     "enemy_enforcer_84cc5fa1",
-     "enemy_enforcer_89eab3f9",
-     "enemy_void_cultist_c554b219",
-     "enemy_void_cultist_f0b42bac",
-     "enemy_void_cultist_fd9f7bb5",
-     "npc_coven_adept_kael_thresh_3024",
-     "npc_coven_guardian_ren_halsk_304",
-     "npc_coven_medic_lyra_senn_9664",
-     "npc_coven_technician_mira_vex_2944",
-     "npc_high_archivist_meroz_3824",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "applied[].applied": {
     "types": [
@@ -7277,12 +7200,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "dm_01",
-     "player_01",
-     "player_02",
-     "player_03"
-    ]
+    "values": "freeform"
    },
    "agent_type": {
     "types": [
@@ -8708,9 +8626,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "dm_01"
-    ]
+    "values": "freeform"
    },
    "context.round": {
     "numeric": true,
@@ -10108,9 +10024,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "dm_01"
-    ]
+    "values": "freeform"
    },
    "agent_type": {
     "types": [
@@ -10219,9 +10133,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "player_01"
-    ]
+    "values": "freeform"
    },
    "confidence": {
     "types": [
