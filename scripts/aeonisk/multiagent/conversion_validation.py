@@ -12,6 +12,70 @@ from difflib import SequenceMatcher
 logger = logging.getLogger(__name__)
 
 
+#: Resolutions that assert a *physical* state for the subject, and are therefore
+#: falsifiable against `character_state`. An arrest, a negotiated surrender or a
+#: retreat assert nothing of the kind — and they are the lawful outcomes the
+#: II.8 off-ramp exists to make reachable, so they must keep passing unharmed.
+PHYSICAL_RESOLUTIONS = frozenset({"subdued", "killed"})
+
+
+def _shows_harm(subject) -> bool:
+    """Has the oracle recorded anything happening to this entity?"""
+    if not getattr(subject, "is_active", True):
+        return True
+    if (getattr(subject, "wounds", 0) or 0) > 0:
+        return True
+    if (getattr(subject, "stuns", 0) or 0) > 0:
+        return True
+    health = getattr(subject, "health", None)
+    max_health = getattr(subject, "max_health", None)
+    if isinstance(health, int) and isinstance(max_health, int):
+        return health < max_health
+    return False
+
+
+def validate_conversion_claim(resolution, subject) -> Tuple[bool, str]:
+    """Reject a conversion asserting harm the log says never happened (#138).
+
+    The DM named the wrong entity in a structured `enemy_id` while its own prose
+    named the right one, and the only existing check was that the id exists in
+    the roster. An untouched cultist became a prisoner, the tranquilised boss
+    stayed a notional enemy, and the session's typed record reported nobody
+    harmed — with all twenty-one invariants passing.
+
+    No rules model is needed to catch it: "subdued" and "killed" claim a
+    physical state, and `character_state` is the oracle for that.
+    """
+    value = getattr(resolution, "value", resolution)
+    if str(value).lower() not in PHYSICAL_RESOLUTIONS:
+        return (True, "")
+    if _shows_harm(subject):
+        return (True, "")
+
+    name = getattr(subject, "name", None) or getattr(subject, "agent_id", "?")
+    health = getattr(subject, "health", "?")
+    max_health = getattr(subject, "max_health", "?")
+    return (False,
+            f"conversion claims {name} was {value}, but the oracle shows "
+            f"{health}/{max_health} HP, no wounds and no stuns — the entity was "
+            f"never touched")
+
+
+def enemies_to_snapshot(enemy_agents):
+    """Every spawned enemy, active or not (#138).
+
+    `character_state` used to skip enemies whose `is_active` had gone False, so
+    an enemy stopped being snapshotted at the moment it became interesting: a
+    boss tranquilised during round-1 resolution had **zero** rows in the whole
+    session and no mention in `session_end`. The defeat is precisely the row
+    worth keeping — it is the harm record.
+
+    The NPC loop six lines below already carries this lesson in a comment; it
+    was never applied to enemies.
+    """
+    return list(enemy_agents or [])
+
+
 def find_closest_agent_id(
     invalid_id: str,
     valid_agent_ids: List[str],

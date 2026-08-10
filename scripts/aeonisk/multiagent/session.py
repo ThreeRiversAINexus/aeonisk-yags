@@ -4066,6 +4066,21 @@ Generate narratives (numbered list only):"""
                             enemy = next((e for e in self.enemy_combat.enemy_agents
                                         if e.agent_id == enemy_conversion.enemy_id), None)
 
+                            # A valid id is not a true claim (#138). The DM named
+                            # the wrong entity in `enemy_id` while its own prose
+                            # named the right one, and "exists in the roster" was
+                            # the whole check — so an untouched cultist became a
+                            # prisoner and the tranquilised boss stayed hostile.
+                            if enemy is not None:
+                                from .conversion_validation import validate_conversion_claim
+                                claim_ok, claim_error = validate_conversion_claim(
+                                    enemy_conversion.resolution, enemy)
+                                if not claim_ok:
+                                    logger.warning(
+                                        f"Rejecting enemy conversion: {claim_error}")
+                                    print(f"\n⚠️  Rejected conversion: {claim_error}")
+                                    continue
+
                             if enemy and enemy.is_active:
                                 from .schemas.story_events import EnemyResolution
 
@@ -4477,12 +4492,18 @@ Generate narratives (numbered list only):"""
 
                 # Log character state snapshots for all active enemies (for ML training/balance analysis)
                 if self.enemy_combat.enabled:
-                    for enemy in self.enemy_combat.enemy_agents:
-                        if enemy.is_active:  # Only log active enemies
-                            mechanics.jsonl_logger.log_character_state(
-                                round_num=mechanics.current_round,
-                                **character_state_row(enemy, mechanics, agent='enemy')
-                            )
+                    # Every spawned enemy, active or not (#138). Gating on
+                    # is_active stopped snapshotting an enemy at the moment it
+                    # became interesting: a boss tranquilised during round-1
+                    # resolution had zero rows in the whole session and no
+                    # mention in session_end, so the record reported nobody
+                    # harmed. The defeat is the row worth keeping.
+                    from .conversion_validation import enemies_to_snapshot
+                    for enemy in enemies_to_snapshot(self.enemy_combat.enemy_agents):
+                        mechanics.jsonl_logger.log_character_state(
+                            round_num=mechanics.current_round,
+                            **character_state_row(enemy, mechanics, agent='enemy')
+                        )
 
                 # ...and for active NPCs. Without this an entity de-escalated to
                 # prisoner vanished from the oracle at the moment of arrest —
