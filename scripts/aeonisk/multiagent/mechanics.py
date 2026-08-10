@@ -5900,6 +5900,13 @@ def apply_mixed_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
     # Mixed damage stuns are CUMULATIVE (different from pure stun)
     old_stuns = getattr(target, 'stuns', 0)
     new_stuns = old_stuns + stun_damage
+    # Clamp upward only, exactly as apply_stun_damage does (#117). This path
+    # used to bypass MAX_STUNS entirely, which is why real character_state rows
+    # reach 28 and seven of the eight recorded ko_checks sit above the cap.
+    # `min(new, MAX_STUNS)` alone would REDUCE an already-over-cap entity, so
+    # taking damage would heal it — the #91 clamp bug.
+    new_stuns = min(new_stuns, max(MAX_STUNS, old_stuns))
+    stun_damage = max(0, new_stuns - old_stuns)
     target.stuns = new_stuns
     stun_effect = get_stun_effect(new_stuns)
 
