@@ -10,6 +10,10 @@ pytest==8.4.2
 pytest-cov==7.0.0
 coverage==7.11.0
 
+# Property-based testing (#102). Shrinking is the point: a failing 40-step
+# sequence is unreadable without a minimal repro.
+hypothesis==6.140.3
+
 # Code Formatting
 black==25.9.0
 isort==7.0.0
