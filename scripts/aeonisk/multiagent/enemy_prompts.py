@@ -466,10 +466,25 @@ def _get_void_status(void_score: int) -> str:
 
 
 def _format_recent_outcomes(recent_narrations: List[str]) -> str:
-    """Format recent action outcomes section."""
-    section = """## 📖 RECENT ACTION OUTCOMES
+    """Format recent action outcomes section.
+
+    Two defects lived here (#140). The string was not an f-string, so the model
+    received the literal `{"=" * 60}` — every sibling section in this module
+    uses an f-string and rendered correctly, which is why it went unnoticed.
+
+    And the header asserted a round that had not happened. In round 1 the list
+    holds *this* round's earlier actions, and Ysolde's declaration reasoning
+    duly reported that "Sergeant Corin Ireveth just declared non-lethal intent
+    last round" — a temporal confabulation the harness had told her to make.
+    Anything mining enemy reasoning for tactical quality would have scored that
+    against the model.
+
+    The players' block already labels the same content correctly, as
+    "Declared Actions This Round (Initiative Order)".
+    """
+    section = f"""## 📖 RECENT ACTION OUTCOMES
 {"=" * 60}
-What just happened in the previous round:
+What has happened so far, most recent last:
 
 """
     for i, narration in enumerate(recent_narrations, 1):

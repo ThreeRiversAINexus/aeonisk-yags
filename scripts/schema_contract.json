@@ -28,6 +28,7 @@
   "llm_request_start",
   "mission_debrief",
   "morale_check",
+  "name_match",
   "narrative_memory",
   "npc_departure",
   "post_resolution_adjudication",
@@ -67,9 +68,12 @@
      "Cold Tarn",
      "Confessor-Investigator Nera Mereth",
      "Coven Adept Kael Thresh",
+     "Coven Archivist Mev",
      "Coven Guardian Ren Halsk",
      "Coven Medic Lyra Senn",
+     "Coven Shaper Talis",
      "Coven Technician Mira Vex",
+     "Coven Technician Rael",
      "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
@@ -181,6 +185,7 @@
     "values": [
      "corpse_loot",
      "environmental_loot",
+     "lattice_anchor",
      "reliquary extraction",
      "supply_cache"
     ]
@@ -1067,6 +1072,8 @@
     ],
     "values": [
      "<None>",
+     "Stun Baton (STUN)",
+     "Stun Gun",
      "Tranquilizer Gun",
      "Unarmed"
     ]
@@ -2705,9 +2712,12 @@
      "Cold Tarn",
      "Confessor-Investigator Nera Mereth",
      "Coven Adept Kael Thresh",
+     "Coven Archivist Mev",
      "Coven Guardian Ren Halsk",
      "Coven Medic Lyra Senn",
+     "Coven Shaper Talis",
      "Coven Technician Mira Vex",
+     "Coven Technician Rael",
      "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
@@ -2748,9 +2758,12 @@
      "Cold Tarn",
      "Confessor-Investigator Nera Mereth",
      "Coven Adept Kael Thresh",
+     "Coven Archivist Mev",
      "Coven Guardian Ren Halsk",
      "Coven Medic Lyra Senn",
+     "Coven Shaper Talis",
      "Coven Technician Mira Vex",
+     "Coven Technician Rael",
      "Dray Vusk",
      "Drifter Sable",
      "Enforcer Kael Dren",
@@ -2885,6 +2898,7 @@
     "values": [
      "corpse_loot",
      "environmental_loot",
+     "lattice_anchor",
      "reliquary extraction",
      "supply_cache"
     ]
@@ -3313,9 +3327,11 @@
      "Guns",
      "Insight",
      "Intimidation",
+     "Melee",
      "None",
      "Stealth",
      "Systems",
+     "Tech/Craft",
      "null"
     ]
    },
@@ -3449,48 +3465,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Alert Overwatch",
-     "Astral Bound",
-     "Astral Strain",
-     "Calm",
-     "Calm Coordination",
-     "Calm Overwatch",
-     "Calm Presence",
-     "Calm Restraint",
-     "Calmed",
-     "Clear Lane",
-     "Controlled Lane",
-     "Controlled Perimeter",
-     "Controlled Restraint",
-     "Coordinated",
-     "Coordinated Overwatch",
-     "Coordinated Watch",
-     "Covered Perimeter",
-     "Covering Position",
-     "Emboldened",
-     "Focused",
-     "Forewarned",
-     "Observed",
-     "Off-Balance",
-     "Overwatch",
-     "Psychic Strain",
-     "Restrained",
-     "Revealed",
-     "Ritual Backlash",
-     "Ritual Disruption",
-     "Sedated",
-     "Separated",
-     "Stunned",
-     "Suppressed",
-     "Suppressed Fire",
-     "Tactical Advantage",
-     "Tactical Coordination",
-     "Tense",
-     "Tightened Restraints",
-     "Undetected",
-     "Wavering"
-    ]
+    "values": "freeform"
    },
    "conditions[].penalty": {
     "numeric": true,
@@ -3502,48 +3477,7 @@
     "types": [
      "str"
     ],
-    "values": [
-     "Alert Overwatch",
-     "Astral Bound",
-     "Astral Strain",
-     "Calm",
-     "Calm Coordination",
-     "Calm Overwatch",
-     "Calm Presence",
-     "Calm Restraint",
-     "Calmed",
-     "Clear Lane",
-     "Controlled Lane",
-     "Controlled Perimeter",
-     "Controlled Restraint",
-     "Coordinated",
-     "Coordinated Overwatch",
-     "Coordinated Watch",
-     "Covered Perimeter",
-     "Covering Position",
-     "Emboldened",
-     "Focused",
-     "Forewarned",
-     "Observed",
-     "Off-Balance",
-     "Overwatch",
-     "Psychic Strain",
-     "Restrained",
-     "Revealed",
-     "Ritual Backlash",
-     "Ritual Disruption",
-     "Sedated",
-     "Separated",
-     "Stunned",
-     "Suppressed",
-     "Suppressed Fire",
-     "Tactical Advantage",
-     "Tactical Coordination",
-     "Tense",
-     "Tightened Restraints",
-     "Undetected",
-     "Wavering"
-    ]
+    "values": "freeform"
    },
    "correlation_id": {
     "types": [
@@ -4385,6 +4319,7 @@
     ],
     "values": [
      "<None>",
+     "Stun Baton (STUN)",
      "Tranquilizer Gun"
     ]
    },
@@ -4829,6 +4764,7 @@
      "Repo agents are dispatched, bond pressure intensifies, and the party risks immediate financial seizure or detention.",
      "Repo agents arrive to seize assets, detain debtors, or initiate bond-collection proceedings.",
      "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: outcome out_b296ff079f0f is rendered by multiple segments",
+     "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_001_setup_and_corin_shot uses death language for living outcomes",
      "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_1 includes unauthorized viewers; allowed viewers are ['dm', 'player_02']",
      "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_1 reverses outcome order; list source_outcome_ids in ascending resolution order; segment seg_2 appears out of chronological order; order segments so each one's earliest source outcome comes no earlier than the previous segment's earliest",
      "Round synthesis failed validation after bounded retries: Outcome-first synthesis exhausted validation attempts: segment seg_1 reverses outcome order; segment seg_1 includes unauthorized viewers; allowed viewers are ['dm', 'player_02']; segment seg_2 includes unauthorized viewers; allowed viewers are ['dm', 'player_02']; outcome out_0e6d33d18a9c is rendered by multiple segments; outcome out_7ce64a6",
@@ -6410,6 +6346,149 @@
      "critical_stuns",
      "hp_below_25"
     ]
+   }
+  },
+  "name_match": {
+   "@round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "agent_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "candidates": {
+    "types": [
+     "list"
+    ]
+   },
+   "character_name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Sergeant Corin Ireveth"
+    ]
+   },
+   "correlation_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "declared": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Tranquilizer Gun"
+    ]
+   },
+   "declared_class": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "stun"
+    ]
+   },
+   "escalated": {
+    "types": [
+     "bool"
+    ],
+    "values": [
+     "False"
+    ]
+   },
+   "event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "event_type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "name_match"
+    ]
+   },
+   "field": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "weapon"
+    ]
+   },
+   "outcome": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "matched"
+    ]
+   },
+   "parent_event_id": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "path": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "exact"
+    ]
+   },
+   "reason": {
+    "types": [
+     "NoneType"
+    ],
+    "values": [
+     "<None>"
+    ]
+   },
+   "resolved_damage_type": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "stun"
+    ]
+   },
+   "resolved_name": {
+    "types": [
+     "str"
+    ],
+    "values": [
+     "Tranquilizer Gun"
+    ]
+   },
+   "round": {
+    "numeric": true,
+    "types": [
+     "int"
+    ]
+   },
+   "session": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
+   },
+   "ts": {
+    "types": [
+     "str"
+    ],
+    "values": "freeform"
    }
   },
   "narrative_memory": {

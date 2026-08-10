@@ -35,7 +35,7 @@ in exchange for a guard that no longer aborts sessions on correct behaviour.
 
 import pytest
 
-from scripts.aeonisk.multiagent.outcome_pipeline import (
+from aeonisk.multiagent.outcome_pipeline import (
     CoverageEntry, EntityStateSnapshot, NarrativeSegment,
     OutcomeRoundSynthesis, StateClaim, SynthesisValidationError,
     validate_outcome_synthesis,
