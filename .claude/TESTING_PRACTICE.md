@@ -118,6 +118,41 @@ behaviour, an issue carries the evidence, the fix is its own reviewable change.
 Keeps test PRs green and makes each behaviour change deliberate. Use
 `xfail(strict=True)` for a known defect so it flips the moment it is fixed.
 
+**Verify a prompt change with one call, not a session.** A session takes fifteen
+minutes, costs real money, and changes a hundred variables at once — so it tells
+you *a* narration, not whether your change caused it. Build the payload the
+model would receive, make a single call, and diff the output.
+
+#141 is the worked example. A Heavy Machine Gun was narrated as "a crackling
+bolt of void energy". Rather than re-run the scenario, the recorded
+`applied_outcome` was rebuilt with `weapon` populated and pushed through one
+`generate_structured` call on the same model:
+
+| `weapon` | narration |
+|---|---|
+| `null` | "she hurls a crackling bolt of void energy … the dark lightning streaks toward Corin" |
+| `"Heavy Machine Gun"` | "her heavy machine gun roaring to life in a sustained, deafening burst … the rounds slam into Corin" |
+
+One field, one call, a controlled result. The recipe:
+
+1. pull the real event out of a session with `session_extract`, never by hand;
+2. rebuild the model object from it (`AppliedOutcome(**body)`);
+3. mutate the single field under test;
+4. render exactly what the engine renders — for synthesis that is
+   `prose_safe_outcome_payload`, not the raw object;
+5. one `generate_structured` call, same model and system prompt as production.
+
+Step 4 is the one that bites. **`prose_safe_outcome_payload` is a whitelist**:
+a field on `AppliedOutcome` that is not listed there never reaches the narrator,
+however faithfully it was populated. #141's fix was one whitelist entry away
+from shipping as a no-op with passing tests. Had it been checked by running a
+session instead, the prose would still have said "void energy" and the obvious
+conclusion — that the fix did not work — would have pointed at the wrong layer
+entirely.
+
+Free half first: assert the field survives into the rendered payload as an
+ordinary unit test. Only spend the call to see what the model does with it.
+
 ---
 
 ## Discovery vs verification
