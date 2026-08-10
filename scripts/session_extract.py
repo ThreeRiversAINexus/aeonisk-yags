@@ -211,3 +211,165 @@ def torture_sessions(*roots: str, scenario_key: str = 'confessors') -> List[str]
                 continue
             out.append(f)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Domain samples — corpus events as pure-function inputs
+# ---------------------------------------------------------------------------
+# These feed `domain_mine.py`, which distils them into a small committed
+# snapshot. The output directories are gitignored and get cleared, so the
+# snapshot is the durable artefact and these functions are the harvest.
+
+
+def provenance(events: Iterable[dict]) -> Dict[str, Any]:
+    """Which engine produced this session.
+
+    A sample outlives the file it came from, so it carries its own origin.
+    `-dirty` means the tree had uncommitted changes: the commit does not
+    identify the code that ran, and 37% of the corpus is in that state.
+
+    Round-range fixtures have no `session_start`; that is not an error.
+    """
+    for e in events:
+        if e.get('event_type') != 'session_start':
+            continue
+        raw = e.get('git_commit') or ''
+        dirty = raw.endswith('-dirty')
+        return {
+            'session': e.get('session'),
+            'git_commit': (raw[:-len('-dirty')] if dirty else raw) or None,
+            'dirty': dirty,
+        }
+    return {'session': None, 'git_commit': None, 'dirty': False}
+
+
+def ko_check_rows(events: Iterable[dict]) -> List[dict]:
+    """`ko_check` events: every input AND every output, including the roll.
+
+    Eight events corpus-wide, and worth more than the thousands that record one
+    side only — the expected value is the engine's own recorded answer, so
+    nothing about it is assumed. `resolve_ko_check(..., roll=)` takes the same
+    injected roll, which makes these exactly reproducible.
+
+    Written flat rather than nested under `data` (`session.py:_log_ko_check`).
+    """
+    required = ('stuns', 'wounds', 'health_attr', 'roll')
+    out = []
+    for e in events:
+        if e.get('event_type') != 'ko_check':
+            continue
+        b = _event_body(e)
+        if any(b.get(k) is None for k in required):
+            continue
+        out.append({
+            'round': e.get('round'),
+            'name': b.get('name'),
+            'side': b.get('side'),
+            'stuns': b.get('stuns'),
+            'wounds': b.get('wounds'),
+            'health_attr': b.get('health_attr'),
+            'roll': b.get('roll'),
+            'dc': b.get('dc'),
+            'total': b.get('total'),
+            'can_act': b.get('can_act'),
+            'status': b.get('status'),
+        })
+    return out
+
+
+def body_states(events: Iterable[dict]) -> List[dict]:
+    """Joint `(health, wounds, stuns, ...)` tuples from `character_state`.
+
+    Joint, not marginal: the damage functions consume a whole body, and
+    `schema_mine`'s per-field ranges cannot say which values co-occurred. The
+    corpus holds 4,166 of these rows but only ~114 distinct tuples, which is
+    the entire argument for pairing extraction with extrapolation.
+
+    `stuns` stays None where it was never logged. None means "not recorded";
+    folding it to 0 would invent a measurement.
+    """
+    out = []
+    for e in events:
+        if e.get('event_type') != 'character_state':
+            continue
+        b = _event_body(e)
+        out.append({
+            'round': e.get('round'),
+            'character_name': b.get('character_name'),
+            'agent': b.get('agent'),
+            'health': b.get('health'),
+            'max_health': b.get('max_health'),
+            'wounds': b.get('wounds'),
+            'stuns': b.get('stuns'),
+            'void_score': b.get('void_score'),
+            'soulcredit': b.get('soulcredit'),
+            'is_defeated': b.get('is_defeated'),
+            'death_state': b.get('death_state'),
+        })
+    return out
+
+
+def damage_applications(events: Iterable[dict]) -> List[dict]:
+    """`combat_action` damage with the defender's state on both sides.
+
+    Only `defender_state_after` is logged, so the input state is back-derived —
+    `pre.wounds = after.wounds - wounds_dealt`, `pre.health = after.health +
+    dealt` — the same derivation `mechanics_replay.py` uses.
+
+    `damage_type` is passed through untouched, including the 80 real events
+    where it is null. Substituting a default would conceal whatever the damage
+    functions do with a missing type.
+    """
+    out = []
+    for e in events:
+        if e.get('event_type') != 'combat_action':
+            continue
+        b = _event_body(e)
+        dmg = b.get('damage') or {}
+        dealt = dmg.get('dealt')
+        if dealt is None:
+            continue
+        after = b.get('defender_state_after') or {}
+        wounds_dealt = b.get('wounds_dealt') or 0
+        pre = {}
+        if after.get('wounds') is not None:
+            pre['wounds'] = after['wounds'] - wounds_dealt
+        if after.get('health') is not None:
+            pre['health'] = after['health'] + dealt
+        out.append({
+            'round': e.get('round'),
+            'defender_id': (b.get('defender') or {}).get('id'),
+            'defender_name': (b.get('defender') or {}).get('name'),
+            'weapon': b.get('weapon'),
+            'dealt': dealt,
+            'damage_type': dmg.get('damage_type'),
+            'wounds_dealt': wounds_dealt,
+            'pre': pre,
+            'after': after,
+        })
+    return out
+
+
+def healing_applications(events: Iterable[dict]) -> List[dict]:
+    """`healing_applied` events — a 1:1 fixture for `apply_healing`.
+
+    `heal_type` is exactly the {'hp','stun','wound'} argument the function
+    takes, and `apply_healing` raises ValueError on anything else, so the
+    observed vocabulary is worth asserting against.
+    """
+    out = []
+    for e in events:
+        if e.get('event_type') != 'healing_applied':
+            continue
+        b = _event_body(e)
+        out.append({
+            'round': e.get('round'),
+            'target_name': b.get('target_name'),
+            'heal_type': b.get('heal_type'),
+            'amount': b.get('amount'),
+            'hp_restored': b.get('hp_restored'),
+            'stun_removed': b.get('stun_removed'),
+            'wounds_reduced': b.get('wounds_reduced'),
+            'after': b.get('target_state_after') or {},
+        })
+    return out
