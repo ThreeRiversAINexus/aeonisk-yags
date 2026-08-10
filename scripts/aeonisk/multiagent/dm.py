@@ -162,47 +162,143 @@ def _resolve_weapon_and_damage_type(
     if not player_agent or not hasattr(player_agent, 'equipped_weapons'):
         return ("Unknown Weapon", "wound", None)
 
-    skill = (action.get('skill') or '').lower()  # models may return skill: null
-    primary = player_agent.equipped_weapons.get('primary')
-    sidearm = player_agent.equipped_weapons.get('sidearm')
+    # Resolve once per declaration. This function is called four times per
+    # attack — prompt building (:427), the Soulcredit lock (:6429),
+    # combat_action logging (:6725) and structured effects (:8590) — so
+    # resolving per read would emit four name_match rows for one declaration
+    # and inflate the very rate the event exists to measure. Memoised after the
+    # agent lookup, never before: an early return here means `agent_id` was
+    # missing, and caching that would poison the later calls that have it.
+    cached = action.get(_WEAPON_RESOLUTION_KEY)
+    if cached is not None:
+        return cached
 
-    # An explicitly declared weapon wins over the skill heuristic below, and the
-    # search includes carried weapons. Selecting purely by skill meant any Guns
-    # action returned the lethal primary, so a character holding both a carbine
-    # and a tranquilizer could never fire the tranquilizer — the II.8 lawful
-    # subdue path was unreachable, and attempts at it were resolved as killings.
-    # The prompt already instructs players to name their weapon; there was
-    # simply nowhere structured to put the answer.
-    declared = (action.get('weapon') or '').strip()
-    if declared:
-        owned = [w for w in (primary, sidearm) if w is not None]
-        owned += list(getattr(player_agent, 'weapon_inventory', None) or [])
-        match = _match_declared_weapon(declared, owned)
-        if match is not None:
-            return (match.name, getattr(match, 'damage_type', 'wound'), match)
-        # A weapon the character does not own falls through to the skill
-        # heuristic: naming one must never confer its properties.
-        logger.debug(
-            f"Declared weapon {declared!r} not in inventory; resolving by skill")
+    result, event = _compute_weapon_resolution(action, player_agent)
+    action[_WEAPON_RESOLUTION_KEY] = result
+    if event is not None:
+        _log_name_match(shared_state, action, event)
+    return result
 
+
+#: Where the memoised (name, damage_type, weapon) tuple lives on an action dict.
+_WEAPON_RESOLUTION_KEY = '_weapon_resolution'
+
+#: stun < mixed < wound. Used only to decide whether a resolution came out more
+#: lethal than the class the actor asked for.
+_LETHALITY = {'stun': 0, 'mixed': 1, 'wound': 2}
+
+
+def _first_of_class(damage_class: str, held: list):
+    """The first held weapon of a damage class, equipped before carried."""
+    return next((w for w in held
+                 if getattr(w, 'damage_type', None) == damage_class), None)
+
+
+def _resolve_by_skill(skill: str, primary, sidearm):
+    """The original slot heuristic, unchanged, for when no name was declared."""
     if skill in ['guns', 'throw'] and primary:
         return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
     elif skill == 'brawl':
         if sidearm and getattr(sidearm, 'skill', '') == 'Brawl':
             return (sidearm.name, getattr(sidearm, 'damage_type', 'stun'), sidearm)
-        else:
-            # Unarmed — use fists from WEAPON_LIBRARY
-            from .weapons import WEAPON_LIBRARY
-            fists = WEAPON_LIBRARY.get("fists")
-            return ("Unarmed", "stun", fists)
+        # Unarmed — use fists from WEAPON_LIBRARY
+        from .weapons import WEAPON_LIBRARY
+        return ("Unarmed", "stun", WEAPON_LIBRARY.get("fists"))
     elif skill == 'melee' and sidearm:
         return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
     elif primary:
         return (primary.name, getattr(primary, 'damage_type', 'wound'), primary)
     elif sidearm:
         return (sidearm.name, getattr(sidearm, 'damage_type', 'wound'), sidearm)
-
     return ("Unknown Weapon", "wound", None)
+
+
+def _compute_weapon_resolution(action, player_agent):
+    """(name, damage_type, weapon) for a declaration, plus the row describing how.
+
+    Order: the declared name, then the declared damage class, then the slot
+    heuristic. The middle rung is the #131 fix — a declaration naming a weapon
+    the character does not hold still states a lethality class, and honouring
+    that is what makes the lawful-subdue off-ramp reachable.
+
+    There is deliberately no Unarmed rung when nothing of the class is held.
+    Unarmed is `is_ranged=False` with every range band at 0 and `damage=0`, so
+    substituting it into a ranged attack manufactures a whiff that cannot reach
+    the target. When an actor asks for non-lethal and holds none, there is no
+    off-ramp to take; the event records that instead of inventing one.
+    """
+    from .resolution import declared_damage_class
+
+    skill = (action.get('skill') or '').lower()  # models may return skill: null
+    primary = player_agent.equipped_weapons.get('primary')
+    sidearm = player_agent.equipped_weapons.get('sidearm')
+
+    declared = (action.get('weapon') or '').strip()
+    if not declared:
+        # No name to match, so no name_match row, and no need to walk the
+        # inventory — the slot heuristic only reads the equipped pair.
+        return _resolve_by_skill(skill, primary, sidearm), None
+
+    held = [w for w in (primary, sidearm) if w is not None]
+    held += list(getattr(player_agent, 'weapon_inventory', None) or [])
+
+    wanted = declared_damage_class(declared)
+    resolution = _resolve_declared_weapon(declared, held)
+
+    def row(result, outcome):
+        name, damage_type, _ = result
+        escalated = bool(
+            wanted and damage_type
+            and _LETHALITY.get(damage_type, 0) > _LETHALITY.get(wanted, 0))
+        return {
+            'field': 'weapon',
+            'declared': declared,
+            'candidates': [w.name for w in held if getattr(w, 'name', None)],
+            'path': resolution.path,
+            'reason': resolution.reason,
+            'outcome': outcome,
+            'declared_class': wanted,
+            'resolved_name': name,
+            'resolved_damage_type': damage_type,
+            'escalated': escalated,
+        }
+
+    if resolution.value is not None:
+        weapon = resolution.value
+        result = (weapon.name, getattr(weapon, 'damage_type', 'wound'), weapon)
+        return result, row(result, 'matched')
+
+    if wanted:
+        preferred = _first_of_class(wanted, held)
+        if preferred is not None:
+            result = (preferred.name,
+                      getattr(preferred, 'damage_type', 'wound'), preferred)
+            return result, row(result, 'class_fallback')
+
+    logger.debug(f"Declared weapon {declared!r} did not resolve "
+                 f"({resolution.reason}); resolving by skill")
+    result = _resolve_by_skill(skill, primary, sidearm)
+    return result, row(result, 'skill_fallback')
+
+
+def _log_name_match(shared_state, action, row) -> None:
+    """Best-effort: a logging failure must never interrupt play."""
+    try:
+        engine = None
+        if hasattr(shared_state, 'get_mechanics_engine'):
+            engine = shared_state.get_mechanics_engine()
+        engine = engine or getattr(shared_state, 'mechanics_engine', None)
+        jsonl = getattr(engine, 'jsonl_logger', None)
+        if not jsonl or not hasattr(jsonl, 'log_name_match'):
+            return
+        jsonl.log_name_match(
+            round_num=getattr(engine, 'current_round', 0),
+            agent_id=action.get('agent_id', 'unknown'),
+            character_name=(action.get('character_name')
+                            or action.get('character') or 'Unknown'),
+            **row)
+    except Exception as exc:  # pragma: no cover - never break a session
+        logger.debug(f"Failed to log name_match: {exc}")
 
 
 def _targeting_trigger_reason(error: Optional[str]) -> str:

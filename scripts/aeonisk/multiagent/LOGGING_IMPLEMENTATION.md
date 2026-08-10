@@ -13,7 +13,7 @@ Comprehensive JSONL logging system for ML training, gameplay balance analysis, a
 
 ---
 
-## Event Types Catalog (33 Total)
+## Event Types Catalog (34 Total)
 
 All events include base fields: `event_type`, `ts`, `session`
 Schema v1.2.0+ events also include: `event_id`, `parent_event_id`, `correlation_id` (causal chain tracking)
@@ -84,9 +84,10 @@ Schema v1.2.0+ events also include: `event_id`, `parent_event_id`, `correlation_
 |------------|-------------|-----------------|
 | `targeting_validation` | Targeting correction | round, agent_id, original_target, correction_method, triggered_by, success |
 
-### Meta/System Events (5)
+### Meta/System Events (6)
 | Event Type | Description | Required Fields |
 |------------|-------------|-----------------|
+| `name_match` | How a declared name resolved to a held thing (#134) | round, agent_id, character_name, field, declared, candidates, path, outcome, declared_class, resolved_name, resolved_damage_type, escalated |
 | `llm_call` | LLM API call logging | agent_id, agent_type, call_sequence, prompt, response, model, temperature, tokens |
 | `marker_retry_attempt` | Invalid marker retry | round, marker_type, invalid_markers, retry_prompt |
 | `marker_retry_result` | Retry outcome | round, marker_type, retry_response, success |

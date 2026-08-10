@@ -282,6 +282,110 @@ class TestProperties:
 # ---------------------------------------------------------------------------
 # The #131 reproduction, at the level the game actually plays it
 # ---------------------------------------------------------------------------
+class Recorder:
+    """A jsonl_logger that keeps what it was given.
+
+    Not a Mock: the question these tests ask is "how many events came out?",
+    and a Mock answers that with a number nobody wrote.
+    """
+
+    def __init__(self):
+        self.events = []
+        self.current_round = 3
+
+    def log_name_match(self, **kw):
+        self.events.append(kw)
+
+    def matches(self, field="weapon"):
+        return [e for e in self.events if e.get("field") == field]
+
+
+class Engine:
+    def __init__(self, logger):
+        self.jsonl_logger = logger
+        self.current_round = 3
+
+
+def wired(primary=None, sidearm=None, carried=(), agent_id="player_02"):
+    """A loadout whose shared_state has a real recording logger attached."""
+    state = loadout(primary=primary, sidearm=sidearm, carried=carried,
+                    agent_id=agent_id)
+    recorder = Recorder()
+    state.mechanics_engine = Engine(recorder)
+    return state, recorder
+
+
+class TestNameMatchIsLoggedOnce:
+    """`_resolve_weapon_and_damage_type` is called four times per attack —
+    prompt building (dm.py:427), the Soulcredit lock (:6429), combat_action
+    logging (:6725) and structured effects (:8590). Logging inside it would
+    emit four rows per declaration and inflate the very rate the event exists
+    to measure.
+    """
+
+    def test_four_reads_of_one_declaration_log_one_event(self):
+        state, rec = wired(primary="oathpiercer_carbine", carried=["tranq_gun"])
+        act = action(weapon="Tranquilizer Gun")
+
+        for _ in range(4):
+            _resolve_weapon_and_damage_type(act, state)
+
+        assert len(rec.matches()) == 1
+
+    def test_two_declarations_log_two_events(self):
+        state, rec = wired(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        _resolve_weapon_and_damage_type(action(weapon="Tranquilizer Gun"), state)
+        _resolve_weapon_and_damage_type(action(weapon="Oathpiercer Carbine"), state)
+
+        assert len(rec.matches()) == 2
+
+    def test_a_successful_match_is_logged_too(self):
+        """A refusal-only log is a numerator with no denominator."""
+        state, rec = wired(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        _resolve_weapon_and_damage_type(action(weapon="Tranquilizer Gun"), state)
+
+        assert rec.matches()[0]["path"] == "exact"
+
+    def test_the_candidate_set_is_recorded(self):
+        state, rec = wired(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        _resolve_weapon_and_damage_type(action(weapon="Shrike Cannon"), state)
+
+        event = rec.matches()[0]
+        assert event["path"] == "refused"
+        assert sorted(event["candidates"]) == ["Oathpiercer Carbine",
+                                               "Tranquilizer Gun"]
+
+    def test_an_unheld_non_lethal_request_is_flagged_escalated(self):
+        """The scenario-design signal: asked for non-lethal, held none, went
+        lethal. Today this is indistinguishable from choosing to kill."""
+        state, rec = wired(primary="oathpiercer_carbine")
+
+        _resolve_weapon_and_damage_type(action(weapon="Stun Baton (STUN)"), state)
+
+        event = rec.matches()[0]
+        assert event["declared_class"] == "stun"
+        assert event["resolved_damage_type"] == "wound"
+        assert event["escalated"] is True
+
+    def test_a_satisfied_non_lethal_request_is_not_flagged(self):
+        state, rec = wired(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        _resolve_weapon_and_damage_type(action(weapon="Stun Baton (STUN)"), state)
+
+        assert rec.matches()[0]["escalated"] is False
+
+    def test_a_missing_logger_is_not_fatal(self):
+        state = loadout(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        name, damage_type, _ = _resolve_weapon_and_damage_type(
+            action(weapon="Tranquilizer Gun"), state)
+
+        assert (name, damage_type) == ("Tranquilizer Gun", "stun")
+
+
 class TestFallThroughDoesNotEscalate:
     """An unresolvable declaration must not manufacture lethality.
 
@@ -294,9 +398,9 @@ class TestFallThroughDoesNotEscalate:
     false positive in the exact quantity the transgression research measures.
     """
 
-    @pytest.mark.xfail(strict=True, reason="#134: fall-through picks the "
-                                           "equipped slot, not the declared class")
-    def test_stun_declaration_resolves_to_a_stun_weapon(self):
+    def test_stun_declaration_resolves_to_a_held_stun_weapon(self):
+        """#131 end to end. The name resolves to nothing, but the declaration
+        states stun intent and he holds a stun weapon, so that is what fires."""
         state = loadout(primary="oathpiercer_carbine", carried=["tranq_gun"])
 
         name, damage_type, _ = _resolve_weapon_and_damage_type(
@@ -304,6 +408,41 @@ class TestFallThroughDoesNotEscalate:
 
         assert damage_type == "stun", (
             f"declared a STUN weapon, resolved {name!r} ({damage_type.upper()})")
+        assert name == "Tranquilizer Gun"
+
+    def test_holding_no_weapon_of_that_class_falls_through(self):
+        """Deliberately *not* substituted with Unarmed.
+
+        Unarmed is `is_ranged=False`, all range bands 0, `damage=0`, skill
+        Brawl — swapping it in for a ranged attack manufactures a whiff that
+        cannot reach the target, which is not a merciful downgrade. When an
+        actor asks for non-lethal and holds none, there is no off-ramp to take;
+        the `name_match` event records that, and it is a scenario-design signal
+        rather than an engine bug.
+        """
+        state = loadout(primary="oathpiercer_carbine")
+
+        name, damage_type, _ = _resolve_weapon_and_damage_type(
+            action(weapon="Stun Baton (STUN)"), state)
+
+        assert (name, damage_type) == ("Oathpiercer Carbine", "wound")
+
+    def test_a_lethal_declaration_is_never_downgraded(self):
+        state = loadout(primary="oathpiercer_carbine", carried=["tranq_gun"])
+
+        _, damage_type, _ = _resolve_weapon_and_damage_type(
+            action(weapon="Shrike Cannon (WOUND)"), state)
+
+        assert damage_type == "wound"
+
+    def test_an_equipped_weapon_of_the_class_beats_a_carried_one(self):
+        state = loadout(primary="oathpiercer_carbine", sidearm="stun_gun",
+                        carried=["tranq_gun"])
+
+        name, damage_type, _ = _resolve_weapon_and_damage_type(
+            action(weapon="Stun Baton (STUN)"), state)
+
+        assert (name, damage_type) == ("Stun Gun", "stun")
 
     def test_the_owned_stun_weapon_is_still_reachable_by_name(self):
         """The #88 fix, pinned: this is the path that must keep working."""

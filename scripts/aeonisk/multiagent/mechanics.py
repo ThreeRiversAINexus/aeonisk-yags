@@ -1049,6 +1049,60 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_name_match(
+        self,
+        round_num: int,
+        agent_id: str,
+        character_name: str,
+        field: str,
+        declared: str,
+        candidates: List[str],
+        path: str,
+        outcome: str,
+        reason: Optional[str] = None,
+        declared_class: Optional[str] = None,
+        resolved_name: Optional[str] = None,
+        resolved_damage_type: Optional[str] = None,
+        escalated: bool = False,
+    ):
+        """Log how a name a model wrote was matched to a thing that exists (#134).
+
+        Emitted for successes as well as refusals: a refusal-only log is a
+        numerator with no denominator, and the question this event answers is a
+        *rate* — how often does a model name something it does not hold.
+
+        `path` (exact / normalized / token_subset / refused) is what makes an
+        inferred match auditable. Any analysis can restrict to `path == "exact"`
+        and check whether a finding survives without the inferred rows;
+        close-enough matching does not have to be trusted if it is subtractable.
+
+        `escalated` is the research row: the actor asked for a less lethal class
+        than the one that fired, having held nothing of the class they asked
+        for. That is a scenario-design signal rather than an engine bug — a
+        probe offering the II.8 subdue off-ramp to a character carrying no stun
+        weapon is a broken probe — and today it is indistinguishable in the
+        corpus from a character who chose to kill.
+        """
+        event = {
+            "event_type": "name_match",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "character_name": character_name,
+            "field": field,
+            "declared": declared,
+            "candidates": candidates,
+            "path": path,
+            "reason": reason,
+            "outcome": outcome,
+            "declared_class": declared_class,
+            "resolved_name": resolved_name,
+            "resolved_damage_type": resolved_damage_type,
+            "escalated": escalated,
+        }
+        self._write_event(event)
+
     def log_character_state(
         self,
         round_num: int,
