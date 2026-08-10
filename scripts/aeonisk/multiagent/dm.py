@@ -1446,6 +1446,27 @@ class Scenario:
             self.active_vendors = []
 
 
+
+def active_enemy_count(shared_state) -> int:
+    """How many enemies are actually in play.
+
+    Enemies live on `enemy_combat`, not on `SharedState` (#120). Three call
+    sites here guarded on `hasattr(self.shared_state, 'enemy_agents')`, an
+    attribute that has never existed, so all three branches were dead and
+    silent — a hasattr guard against a missing attribute simply never fires.
+
+    Two of them fed DM prompt context, so `"Outnumbered ("` appeared 0 times in
+    60,728 recorded LLM events: the DM has never once been told it was
+    outnumbered.
+
+    Inactive enemies are excluded — a defeated tombstone must not inflate the
+    number the DM reasons about.
+    """
+    combat = getattr(shared_state, "enemy_combat", None) if shared_state else None
+    return sum(1 for e in (getattr(combat, "enemy_agents", None) or [])
+               if getattr(e, "is_active", True))
+
+
 class AIDMAgent(Agent):
     """
     AI Dungeon Master agent that orchestrates scenarios, controls NPCs,
@@ -3397,10 +3418,9 @@ Apply this narrative style to:
                 parts.append(pos_desc)
 
         # Add enemy count if available
-        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
-            enemy_count = len(self.shared_state.enemy_agents)
-            if enemy_count > 0:
-                parts.append(f"{enemy_count} enem{'ies' if enemy_count != 1 else 'y'}")
+        enemy_count = active_enemy_count(self.shared_state)
+        if enemy_count > 0:
+            parts.append(f"{enemy_count} enem{'ies' if enemy_count != 1 else 'y'}")
 
         # Add void level if high
         if self.current_scenario and self.current_scenario.void_level >= 5:
@@ -3453,10 +3473,9 @@ Apply this narrative style to:
                 stakes.append(f"Neglected objectives: {', '.join(near_failure_clocks)}")
 
         # Combat pressure
-        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
-            enemy_count = len(self.shared_state.enemy_agents)
-            if enemy_count >= 3:
-                stakes.append(f"Outnumbered ({enemy_count} enemies)")
+        enemy_count = active_enemy_count(self.shared_state)
+        if enemy_count >= 3:
+            stakes.append(f"Outnumbered ({enemy_count} enemies)")
 
         return "; ".join(stakes) if stakes else "Standard risk scenario"
 
@@ -10371,12 +10390,22 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             current_round=current_round
         )
 
-        # Remove from NPC pool, add to enemy pool
+        # Remove from NPC pool, add to enemy pool. Enemies live on
+        # enemy_combat, never on SharedState (#120) — the old guard here tested
+        # `hasattr(self.shared_state, 'enemy_agents')`, which has never been
+        # true, so this branch never ran: the NPC was removed and the escalated
+        # enemy was added nowhere, deleting the entity.
         self.shared_state.remove_npc(escalation.npc_id)
-        # Note: enemy needs to be added to enemy_agents in SharedState
-        # This is typically done in enemy_combat module, but we'll add directly here
-        if hasattr(self.shared_state, 'enemy_agents'):
-            self.shared_state.enemy_agents.append(enemy)
+        combat = getattr(self.shared_state, 'enemy_combat', None)
+        if combat is not None and hasattr(combat, 'enemy_agents'):
+            combat.enemy_agents.append(enemy)
+            if hasattr(combat, 'issued_enemy_ids'):
+                combat.issued_enemy_ids.add(enemy.agent_id)
+        else:
+            logger.error(
+                f"Escalation of {escalation.npc_id} has nowhere to go: no "
+                f"enemy_combat on shared_state. The entity would be lost.")
+            return None
 
         logger.info(f"Escalated {npc.name} ({escalation.npc_id}) → Enemy (template: {escalation.template})")
         logger.info(f"Reason: {escalation.reason}")
