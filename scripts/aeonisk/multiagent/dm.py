@@ -1513,7 +1513,8 @@ class AIDMAgent(Agent):
         if not llm_client:
             from .llm_provider import LLMConfig, create_provider
             try:
-                provider_config = LLMConfig.from_dict(self.llm_config, max_tokens=4000)
+                provider_config = LLMConfig.from_dict(
+                    self.llm_config, max_tokens=4000, agent_id=self.agent_id)
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:

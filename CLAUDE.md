@@ -235,6 +235,16 @@ python -m pytest tests/unit/test_bulk_runner.py -v
 
 ### Test-Driven Development (TDD) - MANDATORY
 
+**How this engine is tested: see `.claude/TESTING_PRACTICE.md`.** It documents the
+six modes (extract / recombine / extrapolate / oracle rows / mutation / property)
+and the standing rules. Read it before adding tests to a new surface.
+
+The one rule, because a green suite is not evidence: **a check that cannot fail
+is worse than no check.** Nine engine defects were found in one audit while the
+suite was green at 4,317 tests, and three of those tests were concealing bugs.
+Every test family must be *shown* to fail — break the thing it guards, watch it
+go red, put it back.
+
 **CRITICAL:** All code changes MUST be driven by tests written FIRST.
 
 1. **Write failing tests BEFORE writing implementation code**
@@ -696,8 +706,15 @@ All 73 session configs and 8 Python modules now conform to YAGS + Aeonisk standa
 ## Session Testing & Configuration
 
 **Division of Labor:**
-- **Human runs:** Multi-agent sessions (`python3 scripts/run_multiagent_session.py <config>`)
 - **Claude runs:** Unit tests (`python -m pytest tests/unit/<test_file>.py -v`)
+- **Multi-agent sessions:** either party. Claude may run them when asked — these
+  cost real API spend, so confirm scope first and prefer the 2-round smoke config
+  over a full run. Use `scripts/session_status.py <dir> --wait` to detect
+  completion or a stall (exit-coded); do not poll with `pgrep`, which matches the
+  polling command itself.
+- **Free alternatives before spending:** replay a recorded session
+  (`"provider": "scripted"`), mine the corpus (`scripts/domain_mine.py`), or run
+  the invariants over existing output. Most questions do not need a new session.
 
 ### Session Config Validation (TDD)
 

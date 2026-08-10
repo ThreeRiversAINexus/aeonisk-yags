@@ -180,3 +180,36 @@ def test_live_corpus_matches_frozen_contract():
         "if intentional, regenerate: python scripts/schema_mine.py --contract "
         "--out scripts/schema_contract.json\n  " + "\n  ".join(drift)
     )
+
+
+def test_entity_keyed_maps_never_mine_as_schema_fields():
+    """Enemy ids carry a uuid suffix (`enemy_spawner.py:87`), so any map keyed by
+    entity id mints "new schema fields" on every single session.
+
+    `soulcredit_states` shipped without that registration and drifted the
+    contract the first time a session with enemies was mined — the same defect
+    class as #104, in a field added during the same audit.
+    """
+    from scripts.schema_mine import DYNAMIC_KEY_PARENTS, build_contract, mine
+    import json
+    import tempfile
+    import os
+
+    for parent in ("final_state.soulcredit_states", "state_summary.soulcredit_states"):
+        assert parent in DYNAMIC_KEY_PARENTS, f"{parent} is keyed by entity id"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "session_x.jsonl")
+        with open(path, "w") as fh:
+            fh.write(json.dumps({
+                "event_type": "session_end",
+                "data": {"final_state": {"soulcredit_states": {
+                    "enemy_boss_2937e857": {"score": -3, "changes": 1}}}},
+            }) + "\n")
+
+        contract = build_contract(*mine([path])[:2])
+
+    fields = contract["schema"]["session_end"]
+    assert "final_state.soulcredit_states.*" in fields
+    assert not any("2937e857" in path for path in fields), \
+        "a random enemy id leaked into the frozen contract"

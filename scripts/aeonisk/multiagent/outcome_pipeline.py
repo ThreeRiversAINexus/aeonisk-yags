@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import logging
 import re
 import uuid
@@ -86,10 +87,34 @@ class ObservableFact(BaseModel):
         return value
 
 
+_outcome_counter = itertools.count(1)
+_adjudication_counter = itertools.count(1)
+
+
+def reset_outcome_ids() -> None:
+    """Restart outcome/adjudication numbering. Called once per session.
+
+    These were `uuid.uuid4().hex[:12]`, so a replayed session minted different
+    ids than the recording. The DM's recorded synthesis references outcomes by
+    id (`coverage references unknown outcome out_1119991e3ee8`), so every
+    reference dangled, validation rejected the synthesis, and the retry pushed
+    the whole call stream out of alignment.
+
+    A counter rather than a seeded RNG on purpose: dice already draw from the
+    session's `random` stream, and minting ids from the same stream would make
+    every id depend on how many rolls happened first.
+    """
+    global _outcome_counter, _adjudication_counter
+    _outcome_counter = itertools.count(1)
+    _adjudication_counter = itertools.count(1)
+
+
 class AppliedOutcome(BaseModel):
     schema_version: str = SCHEMA_VERSION
-    outcome_id: str = Field(default_factory=lambda: f"out_{uuid.uuid4().hex[:12]}")
-    adjudication_id: str = Field(default_factory=lambda: f"adj_{uuid.uuid4().hex[:12]}")
+    outcome_id: str = Field(
+        default_factory=lambda: f"out_{next(_outcome_counter):06d}")
+    adjudication_id: str = Field(
+        default_factory=lambda: f"adj_{next(_adjudication_counter):06d}")
     declaration_event_id: Optional[str] = None
     round: int
     sequence: int

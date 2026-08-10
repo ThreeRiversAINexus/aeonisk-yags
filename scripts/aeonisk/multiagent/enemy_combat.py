@@ -163,6 +163,16 @@ class EnemyCombatManager:
 
     def __init__(self, shared_state=None):
         self.enemy_agents: List[EnemyAgent] = []
+        # Every enemy id issued this session, including retired ones. Defeated
+        # enemies leave `enemy_agents` (`self.enemy_agents = surviving`), so the
+        # live roster cannot decide uniqueness — reissuing a dead unit's id
+        # would collide with its identity in the JSONL log.
+        self.issued_enemy_ids: set = set()
+        # One provider per enemy, keyed by agent_id. Enemies used to share the
+        # manager's single provider, which meant replay had one stream to serve
+        # every enemy from and could not match any of them.
+        self._enemy_providers: Dict[str, Any] = {}
+        self._enemy_llm_config: Optional[Dict[str, Any]] = None
         self.shared_intel = SharedIntel()
         self.enemy_declarations: Dict[str, EnemyDeclaration] = {}
         self.current_round: int = 0
@@ -175,6 +185,34 @@ class EnemyCombatManager:
         self.llm_provider = None
         # LLM Call Logger for JSONL token tracking - set by session.py after init
         self.llm_logger = None
+
+    def provider_for(self, enemy: Any):
+        """The provider serving one enemy's calls.
+
+        Enemies shared `self.llm_provider`, so every enemy's calls came off one
+        stream — replay (keyed on `(agent_id, call_sequence)`) could not tell
+        them apart and served none of them. Threading `agent_id` through
+        `LLMConfig.from_dict` is the same mechanism `player.py:332` uses.
+
+        Falls back to the manager-level provider if no per-enemy config was
+        captured, so behaviour is unchanged when construction failed.
+        """
+        agent_id = getattr(enemy, 'agent_id', None)
+        if not agent_id or not self._enemy_llm_config:
+            return self.llm_provider
+
+        if agent_id not in self._enemy_providers:
+            from .llm_provider import LLMConfig, create_provider
+            try:
+                self._enemy_providers[agent_id] = create_provider(
+                    LLMConfig.from_dict(self._enemy_llm_config,
+                                        max_tokens=4000, agent_id=agent_id))
+            except Exception as exc:
+                logger.warning(
+                    f"Enemy {agent_id}: could not build a dedicated provider "
+                    f"({exc}); falling back to the shared one")
+                self._enemy_providers[agent_id] = self.llm_provider
+        return self._enemy_providers[agent_id]
 
     def _get_agent_name(self, agent: Any, fallback_id: str) -> str:
         """
@@ -259,8 +297,13 @@ class EnemyCombatManager:
                 if enemy_llm_config:
                     from .llm_provider import LLMConfig
 
+                    # Kept for callers that have no specific enemy in hand; the
+                    # per-enemy providers below are what actually serve
+                    # declarations, so each enemy owns its own response stream
+                    # (the DM and players already work this way).
                     config = LLMConfig.from_dict(enemy_llm_config, max_tokens=4000)
                     self.llm_provider = create_provider(config)
+                    self._enemy_llm_config = enemy_llm_config
                     logger.debug(f"EnemyCombatManager: Using {config_source} LLM config ({config.provider}:{config.model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
@@ -345,9 +388,11 @@ class EnemyCombatManager:
                     tactics_override=spawn.custom_traits or "adaptive",
                     current_round=self.current_round,
                     faction=spawn.faction,
+                    taken_ids=self.issued_enemy_ids,
                 )
 
                 if enemy:
+                    self.issued_enemy_ids.add(enemy.agent_id)
                     self.enemy_agents.append(enemy)
                     notifications.append(
                         f"⚔️  **{enemy.name}** spawned! "
@@ -756,7 +801,7 @@ class EnemyCombatManager:
             # Note: LLM only generates tactical fields, we populate identity after
             system_prompt = f"You are {enemy.name}, an enemy combatant making tactical decisions."
 
-            enemy_decision: EnemyDecision = await self.llm_provider.generate_structured(
+            enemy_decision: EnemyDecision = await self.provider_for(enemy).generate_structured(
                 prompt=prompt,
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,

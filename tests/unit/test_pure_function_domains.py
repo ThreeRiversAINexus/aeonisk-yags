@@ -8,9 +8,20 @@ that is how the stun-cap clamp bug was found in code merged the same morning:
     start=9 stuns, take 0 damage -> ends at 8
 
 `min(new, MAX_STUNS)` pulled an entity already above the cap back down, so taking
-damage healed it. **No live session could have surfaced it** — the engine cannot
-itself produce stuns above the cap, so the state is only reachable via
-resume_state or a legacy save.
+damage healed it.
+
+That claim was originally written as "no live session could have surfaced it —
+the engine cannot itself produce stuns above the cap." **That was wrong.**
+Mining the corpus (`domain_mine.py`) found real `character_state` rows with
+stuns up to 28, and every recorded `ko_check` but one sits above the cap. The
+source is `apply_mixed_damage`, which adds stuns cumulatively and — unlike
+`apply_stun_damage` — never clamps them. So the state was reachable all along;
+what made it invisible was this file testing values nobody measured.
+
+Which is the argument for `test_corpus_domains.py` alongside this file. The
+ranges below are guesses, and two of them were too narrow: real health reaches
+55 against `HEALTHS` stopping at 30, and real stuns reach 28 against `STUNS`
+stopping at 10.
 
 These tests assert *properties over whole domains* rather than picking examples.
 Where a domain is too large to enumerate, sample it densely rather than guessing

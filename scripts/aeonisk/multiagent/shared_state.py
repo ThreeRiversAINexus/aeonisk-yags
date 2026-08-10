@@ -239,6 +239,11 @@ class SharedState:
     # NPC agents (non-combatant agents with simple LLM)
     npc_agents: List[Any] = field(default_factory=list)
 
+    # Every NPC id issued this session, retired ones included. NPCs leave
+    # `npc_agents` on removal or escalation, so the live list cannot decide
+    # uniqueness without risking a reissued identity in the log.
+    issued_npc_ids: Set[str] = field(default_factory=set)
+
     # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
     current_vendors: List[Any] = field(default_factory=list)
 
@@ -565,6 +570,9 @@ Generate something DIFFERENT from these recent scenarios.
             npc: NPCAgent instance to track
         """
         self.npc_agents.append(npc)
+        agent_id = getattr(npc, 'agent_id', None)
+        if agent_id:
+            self.issued_npc_ids.add(agent_id)
 
     def get_npc(self, agent_id: str) -> Optional[Any]:
         """

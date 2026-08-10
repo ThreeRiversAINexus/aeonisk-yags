@@ -779,7 +779,12 @@ class EnemyFallbackLLMClient:
             # Use llm_provider instead of direct Anthropic client
             from .llm_provider import LLMConfig, create_provider
 
-            provider_config = LLMConfig.from_dict(llm_config, max_tokens=500)
+            # agent_id must reach the provider: the client already knows which
+            # enemy it serves, and replay selects a response stream by it.
+            # Without this every enemy's provider looked anonymous and replay
+            # found no recorded calls for any of them.
+            provider_config = LLMConfig.from_dict(
+                llm_config, max_tokens=500, agent_id=agent_id)
             self.provider = create_provider(provider_config)
 
     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
@@ -933,6 +938,10 @@ class SelfPlayingSession:
             random_seed = int(time.time() * 1000) % (2**31)
         self.random_seed = random_seed
         random.seed(random_seed)
+        # Outcome ids are referenced by the DM's synthesis, so they have to come
+        # out the same on a replay of the same session.
+        from .outcome_pipeline import reset_outcome_ids
+        reset_outcome_ids()
         if replay_mode:
             print(f"🔁 Replay mode - Random seed: {random_seed}")
         else:
@@ -4148,7 +4157,7 @@ Generate narratives (numbered list only):"""
                     # Process NPC spawns from conversion check
                     if conversion_decisions.npc_spawns and self.shared_state:
                         from .schemas.story_events import NPCSpawn
-                        from .npc_agent import NPCAgent
+                        from .npc_agent import NPCAgent, next_npc_agent_id
 
                         # Collect PC names to prevent NPC spawns that duplicate player characters
                         pc_names = set()
@@ -4176,7 +4185,8 @@ Generate narratives (numbered list only):"""
 
                             # Create NPC agent
                             npc = NPCAgent(
-                                agent_id=f"npc_{uuid.uuid4().hex[:8]}",
+                                agent_id=next_npc_agent_id(
+                                    npc_spawn.name, self.shared_state.issued_npc_ids),
                                 name=npc_spawn.name,
                                 faction=npc_spawn.faction,
                                 disposition=npc_spawn.disposition,
@@ -7684,7 +7694,7 @@ NO conversions/morale checks needed (scene just started).
                     # Process NPC spawns for new scene
                     if post_advancement_decisions.npc_spawns and self.shared_state:
                         from .schemas.story_events import NPCSpawn
-                        from .npc_agent import NPCAgent
+                        from .npc_agent import NPCAgent, next_npc_agent_id
                         import uuid
 
                         # Collect PC names to prevent NPC spawns that duplicate player characters
@@ -7708,7 +7718,8 @@ NO conversions/morale checks needed (scene just started).
                                 continue
 
                             npc = NPCAgent(
-                                agent_id=f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
+                                agent_id=next_npc_agent_id(
+                                    npc_spawn.name, self.shared_state.issued_npc_ids),
                                 name=npc_spawn.name,
                                 entity_type=npc_spawn.entity_type,
                                 threat_level=npc_spawn.threat_level,

@@ -829,10 +829,23 @@ def has_errors(violations: List[Violation]) -> bool:
 
 
 def _iter_sessions(paths: List[str]):
+    """Discover session files by content, not by filename.
+
+    `session_*.jsonl` skipped 7 of the 12 fixtures — all four goldens among them
+    — and said nothing, so `session_invariants.py tests/fixtures/sessions`
+    reported "Scanned 5 session(s)" over a directory of 12. `schema_mine.py` had
+    the identical hole; `test_session_file_discovery.py` now pins the two tools
+    to the same answer, since it was their drifting apart that hid this.
+    """
+    from schema_mine import looks_like_session
+
     for p in paths:
         if os.path.isdir(p):
-            yield from sorted(glob.glob(f"{p}/**/session_*.jsonl", recursive=True))
+            yield from sorted(
+                path for path in glob.glob(f"{p}/**/*.jsonl", recursive=True)
+                if looks_like_session(path))
         else:
+            # An explicit path is honoured as given, never sniffed away.
             yield p
 
 
