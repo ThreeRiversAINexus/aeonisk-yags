@@ -123,6 +123,13 @@ class AppliedOutcome(BaseModel):
     actor_narrative_name: str
     intent: str
     method: Optional[str] = None
+    # The narrator was handed intent="attack", method="attack",
+    # applied_effects={} and "The attempt succeeds." — and nothing else — so it
+    # invented a weapon from faction flavour: a Heavy Machine Gun burst became
+    # "a crackling bolt of void energy" (#141). Carrying the resolved weapon
+    # here is the structured fix; a checker would only have flagged the symptom.
+    weapon: Optional[str] = None
+    damage_type: Optional[str] = None
     target_ids: List[str] = Field(default_factory=list)
     target_names: List[str] = Field(default_factory=list)
     declared_dialogue: Optional[str] = None
@@ -395,19 +402,43 @@ def _changed_states(
     return changed_before, changed_after
 
 
+def _weapon_of(action: Dict[str, Any]) -> tuple:
+    """The weapon this action actually used, and its damage class (#141).
+
+    Prefers the resolution memoised on the action by
+    `dm._resolve_weapon_and_damage_type` (#134), which is what the mechanics
+    applied, over `action["weapon"]`, which is only what the actor asked for —
+    the gap between those two is the whole of #131.
+    """
+    if not isinstance(action, dict):
+        return (None, None)
+    resolved = action.get("_weapon_resolution")
+    if isinstance(resolved, (tuple, list)) and len(resolved) >= 2:
+        name, dtype = resolved[0], resolved[1]
+        if name and name != "Unknown Weapon":
+            return (name, dtype)
+    declared = action.get("weapon")
+    return ((declared or None), None)
+
+
 def _observable_facts(
     actor_id: str,
     intent: str,
     success: bool,
     before: Dict[str, EntityStateSnapshot],
     after: Dict[str, EntityStateSnapshot],
+    weapon: Optional[str] = None,
 ) -> List[ObservableFact]:
+    # A weapon name is fiction, not mechanics — it carries no number and leaks
+    # nothing, and without it the narrator has only faction flavour to go on.
+    with_weapon = f" with the {weapon}" if weapon else ""
     facts = [ObservableFact(
         fact_kind="success" if success else "failure",
         subject_id=actor_id,
         causing_actor_id=actor_id,
         symbolic_value="succeeded" if success else "failed",
-        prose_safe_summary=f"The attempt {'succeeds' if success else 'fails'}.",
+        prose_safe_summary=(
+            f"The attempt{with_weapon} {'succeeds' if success else 'fails'}."),
     )]
     for entity_id, new in after.items():
         old = before.get(entity_id)
@@ -524,8 +555,9 @@ def build_applied_outcome(
             target_names.append(snap.narrative_name)
         else:
             target_ids.append(str(target))
+    weapon, damage_type = _weapon_of(action)
     facts = _observable_facts(actor_id, action.get("intent", "acts"), success,
-                              changed_before, changed_after)
+                              changed_before, changed_after, weapon)
     dialogue = action.get("dialogue_content")
     ambient = action.get("ambient_speech")
     if not dialogue and isinstance(ambient, dict):
@@ -565,6 +597,8 @@ def build_applied_outcome(
         applied_effects=effects if isinstance(effects, dict) else {},
         entity_states_before=changed_before,
         entity_states_after=changed_after,
+        weapon=weapon,
+        damage_type=damage_type,
         observable_facts=facts,
         prohibited_claims=prohibited,
         visibility=_effective_visibility(
@@ -586,6 +620,12 @@ def prose_safe_outcome_payload(outcomes: Sequence[AppliedOutcome]) -> List[Dict[
             "actor_name": outcome.actor_narrative_name,
             "intent": outcome.intent,
             "method": outcome.method,
+            # Explicit, not merely embedded in a fact summary: this payload is a
+            # whitelist, so a field absent here never reaches the narrator no
+            # matter what the outcome carries. A weapon name is fiction — no
+            # number, no registry label — and without it the model narrated a
+            # Heavy Machine Gun as void lightning (#141).
+            "weapon": outcome.weapon,
             "target_names": outcome.target_names,
             "declared_dialogue": outcome.declared_dialogue,
             "facts": [fact.model_dump() for fact in outcome.observable_facts],
