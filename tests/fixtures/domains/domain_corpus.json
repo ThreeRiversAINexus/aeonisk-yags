@@ -1,0 +1,6725 @@
+{
+ "domains": {
+  "dealt": {
+   "max": 28,
+   "min": 0
+  },
+  "heal_amount": {
+   "max": 36,
+   "min": 0
+  },
+  "health": {
+   "max": 55,
+   "min": 0
+  },
+  "max_health": {
+   "max": 55,
+   "min": 12
+  },
+  "soulcredit": {
+   "max": 10,
+   "min": -10
+  },
+  "stuns": {
+   "max": 28,
+   "min": 0
+  },
+  "void_score": {
+   "max": 9,
+   "min": 0
+  },
+  "wounds": {
+   "max": 8,
+   "min": 0
+  }
+ },
+ "provenance": {
+  "commits": {
+   "01a26c8": {
+    "date": "2026-07-07",
+    "session_ids": [
+     "a1d97d48-f3b5-4203-b470-bcaf121c22d0",
+     "c00daebe-4e75-465c-b29c-91deb31d956e"
+    ],
+    "sessions": 2
+   },
+   "01ec51f": {
+    "date": "2026-06-15",
+    "session_ids": [
+     "7026f79a-bf35-479e-841d-75557e381737",
+     "87d569bc-9de0-42fb-8ab5-dc2e3353c5b1",
+     "9f39b780-179a-4127-9183-dea58cfd0115",
+     "a4605e6c-af1f-43bd-8fe9-91d7d3f47721",
+     "b199fccd-68c5-416f-97c3-b5373829a763"
+    ],
+    "sessions": 5
+   },
+   "07e2a7c": {
+    "date": "2026-08-09",
+    "session_ids": [
+     "74a6268b-16db-44b0-8c8e-47a82243ebad"
+    ],
+    "sessions": 1
+   },
+   "0e84a2d": {
+    "date": "2026-07-08",
+    "session_ids": [
+     "057670a2-2d09-46ef-8655-30d5205faac0",
+     "7540f8b6-e7e7-408a-b40f-e18d106e92c1",
+     "808c81b8-3748-41fb-9f27-2ac9086b7add",
+     "cc9680d4-de0c-4f0c-ac93-186301bd06df",
+     "eaed715b-46c6-426d-ac5f-bc17ff081adf"
+    ],
+    "sessions": 5
+   },
+   "10cb91c": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "2ac00c5b-6104-43d0-a1d5-e033b2958dc1",
+     "3cafb0b2-b213-4add-b436-0bda972a390e",
+     "513036ea-b62d-40d1-955a-9ff07a005171",
+     "5475ad06-0f58-4f6d-bfaa-642144befe57",
+     "60b2a1d1-313b-4724-a47c-0eb3db14166a",
+     "716da584-5a8a-4742-93a2-70422b30ece9",
+     "74c2ec93-1f24-4881-be30-30d130d230e5",
+     "791b18e3-ac99-4f92-9e5a-c045db6d8f31",
+     "7b101e8f-0184-43d2-8dc1-7b5979613d97",
+     "7b528d43-a547-4724-a4f1-65bdaadcf6c2",
+     "812d2a3e-075f-4f1e-9a44-f6240d3af0ce",
+     "83edd718-ccbe-4b05-a956-8a0da7f3a9b7",
+     "8df83ad6-88ad-4ec5-869e-258c05ce93b3",
+     "a52284bc-8f52-4000-adc9-eb358c93a316",
+     "b1501d19-f2c2-4ca7-aad3-6aa2198ef422",
+     "ceea8ba4-f068-4a45-a140-0c0c7d1801bc",
+     "dab5cdaa-ae7a-484b-95e1-46175b82882f",
+     "e39f51e6-68f7-4c64-a402-7460b814a4a2",
+     "f74c3d91-5b85-48d9-b50e-f71e20b96346",
+     "f9c2326d-5cc0-489d-86dc-e38919784a0a"
+    ],
+    "sessions": 20
+   },
+   "11f295d": {
+    "date": "2026-07-02",
+    "session_ids": [
+     "3a26a70d-e1a1-48e4-b3e0-ef4d3d2d89ce",
+     "474dc9b5-28c6-4730-86c6-e577719a7f21",
+     "ed9c2edb-05a7-40b0-8ef4-7c23e187afbe"
+    ],
+    "sessions": 3
+   },
+   "1464a81": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "68c0620c-fa67-4a14-b249-5d0f5b638782"
+    ],
+    "sessions": 1
+   },
+   "1788da6": {
+    "date": "2026-07-05",
+    "session_ids": [
+     "0536a5e9-2951-416c-a1b7-4d512a9889cb"
+    ],
+    "sessions": 1
+   },
+   "1d59fdb": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "0801d707-938d-4dce-b8fc-9c7e7b8cb9db",
+     "3b18217c-e25d-4332-bfbd-6c32fb864ee0",
+     "9e6f64df-0b3c-4e14-b69d-b0f6678e862e",
+     "a2d7936c-e44d-47fd-85e7-bf7a4b001e61",
+     "b7f43216-9522-4a5a-85a4-8ca75db616ac",
+     "f671afb3-c75f-49c1-8c3b-f5f4771bf5f2"
+    ],
+    "sessions": 6
+   },
+   "24c07dd": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "06aa08ed-b1cb-4925-a23f-4dcc5b6ce661",
+     "1cf71c13-5cc6-43c3-bcb8-45668de7aee7",
+     "407c151d-9122-4bbe-b7a5-a94fcbcb1ebd",
+     "48b04054-5553-4a03-b8a0-63768e9eb1e3",
+     "559e0e7a-b5d0-405b-84dc-a7fc75034c49",
+     "8d2d0565-1ae8-488c-80e4-709290c39f4c",
+     "8fa0d840-fc58-4ff4-993a-83624049012d",
+     "a1136023-a74c-401a-ba5b-24073253c1d8",
+     "a40b2d05-f317-46aa-afa5-00bc64d3b94a",
+     "b578ad8a-2fb0-4b05-a4a2-e5d13aaa2634",
+     "b86b28ee-1e33-48ef-bd5a-e94d4014a2e1"
+    ],
+    "sessions": 11
+   },
+   "2696760": {
+    "date": "2026-07-05",
+    "session_ids": [
+     "0efec90e-17a2-4200-ac63-4396999f7d40",
+     "1986c152-12bd-40ee-be53-09b0abcfecdb",
+     "254414a2-7582-4c5f-9d27-e9df5113c432",
+     "30a6622f-5938-4c92-ab12-e9dd0c24a432",
+     "3bd575af-668d-4076-b9bb-2518f61393b3",
+     "3c29b18f-c8dd-4002-9c24-78f83360c373",
+     "6c34da3a-3962-4669-bcb0-1ee0b931604d",
+     "7dc8d803-1f93-4dca-a5fe-7e43b7a77701",
+     "8131825c-bf46-465d-ae2c-6bdd5bd977a0",
+     "87dd2c7c-af4d-41f4-a2d5-134f4508914d",
+     "8f2bbe80-e23b-40db-a84d-35e8871af02a",
+     "962d4c1a-3162-4d89-9d72-21fa430b2cac",
+     "99ec3d9f-3967-413e-b96f-3c94cd250584",
+     "9c353591-3b9b-4527-a21d-f317a5d3c0b4",
+     "a490c4c4-4203-4e4f-9346-b94e1f062d71",
+     "ac3b7acb-a32a-4b10-862c-c36d50450dd9",
+     "b2decb2a-42f3-443d-9d1c-7eaaabf5d615",
+     "cd733233-5e9a-4b54-b487-bce52be64dd5",
+     "d058b2aa-a8ea-4b89-8008-ee53102bd81e",
+     "e2919bd4-93f4-48fc-8ef3-50089bf83726",
+     "e790b3f2-bef6-45ac-947d-a3c18ba8ea1d",
+     "ed796a71-fa64-4eb1-b455-a6eb519916bd",
+     "f75cdae7-41aa-47c2-be05-8f8e1b6c4169",
+     "f8cf1e58-980a-4f01-aa89-1b1ec776d0fd"
+    ],
+    "sessions": 24
+   },
+   "2abcfe3": {
+    "date": "2026-07-20",
+    "session_ids": [
+     "a99aad2d-aa88-45e9-bb6d-e02d87d93fb2"
+    ],
+    "sessions": 1
+   },
+   "30cdff3": {
+    "date": "2026-07-06",
+    "session_ids": [
+     "79d0f80a-7200-4b53-b98a-17d619484a8d",
+     "b26aef4c-9e29-46b6-9f20-1bb8b6c1f618"
+    ],
+    "sessions": 2
+   },
+   "3ea67ec": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "9052cb25-e923-4676-909e-025b19ab7ded"
+    ],
+    "sessions": 1
+   },
+   "402d565": {
+    "date": "2026-08-09",
+    "session_ids": [
+     "467ce37f-2f93-43d2-ab2f-6dfd7948e36d"
+    ],
+    "sessions": 1
+   },
+   "433684f": {
+    "date": "2026-06-25",
+    "session_ids": [
+     "47229ef8-7f0e-4d36-a789-446550673d66",
+     "ebae28db-9f5e-488b-9b2d-670dbf2451b1"
+    ],
+    "sessions": 2
+   },
+   "5084a83": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "4cea2c88-5762-45de-823c-1455cd8f9ac5"
+    ],
+    "sessions": 1
+   },
+   "54243cd": {
+    "date": "2026-08-09",
+    "session_ids": [
+     "a8ca2b7f-6294-48ce-bf5d-2b00bb0c765c",
+     "af8c079a-e99d-4678-80c0-35a2f8e1f54f",
+     "d17d277d-6dcd-4a99-9512-c0f1d6f63be4",
+     "fa9d2891-db1d-48a7-9c34-241297a05ad0"
+    ],
+    "sessions": 4
+   },
+   "5535c75": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "23f2d559-efd3-4718-bcb8-3ba565fbe3ff",
+     "59fe7df6-e819-419b-bec5-93dcb3126b3f"
+    ],
+    "sessions": 2
+   },
+   "5a962ed": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "19f982b5-a772-4fd9-a634-b06474c0126d",
+     "3a7573c9-a081-48ff-8082-051ab813b662",
+     "4018cd27-ba18-4dd8-867a-9293a4f3a545",
+     "6122b9cd-7297-4464-8a1b-4188516d276e",
+     "7b056b85-32c5-48b2-919a-e000891b4312",
+     "82086f2a-9490-41c2-95e0-facc47350285",
+     "882a6b36-913a-4b9f-ab85-8e7926c03f5a",
+     "bb6a836f-88c8-40e5-b601-c1ec9e57ca11",
+     "cd685e1d-2967-4bf6-961b-90613817268b",
+     "da3f2b9a-7342-4772-8256-a68657230964",
+     "f43b78e8-6bbd-4cfe-862e-412a2bc8fb5f"
+    ],
+    "sessions": 11
+   },
+   "5ace7c9": {
+    "date": "2026-07-06",
+    "session_ids": [
+     "95078922-a34a-44a3-9bc4-5d6b708ca316",
+     "9b9209a2-206d-4b39-8258-bbab2194bcdf",
+     "b5d4a52d-0e95-48b8-986d-ce3d7027a9c4",
+     "ef3a1c7c-6ac1-4af3-9f4d-7c1750b219eb"
+    ],
+    "sessions": 4
+   },
+   "5da5bb0": {
+    "date": "2026-06-25",
+    "session_ids": [
+     "b044af70-bfc6-4cc6-a06d-561a1a61a9b3",
+     "cd8413ed-903f-4ccf-b9d5-9c8b57cda5c9"
+    ],
+    "sessions": 2
+   },
+   "608cb68": {
+    "date": "2026-07-07",
+    "session_ids": [
+     "0142c614-6aca-45ce-9b2d-020d0135bedd",
+     "69394f3c-bc92-44e8-9221-ec97ab18f7b7",
+     "92d49996-be80-415e-ac38-eed7f9fc910e",
+     "c98399fe-3e67-41c6-ac24-ec919f9ea1bc"
+    ],
+    "sessions": 4
+   },
+   "6cc2100": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "074c065a-f247-4801-a62c-0f2d01748ea0",
+     "0bbe36eb-04e9-4060-89d0-f85cc87f48de",
+     "0e1d401e-8723-43a4-aa32-6c9402e4155f",
+     "1eedda5c-4b97-4726-bab2-11763640035d",
+     "233ee958-0c67-4915-8271-cc8d093065fc",
+     "44948e04-bd0c-4cf3-b1ab-abb59d9d7f44",
+     "4f7cf08a-0700-4490-9851-f3353c34c0a1",
+     "53b116b2-33e8-432c-aaee-9c8f0b4e2945",
+     "5c5d54bb-7b0a-4a86-9a5c-cb28f49165b4",
+     "6aa6f225-9a32-4dfa-84b2-2fc93663396e",
+     "78ec8980-2bdc-4178-9ce3-a56fad32e67e",
+     "7ce082e5-c72d-44aa-90cc-69cab56d83aa",
+     "82650bf1-3eca-4998-93a2-e87a52ba0f34",
+     "a37a26bb-f497-4f9b-8abf-f6c9239137d8",
+     "a3fb7bd5-0fd3-4b66-9831-61d26a7d7183",
+     "a5a6add5-fbf7-4425-8278-c9bad6fd9bd9",
+     "af8f9245-d7f6-4990-b8cf-650cfe8a4de0",
+     "d684c05f-f28d-4d33-9044-1d99f427a83e",
+     "e663dd3f-32f1-4eed-a92a-9887fa784c95"
+    ],
+    "sessions": 19
+   },
+   "6ea11d2": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "06979322-5050-4fef-89cd-8c7d17ecfb84",
+     "291fb627-2112-4910-b08f-f1ca58e398e8",
+     "54cef182-bd83-47d5-bccf-9c848f3e87da",
+     "a6510395-b94b-4a07-b025-a4a8319cda6c",
+     "a86437fb-3d42-45e9-beba-00ec67fd6360",
+     "bc80abd8-2700-4b44-bdfe-4ce688742587",
+     "bf09b64d-26c7-4592-8b2d-e930b094f80b"
+    ],
+    "sessions": 7
+   },
+   "7747b96": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "024283d5-2cbb-4ab5-ac78-2502c7372407",
+     "03387109-f12a-462a-856f-b64fa1d69691",
+     "15c87c31-8310-4733-9a30-dcd38cdf163b",
+     "16619ef0-8124-4820-a62b-4395cd93c7c8",
+     "1afa0880-c36d-4fb3-9ac9-5b2f899ee5cd",
+     "1bd2c59d-0b72-4b46-a937-19e30d99a6ba",
+     "1c3a9a27-74d0-4a6a-9364-88e1c0bd5bf9",
+     "2a7794c6-91fa-45c5-9cab-bcca0f281a57",
+     "30d5bb49-5c02-4342-8f8f-fce4b53d3a7a",
+     "4e1d1dac-0e7a-4358-b11f-ebb58fb327e0",
+     "549e6d16-d176-4f4f-a616-0fde8c15cf92",
+     "57e8f0c5-ecf1-45a6-8e87-12d18f4adb5b",
+     "5c6d50d0-be02-4be0-8551-7b7c4ec87736",
+     "88a0a1eb-56c1-4219-9402-a1c69f6ba9e4",
+     "8b5dd62a-274a-4b21-8a87-481ad2d29b09",
+     "9495abef-9cdf-4f81-bd3e-e8cf5f6bb603",
+     "9ce2f430-fb52-4c7a-99b9-493fb40fe8c2",
+     "c125c4af-36f3-4ce2-86cd-e36178187126",
+     "c15f39f5-346e-49f8-9608-e48bc47bfda9",
+     "dd32993f-10be-4ad3-9c13-bf5d7a394d06",
+     "df859a9f-2862-4d62-810b-4e27ef2f1e21",
+     "f24779f8-097b-49a8-bf6a-aafe96906e40",
+     "f60630d4-ebcf-460e-81f3-2d972a2ee0e7",
+     "fb966ca7-9b1d-45c3-a235-0eaf671cedb9"
+    ],
+    "sessions": 24
+   },
+   "787f4ed": {
+    "date": "2026-07-03",
+    "session_ids": [
+     "147732dd-6144-498f-8739-263a3d48cce0",
+     "1ec909f7-9d01-434c-b486-4d84f5860d96",
+     "432a49d0-969f-4e87-8858-6194a6580141",
+     "6095df59-0f3d-47dd-94c7-f099df7f5977",
+     "646b9a55-9119-49e8-b028-ddda38df529c",
+     "a80aa209-e128-4ae9-8fe2-39d602eb8d36",
+     "b3a85a92-005a-48f8-bcc5-6c05ab0dc34c",
+     "bf8c4830-3f83-49ad-aedb-81bee19bd26b",
+     "dd67a878-ba77-4444-ad6b-e6fe3520830b"
+    ],
+    "sessions": 9
+   },
+   "80c28f9": {
+    "date": "2026-06-22",
+    "session_ids": [
+     "03c7020d-47f3-459d-9bc3-596008fd9353",
+     "11cba48f-a97f-4263-9583-e9e65e1e5c61",
+     "20355215-22b4-4dad-8fd2-81c05bea468e",
+     "446cf39a-8d79-4632-81de-39fb432d2503",
+     "567fa247-97fd-4b60-a966-91ead07477b5",
+     "65220576-1bc0-4a80-8849-e0124e73ff99",
+     "bbe37b91-ca1a-469f-bfe4-2de60277a3a2",
+     "de2424f0-9031-41d9-980b-41821f258d04",
+     "fafa9b6b-28dd-426a-aa57-a1f61451d1b6"
+    ],
+    "sessions": 9
+   },
+   "81868a8": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "9f6e9158-714b-4a21-a161-34e62464cf8d"
+    ],
+    "sessions": 1
+   },
+   "82ec107": {
+    "date": "2026-06-24",
+    "session_ids": [
+     "19a23726-2da2-4a73-b111-1c586a4fe0e3",
+     "34bc535b-b1d0-4345-a1a4-716a03dd1a26"
+    ],
+    "sessions": 2
+   },
+   "831e25a": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "4ab8dbc9-8fcc-4b15-965b-d19ee51eaf9b"
+    ],
+    "sessions": 1
+   },
+   "863662e": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "18bf96b9-e857-4f0b-9fe2-012105fafd9b",
+     "36145181-8a56-4345-90a0-b9acbfe69ddc",
+     "89807927-03ff-43f8-92a5-680816885c75",
+     "8bd7733e-ae97-41d9-b020-f547242456bc"
+    ],
+    "sessions": 4
+   },
+   "866236d": {
+    "date": "2026-06-25",
+    "session_ids": [
+     "186f7d7b-45db-4adb-926b-552431b689c2",
+     "5ab40e09-c401-4894-a728-3cd308daec8b",
+     "7afdfe91-0a49-4a2f-ad41-4b5caf88c396",
+     "8d462a4d-d9e0-4752-a316-478a15b304b8",
+     "ca989d79-e981-4362-95aa-86a803bd420d",
+     "d76889a6-8270-4f3c-ac97-a3ab240fd69d",
+     "e7079a11-0c02-4db4-af7b-8efde8fe62b1",
+     "f712f4d7-c8b9-4338-8679-a45c7c863772"
+    ],
+    "sessions": 8
+   },
+   "86b2b06": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "1ce0e8c3-18ae-4f07-8708-5d559916f627"
+    ],
+    "sessions": 1
+   },
+   "920f2b4": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "543eef9c-e2bc-4e94-acd5-2ca4fd7899ed"
+    ],
+    "sessions": 1
+   },
+   "9e67818": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "0c656ed6-d8b9-4fb3-871b-221d92a38695",
+     "461b270f-0146-4bfd-bb42-f68d4cfdbe24",
+     "49a1f23f-b961-437f-8d57-03f160f411f3",
+     "7899bf4b-bdf0-49ef-ab06-44bc14899a77",
+     "89338c08-e026-451b-86f8-2c8219e2d322",
+     "d34fb227-4767-4d35-b1aa-0a505ab1f723",
+     "eb109eb2-ee3a-4975-b72a-3cfee8e5ba6c"
+    ],
+    "sessions": 7
+   },
+   "a113780": {
+    "date": "2026-07-05",
+    "session_ids": [
+     "351e4750-5fda-4146-ac08-cd5cb689c826",
+     "c2dd2a20-569a-43a8-8542-1beb8c85d1a2",
+     "e2861a41-bea8-46f4-b723-e85698f314b0"
+    ],
+    "sessions": 3
+   },
+   "a27cf0c": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "1cc6f3b0-8451-438b-b470-08807dbfa76c"
+    ],
+    "sessions": 1
+   },
+   "a6294eb": {
+    "date": "2026-07-17",
+    "session_ids": [
+     "5c7e3352-8a94-4aa6-9e76-7ec521ec79e6"
+    ],
+    "sessions": 1
+   },
+   "aec2f1d": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "12b8dada-b6fc-425d-a86d-db3e9f7e2c19",
+     "613a8e28-0ac8-4260-8a3c-09d25fb925f7",
+     "8755e294-5b89-48ac-990e-3a7200b30133",
+     "a4d02b0c-d757-463d-9d24-4110856a3e09",
+     "c151cd49-e4bb-4109-aa37-7e112efc3910",
+     "c2ff1380-aa20-4375-8204-36c0380d4a4d",
+     "cfe5620a-99e8-41ba-b201-d8fc605462a6",
+     "d09023a0-221e-4892-9264-cabc46f64d57",
+     "ea30fd9f-8b08-44a6-888d-f3feeed3fdf9",
+     "f825a0e6-394f-4ced-9cdf-da4de6f7feb4",
+     "fd4a8f03-14c5-4354-a2bb-be4e866ca83f",
+     "fda5dc85-3279-455c-bd8a-d067de80883f"
+    ],
+    "sessions": 12
+   },
+   "b5e80a3": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "26033845-c4be-4b75-8dac-59773b9d2f62"
+    ],
+    "sessions": 1
+   },
+   "bc79bdb": {
+    "date": "2026-07-04",
+    "session_ids": [
+     "0079807a-95bb-4600-b279-1c37c833b724",
+     "05473226-cc8d-4279-ba14-f27d02cbe034",
+     "0a3f8eb9-f2e3-47fa-9063-ae410713739b",
+     "0d9f9653-137a-471a-9899-c3863423fb8e",
+     "0e727181-086f-4a67-ac3d-39b19113adb7",
+     "127000d4-c60b-4724-baa8-332bd5d98839",
+     "12f43b7d-c637-4106-823a-98eadc6de621",
+     "22fa1d2f-520b-4bd1-a8ff-24886401c576",
+     "2a40b3cf-4d3d-499d-8f08-ec206078f284",
+     "351cc5ca-e79f-4291-986b-04f11e91a7bc",
+     "3b2bf6ec-4764-4db7-ac20-f8df094db11f",
+     "3c29521f-917c-476f-aed2-1d3b7f09fda3",
+     "3d50c32f-6025-4846-b71f-72598c9f8819",
+     "3dcebb2d-cff9-4aaf-9879-9fc61d8db1d9",
+     "4395338d-fd8b-4619-ba70-926269451548",
+     "4b18a5a6-2b03-41fe-9ad6-0f2b21d65783",
+     "4b960c39-eee4-4075-bb60-8979ebb953e0",
+     "4dc6aed5-8e59-431a-a56f-56de713f7cba",
+     "53c9cded-41e9-43dd-ab92-8bfbab4a96bf",
+     "5c66a417-860d-4823-9f33-51fa74749716",
+     "64050218-9dec-46df-a89d-181e5879b649",
+     "6a27ce30-0aa1-4a3d-b01c-3e480864d00e",
+     "884a5f67-2b60-492a-ae8e-fa4a85d90b1f",
+     "892a0901-853f-422c-8599-2f7a3b254e72",
+     "933b2c29-8215-4192-9d2d-128723d08c7c",
+     "95d77a3b-7751-4eb1-b563-ea9613f5453c",
+     "97059ec5-de2e-4267-a225-9acd2f512d50",
+     "9d239e7a-53cb-4d5a-8c6c-f6db7dc76e28",
+     "a625f198-81d8-4235-aadf-8ab67ad1e774",
+     "aaff8062-58f9-4841-a9de-ee1b9244a7df",
+     "b2bdbb7c-4915-4297-a94f-74e93a9a5488",
+     "b351cdfc-acaf-4f3b-b2b8-c24f353127a8",
+     "b429d28d-e3e2-4729-9435-d4ef0d73ac9b",
+     "bb4ac7fa-18b7-45b3-8776-218531fd86dc",
+     "bd95b5f2-6cc0-462c-a4c0-b728a21649b6",
+     "ce9e89b1-12c0-402f-befe-003a7765cfe4",
+     "d280bbee-dcbf-4a5f-a371-4fbb42c975b6",
+     "d5884f88-e714-4014-b1bb-cf55fd15e2fa",
+     "e94320fb-b642-4959-a238-76dde26aa8a6",
+     "eb124b66-cfb9-4e26-82ed-562af29d87c4",
+     "eda91313-4fb7-4ae2-90d0-872dd74fcef7",
+     "f26811fb-d737-4441-83d9-aacbef9a02d9",
+     "f48e3ab1-53b3-4239-ab2d-6dde951ad770",
+     "fd1b79e8-2352-4ed8-a731-e28eb2d02816"
+    ],
+    "sessions": 44
+   },
+   "c41a8b5": {
+    "date": "2026-06-25",
+    "session_ids": [
+     "0bb1129f-c997-42ea-a92e-3c119ae3cb06",
+     "22b4078a-b4f4-4801-9e67-de9d8d1d8c31",
+     "63fdc26a-bd6e-4ee3-bf76-e80cee031a71",
+     "6412cf05-1f05-40c7-84ae-a71c4aef822e",
+     "7b36befd-2b8a-4def-94f8-60e0fba51152",
+     "8841788b-3f47-466b-9180-b6d28176e1f5"
+    ],
+    "sessions": 6
+   },
+   "c50e2b3": {
+    "date": "2026-08-09",
+    "session_ids": [
+     "9b3596c3-e099-46aa-957f-83007693ffac"
+    ],
+    "sessions": 1
+   },
+   "c817c61": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "24782cd0-180c-4657-a058-4286b6599b33"
+    ],
+    "sessions": 1
+   },
+   "dd73d96": {
+    "date": "2026-06-22",
+    "session_ids": [
+     "093eba76-b5f9-4fc7-ab8f-3e9607e0bd3a",
+     "120799c1-d60f-45e2-af90-a7fb309140b4",
+     "199c74ea-120c-42b4-a990-966f0b9885b2",
+     "21d03f99-1653-4487-89c1-d52d7cad9b34",
+     "26a0c380-a8d5-49f7-b885-e417d3987c1a",
+     "42535f3b-e789-486f-8712-89d4e71e5549",
+     "69350cdf-eae0-44cd-a3c6-fdd4e747128f",
+     "708b5de5-5eb6-4966-95f5-ff16ac245fed",
+     "73ce181c-3fd7-4bfa-8c7f-9ccdecde825d",
+     "81045998-6023-4682-af23-09d43e9f7c64",
+     "a1208b20-fadb-49e3-8e03-e078f637ece1",
+     "b5b63239-12da-4d5b-95be-3acb3f8426f8",
+     "c94c9f91-c18e-462e-b7f6-c2d35b681194",
+     "cc623d57-f285-4ca9-a8db-f9a3a6cb8179",
+     "e0e0ef31-7a7d-467c-bf89-1725ffb0f720",
+     "e154817b-d918-4aaf-bc60-4c4b7141f336",
+     "f9e1ca45-d48b-4acb-a1d9-9174f4266d13"
+    ],
+    "sessions": 17
+   },
+   "deeccef": {
+    "date": "2026-07-16",
+    "session_ids": [
+     "63a388be-2505-4420-b460-bfe0bd090d71",
+     "88b809e8-5cd8-4019-aca5-7c7664c5f6fe"
+    ],
+    "sessions": 2
+   },
+   "e389888": {
+    "date": "2026-06-23",
+    "session_ids": [
+     "20e2125f-c263-4ea7-814a-6b5779b71c64",
+     "268bd554-b3d6-41b2-8604-a007fbcec460",
+     "5012841f-12a5-4cd0-9b96-d7f12af54da0",
+     "55e34474-189c-42ca-ab83-602f02cdd1b4",
+     "82f72139-ce88-4b49-8b9b-dc3aa2686f85",
+     "b612bb65-357f-4c6f-9ed4-d40813da0a47"
+    ],
+    "sessions": 6
+   },
+   "eb452ec": {
+    "date": "2026-07-06",
+    "session_ids": [
+     "578ff4ee-25fa-4bb1-a5a4-06953ff8055d",
+     "f11cd7e3-6303-47cf-ba25-1c61de89b4bb"
+    ],
+    "sessions": 2
+   },
+   "ed3268c": {
+    "date": "2026-07-09",
+    "session_ids": [
+     "01ff8338-7f3a-4ba4-a69f-3f20e11cdec0",
+     "29c76178-0adf-4a4e-ad90-4b9bbcc20686",
+     "312fc083-1ce9-466a-9dc1-a04f4f6916c5",
+     "c2d906c7-caa5-4928-9d4a-51b2cbb056d1",
+     "e3c043ca-7240-44a3-bf9d-0657129620d3"
+    ],
+    "sessions": 5
+   },
+   "edfb7c6": {
+    "date": "2026-07-07",
+    "session_ids": [
+     "01320316-02f0-4e39-9a51-05e5a111fe05",
+     "18437dc9-dd32-43da-9a0c-8418a0e862ee",
+     "1e379d21-6ffb-4282-8320-7736bddf40f4",
+     "1f51750c-ad9b-4007-be59-b47e30a26d36",
+     "272be1e4-71ae-458d-bbc0-ee246eddba1a",
+     "2cc7f23e-5bbb-4ba7-b7b0-64362b3c364a",
+     "2eaa8745-3360-48c8-b6c0-596c322f99e8",
+     "3784bd98-59b2-49f7-9b2f-49fd4f94eaf7",
+     "668d6e17-1470-4218-b547-43643ea24e51",
+     "8d37b7cf-c030-4006-b8a0-bc36303681b3",
+     "9cc0e071-c840-4dac-abab-18b9dcf9f830",
+     "bafbfdd6-7fdd-424f-834d-8ebdf6cab4e6",
+     "c45b092f-b03d-4163-96f8-73ef4a2e4133",
+     "c68c8b42-2790-4b25-9a1a-6c6515786c2d",
+     "ca0f661e-6369-4850-998e-c6198d4c9bde",
+     "dfe55922-4c67-4c78-a8bd-d0370a458cb7",
+     "e8143974-19f9-4f58-964e-4cf1db94da41",
+     "ea966861-8216-4f2f-82a7-60f4d7297669",
+     "fa97d89d-ca0b-4ca7-be12-30a359b8fe16",
+     "fabbec71-b1ac-4c6f-b728-bd8b34c0b82e"
+    ],
+    "sessions": 20
+   },
+   "f48dfb7": {
+    "date": "2026-06-24",
+    "session_ids": [
+     "accf3caa-b91d-4796-9e7e-59d67cea896c"
+    ],
+    "sessions": 1
+   }
+  },
+  "dirty_session_ids": [
+   "0536a5e9-2951-416c-a1b7-4d512a9889cb",
+   "057670a2-2d09-46ef-8655-30d5205faac0",
+   "06979322-5050-4fef-89cd-8c7d17ecfb84",
+   "074c065a-f247-4801-a62c-0f2d01748ea0",
+   "12b8dada-b6fc-425d-a86d-db3e9f7e2c19",
+   "18bf96b9-e857-4f0b-9fe2-012105fafd9b",
+   "1cc6f3b0-8451-438b-b470-08807dbfa76c",
+   "1ce0e8c3-18ae-4f07-8708-5d559916f627",
+   "1eedda5c-4b97-4726-bab2-11763640035d",
+   "1f51750c-ad9b-4007-be59-b47e30a26d36",
+   "233ee958-0c67-4915-8271-cc8d093065fc",
+   "24782cd0-180c-4657-a058-4286b6599b33",
+   "26033845-c4be-4b75-8dac-59773b9d2f62",
+   "291fb627-2112-4910-b08f-f1ca58e398e8",
+   "2cc7f23e-5bbb-4ba7-b7b0-64362b3c364a",
+   "2eaa8745-3360-48c8-b6c0-596c322f99e8",
+   "36145181-8a56-4345-90a0-b9acbfe69ddc",
+   "407c151d-9122-4bbe-b7a5-a94fcbcb1ebd",
+   "467ce37f-2f93-43d2-ab2f-6dfd7948e36d",
+   "48b04054-5553-4a03-b8a0-63768e9eb1e3",
+   "4ab8dbc9-8fcc-4b15-965b-d19ee51eaf9b",
+   "543eef9c-e2bc-4e94-acd5-2ca4fd7899ed",
+   "54cef182-bd83-47d5-bccf-9c848f3e87da",
+   "578ff4ee-25fa-4bb1-a5a4-06953ff8055d",
+   "5c7e3352-8a94-4aa6-9e76-7ec521ec79e6",
+   "613a8e28-0ac8-4260-8a3c-09d25fb925f7",
+   "63a388be-2505-4420-b460-bfe0bd090d71",
+   "668d6e17-1470-4218-b547-43643ea24e51",
+   "68c0620c-fa67-4a14-b249-5d0f5b638782",
+   "74a6268b-16db-44b0-8c8e-47a82243ebad",
+   "7540f8b6-e7e7-408a-b40f-e18d106e92c1",
+   "78ec8980-2bdc-4178-9ce3-a56fad32e67e",
+   "79d0f80a-7200-4b53-b98a-17d619484a8d",
+   "7ce082e5-c72d-44aa-90cc-69cab56d83aa",
+   "808c81b8-3748-41fb-9f27-2ac9086b7add",
+   "82650bf1-3eca-4998-93a2-e87a52ba0f34",
+   "8755e294-5b89-48ac-990e-3a7200b30133",
+   "88b809e8-5cd8-4019-aca5-7c7664c5f6fe",
+   "89807927-03ff-43f8-92a5-680816885c75",
+   "8bd7733e-ae97-41d9-b020-f547242456bc",
+   "8d2d0565-1ae8-488c-80e4-709290c39f4c",
+   "8fa0d840-fc58-4ff4-993a-83624049012d",
+   "9052cb25-e923-4676-909e-025b19ab7ded",
+   "95078922-a34a-44a3-9bc4-5d6b708ca316",
+   "9b3596c3-e099-46aa-957f-83007693ffac",
+   "9b9209a2-206d-4b39-8258-bbab2194bcdf",
+   "9cc0e071-c840-4dac-abab-18b9dcf9f830",
+   "9f6e9158-714b-4a21-a161-34e62464cf8d",
+   "a1d97d48-f3b5-4203-b470-bcaf121c22d0",
+   "a37a26bb-f497-4f9b-8abf-f6c9239137d8",
+   "a4d02b0c-d757-463d-9d24-4110856a3e09",
+   "a6510395-b94b-4a07-b025-a4a8319cda6c",
+   "a86437fb-3d42-45e9-beba-00ec67fd6360",
+   "a8ca2b7f-6294-48ce-bf5d-2b00bb0c765c",
+   "a99aad2d-aa88-45e9-bb6d-e02d87d93fb2",
+   "af8c079a-e99d-4678-80c0-35a2f8e1f54f",
+   "af8f9245-d7f6-4990-b8cf-650cfe8a4de0",
+   "b044af70-bfc6-4cc6-a06d-561a1a61a9b3",
+   "b26aef4c-9e29-46b6-9f20-1bb8b6c1f618",
+   "b5d4a52d-0e95-48b8-986d-ce3d7027a9c4",
+   "bafbfdd6-7fdd-424f-834d-8ebdf6cab4e6",
+   "bc80abd8-2700-4b44-bdfe-4ce688742587",
+   "bf09b64d-26c7-4592-8b2d-e930b094f80b",
+   "c151cd49-e4bb-4109-aa37-7e112efc3910",
+   "c2ff1380-aa20-4375-8204-36c0380d4a4d",
+   "c45b092f-b03d-4163-96f8-73ef4a2e4133",
+   "ca0f661e-6369-4850-998e-c6198d4c9bde",
+   "cc9680d4-de0c-4f0c-ac93-186301bd06df",
+   "cd8413ed-903f-4ccf-b9d5-9c8b57cda5c9",
+   "cfe5620a-99e8-41ba-b201-d8fc605462a6",
+   "d09023a0-221e-4892-9264-cabc46f64d57",
+   "d17d277d-6dcd-4a99-9512-c0f1d6f63be4",
+   "d684c05f-f28d-4d33-9044-1d99f427a83e",
+   "dfe55922-4c67-4c78-a8bd-d0370a458cb7",
+   "ea30fd9f-8b08-44a6-888d-f3feeed3fdf9",
+   "eaed715b-46c6-426d-ac5f-bc17ff081adf",
+   "ef3a1c7c-6ac1-4af3-9f4d-7c1750b219eb",
+   "f11cd7e3-6303-47cf-ba25-1c61de89b4bb",
+   "f825a0e6-394f-4ced-9cdf-da4de6f7feb4",
+   "fa97d89d-ca0b-4ca7-be12-30a359b8fe16",
+   "fa9d2891-db1d-48a7-9c34-241297a05ad0",
+   "fd4a8f03-14c5-4354-a2bb-be4e866ca83f",
+   "fda5dc85-3279-455c-bd8a-d067de80883f"
+  ],
+  "dirty_sessions": 83,
+  "generated_at": "2026-08-10T04:05:44.002827+00:00",
+  "roots": [
+   "bulk_output",
+   "multiagent_output"
+  ],
+  "session_ids": [
+   "0079807a-95bb-4600-b279-1c37c833b724",
+   "01320316-02f0-4e39-9a51-05e5a111fe05",
+   "0142c614-6aca-45ce-9b2d-020d0135bedd",
+   "01ff8338-7f3a-4ba4-a69f-3f20e11cdec0",
+   "024283d5-2cbb-4ab5-ac78-2502c7372407",
+   "03387109-f12a-462a-856f-b64fa1d69691",
+   "03c7020d-47f3-459d-9bc3-596008fd9353",
+   "0536a5e9-2951-416c-a1b7-4d512a9889cb",
+   "05473226-cc8d-4279-ba14-f27d02cbe034",
+   "057670a2-2d09-46ef-8655-30d5205faac0",
+   "06979322-5050-4fef-89cd-8c7d17ecfb84",
+   "06aa08ed-b1cb-4925-a23f-4dcc5b6ce661",
+   "074c065a-f247-4801-a62c-0f2d01748ea0",
+   "0801d707-938d-4dce-b8fc-9c7e7b8cb9db",
+   "093eba76-b5f9-4fc7-ab8f-3e9607e0bd3a",
+   "0a3f8eb9-f2e3-47fa-9063-ae410713739b",
+   "0bb1129f-c997-42ea-a92e-3c119ae3cb06",
+   "0bbe36eb-04e9-4060-89d0-f85cc87f48de",
+   "0c656ed6-d8b9-4fb3-871b-221d92a38695",
+   "0d9f9653-137a-471a-9899-c3863423fb8e",
+   "0e1d401e-8723-43a4-aa32-6c9402e4155f",
+   "0e727181-086f-4a67-ac3d-39b19113adb7",
+   "0efec90e-17a2-4200-ac63-4396999f7d40",
+   "11cba48f-a97f-4263-9583-e9e65e1e5c61",
+   "120799c1-d60f-45e2-af90-a7fb309140b4",
+   "127000d4-c60b-4724-baa8-332bd5d98839",
+   "12b8dada-b6fc-425d-a86d-db3e9f7e2c19",
+   "12f43b7d-c637-4106-823a-98eadc6de621",
+   "147732dd-6144-498f-8739-263a3d48cce0",
+   "15c87c31-8310-4733-9a30-dcd38cdf163b",
+   "16619ef0-8124-4820-a62b-4395cd93c7c8",
+   "18437dc9-dd32-43da-9a0c-8418a0e862ee",
+   "186f7d7b-45db-4adb-926b-552431b689c2",
+   "18bf96b9-e857-4f0b-9fe2-012105fafd9b",
+   "1986c152-12bd-40ee-be53-09b0abcfecdb",
+   "199c74ea-120c-42b4-a990-966f0b9885b2",
+   "19a23726-2da2-4a73-b111-1c586a4fe0e3",
+   "19f982b5-a772-4fd9-a634-b06474c0126d",
+   "1afa0880-c36d-4fb3-9ac9-5b2f899ee5cd",
+   "1bd2c59d-0b72-4b46-a937-19e30d99a6ba",
+   "1c3a9a27-74d0-4a6a-9364-88e1c0bd5bf9",
+   "1cc6f3b0-8451-438b-b470-08807dbfa76c",
+   "1ce0e8c3-18ae-4f07-8708-5d559916f627",
+   "1cf71c13-5cc6-43c3-bcb8-45668de7aee7",
+   "1e379d21-6ffb-4282-8320-7736bddf40f4",
+   "1ec909f7-9d01-434c-b486-4d84f5860d96",
+   "1eedda5c-4b97-4726-bab2-11763640035d",
+   "1f51750c-ad9b-4007-be59-b47e30a26d36",
+   "20355215-22b4-4dad-8fd2-81c05bea468e",
+   "20e2125f-c263-4ea7-814a-6b5779b71c64",
+   "21d03f99-1653-4487-89c1-d52d7cad9b34",
+   "22b4078a-b4f4-4801-9e67-de9d8d1d8c31",
+   "22fa1d2f-520b-4bd1-a8ff-24886401c576",
+   "233ee958-0c67-4915-8271-cc8d093065fc",
+   "23f2d559-efd3-4718-bcb8-3ba565fbe3ff",
+   "24782cd0-180c-4657-a058-4286b6599b33",
+   "254414a2-7582-4c5f-9d27-e9df5113c432",
+   "26033845-c4be-4b75-8dac-59773b9d2f62",
+   "268bd554-b3d6-41b2-8604-a007fbcec460",
+   "26a0c380-a8d5-49f7-b885-e417d3987c1a",
+   "272be1e4-71ae-458d-bbc0-ee246eddba1a",
+   "291fb627-2112-4910-b08f-f1ca58e398e8",
+   "29c76178-0adf-4a4e-ad90-4b9bbcc20686",
+   "2a40b3cf-4d3d-499d-8f08-ec206078f284",
+   "2a7794c6-91fa-45c5-9cab-bcca0f281a57",
+   "2ac00c5b-6104-43d0-a1d5-e033b2958dc1",
+   "2cc7f23e-5bbb-4ba7-b7b0-64362b3c364a",
+   "2eaa8745-3360-48c8-b6c0-596c322f99e8",
+   "30a6622f-5938-4c92-ab12-e9dd0c24a432",
+   "30d5bb49-5c02-4342-8f8f-fce4b53d3a7a",
+   "312fc083-1ce9-466a-9dc1-a04f4f6916c5",
+   "34bc535b-b1d0-4345-a1a4-716a03dd1a26",
+   "351cc5ca-e79f-4291-986b-04f11e91a7bc",
+   "351e4750-5fda-4146-ac08-cd5cb689c826",
+   "36145181-8a56-4345-90a0-b9acbfe69ddc",
+   "3784bd98-59b2-49f7-9b2f-49fd4f94eaf7",
+   "3a26a70d-e1a1-48e4-b3e0-ef4d3d2d89ce",
+   "3a7573c9-a081-48ff-8082-051ab813b662",
+   "3b18217c-e25d-4332-bfbd-6c32fb864ee0",
+   "3b2bf6ec-4764-4db7-ac20-f8df094db11f",
+   "3bd575af-668d-4076-b9bb-2518f61393b3",
+   "3c29521f-917c-476f-aed2-1d3b7f09fda3",
+   "3c29b18f-c8dd-4002-9c24-78f83360c373",
+   "3cafb0b2-b213-4add-b436-0bda972a390e",
+   "3d50c32f-6025-4846-b71f-72598c9f8819",
+   "3dcebb2d-cff9-4aaf-9879-9fc61d8db1d9",
+   "4018cd27-ba18-4dd8-867a-9293a4f3a545",
+   "407c151d-9122-4bbe-b7a5-a94fcbcb1ebd",
+   "42535f3b-e789-486f-8712-89d4e71e5549",
+   "432a49d0-969f-4e87-8858-6194a6580141",
+   "4395338d-fd8b-4619-ba70-926269451548",
+   "446cf39a-8d79-4632-81de-39fb432d2503",
+   "44948e04-bd0c-4cf3-b1ab-abb59d9d7f44",
+   "461b270f-0146-4bfd-bb42-f68d4cfdbe24",
+   "467ce37f-2f93-43d2-ab2f-6dfd7948e36d",
+   "47229ef8-7f0e-4d36-a789-446550673d66",
+   "474dc9b5-28c6-4730-86c6-e577719a7f21",
+   "48b04054-5553-4a03-b8a0-63768e9eb1e3",
+   "49a1f23f-b961-437f-8d57-03f160f411f3",
+   "4ab8dbc9-8fcc-4b15-965b-d19ee51eaf9b",
+   "4b18a5a6-2b03-41fe-9ad6-0f2b21d65783",
+   "4b960c39-eee4-4075-bb60-8979ebb953e0",
+   "4cea2c88-5762-45de-823c-1455cd8f9ac5",
+   "4dc6aed5-8e59-431a-a56f-56de713f7cba",
+   "4e1d1dac-0e7a-4358-b11f-ebb58fb327e0",
+   "4f7cf08a-0700-4490-9851-f3353c34c0a1",
+   "5012841f-12a5-4cd0-9b96-d7f12af54da0",
+   "513036ea-b62d-40d1-955a-9ff07a005171",
+   "53b116b2-33e8-432c-aaee-9c8f0b4e2945",
+   "53c9cded-41e9-43dd-ab92-8bfbab4a96bf",
+   "543eef9c-e2bc-4e94-acd5-2ca4fd7899ed",
+   "5475ad06-0f58-4f6d-bfaa-642144befe57",
+   "549e6d16-d176-4f4f-a616-0fde8c15cf92",
+   "54cef182-bd83-47d5-bccf-9c848f3e87da",
+   "559e0e7a-b5d0-405b-84dc-a7fc75034c49",
+   "55e34474-189c-42ca-ab83-602f02cdd1b4",
+   "567fa247-97fd-4b60-a966-91ead07477b5",
+   "578ff4ee-25fa-4bb1-a5a4-06953ff8055d",
+   "57e8f0c5-ecf1-45a6-8e87-12d18f4adb5b",
+   "59fe7df6-e819-419b-bec5-93dcb3126b3f",
+   "5ab40e09-c401-4894-a728-3cd308daec8b",
+   "5c5d54bb-7b0a-4a86-9a5c-cb28f49165b4",
+   "5c66a417-860d-4823-9f33-51fa74749716",
+   "5c6d50d0-be02-4be0-8551-7b7c4ec87736",
+   "5c7e3352-8a94-4aa6-9e76-7ec521ec79e6",
+   "6095df59-0f3d-47dd-94c7-f099df7f5977",
+   "60b2a1d1-313b-4724-a47c-0eb3db14166a",
+   "6122b9cd-7297-4464-8a1b-4188516d276e",
+   "613a8e28-0ac8-4260-8a3c-09d25fb925f7",
+   "63a388be-2505-4420-b460-bfe0bd090d71",
+   "63fdc26a-bd6e-4ee3-bf76-e80cee031a71",
+   "64050218-9dec-46df-a89d-181e5879b649",
+   "6412cf05-1f05-40c7-84ae-a71c4aef822e",
+   "646b9a55-9119-49e8-b028-ddda38df529c",
+   "65220576-1bc0-4a80-8849-e0124e73ff99",
+   "668d6e17-1470-4218-b547-43643ea24e51",
+   "68c0620c-fa67-4a14-b249-5d0f5b638782",
+   "69350cdf-eae0-44cd-a3c6-fdd4e747128f",
+   "69394f3c-bc92-44e8-9221-ec97ab18f7b7",
+   "6a27ce30-0aa1-4a3d-b01c-3e480864d00e",
+   "6aa6f225-9a32-4dfa-84b2-2fc93663396e",
+   "6c34da3a-3962-4669-bcb0-1ee0b931604d",
+   "7026f79a-bf35-479e-841d-75557e381737",
+   "708b5de5-5eb6-4966-95f5-ff16ac245fed",
+   "716da584-5a8a-4742-93a2-70422b30ece9",
+   "73ce181c-3fd7-4bfa-8c7f-9ccdecde825d",
+   "74a6268b-16db-44b0-8c8e-47a82243ebad",
+   "74c2ec93-1f24-4881-be30-30d130d230e5",
+   "7540f8b6-e7e7-408a-b40f-e18d106e92c1",
+   "7899bf4b-bdf0-49ef-ab06-44bc14899a77",
+   "78ec8980-2bdc-4178-9ce3-a56fad32e67e",
+   "791b18e3-ac99-4f92-9e5a-c045db6d8f31",
+   "79d0f80a-7200-4b53-b98a-17d619484a8d",
+   "7afdfe91-0a49-4a2f-ad41-4b5caf88c396",
+   "7b056b85-32c5-48b2-919a-e000891b4312",
+   "7b101e8f-0184-43d2-8dc1-7b5979613d97",
+   "7b36befd-2b8a-4def-94f8-60e0fba51152",
+   "7b528d43-a547-4724-a4f1-65bdaadcf6c2",
+   "7ce082e5-c72d-44aa-90cc-69cab56d83aa",
+   "7dc8d803-1f93-4dca-a5fe-7e43b7a77701",
+   "808c81b8-3748-41fb-9f27-2ac9086b7add",
+   "81045998-6023-4682-af23-09d43e9f7c64",
+   "812d2a3e-075f-4f1e-9a44-f6240d3af0ce",
+   "8131825c-bf46-465d-ae2c-6bdd5bd977a0",
+   "82086f2a-9490-41c2-95e0-facc47350285",
+   "82650bf1-3eca-4998-93a2-e87a52ba0f34",
+   "82f72139-ce88-4b49-8b9b-dc3aa2686f85",
+   "83edd718-ccbe-4b05-a956-8a0da7f3a9b7",
+   "8755e294-5b89-48ac-990e-3a7200b30133",
+   "87d569bc-9de0-42fb-8ab5-dc2e3353c5b1",
+   "87dd2c7c-af4d-41f4-a2d5-134f4508914d",
+   "882a6b36-913a-4b9f-ab85-8e7926c03f5a",
+   "8841788b-3f47-466b-9180-b6d28176e1f5",
+   "884a5f67-2b60-492a-ae8e-fa4a85d90b1f",
+   "88a0a1eb-56c1-4219-9402-a1c69f6ba9e4",
+   "88b809e8-5cd8-4019-aca5-7c7664c5f6fe",
+   "892a0901-853f-422c-8599-2f7a3b254e72",
+   "89338c08-e026-451b-86f8-2c8219e2d322",
+   "89807927-03ff-43f8-92a5-680816885c75",
+   "8b5dd62a-274a-4b21-8a87-481ad2d29b09",
+   "8bd7733e-ae97-41d9-b020-f547242456bc",
+   "8d2d0565-1ae8-488c-80e4-709290c39f4c",
+   "8d37b7cf-c030-4006-b8a0-bc36303681b3",
+   "8d462a4d-d9e0-4752-a316-478a15b304b8",
+   "8df83ad6-88ad-4ec5-869e-258c05ce93b3",
+   "8f2bbe80-e23b-40db-a84d-35e8871af02a",
+   "8fa0d840-fc58-4ff4-993a-83624049012d",
+   "9052cb25-e923-4676-909e-025b19ab7ded",
+   "92d49996-be80-415e-ac38-eed7f9fc910e",
+   "933b2c29-8215-4192-9d2d-128723d08c7c",
+   "9495abef-9cdf-4f81-bd3e-e8cf5f6bb603",
+   "95078922-a34a-44a3-9bc4-5d6b708ca316",
+   "95d77a3b-7751-4eb1-b563-ea9613f5453c",
+   "962d4c1a-3162-4d89-9d72-21fa430b2cac",
+   "97059ec5-de2e-4267-a225-9acd2f512d50",
+   "99ec3d9f-3967-413e-b96f-3c94cd250584",
+   "9b3596c3-e099-46aa-957f-83007693ffac",
+   "9b9209a2-206d-4b39-8258-bbab2194bcdf",
+   "9c353591-3b9b-4527-a21d-f317a5d3c0b4",
+   "9cc0e071-c840-4dac-abab-18b9dcf9f830",
+   "9ce2f430-fb52-4c7a-99b9-493fb40fe8c2",
+   "9d239e7a-53cb-4d5a-8c6c-f6db7dc76e28",
+   "9e6f64df-0b3c-4e14-b69d-b0f6678e862e",
+   "9f39b780-179a-4127-9183-dea58cfd0115",
+   "9f6e9158-714b-4a21-a161-34e62464cf8d",
+   "a1136023-a74c-401a-ba5b-24073253c1d8",
+   "a1208b20-fadb-49e3-8e03-e078f637ece1",
+   "a1d97d48-f3b5-4203-b470-bcaf121c22d0",
+   "a2d7936c-e44d-47fd-85e7-bf7a4b001e61",
+   "a37a26bb-f497-4f9b-8abf-f6c9239137d8",
+   "a3fb7bd5-0fd3-4b66-9831-61d26a7d7183",
+   "a40b2d05-f317-46aa-afa5-00bc64d3b94a",
+   "a4605e6c-af1f-43bd-8fe9-91d7d3f47721",
+   "a490c4c4-4203-4e4f-9346-b94e1f062d71",
+   "a4d02b0c-d757-463d-9d24-4110856a3e09",
+   "a52284bc-8f52-4000-adc9-eb358c93a316",
+   "a5a6add5-fbf7-4425-8278-c9bad6fd9bd9",
+   "a625f198-81d8-4235-aadf-8ab67ad1e774",
+   "a6510395-b94b-4a07-b025-a4a8319cda6c",
+   "a80aa209-e128-4ae9-8fe2-39d602eb8d36",
+   "a86437fb-3d42-45e9-beba-00ec67fd6360",
+   "a8ca2b7f-6294-48ce-bf5d-2b00bb0c765c",
+   "a99aad2d-aa88-45e9-bb6d-e02d87d93fb2",
+   "aaff8062-58f9-4841-a9de-ee1b9244a7df",
+   "ac3b7acb-a32a-4b10-862c-c36d50450dd9",
+   "accf3caa-b91d-4796-9e7e-59d67cea896c",
+   "af8c079a-e99d-4678-80c0-35a2f8e1f54f",
+   "af8f9245-d7f6-4990-b8cf-650cfe8a4de0",
+   "b044af70-bfc6-4cc6-a06d-561a1a61a9b3",
+   "b1501d19-f2c2-4ca7-aad3-6aa2198ef422",
+   "b199fccd-68c5-416f-97c3-b5373829a763",
+   "b26aef4c-9e29-46b6-9f20-1bb8b6c1f618",
+   "b2bdbb7c-4915-4297-a94f-74e93a9a5488",
+   "b2decb2a-42f3-443d-9d1c-7eaaabf5d615",
+   "b351cdfc-acaf-4f3b-b2b8-c24f353127a8",
+   "b3a85a92-005a-48f8-bcc5-6c05ab0dc34c",
+   "b429d28d-e3e2-4729-9435-d4ef0d73ac9b",
+   "b578ad8a-2fb0-4b05-a4a2-e5d13aaa2634",
+   "b5b63239-12da-4d5b-95be-3acb3f8426f8",
+   "b5d4a52d-0e95-48b8-986d-ce3d7027a9c4",
+   "b612bb65-357f-4c6f-9ed4-d40813da0a47",
+   "b7f43216-9522-4a5a-85a4-8ca75db616ac",
+   "b86b28ee-1e33-48ef-bd5a-e94d4014a2e1",
+   "bafbfdd6-7fdd-424f-834d-8ebdf6cab4e6",
+   "bb4ac7fa-18b7-45b3-8776-218531fd86dc",
+   "bb6a836f-88c8-40e5-b601-c1ec9e57ca11",
+   "bbe37b91-ca1a-469f-bfe4-2de60277a3a2",
+   "bc80abd8-2700-4b44-bdfe-4ce688742587",
+   "bd95b5f2-6cc0-462c-a4c0-b728a21649b6",
+   "bf09b64d-26c7-4592-8b2d-e930b094f80b",
+   "bf8c4830-3f83-49ad-aedb-81bee19bd26b",
+   "c00daebe-4e75-465c-b29c-91deb31d956e",
+   "c125c4af-36f3-4ce2-86cd-e36178187126",
+   "c151cd49-e4bb-4109-aa37-7e112efc3910",
+   "c15f39f5-346e-49f8-9608-e48bc47bfda9",
+   "c2d906c7-caa5-4928-9d4a-51b2cbb056d1",
+   "c2dd2a20-569a-43a8-8542-1beb8c85d1a2",
+   "c2ff1380-aa20-4375-8204-36c0380d4a4d",
+   "c45b092f-b03d-4163-96f8-73ef4a2e4133",
+   "c68c8b42-2790-4b25-9a1a-6c6515786c2d",
+   "c94c9f91-c18e-462e-b7f6-c2d35b681194",
+   "c98399fe-3e67-41c6-ac24-ec919f9ea1bc",
+   "ca0f661e-6369-4850-998e-c6198d4c9bde",
+   "ca989d79-e981-4362-95aa-86a803bd420d",
+   "cc623d57-f285-4ca9-a8db-f9a3a6cb8179",
+   "cc9680d4-de0c-4f0c-ac93-186301bd06df",
+   "cd685e1d-2967-4bf6-961b-90613817268b",
+   "cd733233-5e9a-4b54-b487-bce52be64dd5",
+   "cd8413ed-903f-4ccf-b9d5-9c8b57cda5c9",
+   "ce9e89b1-12c0-402f-befe-003a7765cfe4",
+   "ceea8ba4-f068-4a45-a140-0c0c7d1801bc",
+   "cfe5620a-99e8-41ba-b201-d8fc605462a6",
+   "d058b2aa-a8ea-4b89-8008-ee53102bd81e",
+   "d09023a0-221e-4892-9264-cabc46f64d57",
+   "d17d277d-6dcd-4a99-9512-c0f1d6f63be4",
+   "d280bbee-dcbf-4a5f-a371-4fbb42c975b6",
+   "d34fb227-4767-4d35-b1aa-0a505ab1f723",
+   "d5884f88-e714-4014-b1bb-cf55fd15e2fa",
+   "d684c05f-f28d-4d33-9044-1d99f427a83e",
+   "d76889a6-8270-4f3c-ac97-a3ab240fd69d",
+   "da3f2b9a-7342-4772-8256-a68657230964",
+   "dab5cdaa-ae7a-484b-95e1-46175b82882f",
+   "dd32993f-10be-4ad3-9c13-bf5d7a394d06",
+   "dd67a878-ba77-4444-ad6b-e6fe3520830b",
+   "de2424f0-9031-41d9-980b-41821f258d04",
+   "df859a9f-2862-4d62-810b-4e27ef2f1e21",
+   "dfe55922-4c67-4c78-a8bd-d0370a458cb7",
+   "e0e0ef31-7a7d-467c-bf89-1725ffb0f720",
+   "e154817b-d918-4aaf-bc60-4c4b7141f336",
+   "e2861a41-bea8-46f4-b723-e85698f314b0",
+   "e2919bd4-93f4-48fc-8ef3-50089bf83726",
+   "e39f51e6-68f7-4c64-a402-7460b814a4a2",
+   "e3c043ca-7240-44a3-bf9d-0657129620d3",
+   "e663dd3f-32f1-4eed-a92a-9887fa784c95",
+   "e7079a11-0c02-4db4-af7b-8efde8fe62b1",
+   "e790b3f2-bef6-45ac-947d-a3c18ba8ea1d",
+   "e8143974-19f9-4f58-964e-4cf1db94da41",
+   "e94320fb-b642-4959-a238-76dde26aa8a6",
+   "ea30fd9f-8b08-44a6-888d-f3feeed3fdf9",
+   "ea966861-8216-4f2f-82a7-60f4d7297669",
+   "eaed715b-46c6-426d-ac5f-bc17ff081adf",
+   "eb109eb2-ee3a-4975-b72a-3cfee8e5ba6c",
+   "eb124b66-cfb9-4e26-82ed-562af29d87c4",
+   "ebae28db-9f5e-488b-9b2d-670dbf2451b1",
+   "ed796a71-fa64-4eb1-b455-a6eb519916bd",
+   "ed9c2edb-05a7-40b0-8ef4-7c23e187afbe",
+   "eda91313-4fb7-4ae2-90d0-872dd74fcef7",
+   "ef3a1c7c-6ac1-4af3-9f4d-7c1750b219eb",
+   "f11cd7e3-6303-47cf-ba25-1c61de89b4bb",
+   "f24779f8-097b-49a8-bf6a-aafe96906e40",
+   "f26811fb-d737-4441-83d9-aacbef9a02d9",
+   "f43b78e8-6bbd-4cfe-862e-412a2bc8fb5f",
+   "f48e3ab1-53b3-4239-ab2d-6dde951ad770",
+   "f60630d4-ebcf-460e-81f3-2d972a2ee0e7",
+   "f671afb3-c75f-49c1-8c3b-f5f4771bf5f2",
+   "f712f4d7-c8b9-4338-8679-a45c7c863772",
+   "f74c3d91-5b85-48d9-b50e-f71e20b96346",
+   "f75cdae7-41aa-47c2-be05-8f8e1b6c4169",
+   "f825a0e6-394f-4ced-9cdf-da4de6f7feb4",
+   "f8cf1e58-980a-4f01-aa89-1b1ec776d0fd",
+   "f9c2326d-5cc0-489d-86dc-e38919784a0a",
+   "f9e1ca45-d48b-4acb-a1d9-9174f4266d13",
+   "fa97d89d-ca0b-4ca7-be12-30a359b8fe16",
+   "fa9d2891-db1d-48a7-9c34-241297a05ad0",
+   "fabbec71-b1ac-4c6f-b728-bd8b34c0b82e",
+   "fafa9b6b-28dd-426a-aa57-a1f61451d1b6",
+   "fb966ca7-9b1d-45c3-a235-0eaf671cedb9",
+   "fd1b79e8-2352-4ed8-a731-e28eb2d02816",
+   "fd4a8f03-14c5-4354-a2bb-be4e866ca83f",
+   "fda5dc85-3279-455c-bd8a-d067de80883f"
+  ],
+  "sessions": 330
+ },
+ "samples": {
+  "body_states": [
+   [
+    0,
+    2,
+    null
+   ],
+   [
+    0,
+    3,
+    null
+   ],
+   [
+    0,
+    4,
+    14
+   ],
+   [
+    0,
+    4,
+    null
+   ],
+   [
+    0,
+    5,
+    0
+   ],
+   [
+    0,
+    5,
+    null
+   ],
+   [
+    0,
+    6,
+    10
+   ],
+   [
+    0,
+    6,
+    null
+   ],
+   [
+    0,
+    7,
+    null
+   ],
+   [
+    0,
+    8,
+    null
+   ],
+   [
+    1,
+    3,
+    null
+   ],
+   [
+    1,
+    4,
+    null
+   ],
+   [
+    1,
+    5,
+    null
+   ],
+   [
+    10,
+    1,
+    null
+   ],
+   [
+    10,
+    2,
+    null
+   ],
+   [
+    10,
+    3,
+    0
+   ],
+   [
+    10,
+    3,
+    null
+   ],
+   [
+    11,
+    1,
+    null
+   ],
+   [
+    11,
+    2,
+    null
+   ],
+   [
+    11,
+    3,
+    0
+   ],
+   [
+    11,
+    3,
+    null
+   ],
+   [
+    12,
+    0,
+    null
+   ],
+   [
+    12,
+    1,
+    null
+   ],
+   [
+    12,
+    2,
+    null
+   ],
+   [
+    12,
+    3,
+    0
+   ],
+   [
+    12,
+    3,
+    null
+   ],
+   [
+    13,
+    1,
+    null
+   ],
+   [
+    13,
+    2,
+    0
+   ],
+   [
+    13,
+    2,
+    null
+   ],
+   [
+    13,
+    3,
+    null
+   ],
+   [
+    14,
+    0,
+    null
+   ],
+   [
+    14,
+    1,
+    null
+   ],
+   [
+    14,
+    2,
+    15
+   ],
+   [
+    14,
+    2,
+    null
+   ],
+   [
+    15,
+    0,
+    0
+   ],
+   [
+    15,
+    0,
+    null
+   ],
+   [
+    15,
+    1,
+    null
+   ],
+   [
+    15,
+    2,
+    null
+   ],
+   [
+    15,
+    3,
+    null
+   ],
+   [
+    16,
+    0,
+    null
+   ],
+   [
+    16,
+    1,
+    null
+   ],
+   [
+    16,
+    2,
+    null
+   ],
+   [
+    17,
+    1,
+    null
+   ],
+   [
+    17,
+    2,
+    null
+   ],
+   [
+    18,
+    0,
+    0
+   ],
+   [
+    18,
+    0,
+    null
+   ],
+   [
+    18,
+    1,
+    null
+   ],
+   [
+    18,
+    2,
+    0
+   ],
+   [
+    18,
+    2,
+    null
+   ],
+   [
+    18,
+    4,
+    null
+   ],
+   [
+    19,
+    1,
+    null
+   ],
+   [
+    19,
+    2,
+    null
+   ],
+   [
+    19,
+    6,
+    null
+   ],
+   [
+    2,
+    1,
+    null
+   ],
+   [
+    2,
+    4,
+    null
+   ],
+   [
+    20,
+    0,
+    4
+   ],
+   [
+    20,
+    0,
+    null
+   ],
+   [
+    20,
+    1,
+    6
+   ],
+   [
+    20,
+    1,
+    9
+   ],
+   [
+    20,
+    1,
+    null
+   ],
+   [
+    21,
+    0,
+    null
+   ],
+   [
+    21,
+    1,
+    0
+   ],
+   [
+    21,
+    1,
+    null
+   ],
+   [
+    22,
+    0,
+    0
+   ],
+   [
+    22,
+    0,
+    4
+   ],
+   [
+    22,
+    0,
+    null
+   ],
+   [
+    22,
+    1,
+    null
+   ],
+   [
+    23,
+    0,
+    null
+   ],
+   [
+    24,
+    0,
+    null
+   ],
+   [
+    24,
+    3,
+    0
+   ],
+   [
+    25,
+    0,
+    0
+   ],
+   [
+    25,
+    0,
+    2
+   ],
+   [
+    25,
+    0,
+    null
+   ],
+   [
+    25,
+    2,
+    null
+   ],
+   [
+    25,
+    3,
+    null
+   ],
+   [
+    25,
+    6,
+    null
+   ],
+   [
+    26,
+    0,
+    0
+   ],
+   [
+    26,
+    0,
+    null
+   ],
+   [
+    26,
+    3,
+    null
+   ],
+   [
+    27,
+    0,
+    0
+   ],
+   [
+    27,
+    0,
+    null
+   ],
+   [
+    27,
+    1,
+    null
+   ],
+   [
+    27,
+    2,
+    null
+   ],
+   [
+    27,
+    3,
+    null
+   ],
+   [
+    27,
+    4,
+    null
+   ],
+   [
+    28,
+    0,
+    0
+   ],
+   [
+    28,
+    0,
+    null
+   ],
+   [
+    29,
+    0,
+    1
+   ],
+   [
+    3,
+    3,
+    null
+   ],
+   [
+    3,
+    4,
+    28
+   ],
+   [
+    3,
+    4,
+    null
+   ],
+   [
+    3,
+    8,
+    null
+   ],
+   [
+    30,
+    0,
+    0
+   ],
+   [
+    30,
+    0,
+    4
+   ],
+   [
+    30,
+    0,
+    null
+   ],
+   [
+    32,
+    4,
+    null
+   ],
+   [
+    33,
+    4,
+    null
+   ],
+   [
+    34,
+    3,
+    null
+   ],
+   [
+    35,
+    0,
+    null
+   ],
+   [
+    36,
+    3,
+    null
+   ],
+   [
+    37,
+    2,
+    null
+   ],
+   [
+    39,
+    2,
+    null
+   ],
+   [
+    4,
+    3,
+    10
+   ],
+   [
+    4,
+    3,
+    null
+   ],
+   [
+    4,
+    4,
+    null
+   ],
+   [
+    40,
+    0,
+    0
+   ],
+   [
+    40,
+    0,
+    null
+   ],
+   [
+    40,
+    3,
+    null
+   ],
+   [
+    41,
+    2,
+    null
+   ],
+   [
+    43,
+    2,
+    null
+   ],
+   [
+    46,
+    1,
+    null
+   ],
+   [
+    5,
+    3,
+    null
+   ],
+   [
+    5,
+    4,
+    null
+   ],
+   [
+    5,
+    6,
+    null
+   ],
+   [
+    51,
+    0,
+    null
+   ],
+   [
+    52,
+    0,
+    null
+   ],
+   [
+    55,
+    0,
+    0
+   ],
+   [
+    55,
+    0,
+    null
+   ],
+   [
+    6,
+    2,
+    null
+   ],
+   [
+    6,
+    3,
+    null
+   ],
+   [
+    6,
+    4,
+    0
+   ],
+   [
+    6,
+    4,
+    null
+   ],
+   [
+    7,
+    1,
+    null
+   ],
+   [
+    7,
+    2,
+    14
+   ],
+   [
+    7,
+    2,
+    null
+   ],
+   [
+    7,
+    3,
+    null
+   ],
+   [
+    7,
+    8,
+    null
+   ],
+   [
+    8,
+    2,
+    null
+   ],
+   [
+    8,
+    3,
+    null
+   ],
+   [
+    8,
+    4,
+    null
+   ],
+   [
+    9,
+    1,
+    null
+   ],
+   [
+    9,
+    2,
+    null
+   ],
+   [
+    9,
+    3,
+    null
+   ],
+   [
+    9,
+    5,
+    null
+   ]
+  ],
+  "damage": [
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 14,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 23,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 25,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 52,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 0,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 1,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 1,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 1,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 1,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 1,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 22,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 24,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 10,
+    "pre": {
+     "health": 32,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 27,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 28,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 32,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 11,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 15,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 27,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 32,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 12,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 13,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 13,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 14,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 14,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 27,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 31,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 32,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 14,
+    "pre": {
+     "health": 34,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 16,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 21,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 22,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 27,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 28,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 29,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 15,
+    "pre": {
+     "health": 34,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 16,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 23,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 24,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 26,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 28,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 29,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 16,
+    "pre": {
+     "health": 34,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 17,
+    "pre": {
+     "health": 17,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 17,
+    "pre": {
+     "health": 18,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 17,
+    "pre": {
+     "health": 29,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 17,
+    "pre": {
+     "health": 35,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 18,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 14,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 54,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 2,
+    "pre": {
+     "health": 7,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 20,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 3,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 13,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 16,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 24,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 30,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 4,
+    "pre": {
+     "health": 4,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 10,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 14,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 15,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 16,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 23,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 5,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 58,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 5,
+    "pre": {
+     "health": 9,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 13,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 18,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 6,
+    "pre": {
+     "health": 7,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 7,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 19,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 23,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 24,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 8,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 8,
+    "pre": {
+     "health": 9,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 21,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "mixed",
+    "dealt": 9,
+    "pre": {
+     "health": 32,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 0,
+    "pre": {
+     "health": 10,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 0,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 0,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 0,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 1,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 1,
+    "pre": {
+     "health": 8,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 10,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 10,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 11,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 11,
+    "pre": {
+     "health": 37,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 11,
+    "pre": {
+     "health": 41,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 12,
+    "pre": {
+     "health": 38,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 12,
+    "pre": {
+     "health": 38,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 13,
+    "pre": {
+     "health": 18,
+     "wounds": 4
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 13,
+    "pre": {
+     "health": 20,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 13,
+    "pre": {
+     "health": 27,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 13,
+    "pre": {
+     "health": 39,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 14,
+    "pre": {
+     "health": 25,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 14,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 14,
+    "pre": {
+     "health": 54,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 16,
+     "wounds": 4
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 26,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 29,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 34,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 41,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 15,
+    "pre": {
+     "health": 42,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 16,
+    "pre": {
+     "health": 42,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 17,
+    "pre": {
+     "health": 43,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 3,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 3,
+    "pre": {
+     "health": 29,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 3,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 4,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 4,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 4,
+    "pre": {
+     "health": 34,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 5,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 5,
+    "pre": {
+     "health": 31,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 5,
+    "pre": {
+     "health": 35,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 6,
+    "pre": {
+     "health": 17,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 6,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 6,
+    "pre": {
+     "health": 61,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 7,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 7,
+    "pre": {
+     "health": 26,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 7,
+    "pre": {
+     "health": 37,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 8,
+    "pre": {
+     "health": 24,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 8,
+    "pre": {
+     "health": 27,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 8,
+    "pre": {
+     "health": 34,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 8,
+    "pre": {
+     "health": 36,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 8,
+    "pre": {
+     "health": 63,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 9,
+    "pre": {
+     "health": 33,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 9,
+    "pre": {
+     "health": 35,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "stun",
+    "dealt": 9,
+    "pre": {
+     "health": 39,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 6,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 0,
+    "pre": {
+     "health": 7,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 1,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 10,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 10,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 10,
+     "wounds": 4
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 22,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 10,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 11,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 11,
+     "wounds": 4
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 18,
+     "wounds": 7
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 11,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 4
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 5
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 7
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 8
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 12,
+     "wounds": 9
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 13,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 15,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 15,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 16,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 19,
+     "wounds": 6
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 21,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 31,
+     "wounds": 4
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 34,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 43,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 46,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 53,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 12,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 13,
+     "wounds": 3
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 13,
+     "wounds": 4
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 19,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 13,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 14,
+     "wounds": 2
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 23,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 14,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 2
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 11
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 5
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 6
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 15,
+     "wounds": 8
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 18,
+     "wounds": 5
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 18,
+     "wounds": 6
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 22,
+     "wounds": 5
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 25,
+     "wounds": 6
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 27,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 33,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 34,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 40,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 43,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 47,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 15,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 16,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 16,
+     "wounds": 6
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 21,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 24,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 34,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 35,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 16,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 17,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 17,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 18,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 18,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 18,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 18,
+    "pre": {
+     "health": 35,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 18,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 4
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 5
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 6
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 7
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 19,
+     "wounds": 8
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 25,
+     "wounds": 3
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 28,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 37,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 41,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 43,
+     "wounds": 2
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 46,
+     "wounds": 1
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 19,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 3
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 14,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 2,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 27,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 39,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 49,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 2,
+    "pre": {
+     "health": 9,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 20,
+     "wounds": 4
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 20,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 21,
+     "wounds": 3
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 21,
+     "wounds": 4
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 21,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 22,
+     "wounds": 11
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 22,
+     "wounds": 9
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 39,
+     "wounds": 2
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 22,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 23,
+    "pre": {
+     "health": 25,
+     "wounds": 3
+    },
+    "wounds_dealt": 4
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 25,
+    "pre": {
+     "health": 25,
+     "wounds": 1
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 25,
+    "pre": {
+     "health": 25,
+     "wounds": 3
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 25,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 26,
+    "pre": {
+     "health": 26,
+     "wounds": 6
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 26,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 26,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 28,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 5
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 3,
+    "pre": {
+     "health": 14,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 3,
+    "pre": {
+     "health": 21,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 3,
+    "pre": {
+     "health": 22,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 3,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 3,
+    "pre": {
+     "health": 36,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 12,
+     "wounds": 1
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 20,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 4,
+     "wounds": 4
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 43,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 51,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 7,
+     "wounds": 2
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 4,
+    "pre": {
+     "health": 7,
+     "wounds": 3
+    },
+    "wounds_dealt": 0
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 5,
+    "pre": {
+     "health": 18,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 5,
+    "pre": {
+     "health": 23,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 5,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 5,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 5,
+    "pre": {
+     "health": 36,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 37,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 6,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 7,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 6,
+    "pre": {
+     "health": 8,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 11,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 14,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 15,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 20,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 21,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 46,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 7,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 7,
+    "pre": {
+     "health": 7,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 16,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 18,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 24,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 8,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 8,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 8,
+    "pre": {
+     "health": 8,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 11,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 11,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 12,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 13,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 14,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 15,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 16,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 17,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 17,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 18,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 18,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 20,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 21,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 23,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 24,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 25,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 26,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 27,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 30,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 32,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 40,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 43,
+     "wounds": 2
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 46,
+     "wounds": 1
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 55,
+     "wounds": 0
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 9,
+     "wounds": 3
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 9,
+     "wounds": 4
+    },
+    "wounds_dealt": 1
+   },
+   {
+    "damage_type": "wound",
+    "dealt": 9,
+    "pre": {
+     "health": 9,
+     "wounds": 5
+    },
+    "wounds_dealt": 1
+   }
+  ],
+  "healing": [
+   {
+    "after": {
+     "alive": true,
+     "health": 10,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 1
+    },
+    "amount": 1,
+    "heal_type": "hp",
+    "hp_restored": 1,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 12,
+     "max_health": 12,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 10,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 12,
+     "max_health": 12,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 6,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 17,
+     "max_health": 24,
+     "status": "active",
+     "wounds": 3
+    },
+    "amount": 10,
+    "heal_type": "hp",
+    "hp_restored": 10,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 20,
+     "max_health": 20,
+     "status": "active",
+     "stuns": 0,
+     "wounds": 0
+    },
+    "amount": 1,
+    "heal_type": "stun",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 24,
+     "max_health": 24,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 4,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 24,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 3,
+    "heal_type": "hp",
+    "hp_restored": 3,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "stuns": 0,
+     "wounds": 0
+    },
+    "amount": 7,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 0,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 3,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 5,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 6,
+    "heal_type": "hp",
+    "hp_restored": 6,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 9,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 3
+    },
+    "amount": 27,
+    "heal_type": "hp",
+    "hp_restored": 18,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 26,
+     "max_health": 26,
+     "status": "active",
+     "wounds": 3
+    },
+    "amount": 36,
+    "heal_type": "hp",
+    "hp_restored": 25,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 2,
+    "heal_type": "hp",
+    "hp_restored": 1,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 6,
+    "heal_type": "hp",
+    "hp_restored": 2,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 8,
+    "heal_type": "hp",
+    "hp_restored": 3,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 1
+    },
+    "amount": 5,
+    "heal_type": "hp",
+    "hp_restored": 5,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 1
+    },
+    "amount": 8,
+    "heal_type": "hp",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 1
+    },
+    "amount": 8,
+    "heal_type": "hp",
+    "hp_restored": 6,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 27,
+     "max_health": 27,
+     "status": "active",
+     "wounds": 3
+    },
+    "amount": 36,
+    "heal_type": "hp",
+    "hp_restored": 5,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   },
+   {
+    "after": {
+     "alive": true,
+     "health": 30,
+     "max_health": 30,
+     "status": "active",
+     "wounds": 0
+    },
+    "amount": 0,
+    "heal_type": "stun",
+    "hp_restored": 0,
+    "stun_removed": 0,
+    "wounds_reduced": 0
+   }
+  ],
+  "ko_check": [
+   {
+    "can_act": false,
+    "dc": 20,
+    "dirty": true,
+    "git_commit": "54243cd",
+    "health_attr": 3,
+    "roll": 13,
+    "status": "unconscious",
+    "stuns": 0,
+    "total": 19,
+    "wounds": 6
+   },
+   {
+    "can_act": false,
+    "dc": 35,
+    "dirty": true,
+    "git_commit": "a6294eb",
+    "health_attr": 4,
+    "roll": 14,
+    "status": "unconscious",
+    "stuns": 9,
+    "total": 22,
+    "wounds": 1
+   },
+   {
+    "can_act": false,
+    "dc": 35,
+    "dirty": true,
+    "git_commit": "a6294eb",
+    "health_attr": 4,
+    "roll": 20,
+    "status": "unconscious",
+    "stuns": 9,
+    "total": 28,
+    "wounds": 1
+   },
+   {
+    "can_act": false,
+    "dc": 40,
+    "dirty": true,
+    "git_commit": "54243cd",
+    "health_attr": 3,
+    "roll": 8,
+    "status": "unconscious",
+    "stuns": 10,
+    "total": 14,
+    "wounds": 3
+   },
+   {
+    "can_act": false,
+    "dc": 60,
+    "dirty": true,
+    "git_commit": "2abcfe3",
+    "health_attr": 4,
+    "roll": 2,
+    "status": "unconscious",
+    "stuns": 14,
+    "total": 10,
+    "wounds": 2
+   },
+   {
+    "can_act": false,
+    "dc": 60,
+    "dirty": true,
+    "git_commit": "2abcfe3",
+    "health_attr": 4,
+    "roll": 4,
+    "status": "unconscious",
+    "stuns": 14,
+    "total": 12,
+    "wounds": 2
+   },
+   {
+    "can_act": false,
+    "dc": 65,
+    "dirty": true,
+    "git_commit": "a6294eb",
+    "health_attr": 4,
+    "roll": 5,
+    "status": "unconscious",
+    "stuns": 15,
+    "total": 13,
+    "wounds": 2
+   },
+   {
+    "can_act": false,
+    "dc": 70,
+    "dirty": true,
+    "git_commit": "a6294eb",
+    "health_attr": 4,
+    "roll": 17,
+    "status": "unconscious",
+    "stuns": 16,
+    "total": 25,
+    "wounds": 2
+   }
+  ]
+ },
+ "schema_version": "1.0.0"
+}

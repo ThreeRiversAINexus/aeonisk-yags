@@ -6142,7 +6142,8 @@ def _get_skill(agent, skill_name: str, default: int = 0) -> int:
 def resolve_stealth_check(
     agent,
     environment_dc: int = 15,
-    modifiers: int = 0
+    modifiers: int = 0,
+    roll: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Resolve a stealth check using YAGS formula.
@@ -6188,7 +6189,10 @@ def resolve_stealth_check(
     # YAGS unskilled penalty
     unskilled_penalty = -5 if stealth_skill == 0 else 0
 
-    d20 = random.randint(1, 20)
+    # Injected, not patched — the same convention resolve_ko_check uses. Without
+    # it this function cannot be domain-tested at all, which is why stealth was
+    # the one mechanics surface with no property coverage.
+    d20 = random.randint(1, 20) if roll is None else int(roll)
     roll_total = (agility * stealth_skill) + d20 + modifiers + unskilled_penalty
 
     # Minimum roll of 1 (can't go negative)
@@ -6218,7 +6222,8 @@ def resolve_stealth_check(
 def resolve_detection_check(
     observer,
     stealth_dc: int,
-    modifiers: int = 0
+    modifiers: int = 0,
+    roll: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Resolve a detection check against a hidden target.
@@ -6251,7 +6256,7 @@ def resolve_detection_check(
 
     unskilled_penalty = -5 if awareness_skill == 0 else 0
 
-    d20 = random.randint(1, 20)
+    d20 = random.randint(1, 20) if roll is None else int(roll)
     roll_total = (perception * awareness_skill) + d20 + modifiers + unskilled_penalty
     roll_total = max(1, roll_total)
 
