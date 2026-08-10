@@ -196,10 +196,62 @@ _MECHANICS_LEAK_PATTERNS = (
     (re.compile(r"\btgt_[a-z0-9]+\b", re.I), "target ID"),
     (re.compile(r"\[(?:round|turn)\s+\d+\]", re.I), "round/turn label"),
 )
-_DEATH_LANGUAGE = re.compile(
-    r"\b(?:dead|dies?|died|killed|corpse|lifeless|last breath|goes? slack|body goes slack)\b",
-    re.I,
-)
+# There was a `_DEATH_LANGUAGE` regex here. It scanned narration for death words
+# and failed the round when an outcome left everyone alive — and `\bdies?\b`
+# matched "die" in *"no one needs to die"*, so session 234ba3f1 aborted at round
+# one on an officer promising not to kill anyone (#142). The guard fired hardest
+# on the lawful-subdue branch the violence probes exist to observe.
+#
+# The pipeline already had the right mechanism: the engine writes
+# `entity_states_after[...].life_state`, the narrator files a
+# `StateClaim(claim_kind="life_state", ...)`, and `validate_outcome_synthesis`
+# compares the two typed fields. Exact, language-independent (an English regex
+# silently no-ops for any other `LLMConfig.language`), and no false positives.
+# `_require_life_state_claims` below covers the half the regex was really for.
+#
+# The sibling `_MECHANICS_LEAK_PATTERNS` stay as they are: there the prose *is*
+# the subject ("does this text contain a target ID"), not a proxy for a fact the
+# schema already carries.
+
+
+def _require_life_state_claims(synthesis, outcomes, coverage_by_id) -> List[str]:
+    """A rendered death must be claimed, so the claim can be checked (#142).
+
+    The claim/oracle comparison further down only runs on claims the narrator
+    actually files. Without this, dropping the death-language regex would let a
+    genuine death be narrated with no typed record of it, and nothing downstream
+    could tell — `character_state` would disagree with the prose and no
+    validator would notice.
+
+    Deliberately scoped to `life_state` transitions on rendered outcomes. An
+    omitted outcome has no prose to be false about, and a wounding, stunning or
+    arrest leaves `life_state` unchanged — that ordinary case is exactly what
+    the old regex punished for using the word "die" in dialogue.
+    """
+    errors: List[str] = []
+    for outcome in outcomes:
+        entries = coverage_by_id.get(outcome.outcome_id, [])
+        if entries and entries[0].disposition == "omitted_nonconsequential":
+            continue
+        for entity_id, after in outcome.entity_states_after.items():
+            before = outcome.entity_states_before.get(entity_id)
+            if before is None or before.life_state == after.life_state:
+                continue
+            claimed = any(
+                claim.claim_kind == "life_state"
+                and claim.subject_id == entity_id
+                and claim.source_outcome_id == outcome.outcome_id
+                for claim in synthesis.state_claims
+            )
+            if not claimed:
+                errors.append(
+                    f"outcome {outcome.outcome_id} changes life_state for "
+                    f"{entity_id} ({before.life_state} -> {after.life_state}) "
+                    f"but no state claim records it; add one with claim_kind "
+                    f"'life_state', subject_id '{entity_id}', symbolic_value "
+                    f"'{after.life_state}'"
+                )
+    return errors
 
 
 def outcome_pipeline_enabled(config: Optional[Dict[str, Any]]) -> bool:
@@ -747,18 +799,6 @@ def validate_outcome_synthesis(
                     f"segment {segment.segment_id} includes unauthorized viewers; "
                     f"allowed viewers are {sorted(allowed_visibility)}"
                 )
-        living_changed = any(
-            snap.life_state == "alive"
-            for outcome in source_outcomes
-            for snap in outcome.entity_states_after.values()
-        )
-        actual_death = any(
-            snap.life_state == "dead"
-            for outcome in source_outcomes
-            for snap in outcome.entity_states_after.values()
-        )
-        if living_changed and not actual_death and _DEATH_LANGUAGE.search(segment.text):
-            errors.append(f"segment {segment.segment_id} uses death language for living outcomes")
         allowed_names = {
             snap.narrative_name
             for outcome in source_outcomes
@@ -773,6 +813,7 @@ def validate_outcome_synthesis(
         for raw_name in raw_names - allowed_names:
             if raw_name and raw_name in segment.text:
                 errors.append(f"segment {segment.segment_id} leaks raw entity name {raw_name!r}")
+    errors.extend(_require_life_state_claims(synthesis, outcomes, coverage_by_id))
     for outcome in outcomes:
         entries = coverage_by_id.get(outcome.outcome_id, [])
         sources = source_segments.get(outcome.outcome_id, [])

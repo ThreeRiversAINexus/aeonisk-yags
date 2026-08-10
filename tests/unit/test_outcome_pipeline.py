@@ -208,15 +208,31 @@ def test_display_name_target_normalizes_to_canonical_entity_id():
 
 
 def test_literary_synthesis_rejects_false_death_for_living_target():
+    """#142 moved this off prose and onto claims.
+
+    The guarantee is unchanged — a narrator may not assert a death the engine
+    did not produce — but it is now a typed comparison against
+    `entity_states_after.life_state` instead of a regex over narration, which
+    was aborting sessions on "no one needs to die". See
+    test_false_death_is_structural.py.
+    """
     outcome = _outcome()
     text = (
         "Kael closes the distance while Vane reels beneath the pressure, and the contest "
-        "ends with Vane's lifeless body going slack on the rain-dark stones. The alley "
+        "ends with Vane laid out on the rain-dark stones. The alley "
         "falls quiet around them as the remaining witnesses retreat behind their shutters."
     )
+    synthesis = _synthesis(text, outcome)
+    synthesis.state_claims = [StateClaim(
+        claim_kind="life_state",
+        subject_id="enemy_vane",
+        causing_actor_id=outcome.actor_id,
+        source_outcome_id=outcome.outcome_id,
+        symbolic_value="dead",
+    )]
 
-    with pytest.raises(SynthesisValidationError, match="death language"):
-        validate_outcome_synthesis(_synthesis(text, outcome), [outcome])
+    with pytest.raises(SynthesisValidationError, match="contradicts"):
+        validate_outcome_synthesis(synthesis, [outcome])
 
 
 @pytest.mark.parametrize("leak", ["18 HP", "DC 15", "margin +4", "tgt_deadbeef"])
@@ -349,8 +365,10 @@ async def test_synthesis_retries_validation_without_reapplying_outcomes():
     dm.shared_state = None
 
     outcome = _outcome()
+    # Any deterministic validation failure drives the retry; a mechanics leak
+    # is the stable choice now that false death is checked on claims (#142).
     invalid_text = (
-        "Kael watches Vane's lifeless body settle beneath the awning while the market goes silent. "
+        "Kael watches Vane settle beneath the awning at 18 HP while the market goes silent. "
         "Rain carries the last traces of the confrontation into the gutters as every witness withdraws."
     )
     valid_text = (
@@ -380,11 +398,11 @@ async def test_synthesis_retries_validation_without_reapplying_outcomes():
     first_prompt = dm._generate_round_synthesis_structured.await_args_list[0].args[0]
     second_prompt = dm._generate_round_synthesis_structured.await_args_list[1].args[0]
     assert "CONTAMINATED PRIOR PROSE" not in first_prompt
-    assert "uses death language" in second_prompt
+    assert "leaks raw HP value" in second_prompt
     # The retry must carry the prior response so the model edits rather than
     # regenerates — otherwise it oscillates, fixing one error and reverting
     # another (observed live: run 9b, round 1).
-    assert "lifeless body" in second_prompt
+    assert "18 HP" in second_prompt
 
 
 # --- Live-experiment regressions (2026-07-16, Kneeling run 9052cb25) ---
@@ -528,8 +546,9 @@ async def test_synthesis_exhaustion_raises_fail_closed():
     dm.shared_state = None
 
     outcome = _outcome()
+    # A mechanics leak, since false death moved onto claims (#142).
     invalid = _synthesis(
-        "Kael watches Vane's lifeless body settle beneath the awning while the "
+        "Kael watches Vane settle beneath the awning at 18 HP while the "
         "market goes silent and every witness quietly withdraws from the square.",
         outcome,
     )
