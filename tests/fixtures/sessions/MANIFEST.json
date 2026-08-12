@@ -203,6 +203,17 @@
       "used_by_tests": [
         "tests/unit/test_soulcredit_oracle.py"
       ]
+    },
+    "synthesis_repetition_chain.jsonl": {
+      "created": "2026-08-12",
+      "status": "valid",
+      "golden": false,
+      "purpose": "#158 — the three round_synthesis narrations, their applied_outcomes and the synthesis responses from 3de9e609, for the offline synthesis scorers. Openings drift 0.53 then 0.81 similar; narration grows 1611 -> 2105 -> 3143 chars",
+      "source": "bulk_output/observed_sonnet run_0001, session 3de9e609-1424-4743-9b53-93db83bd3410, verbatim except that the 33k-char synthesis prompts are stripped — the response is what the scorers read",
+      "deliberately_dirty": "Must keep showing repetition. It is the evidence for #156/#158 and the control that proves the scorers discriminate.",
+      "used_by_tests": [
+        "tests/unit/test_synthesis_scorers.py"
+      ]
     }
   },
   "deleted_fixtures": {
