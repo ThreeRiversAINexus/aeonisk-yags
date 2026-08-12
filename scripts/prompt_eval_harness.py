@@ -880,6 +880,7 @@ def _extract_and_classify(
         cases = session_extractor.extract_cases(
             action_type_filter=eval_subset.get("action_type"),
             weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            call_type_filter=eval_subset.get("call_type"),
             module_swapper=module_swapper,
             # Deliberately omit: intent_keywords, exclude_keywords, max_cases
         )
@@ -928,6 +929,7 @@ def _extract_and_classify(
             intent_keywords=eval_subset.get("intent_keywords"),
             exclude_keywords=eval_subset.get("exclude_keywords"),
             weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            call_type_filter=eval_subset.get("call_type"),
             max_cases=eval_subset.get("max_cases"),
             module_swapper=module_swapper,
         )

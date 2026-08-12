@@ -111,7 +111,12 @@ class TestTheMoveIsExact:
                 break
 
         assert sent, "fixture carries no recorded synthesis prompt"
-        assert sent.startswith(synthesis_prompt.system_prompt())
+        # The comparison runs the other way now that `system_prompt()` composes
+        # the schema block too: the fixture keeps only the first 200 characters
+        # of a 21,849-character message, and what those 200 characters prove is
+        # that our reconstruction reproduces production's opening exactly —
+        # role line, blank line, and the schema preamble that follows it.
+        assert synthesis_prompt.system_prompt().startswith(sent)
 
     def test_the_rendered_prompt_carries_every_section(self):
         rendered = synthesis_prompt.user_prompt(ROUND, PAYLOAD, PRIOR, LIFECYCLE)

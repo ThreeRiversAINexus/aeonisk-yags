@@ -1,0 +1,94 @@
+# Outcome-first round synthesis — prompt optimisation goals (#158)
+#
+# Usage:
+#   python scripts/prompt_eval_harness.py \
+#     --swap-module scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_outcome_synthesis_v1.yaml \
+#     --sessions bulk_output \
+#     --self-judge --goal-file evals/goals/synthesis_goals.yaml \
+#     --judge-model anthropic:claude-sonnet-4-5 \
+#     --models openai:gpt-5.4-mini \
+#     --scorers synthesis_validation synthesis_repetition \
+#     --output-dir evals/results --proxy http://localhost:8000
+#
+# Run the arms one at a time (V1, V2, V3) rather than through the self-judge
+# loop first: each is a single deliberate change with a stated prediction, and
+# a rewrite loop pointed at them would blur which change did what.
+
+description: |
+  The synthesis call turns resolved mechanics into the round's prose. It is
+  33,782 characters, of which ~21,700 is a Pydantic schema dump the
+  structured-output decoder already enforces, and it hands the narrator the
+  entire previous round's narration under a heading that calls it an "ending",
+  directly above the rule forbidding its reuse.
+
+  Measured consequence: 22% of consecutive round pairs in outcome-first
+  sessions open with character-identical text, against 0% of 1,760 legacy
+  pairs. The narrator is copying what it was shown instead of continuing from
+  it.
+
+  The prompt must keep every guarantee the engine validates — coverage,
+  visibility, no mechanics leaked into prose, no living entity called dead —
+  while producing a round that reads as its own scene.
+
+max_iterations: 5
+
+# ── What to evaluate ─────────────────────────────────────
+# No classifier: synthesis cases are selected by their call_type tag, which
+# says what the call *was*. Nothing needs an LLM to label them.
+eval_subset:
+  call_type: structured:OutcomeRoundSynthesis
+  max_cases: 24        # stratified enough to see a real move; expand if arms tie
+
+# ── Targets (optimised) ──────────────────────────────────
+# Both are exact measurements over recorded text. Neither needs a judge.
+targets:
+  synthesis_validation:
+    schema_valid_pct: 100      # a response the schema rejects never reached the narrator
+    clean_pct: 95              # >=95% of cases with zero blocking validation errors
+    max_avg_errors: 0.1        # worst model averages <=0.1 blocking errors per case
+  synthesis_repetition:
+    max_median_similarity: 0.40   # toward the legacy pipeline's 0.35
+    max_identical_pct: 2          # from 22% (offline) / 43% (harness) — see note
+
+convergence:
+  min_improvement: 2
+
+validation:
+  use_all_cases: true          # confirm the winner against every case, not the sample
+
+# ── Regressions (evaluated, never optimised) ─────────────
+# The hold-out. `synthesis_repetition` is trivially gameable — instruct the
+# model to open every round on an unrelated noun and similarity collapses while
+# the prose gets worse. A rewrite that games it will usually pad or truncate,
+# and growth is what catches that. Keeping it out of `targets` is the point: a
+# scorer inside the loop cannot also be its own check.
+regressions:
+  narration_does_not_pad_or_collapse:
+    description: |
+      Rounds should not grow to hide repetition, nor shrink to a stub that
+      trivially differs from the previous opening. Measured against the round
+      each one continues from, not an absolute length.
+    eval_subset:
+      call_type: structured:OutcomeRoundSynthesis
+      max_cases: 24
+    scorers: [synthesis_growth]
+    targets:
+      synthesis_growth:
+        max_median_growth: 1.15    # base corpus sits at ~1.00-1.04
+
+# ── Notes for whoever runs this ──────────────────────────
+#
+# Two numbers for the same defect currently disagree and must not be quoted
+# interchangeably until reconciled:
+#   scripts/synthesis_scorers.py  (per finalised round, whole corpus)
+#       median similarity 0.63, identical openings 22%
+#   this harness                  (per llm_call incl. retries, bulk_output)
+#       median similarity 0.90, identical openings 43%
+# Retries explain part of it — 80 rounds produce 118 calls, and first-attempt
+# only gives 0.84 / 36%. Compare a variant against the harness baseline, since
+# that is the measurement the arms share.
+#
+# Nothing ships on judge scores alone. A target above must move in the
+# predicted direction AND the regression must not degrade. The judge breaks
+# ties on prose quality — the one question with no oracle — and does not carry
+# the decision.

@@ -174,10 +174,16 @@ class TestSynthesisRendersFaithfully:
 
     def test_the_system_prompt_comes_from_the_module_not_the_recording(self):
         """Synthesis recordings carry only the user turn — the role line is the
-        module's, which is exactly why the extractor stopped requiring both."""
+        module's, which is exactly why the extractor stopped requiring both.
+
+        The schema block follows it because a replay talks to a plain chat
+        endpoint: without being told the shape, every response would fail
+        validation for a reason unrelated to the prompt under test.
+        """
         system, _ = self._built()
 
-        assert system == "role line"
+        assert system.startswith("role line")
+        assert "You must respond with valid JSON matching this schema:" in system
 
     def test_a_variant_actually_changes_the_prompt(self):
         _, base = self._built()
