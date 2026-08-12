@@ -28,20 +28,27 @@ MODULE_PATH = (Path(__file__).parent / "prompts" / "claude" / "en" / "dm"
 NO_PRIOR_ROUND = "(opening round)"
 
 
-@lru_cache(maxsize=1)
-def _module() -> Dict[str, Any]:
-    with open(MODULE_PATH, "r", encoding="utf-8") as handle:
+@lru_cache(maxsize=8)
+def load_module(path: Optional[str] = None) -> Dict[str, Any]:
+    """A synthesis prompt module, cached per path.
+
+    Keyed by path rather than cached as a singleton so an eval harness can
+    render a variant in the same process without evicting or poisoning the
+    module the live session uses — the two must not be able to see each other's
+    prompt.
+    """
+    with open(path or MODULE_PATH, "r", encoding="utf-8") as handle:
         return yaml.safe_load(handle)
 
 
-def system_prompt() -> str:
+def system_prompt(module: Optional[Dict[str, Any]] = None) -> str:
     """The narrator's role instruction.
 
     One sentence today. The ~21.7k characters of JSON schema that reach the
     model alongside it are appended by the structured-output layer, which
     already enforces that schema — see #158.
     """
-    return _module()["system_prompt"]
+    return (module or load_module())["system_prompt"]
 
 
 def user_prompt(
@@ -49,14 +56,19 @@ def user_prompt(
     safe_payload: Sequence[Dict[str, Any]],
     previous_ending: Optional[str],
     safe_lifecycle: Dict[str, Any],
+    module: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Render the round's synthesis request.
 
     `previous_ending` is, despite its name, the entire previous round's
     narration. It is preserved exactly as it was so this extraction stays a
     pure move; #158 is where it gets trimmed.
+
+    Pass `module` to render a variant. The default is the module the live
+    session uses, so a harness cannot change what a session sends by forgetting
+    an argument — the override has to be deliberate.
     """
-    return _module()["user_prompt"].format(
+    return (module or load_module())["user_prompt"].format(
         round_num=round_num,
         outcomes_json=json.dumps(list(safe_payload), indent=2),
         previous_ending=previous_ending or NO_PRIOR_ROUND,

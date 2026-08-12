@@ -54,6 +54,8 @@ from typing import Callable, Dict, List, Optional, Any, Tuple, Set
 import yaml
 from dotenv import load_dotenv
 
+from aeonisk.multiagent import synthesis_prompt
+
 # Add project path for imports
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
@@ -124,6 +126,152 @@ def _write_module_yaml(path: Path, module_name: str, content: str, description: 
             f.write(f"  {line}\n" if line else "\n")
 
 
+def _event_body(event: dict) -> dict:
+    """Events come in two shapes — nested under `data`, or flat."""
+    data = event.get("data")
+    return data if isinstance(data, dict) else event
+
+
+def synthesis_inputs_for_round(events_by_round, round_num):
+    """Rebuild the four values the synthesis prompt renders, from the recording.
+
+    Everything the live call had is in the log: `applied_outcome` events are
+    full `AppliedOutcome` dumps, the prior round's `round_synthesis` carries the
+    narration that becomes `previous_ending`, and `entity_lifecycle` carries the
+    accepted changes. Rebuilding beats reusing the recorded prompt string
+    because the changes worth testing are to these *values* — trimming
+    `previous_ending` is not a text edit to the template (#158).
+
+    Returns None when the round has no outcomes, so the case is dropped rather
+    than replayed against an empty scene.
+    """
+    if round_num is None:
+        return None
+    try:
+        from aeonisk.multiagent.outcome_pipeline import (
+            AppliedOutcome, prose_safe_outcome_payload)
+    except ImportError:  # pragma: no cover - engine package unavailable
+        return None
+
+    outcomes = []
+    for event in events_by_round.get(round_num, []):
+        if event.get("event_type") != "applied_outcome":
+            continue
+        try:
+            outcomes.append(AppliedOutcome.model_validate(_event_body(event)))
+        except Exception as exc:
+            logger.debug("round %s outcome did not round-trip: %s", round_num, exc)
+            return None
+    if not outcomes:
+        return None
+
+    previous_ending = ""
+    for event in events_by_round.get(round_num - 1, []):
+        if event.get("event_type") == "round_synthesis":
+            body = _event_body(event)
+            previous_ending = body.get("synthesis") or body.get("narration") or ""
+
+    lifecycle = {}
+    for event in events_by_round.get(round_num, []):
+        if event.get("event_type") == "entity_lifecycle":
+            body = _event_body(event)
+            lifecycle = {k: v for k, v in body.items() if isinstance(v, list)}
+
+    return {
+        "round_num": round_num,
+        "safe_payload": prose_safe_outcome_payload(outcomes),
+        "previous_ending": previous_ending,
+        "safe_lifecycle": lifecycle,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Case kinds — how a family of recorded calls is selected, rebuilt and read
+# ---------------------------------------------------------------------------
+
+def _resolution_prompts(case, module_swapper, module_name, content):
+    """Today's path: vary the system prompt, resend the recorded user prompt.
+
+    Works because DM resolution prompts are *composed* from YAML modules into
+    the system message, so the module body appears in the recording verbatim.
+    """
+    return module_swapper.swap_module(case.system_prompt, module_name, content), case.user_prompt
+
+
+def _synthesis_prompts(case, module_swapper, module_name, content):
+    """Re-render rather than swap.
+
+    The recorded user prompt is the template with its four values already
+    substituted, so the template body never appears in it verbatim and no
+    substring swap can produce a variant. Worse, the changes worth testing are
+    to the *values*: trimming `previous_ending` from the whole previous round to
+    its closing sentence is not a text edit to the template at all.
+
+    So the variant module is rendered against the inputs recorded for this
+    round. `ValueError` on missing inputs rather than a silent fallback — an
+    un-rebuildable case must be dropped and counted like any other (#158).
+    """
+    if not case.synthesis_inputs:
+        raise ValueError(
+            f"case {case.case_id} carries no synthesis inputs to re-render from")
+    module = dict(getattr(module_swapper, 'replacement_module', None) or {})
+    module["user_prompt"] = content
+    return (
+        synthesis_prompt.system_prompt(module),
+        synthesis_prompt.user_prompt(module=module, **case.synthesis_inputs),
+    )
+
+
+@dataclass(frozen=True)
+class CaseKind:
+    """One family of recorded calls, and everything that differs about it.
+
+    The harness grew around a single shape — swap the system prompt, resend the
+    user prompt, score damage fields — and that shape was load-bearing in four
+    places at once. Naming it makes the second shape possible without a second
+    optimisation loop, and keeps `resolution` byte-for-byte what it was.
+    """
+    name: str
+    call_type: Optional[str]
+    build_prompts: Callable
+    default_scorers: Tuple[str, ...]
+
+
+RESOLUTION = CaseKind(
+    name="resolution",
+    call_type=None,            # selected by response markers, as before
+    build_prompts=_resolution_prompts,
+    default_scorers=("damage_comparison",),
+)
+
+SYNTHESIS = CaseKind(
+    name="synthesis",
+    call_type="structured:OutcomeRoundSynthesis",
+    build_prompts=_synthesis_prompts,
+    default_scorers=("synthesis_validation", "synthesis_repetition"),
+)
+
+CASE_KINDS = {kind.name: kind for kind in (RESOLUTION, SYNTHESIS)}
+
+
+def kind_for_call_type(call_type: Optional[str]) -> CaseKind:
+    """Pick the kind a `--call-type` selects; unknown tags replay as resolution.
+
+    Matched in both directions, because `--call-type` and the recorded tag are
+    not the same string. `is_eval_candidate` asks whether the user's argument
+    appears in the *event's* tag, so `--call-type OutcomeRoundSynthesis` selects
+    cases; testing only `kind.call_type in call_type` here would then route
+    those same cases to the resolution builder and rebuild them wrongly.
+    """
+    if not call_type:
+        return RESOLUTION
+    for kind in CASE_KINDS.values():
+        if kind.call_type and (kind.call_type in call_type
+                               or call_type in kind.call_type):
+            return kind
+    return RESOLUTION
+
+
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
@@ -158,6 +306,17 @@ class EvalCase:
     original_base_damage: Optional[int] = None
     original_damage_type: Optional[str] = None
     original_conditions: List[str] = field(default_factory=list)
+
+    #: Which family this call belongs to. Decides how its prompts are rebuilt
+    #: and how its response is read — see CaseKind. Defaults to the resolution
+    #: path so nothing that existed before this field behaves differently.
+    kind_name: str = "resolution"
+
+    #: Everything needed to re-render a synthesis prompt from scratch, taken
+    #: from the recorded session. Populated only for synthesis cases, because
+    #: their template cannot be varied by substring-swapping a rendered prompt:
+    #: trimming `previous_ending` changes a *value*, not the template text.
+    synthesis_inputs: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -269,8 +428,8 @@ class UnswappableCases(RuntimeError):
     """Every case failed the swap, so nothing would measure the new prompt."""
 
 
-def build_modified_prompts(cases, module_swapper, module_name, content):
-    """Modified system prompt per case, and the cases that actually got one.
+def build_modified_prompts(cases, module_swapper, module_name, content, kind=None):
+    """Modified (system, user) prompts per case, and the cases that got them.
 
     Every caller must go through this. Three call sites used to swallow the
     swap failure and fall back to `case.system_prompt` — replaying the *old*
@@ -283,9 +442,11 @@ def build_modified_prompts(cases, module_swapper, module_name, content):
     """
     prompts, kept, skipped = {}, [], []
     for case in cases:
+        case_kind = kind or CASE_KINDS.get(
+            getattr(case, "kind_name", "resolution"), RESOLUTION)
         try:
-            prompts[case.case_id] = module_swapper.swap_module(
-                case.system_prompt, module_name, content)
+            prompts[case.case_id] = case_kind.build_prompts(
+                case, module_swapper, module_name, content)
             kept.append(case)
         except ValueError:
             skipped.append(case.case_id)
@@ -350,6 +511,9 @@ class ModuleSwapper:
             data = yaml.safe_load(f)
         module_name = data.get("module", path.stem)
         content = module_body(data)
+        # Kept so a synthesis variant can render its own system_prompt too;
+        # read defensively everywhere, since callers may hold a stub swapper.
+        self.replacement_module = data
         if not content:
             raise ValueError(
                 f"Replacement module {yaml_path} carries no prompt text under any of "
@@ -845,7 +1009,11 @@ class SessionExtractor:
                 elif msg.get("role") == "user":
                     user_prompt = msg.get("content", "")
 
-            if not system_prompt or not user_prompt:
+            kind = kind_for_call_type(call_type_filter)
+            # Synthesis recordings carry only the user turn — the role line is
+            # supplied by the module, not the log — so requiring both messages
+            # would drop every one of them.
+            if not user_prompt or (kind is RESOLUTION and not system_prompt):
                 continue
 
             # Parse response for fields we need
@@ -930,6 +1098,11 @@ class SessionExtractor:
             if module_filter and module_filter not in detected_modules:
                 continue
 
+            if kind is SYNTHESIS and not synthesis_inputs_for_round(
+                    events_by_round, round_num):
+                logger.debug("round %s has no rebuildable synthesis inputs", round_num)
+                continue
+
             case_id = f"session_{session_hash}_{line_num}"
             case = EvalCase(
                 case_id=case_id,
@@ -950,6 +1123,10 @@ class SessionExtractor:
                 weapon_damage_type=weapon_ctx["weapon_damage_type"],
                 declared_target=weapon_ctx["declared_target"],
                 player_intent=player_intent,
+                kind_name=kind.name,
+                synthesis_inputs=(
+                    synthesis_inputs_for_round(events_by_round, round_num)
+                    if kind is SYNTHESIS else None),
                 original_base_damage=outcome["original_base_damage"],
                 original_damage_type=outcome["original_damage_type"],
                 original_conditions=outcome["original_conditions"],
@@ -1299,6 +1476,7 @@ class ReplayEngine:
         temperature: float = 0.7,
         max_tokens: int = 4000,
         max_retries: int = 3,
+        user_prompt: Optional[str] = None,
     ) -> Tuple[str, float]:
         """
         Replay a single case and return (response_text, latency_ms).
@@ -1314,7 +1492,11 @@ class ReplayEngine:
 
         messages = [
             {"role": "system", "content": modified_system_prompt},
-            {"role": "user", "content": case.user_prompt},
+            # Defaults to the recording, so a resolution replay is unchanged.
+            # Synthesis passes a freshly rendered prompt instead — its template
+            # cannot be varied inside an already-rendered message.
+            {"role": "user", "content": user_prompt if user_prompt is not None
+             else case.user_prompt},
         ]
 
         if self.verbose:
@@ -1383,7 +1565,7 @@ class ReplayEngine:
     def replay_batch(
         self,
         cases: List[EvalCase],
-        modified_prompts: Dict[str, str],  # case_id → modified system prompt
+        modified_prompts: Dict[str, Tuple[str, str]],  # case_id → (system, user)
         model_specs: List[Tuple[str, str]],  # [(provider, model), ...]
         scorers: List[BaseScorer],
         save_prompts: bool = False,
@@ -1437,7 +1619,10 @@ class ReplayEngine:
         def _replay_one(case: EvalCase, provider: str, model: str) -> ReplayResult:
             """Worker function for a single replay."""
             model_label = f"{provider}:{model}"
-            modified_prompt = modified_prompts.get(case.case_id, case.system_prompt)
+            # A case with no entry never reached build_modified_prompts, which
+            # would mean replaying an unvaried prompt and scoring it as varied —
+            # the defect fixed in #158. Falling back is not an option here.
+            modified_prompt, replay_user_prompt = modified_prompts[case.case_id]
 
             # Parse original response
             orig_parsed = MechanicalExtractor.parse_response(case.response_text)
@@ -1447,6 +1632,7 @@ class ReplayEngine:
                 response_text, latency_ms = self.replay_case(
                     case, modified_prompt, provider, model,
                     temperature=temperature, max_tokens=max_tokens,
+                    user_prompt=replay_user_prompt,
                 )
                 replay_parsed = MechanicalExtractor.parse_response(response_text)
                 replay_fields = MechanicalExtractor.extract_mechanical_fields(replay_parsed)
@@ -3151,15 +3337,17 @@ def main(argv=None):
             for k, v in sorted(module_counts.items(), key=lambda x: -x[1]):
                 print(f"  {k}: {v}")
 
-        # Swap compatibility
-        swappable = 0
+        # Variability, through the same seam the real run uses — counting it
+        # any other way measures a code path nobody replays.
+        variable = 0
         for c in cases:
             try:
-                module_swapper.swap_module(c.system_prompt, module_name, new_content)
-                swappable += 1
-            except ValueError:
+                CASE_KINDS[c.kind_name].build_prompts(
+                    c, module_swapper, module_name, new_content)
+                variable += 1
+            except (ValueError, KeyError):
                 pass
-        print(f"\nSwappable for '{module_name}': {swappable}/{len(cases)}")
+        print(f"\nVariable for '{module_name}': {variable}/{len(cases)}")
 
         # Classifier summary for scan-only
         if classifier and intent_labels:

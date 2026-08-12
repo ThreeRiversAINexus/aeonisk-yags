@@ -32,6 +32,8 @@ class FakeCase:
     def __init__(self, case_id, system_prompt):
         self.case_id = case_id
         self.system_prompt = system_prompt
+        self.user_prompt = f"user message for {case_id}"
+        self.kind_name = "resolution"
 
 
 class FakeSwapper:
@@ -53,11 +55,13 @@ SWAPPER = FakeSwapper("OLD BODY")
 class TestBuildModifiedPrompts:
 
     def test_a_swappable_case_gets_the_new_content(self):
+        """Resolution keeps the recorded user message verbatim — only the
+        system prompt varies. Synthesis is the kind that re-renders."""
         cases = [FakeCase("c1", "prefix OLD BODY suffix")]
 
         prompts, kept, dropped = build_modified_prompts(cases, SWAPPER, "m", "NEW")
 
-        assert prompts == {"c1": "prefix NEW suffix"}
+        assert prompts == {"c1": ("prefix NEW suffix", "user message for c1")}
         assert [c.case_id for c in kept] == ["c1"]
         assert dropped == []
 
@@ -77,7 +81,7 @@ class TestBuildModifiedPrompts:
 
         prompts, _, _ = build_modified_prompts(cases, SWAPPER, "m", "NEW")
 
-        assert "has nothing" not in prompts.values()
+        assert "has nothing" not in [system for system, _user in prompts.values()]
 
     def test_dropping_everything_raises_rather_than_scoring_nothing(self):
         """A run that varied no prompt must not report a score — that is the
