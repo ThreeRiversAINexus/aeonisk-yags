@@ -4505,15 +4505,19 @@ Generate narratives (numbered list only):"""
                             **character_state_row(enemy, mechanics, agent='enemy')
                         )
 
-                # ...and for active NPCs. Without this an entity de-escalated to
-                # prisoner vanished from the oracle at the moment of arrest —
-                # the lawful outcome was the one that went unobserved.
-                for npc in (getattr(self.shared_state, 'npc_agents', None) or []):
-                    if getattr(npc, 'is_active', True):
-                        mechanics.jsonl_logger.log_character_state(
-                            round_num=mechanics.current_round,
-                            **character_state_row(npc, mechanics, agent='npc')
-                        )
+                # ...and for NPCs, in play or departed. Without this an entity
+                # de-escalated to prisoner vanished from the oracle at the moment
+                # of arrest — the lawful outcome was the one that went
+                # unobserved. #150: an NPC removed in the round it was harmed
+                # vanished the same way, and that is the unlawful one.
+                from .conversion_validation import npcs_to_snapshot
+                for npc in npcs_to_snapshot(
+                        getattr(self.shared_state, 'npc_agents', None),
+                        getattr(self.shared_state, 'departed_npcs', None)):
+                    mechanics.jsonl_logger.log_character_state(
+                        round_num=mechanics.current_round,
+                        **character_state_row(npc, mechanics, agent='npc')
+                    )
 
                 # Cross-check what was just written against live engine state.
                 self._check_log_fidelity(mechanics, player_agents)

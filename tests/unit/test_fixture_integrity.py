@@ -116,6 +116,39 @@ LEGACY_INVARIANT_DEBT = {
     "session_void_story_advancement_partial.jsonl": {"clock_without_spawn"},
 }
 
+# harm_unrecorded (#150) is separated out because it is not one bug but two,
+# both since fixed, and neither reachable by editing a recording:
+#
+#   * enemies gated on `is_active` (#138) — an enemy stopped being snapshotted
+#     at the moment it was defeated;
+#   * NPCs deleted from `npc_agents` in the entity-lifecycle phase, which runs
+#     before the round-end snapshot (#150), so an NPC harmed and removed in the
+#     same round was never written down at all.
+#
+# Nine recordings carry the consequence: something took combat damage and has no
+# `character_state` row anywhere in the file, so its fate is unknowable from the
+# oracle. Listed per file, and merged into the ledger above rather than added to
+# it by hand, so re-recording any one of them retires its exemption on its own.
+LEGACY_HARM_UNRECORDED = {
+    "golden_clock_lifecycle_complete.jsonl",   # 4
+    "golden_npc_deescalation.jsonl",           # 1
+    "golden_seed_combat.jsonl",                # 1
+    "negative_health_bug.jsonl",               # 2
+    "regression_soulcredit_logging_bug.jsonl", # 1
+    "replay_test_fresh.jsonl",                 # 1
+    "session_debt_auction_ambush.jsonl",       # 4
+    "session_status_effect_narrative_test.jsonl",  # 2
+    "session_void_story_advancement_partial.jsonl",  # 1
+    # Not legacy: recorded 2026-08-12 *because* it violates. The ten-event chain
+    # from session 81125d33 in which a subdued prisoner is shot for 19 wound
+    # damage and removed in the same round. See test_harm_is_recorded.py — it is
+    # the evidence, and it must keep failing.
+    "harm_unrecorded_chain.jsonl",
+}
+
+for _name in LEGACY_HARM_UNRECORDED:
+    LEGACY_INVARIANT_DEBT.setdefault(_name, set()).add("harm_unrecorded")
+
 
 @pytest.mark.parametrize("path", fixture_files(), ids=lambda p: p.name)
 def test_fixture_has_no_invariant_errors(path):

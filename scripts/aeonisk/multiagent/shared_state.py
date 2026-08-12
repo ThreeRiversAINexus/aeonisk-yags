@@ -244,6 +244,14 @@ class SharedState:
     # uniqueness without risking a reissued identity in the log.
     issued_npc_ids: Set[str] = field(default_factory=set)
 
+    # Every NPC object removed from the scene, kept for the record only (#150).
+    # Leaving the scene is not the same as never having been here: an operative
+    # shot for 19 wound damage in round 1 departed in that same round, before
+    # the round-end snapshot ran, and so had zero `character_state` rows in a
+    # session whose entire content was his being shot. Removal takes an entity
+    # out of play; it must not take it out of the log.
+    departed_npcs: List[Any] = field(default_factory=list)
+
     # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
     current_vendors: List[Any] = field(default_factory=list)
 
@@ -601,7 +609,7 @@ Generate something DIFFERENT from these recent scenarios.
         """
         for i, npc in enumerate(self.npc_agents):
             if npc.agent_id == agent_id:
-                self.npc_agents.pop(i)
+                self._retire_npc(self.npc_agents.pop(i))
                 return True
         return False
 
@@ -617,9 +625,20 @@ Generate something DIFFERENT from these recent scenarios.
         """
         try:
             self.npc_agents.remove(npc)
-            return True
         except ValueError:
             return False
+        self._retire_npc(npc)
+        return True
+
+    def _retire_npc(self, npc: Any) -> None:
+        """Move an NPC out of play without moving it out of the record (#150).
+
+        Both removal paths funnel through here so no future caller can drop an
+        entity from the observability roster by forgetting — the same reason
+        `issued_npc_ids` exists.
+        """
+        if npc is not None and not any(n is npc for n in self.departed_npcs):
+            self.departed_npcs.append(npc)
 
     def get_active_npcs(self) -> List[Any]:
         """

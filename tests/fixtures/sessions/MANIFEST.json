@@ -1,11 +1,13 @@
 {
   "schema_version": "1.3",
-  "last_updated": "2026-08-09",
+  "last_updated": "2026-08-12",
   "notes": [
     "All fixtures regenerated with OpenAI gpt-5-mini (2025-12-01)",
     "Schema updated: character_state now includes energy/seeds, combat_action.attack allows empty",
     "10 fixtures total, all valid",
-    "2026-08-09: added golden_lawful_arrest_complete.jsonl. The ten fixtures above were captured 2025-12-01, before the #79-#91 fixes, and are extracts rather than whole sessions. Treat their silence on terminal invariants as untested, not clean."
+    "2026-08-09: added golden_lawful_arrest_complete.jsonl. The ten fixtures above were captured 2025-12-01, before the #79-#91 fixes, and are extracts rather than whole sessions. Treat their silence on terminal invariants as untested, not clean.",
+    "2026-08-12: `golden: true` is now a gate, enforced by tests/unit/test_golden_fixtures_are_clean.py \u2014 a golden fixture must be a complete session with zero ERROR-severity findings from session_invariants. Only two of fourteen fixtures currently qualify; the rest are 2025-12-01 extracts carrying legacy call_sequence_collision and clock_without_spawn debt, plus (new) harm_unrecorded.",
+    "2026-08-12: negative_health_bug.jsonl had been on disk and used by two test modules since 2025-11 without a manifest entry \u2014 found by the new manifest/disk drift check, not by anyone reading the directory."
   ],
   "fixtures": {
     "regression_soulcredit_logging_bug.jsonl": {
@@ -146,6 +148,39 @@
       ],
       "does_not_cover": [
         "the stun cap (#91): peak stuns reached 4 of 8, so the ceiling was never hit"
+      ],
+      "golden": true,
+      "golden_rationale": "Complete session, zero ERROR-severity invariant findings. The 'golden_' filename prefix predates any standard and four fixtures carry it while failing the checkers; the flag, not the name, is what the gate reads."
+    },
+    "mutation_base_clean.jsonl": {
+      "created": "2026-07-XX",
+      "status": "valid",
+      "golden": true,
+      "purpose": "Base stream for mutation testing (mode 5): perturb one field, assert the matching invariant fires and no other",
+      "golden_rationale": "Zero violations is the whole point \u2014 assertions against it are absolute rather than deltas against legacy debt, so a regression anywhere shows up here first.",
+      "used_by_tests": [
+        "tests/unit/test_invariant_mutations.py"
+      ]
+    },
+    "harm_unrecorded_chain.jsonl": {
+      "created": "2026-08-12",
+      "status": "valid",
+      "golden": false,
+      "purpose": "#150 \u2014 the ten-event chain in which an NPC is shot for 19 wound damage and removed in the same round, so no character_state row is ever written for him",
+      "source": "bulk_output/blind_sonnet run_0001, session 81125d33-8797-4ac2-9709-0b5fbf7b8e91, round 1, verbatim",
+      "deliberately_dirty": "Must keep failing inv_harm_unrecorded. It is the evidence, and it is what proves the golden gate can tell clean from dirty.",
+      "used_by_tests": [
+        "tests/unit/test_harm_is_recorded.py"
+      ]
+    },
+    "negative_health_bug.jsonl": {
+      "created": "2025-11-XX",
+      "status": "valid",
+      "golden": false,
+      "purpose": "Freezes the pre-fix negative-health bug; also the corpus's only example of combat_action defenders that are unresolved tgt_* ids",
+      "used_by_tests": [
+        "tests/unit/test_datamine_validators.py",
+        "tests/unit/test_mechanics.py"
       ]
     }
   },

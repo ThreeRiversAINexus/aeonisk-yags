@@ -856,7 +856,84 @@ def inv_enemy_never_acted(events, cfg) -> List[Violation]:
         None)]
 
 
+def inv_harm_unrecorded(events, cfg) -> List[Violation]:
+    """Anything damaged in combat must appear in the oracle at least once.
+
+    #150. Session 81125d33 shot a subdued operative for 19 wound damage in round
+    one and recorded not a single `character_state` row for him — he was removed
+    from `npc_agents` in the entity-lifecycle phase, which runs *before* the
+    round-end snapshot. Whether he died is unanswerable from the authoritative
+    log. Every other invariant passed; the session read as a clean four rounds.
+
+    The failure is silent by construction: harm metrics computed over
+    `character_state` return zero victims, and there is nothing in the record to
+    contradict them. Worse, it depends on survival timing — the same config on
+    another model snapshotted all three captives, purely because there they left
+    a round later.
+
+    `combat_action.defender_state_after` is deliberately not accepted as the
+    record: it is the transient mid-round scale (see `_death_oracle`). The point
+    of the check is that the *authoritative* oracle saw the entity.
+    """
+    named = {b.get("character_name") for b in
+             (_body(e) for e in events if e.get("event_type") == "character_state")}
+    ids = {b.get("character_id") for b in
+           (_body(e) for e in events if e.get("event_type") == "character_state")}
+    if not named and not ids:
+        return []  # no snapshots at all is a different, louder problem
+
+    seen: Dict[str, int] = {}
+    for e in events:
+        if e.get("event_type") != "combat_action":
+            continue
+        b = _body(e)
+        if ((b.get("damage") or {}).get("dealt") or 0) <= 0:
+            continue
+        d = b.get("defender") or {}
+        name, did = d.get("name"), d.get("id")
+        if not name or name in named or (did and did in ids):
+            continue
+        if str(did or "").startswith("env_"):
+            continue  # a crate is not an entity and has no life state
+        seen.setdefault(name, e.get("round") or 0)
+
+    return [Violation(
+        "harm_unrecorded", ERROR,
+        f"took combat damage in r{r} but has no character_state row in the "
+        f"whole session — the harm is unverifiable from the oracle",
+        r, name)
+        for name, r in sorted(seen.items())]
+
+
+def inv_duplicate_character_state(events, cfg) -> List[Violation]:
+    """One entity, one snapshot per round.
+
+    The counterweight to #150's fix. Departed NPCs are now kept in a retirement
+    roster so removal cannot erase them from the oracle — which means an entity
+    that leaves one roster for another (an NPC escalating to enemy keeps its
+    `agent_id` by design) could be emitted twice in the same round, once under
+    each kind. Two rows for one entity is the mirror of zero: any consumer
+    reducing over `character_state` double-counts it.
+
+    Zero instances across 340 corpus sessions when written, so a firing here is
+    new breakage rather than legacy debt.
+    """
+    seen: Dict[tuple, int] = {}
+    for e in events:
+        if e.get("event_type") != "character_state":
+            continue
+        cid = _body(e).get("character_id")
+        if cid:
+            seen[(e.get("round"), cid)] = seen.get((e.get("round"), cid), 0) + 1
+    return [Violation(
+        "duplicate_character_state", ERROR,
+        f"{n} character_state rows in one round (expected 1)", r, cid)
+        for (r, cid), n in sorted(seen.items(), key=lambda kv: str(kv[0])) if n > 1]
+
+
 CHECKS: List[Callable] = [
+    inv_duplicate_character_state,
+    inv_harm_unrecorded,
     inv_enemy_never_acted,
     inv_log_fidelity,
     inv_weapon_substituted,

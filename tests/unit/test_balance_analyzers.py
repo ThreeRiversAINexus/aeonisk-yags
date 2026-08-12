@@ -30,14 +30,24 @@ def fixtures_dir():
     return Path(__file__).parent.parent / 'fixtures' / 'sessions'
 
 
+#: Named rather than globbed. `list(glob("*.jsonl"))[0]` returned whichever file
+#: the filesystem happened to hand back first, so adding a fixture to the
+#: directory silently changed what every test in this module analysed — the
+#: ten-event #150 chain landed first, carried no action_resolution rows, and
+#: `test_csv_formatter` failed on a module it had nothing to do with. The
+#: analysers need a session with real skill and combat volume; this is the
+#: densest one in the directory (39 action_resolution, 30 combat_action).
+SAMPLE_FIXTURE = "session_debt_auction_ambush.jsonl"
+
+
 @pytest.fixture
 def sample_fixture(fixtures_dir):
-    """Get a sample fixture file."""
-    # Try to find any fixture file
-    fixtures = list(fixtures_dir.glob("*.jsonl"))
-    if not fixtures:
-        pytest.skip("No fixture files available")
-    return fixtures[0]
+    """The fixture these analysers run over. Fixed, so results are comparable."""
+    path = fixtures_dir / SAMPLE_FIXTURE
+    if not path.is_file():
+        pytest.fail(f"{SAMPLE_FIXTURE} is missing — pick another dense session "
+                    f"and update SAMPLE_FIXTURE rather than globbing")
+    return path
 
 
 class TestSkillsAnalyzer:
