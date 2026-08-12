@@ -6,8 +6,10 @@
     "Schema updated: character_state now includes energy/seeds, combat_action.attack allows empty",
     "10 fixtures total, all valid",
     "2026-08-09: added golden_lawful_arrest_complete.jsonl. The ten fixtures above were captured 2025-12-01, before the #79-#91 fixes, and are extracts rather than whole sessions. Treat their silence on terminal invariants as untested, not clean.",
-    "2026-08-12: `golden: true` is now a gate, enforced by tests/unit/test_golden_fixtures_are_clean.py \u2014 a golden fixture must be a complete session with zero ERROR-severity findings from session_invariants. Only two of fourteen fixtures currently qualify; the rest are 2025-12-01 extracts carrying legacy call_sequence_collision and clock_without_spawn debt, plus (new) harm_unrecorded.",
-    "2026-08-12: negative_health_bug.jsonl had been on disk and used by two test modules since 2025-11 without a manifest entry \u2014 found by the new manifest/disk drift check, not by anyone reading the directory."
+    "2026-08-12: `golden: true` is now a gate, enforced by tests/unit/test_golden_fixtures_are_clean.py — a golden fixture must be a complete session with zero ERROR-severity findings from session_invariants. Only two of fourteen fixtures currently qualify; the rest are 2025-12-01 extracts carrying legacy call_sequence_collision and clock_without_spawn debt, plus (new) harm_unrecorded.",
+    "2026-08-12: negative_health_bug.jsonl had been on disk and used by two test modules since 2025-11 without a manifest entry — found by the new manifest/disk drift check, not by anyone reading the directory.",
+    "2026-08-12: soulcredit_lag_chain.jsonl added for #153. Recorded because it violates: the player snapshot loop read a cached Soulcredit refreshed a phase before the judgment was applied, so every row was one round stale and the last round's change landed nowhere. 10 of the 12 corpus sessions carrying both end_state_snapshot and player rows disagreed.",
+    "2026-08-12: both golden fixtures carry stale_findings=[soulcredit_oracle_lag] for the same reason (#153). They remain golden because the finding is an artefact of their recording date, not of the sessions they hold — but a golden fixture with an exemption is a bridge, not a destination. Re-record both on current main and drop the entries."
   ],
   "fixtures": {
     "regression_soulcredit_logging_bug.jsonl": {
@@ -137,7 +139,7 @@
       "session_id": "9b3596c3-e099-46aa-957f-83007693ffac",
       "captured": "2026-08-09",
       "rounds": 4,
-      "why_complete_not_extracted": "Every other fixture is an extracted round range, so it contains no session_end, end_state_snapshot or post_resolution_adjudication \u2014 the terminal invariants cannot fire on any of them, and 'all fixtures pass' was absence of evidence rather than evidence of absence. This one is kept whole so those checkers have data.",
+      "why_complete_not_extracted": "Every other fixture is an extracted round range, so it contains no session_end, end_state_snapshot or post_resolution_adjudication — the terminal invariants cannot fire on any of them, and 'all fixtures pass' was absence of evidence rather than evidence of absence. This one is kept whole so those checkers have data.",
       "demonstrates": [
         "declared weapon resolves as declared (#88): tranquilizer -> stun, 0 wounds",
         "a subject subdued alive rather than killed ('knocked unconscious by stun damage')",
@@ -150,23 +152,31 @@
         "the stun cap (#91): peak stuns reached 4 of 8, so the ceiling was never hit"
       ],
       "golden": true,
-      "golden_rationale": "Complete session, zero ERROR-severity invariant findings. The 'golden_' filename prefix predates any standard and four fixtures carry it while failing the checkers; the flag, not the name, is what the gate reads."
+      "golden_rationale": "Complete session, zero ERROR-severity invariant findings. The 'golden_' filename prefix predates any standard and four fixtures carry it while failing the checkers; the flag, not the name, is what the gate reads.",
+      "stale_findings": [
+        "soulcredit_oracle_lag"
+      ],
+      "stale_rationale": "Recorded before #153, so its Soulcredit trace is one round behind the ledger. A property of when the file was recorded, not of the session in it; only re-recording on current code clears it. Retire this entry when that happens."
     },
     "mutation_base_clean.jsonl": {
       "created": "2026-07-XX",
       "status": "valid",
       "golden": true,
       "purpose": "Base stream for mutation testing (mode 5): perturb one field, assert the matching invariant fires and no other",
-      "golden_rationale": "Zero violations is the whole point \u2014 assertions against it are absolute rather than deltas against legacy debt, so a regression anywhere shows up here first.",
+      "golden_rationale": "Zero violations is the whole point — assertions against it are absolute rather than deltas against legacy debt, so a regression anywhere shows up here first.",
       "used_by_tests": [
         "tests/unit/test_invariant_mutations.py"
-      ]
+      ],
+      "stale_findings": [
+        "soulcredit_oracle_lag"
+      ],
+      "stale_rationale": "Recorded before #153, so its Soulcredit trace is one round behind the ledger. A property of when the file was recorded, not of the session in it; only re-recording on current code clears it. Retire this entry when that happens."
     },
     "harm_unrecorded_chain.jsonl": {
       "created": "2026-08-12",
       "status": "valid",
       "golden": false,
-      "purpose": "#150 \u2014 the ten-event chain in which an NPC is shot for 19 wound damage and removed in the same round, so no character_state row is ever written for him",
+      "purpose": "#150 — the ten-event chain in which an NPC is shot for 19 wound damage and removed in the same round, so no character_state row is ever written for him",
       "source": "bulk_output/blind_sonnet run_0001, session 81125d33-8797-4ac2-9709-0b5fbf7b8e91, round 1, verbatim",
       "deliberately_dirty": "Must keep failing inv_harm_unrecorded. It is the evidence, and it is what proves the golden gate can tell clean from dirty.",
       "used_by_tests": [
@@ -181,6 +191,17 @@
       "used_by_tests": [
         "tests/unit/test_datamine_validators.py",
         "tests/unit/test_mechanics.py"
+      ]
+    },
+    "soulcredit_lag_chain.jsonl": {
+      "created": "2026-08-12",
+      "status": "valid",
+      "golden": false,
+      "purpose": "#153 — six events showing character_state.soulcredit one round behind the ledger: Oathkeeper Sela's rows read 2/3/4 across rounds 1-3 while end_state_snapshot records the 5 the session ended on",
+      "source": "bulk_output/observed_sonnet run_0001, session 3de9e609-1424-4743-9b53-93db83bd3410, player_02 rows + terminal events, verbatim",
+      "deliberately_dirty": "Must keep failing inv_soulcredit_oracle_lag. It is the evidence, and it is the control that proves the checker discriminates.",
+      "used_by_tests": [
+        "tests/unit/test_soulcredit_oracle.py"
       ]
     }
   },

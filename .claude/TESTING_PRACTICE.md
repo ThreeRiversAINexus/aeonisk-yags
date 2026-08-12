@@ -64,6 +64,19 @@ What makes it a test rather than a demo:
 Point 4 is the whole thing. It is mutation (mode 5) applied to the fix rather
 than to the data.
 
+Chains take modes 2 and 3 as readily as values do, and that is where the
+coverage is:
+
+* **recombine a chain** — drive a recorded sequence against a roster it never
+  met. The #150 harm-and-depart chain against an escalating NPC that keeps its
+  `agent_id` is how `duplicate_character_state` got written, and that pairing
+  has never occurred in a real session.
+* **extrapolate a chain** — reorder or extend past the observed envelope.
+  Departure *before* damage rather than after; four captives instead of three;
+  two removals of the same entity. All cheap, none ever recorded.
+
+The corpus supplies the sequence; you supply the arrangement it never took.
+
 ### 2. Recombine — real values, unobserved combinations
 Cross-product the observed vocabulary. The corpus tells you which *values* are
 real; it rarely tells you which *combinations* are.
@@ -134,6 +147,38 @@ present, so the terminal checkers can fire at all) with zero ERROR-severity
 findings. Two of fifteen fixtures currently qualify. The gate keeps a
 deliberately dirty fixture alongside and asserts it still fails, because a gate
 that cannot say no is the "check that cannot fail" in another costume.
+
+**Fixtures are recorded, never regenerated.** Replay was the intended way to
+refresh a stale fixture — `ScriptedProvider` serves the recorded responses back,
+so the same session runs against new code with no network and no spend. Both
+golden fixtures carry complete caches (27 and 50 calls). It does not finish:
+`replay_fixture.py --all-cached` on the 99-event fixture was killed at ten
+minutes. Treat replay as unavailable for fixture work until that is fixed.
+
+What is left is the split that should probably have been the plan anyway:
+
+* **Debugging and regression** — chain extract, and its recombine/extrapolate
+  variants. Free, targeted, seconds to run, and the only technique here that
+  found anything. #150 and #153 were both diagnosed and fixed this way without
+  a single session being run.
+* **Complete-session reference fixtures** — harvested from research runs that
+  were happening regardless, never manufactured. The gate decides; nobody pays
+  extra.
+
+The cost of this is that a fixture **cannot be repaired, only replaced**. A
+recording is a fact about the code that produced it. When an engine fix lands
+that changes what gets logged, every earlier fixture is stale by construction —
+so record the engine commit, declare the staleness (`stale_findings` in the
+MANIFEST), and let the gate retire the exemption when a newer recording arrives.
+Do not edit a fixture to make a checker pass; that manufactures agreement.
+
+**Zero findings must mean "nothing wrong", not "nothing visible".** Only 12 of
+the 44 complete sessions in the corpus carry
+`end_state_snapshot.soulcredit_states`; the other 32 pass `soulcredit_oracle_lag`
+because it cannot read them. A fixture promoted on that silence certifies the
+checker's blind spot as the standard. The golden gate asserts the checkers can
+see the file before it credits them for staying quiet — the same defect as
+eleven extracts sitting behind terminal checkers that could never fire on them.
 
 **Harvest merges, never replaces.** `domain_mine.py` unions into the snapshot, so
 clearing a corpus directory cannot destroy coverage only that batch had seen.

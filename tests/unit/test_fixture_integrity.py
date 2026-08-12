@@ -150,6 +150,24 @@ for _name in LEGACY_HARM_UNRECORDED:
     LEGACY_INVARIANT_DEBT.setdefault(_name, set()).add("harm_unrecorded")
 
 
+# Every recording made before #153 has a Soulcredit trace one round behind the
+# ledger, because the player snapshot loop read a cache refreshed a phase before
+# the judgment was applied. It is a property of *when the file was recorded*, not
+# of the session in it, and no edit fixes it — only re-recording does. Kept per
+# file so the exemption cannot widen, and the stale-entry check below retires
+# each one automatically the moment its fixture is re-recorded.
+LEGACY_SOULCREDIT_LAG = {
+    "golden_lawful_arrest_complete.jsonl",  # player_02 r4
+    "mutation_base_clean.jsonl",            # player_01 r2
+    # Not legacy: recorded 2026-08-12 *because* it violates. See
+    # test_soulcredit_oracle.py — it is the evidence and must keep failing.
+    "soulcredit_lag_chain.jsonl",
+}
+
+for _name in LEGACY_SOULCREDIT_LAG:
+    LEGACY_INVARIANT_DEBT.setdefault(_name, set()).add("soulcredit_oracle_lag")
+
+
 @pytest.mark.parametrize("path", fixture_files(), ids=lambda p: p.name)
 def test_fixture_has_no_invariant_errors(path):
     """A fixture that violates an invariant encodes buggy behaviour.

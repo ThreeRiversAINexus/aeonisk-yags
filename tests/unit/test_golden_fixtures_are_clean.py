@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.session_invariants import ERROR, check_file, load
+from scripts.session_invariants import ERROR, _body, check_file, load
 
 FIXTURES = Path(__file__).parent.parent / "fixtures/sessions"
 MANIFEST = FIXTURES / "MANIFEST.json"
@@ -47,10 +47,47 @@ class TestEveryGoldenFixture:
         assert (FIXTURES / name).is_file()
 
     def test_has_no_error_severity_findings(self, name):
-        found = [v for v in check_file(str(FIXTURES / name)) if v.severity == ERROR]
+        allowed = set(_manifest[name].get("stale_findings") or ())
+        found = [v for v in check_file(str(FIXTURES / name))
+                 if v.severity == ERROR and v.invariant not in allowed]
 
         assert not found, "\n".join(
             f"  {v.invariant} r{v.round} [{v.entity}]: {v.message}" for v in found)
+
+    def test_every_declared_staleness_actually_occurs(self, name):
+        """The exemption must not outlive the recording that needed it.
+
+        `stale_findings` says "this file predates the fix for X, and only
+        re-recording can clear it". Once it is re-recorded the entry stops being
+        true, and a permission nobody can see expiring is how a gate rots — the
+        same shape as the amnesty ledger's own stale-entry check.
+        """
+        declared = set(_manifest[name].get("stale_findings") or ())
+        actual = {v.invariant for v in check_file(str(FIXTURES / name))
+                  if v.severity == ERROR}
+
+        assert declared <= actual, (
+            f"{name} declares stale_findings {sorted(declared - actual)} that no "
+            f"longer occur — drop them from the MANIFEST")
+
+    def test_the_checkers_can_actually_see_it(self, name):
+        """Zero findings must mean "nothing wrong", not "nothing visible".
+
+        Only 12 of the 44 complete sessions in the corpus carry
+        `end_state_snapshot.soulcredit_states`; the other 32 pass
+        `soulcredit_oracle_lag` because it cannot read them, not because they
+        agree. A fixture promoted on that kind of silence would certify the
+        checker's blind spot as the standard — the same absence-of-evidence
+        that let eleven extracts sit behind terminal checkers that could never
+        fire on them.
+        """
+        end = [_body(e) for e in load(str(FIXTURES / name))
+               if e.get("event_type") == "end_state_snapshot"]
+
+        assert end, f"{name} has no end_state_snapshot; the ledger checks are blind"
+        assert (end[-1].get("state_summary") or {}).get("soulcredit_states"), (
+            f"{name} records no final Soulcredit ledger, so soulcredit_oracle_lag "
+            f"passes it vacuously")
 
     def test_is_a_complete_session_not_an_extract(self, name):
         kinds = [e.get("event_type") for e in load(str(FIXTURES / name))]
