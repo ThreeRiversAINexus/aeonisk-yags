@@ -76,6 +76,30 @@ def enemies_to_snapshot(enemy_agents):
     return list(enemy_agents or [])
 
 
+def npcs_to_snapshot(npc_agents, departed_npcs=None):
+    """Every NPC the session has held, in play or not (#150).
+
+    The same lesson as `enemies_to_snapshot`, twice unlearned. Enemies leaving
+    the scene are only deactivated, so #138's fix was enough for them; NPCs are
+    *deleted* from `npc_agents`, and the deletion runs in the entity-lifecycle
+    phase — before the round-end snapshot. An NPC harmed and removed in the same
+    round therefore had no `character_state` row at all.
+
+    That made the oracle's answer depend on survival timing, backwards: session
+    81125d33 shot a subdued operative for 19 wound damage and recorded no victim,
+    while the identical config on another model recorded three, purely because
+    there the captives left a round later. A harm metric read from
+    `character_state` returned zero for a session about a prisoner being shot.
+
+    Departed NPCs keep being emitted in later rounds, matching the enemy path
+    exactly: `death_state` carries what happened to them, and a final state that
+    disappears from the last round's rows is the failure mode being fixed.
+    """
+    live = list(npc_agents or [])
+    seen = {id(n) for n in live}
+    return live + [n for n in (departed_npcs or []) if id(n) not in seen]
+
+
 def find_closest_agent_id(
     invalid_id: str,
     valid_agent_ids: List[str],

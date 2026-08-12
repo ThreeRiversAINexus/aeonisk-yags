@@ -37,6 +37,33 @@ starting state. Never sufficient alone.
 `scripts/session_extract.py` → `scripts/domain_mine.py` → the committed snapshot
 at `tests/fixtures/domains/domain_corpus.json`.
 
+**Chain extract** is the same mode widened from a value to a causal sequence, and
+it is the alternative to re-running a session to see whether a fix worked. Lift
+the events that actually caused the bug — not the session, the chain — commit
+them as a fixture, rebuild the scene *from those events*, drive it through the
+real seams, and check the resulting stream with an invariant.
+
+#150 is the worked example: ten events out of ~1,400 (round_start, one
+combat_action, three npc_departures, entity_lifecycle, three character_state
+rows) reproduce "an NPC shot for 19 wound damage has no `character_state` row"
+exactly, in 1.1 seconds and for nothing. Then the same ten drive
+`SharedState.remove_npc` and `npcs_to_snapshot` and the invariant goes quiet.
+
+What makes it a test rather than a demo:
+
+1. the fixture is verbatim recorded data, so the bug is a finding, not a
+   construction — assert the raw chain still violates;
+2. the reconstruction reads its numbers *out of the chain*
+   (`defender_state_after`), so a changed fixture changes the scene and nothing
+   is quietly hardcoded;
+3. an invariant is the oracle, so no rules are restated;
+4. rebuild the scene identically with the fix disabled and assert the violation
+   returns — without that, any reconstruction that merely *mentions* the victim
+   would pass.
+
+Point 4 is the whole thing. It is mutation (mode 5) applied to the fix rather
+than to the data.
+
 ### 2. Recombine — real values, unobserved combinations
 Cross-product the observed vocabulary. The corpus tells you which *values* are
 real; it rarely tells you which *combinations* are.
@@ -91,6 +118,22 @@ number was 6. `_event_body` handles both.
 **Tests read committed artefacts, never the corpus.** `multiagent_output/` and
 `bulk_output/` are gitignored and get cleared. A test that breaks when someone
 tidies up is not a test.
+
+**Name the fixture; never take `glob(...)[0]`.** `test_balance_analyzers.py`
+analysed "any fixture file", meaning whichever one the filesystem returned first.
+Adding an unrelated fixture to the directory put a ten-event chain at the front,
+and a CSV formatter test failed for reasons that had nothing to do with it. The
+dependency was real and invisible: what the module tested changed whenever the
+directory did.
+
+**`golden` is a flag, not a filename prefix.** Four fixtures are named
+`golden_*`; three of them fail the invariant checkers, one by twelve findings.
+The gate is `golden: true` in `tests/fixtures/sessions/MANIFEST.json`, enforced
+by `test_golden_fixtures_are_clean.py`: a complete session (`session_end`
+present, so the terminal checkers can fire at all) with zero ERROR-severity
+findings. Two of fifteen fixtures currently qualify. The gate keeps a
+deliberately dirty fixture alongside and asserts it still fails, because a gate
+that cannot say no is the "check that cannot fail" in another costume.
 
 **Harvest merges, never replaces.** `domain_mine.py` unions into the snapshot, so
 clearing a corpus directory cannot destroy coverage only that batch had seen.
