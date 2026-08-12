@@ -50,6 +50,25 @@ class ActionAdjudication(BaseModel):
         return self
 
 
+class ConditionDetail(BaseModel):
+    """A condition as the engine holds it, carried beside the flattened names (#162).
+
+    `conditions` stays `List[str]` — every recorded session has that shape, and
+    the name diff is what makes a condition fact. This carries what the name
+    loses. It is *record* data, not prompt data: `prose_safe_outcome_payload`
+    whitelists what the narrator sees and entity states are not in it, so the
+    numbers here stay where numbers belong.
+    """
+    name: str
+    condition_type: Optional[str] = None
+    # Added to the roll (`mechanics.py`, `modifiers[condition.name] = penalty`),
+    # so a positive value is a bonus despite the field's name.
+    penalty: int = 0
+    duration: int = -1          # -1 = until resolved
+    description: str = ""       # model-authored; routinely "+2 to all rolls"
+    protection_amount: Optional[int] = None
+
+
 class EntityStateSnapshot(BaseModel):
     entity_id: str
     entity_type: Literal["player", "enemy", "npc", "environment"]
@@ -66,6 +85,7 @@ class EntityStateSnapshot(BaseModel):
     combat_state: Literal["active", "defeated", "departed", "destroyed"] = "active"
     position: Optional[str] = None
     conditions: List[str] = Field(default_factory=list)
+    condition_details: List[ConditionDetail] = Field(default_factory=list)
 
 
 class ObservableFact(BaseModel):
@@ -77,6 +97,10 @@ class ObservableFact(BaseModel):
     causing_actor_id: str
     symbolic_value: Optional[str] = None
     severity: Optional[Literal["minor", "moderate", "severe", "critical"]] = None
+    # Which way a condition cuts, without saying by how much (#162). `None` is
+    # "nobody looked" — a recorded fact, or a condition carried as a bare
+    # string — and is deliberately distinct from "neutral".
+    polarity: Optional[Literal["boon", "hindrance", "neutral"]] = None
     prose_safe_summary: str = Field(min_length=3, max_length=300)
 
     @field_validator("prose_safe_summary", mode="before")
@@ -273,15 +297,58 @@ def _position(value: Any) -> Optional[str]:
     return str(getattr(value, "value", value))
 
 
-def _conditions(entity: Any, mechanics: Any = None) -> List[str]:
-    values: List[str] = []
-    for condition in getattr(entity, "status_effects", []) or []:
-        values.append(str(getattr(condition, "name", condition)))
+def _held_conditions(entity: Any, mechanics: Any = None) -> List[Any]:
+    """Every condition on this entity, from both places one can live.
+
+    `status_effects` hangs off the entity; the engine keeps its own in
+    `mechanics.conditions[agent_id]`. `_conditions` has always read both, so
+    anything derived from conditions has to read both too — a detail source
+    covering one of them would give half of them an unknown polarity and say
+    nothing about it.
+    """
+    held = list(getattr(entity, "status_effects", []) or [])
     entity_id = getattr(entity, "agent_id", None)
     if mechanics is not None and entity_id:
-        for condition in getattr(mechanics, "conditions", {}).get(entity_id, []) or []:
-            values.append(str(getattr(condition, "name", condition)))
-    return sorted(set(values))
+        held.extend(getattr(mechanics, "conditions", {}).get(entity_id, []) or [])
+    return held
+
+
+def _conditions(entity: Any, mechanics: Any = None) -> List[str]:
+    return sorted({str(getattr(c, "name", c))
+                   for c in _held_conditions(entity, mechanics)})
+
+
+def _condition_details(entity: Any, mechanics: Any = None) -> List[ConditionDetail]:
+    """The structured form of the same list, for conditions that have one.
+
+    A bare string in `status_effects` yields nothing: it carries no sign, and
+    inventing one would be worse than the "affected by" the fact falls back to.
+    """
+    details: Dict[str, ConditionDetail] = {}
+    for condition in _held_conditions(entity, mechanics):
+        name = getattr(condition, "name", None)
+        if not name or isinstance(condition, str):
+            continue
+        details.setdefault(str(name), ConditionDetail(
+            name=str(name),
+            condition_type=_opt_str(getattr(condition, "type", None)),
+            penalty=_opt_int(getattr(condition, "penalty", 0), 0),
+            duration=_opt_int(getattr(condition, "duration", -1), -1),
+            description=str(getattr(condition, "description", "") or ""),
+            protection_amount=_opt_int(getattr(condition, "protection_amount", None)),
+        ))
+    return [details[name] for name in sorted(details)]
+
+
+def _opt_str(value: Any) -> Optional[str]:
+    return None if value is None else str(value)
+
+
+def _opt_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _snapshot_entity(entity: Any, entity_type: str, mechanics: Any = None) -> EntityStateSnapshot:
@@ -349,6 +416,7 @@ def _snapshot_entity(entity: Any, entity_type: str, mechanics: Any = None) -> En
         combat_state=combat_state,
         position=_position(getattr(entity, "position", getattr(state, "position", None))),
         conditions=_conditions(entity, mechanics),
+        condition_details=_condition_details(entity, mechanics),
     )
 
 
@@ -502,22 +570,85 @@ def _observable_facts(
                 prose_safe_summary=f"{new.narrative_name}'s condition improves.",
             ))
         if old.position != new.position:
+            value, phrase = _movement_of(old.position, new.position)
             facts.append(ObservableFact(
                 fact_kind="movement",
                 subject_id=entity_id,
                 causing_actor_id=actor_id,
-                symbolic_value="moved",
-                prose_safe_summary=f"{new.narrative_name} changes position.",
+                symbolic_value=value,
+                prose_safe_summary=f"{new.narrative_name} {phrase}.",
             ))
+        details = {detail.name: detail for detail in new.condition_details}
         for condition in sorted(set(new.conditions) - set(old.conditions)):
+            polarity, phrase = _condition_of(details.get(condition))
             facts.append(ObservableFact(
                 fact_kind="condition",
                 subject_id=entity_id,
                 causing_actor_id=actor_id,
                 symbolic_value=condition,
-                prose_safe_summary=f"{new.narrative_name} is affected by {condition}.",
+                polarity=polarity,
+                prose_safe_summary=f"{new.narrative_name} {phrase.format(name=condition)}.",
             ))
     return facts
+
+
+# Range bands, ordered by distance. The labels themselves (`Near-PC`,
+# `Far-Enemy`, `Engaged`) are game terms and never reach prose — a band name in
+# the story is the same defect class as a clock or a round number. Only the
+# direction survives the translation.
+_BAND_RANK = {"engaged": 0, "near": 1, "far": 2}
+
+
+def _band_rank(position: Optional[str]) -> Optional[int]:
+    if not position:
+        return None
+    return _BAND_RANK.get(str(position).split("-", 1)[0].strip().lower())
+
+
+def _movement_of(old: Optional[str], new: Optional[str]) -> tuple:
+    """Direction of travel, in words, from two range bands (#162).
+
+    Both positions were in hand at the diff and both were discarded for
+    "changes position" — the one fact about a move that carries no information.
+    Where the bands do not order (`Near-PC` -> `Near-Enemy` is a real change
+    with no direction in it), the old wording stands: inventing a direction
+    would be worse than declining to name one.
+    """
+    before, after = _band_rank(old), _band_rank(new)
+    if after == 0 and before != 0:
+        return "closed", "closes to arm's reach"
+    if before == 0 and after is not None and after > 0:
+        return "disengaged", "breaks contact and pulls back"
+    if before is not None and after is not None:
+        if after < before:
+            return "closed", "closes the distance"
+        if after > before:
+            return "withdrew", "falls back"
+    return "moved", "changes position"
+
+
+def _condition_of(detail: Optional[ConditionDetail]) -> tuple:
+    """Which way a condition cuts, said without saying by how much (#162).
+
+    `penalty` is added to the roll, so a positive value is a bonus; a barrier
+    absorbs damage at `penalty == 0` and is a bonus too. What must not cross
+    over is the magnitude, the turn count, or `description`, which is
+    model-authored and reads "+2 to all rolls for 3 rounds".
+
+    No detail means no claim. Every recorded session predates this field, and a
+    condition carried as a bare string never had a sign to lose — "affected by"
+    is vague, but it is not wrong.
+    """
+    if detail is None:
+        return None, "is affected by {name}"
+    if detail.penalty > 0 or (detail.protection_amount or 0) > 0:
+        polarity, verb, effect = "boon", "gains", "works in their favour"
+    elif detail.penalty < 0:
+        polarity, verb, effect = "hindrance", "suffers", "works against them"
+    else:
+        polarity, verb, effect = "neutral", "is under", "neither helps nor hinders"
+    tail = "for now" if detail.duration >= 0 else "until it is resolved"
+    return polarity, f"{verb} {{name}} {tail} — it {effect}"
 
 
 def build_applied_outcome(
@@ -633,7 +764,17 @@ def prose_safe_outcome_payload(outcomes: Sequence[AppliedOutcome]) -> List[Dict[
             "weapon": outcome.weapon,
             "target_names": outcome.target_names,
             "declared_dialogue": outcome.declared_dialogue,
-            "facts": [fact.model_dump() for fact in outcome.observable_facts],
+            # `polarity` is dropped when unset rather than sent as null (#162).
+            # Only condition facts carry one, so a plain dump would add a null
+            # key to all ~530 other facts in the corpus — noise in the payload,
+            # and it changes the rendered prompt for every recorded case, which
+            # is what the byte-identity oracle in `test_harness_case_kinds`
+            # exists to notice. Absent means "does not apply"; null would have
+            # meant "applies, unknown", and nothing produces that.
+            "facts": [
+                fact.model_dump(exclude=set() if fact.polarity else {"polarity"})
+                for fact in outcome.observable_facts
+            ],
             "prohibited_claims": outcome.prohibited_claims,
             "visibility": outcome.visibility,
             "consequential": outcome.consequential,
