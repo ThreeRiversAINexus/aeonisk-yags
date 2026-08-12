@@ -126,7 +126,14 @@ def _write_module_yaml(path: Path, module_name: str, content: str, description: 
         if description:
             f.write(f"description: {description}\n")
         for key, value in (extra or {}).items():
-            f.write(f"{key}: {json.dumps(value)}\n")
+            if isinstance(value, str) and "\n" in value:
+                f.write(f"{key}: |-\n")
+                for line in value.split("\n"):
+                    f.write(f"  {line}\n" if line else "\n")
+            elif isinstance(value, bool):
+                f.write(f"{key}: {str(value).lower()}\n")
+            else:
+                f.write(f"{key}: {json.dumps(value)}\n")
         f.write(f"{body_key}: |-\n")
         for line in content.split("\n"):
             f.write(f"  {line}\n" if line else "\n")
@@ -492,8 +499,14 @@ def replacement_shape(yaml_path) -> Tuple[str, Dict[str, str]]:
     except (OSError, yaml.YAMLError):
         return MODULE_BODY_KEYS[0], {}
     key = module_body_key(data)
+    # Everything except the body and the three fields the writer emits itself.
+    # Restricting this to `*_prompt` keys silently dropped a variant's config on
+    # rewrite: a self-judge run starting from V1 lost `previous_ending:
+    # final_sentence`, so the module it saved sent the whole previous round
+    # again while the score it reported came from a run that had not. A rewrite
+    # must change the prose and nothing else.
     return key, {k: v for k, v in data.items()
-                 if k.endswith("_prompt") and k != key and isinstance(v, str)}
+                 if k not in (key, "version", "module", "description")}
 
 
 def module_body(data: dict) -> str:

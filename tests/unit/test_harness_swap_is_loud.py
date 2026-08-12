@@ -134,6 +134,45 @@ class TestModuleShapeRoundTrips:
         assert key == "user_prompt"
         assert siblings == {"system_prompt": "role line"}
 
+    def test_a_variants_config_survives_a_rewrite(self):
+        """The one that bites a self-judge run.
+
+        A rewrite changes the prose and nothing else. Carrying forward only
+        `*_prompt` keys dropped `previous_ending: final_sentence` from V1, so
+        the module the loop saved sent the whole previous round again while the
+        score it reported came from a run that had not — an artifact that
+        disagrees with its own number, and nothing to say so.
+        """
+        prompts = Path(__file__).parent.parent.parent / (
+            "scripts/aeonisk/multiagent/prompts/claude/en/dm")
+        for name, knob, value in (("v1", "previous_ending", "final_sentence"),
+                                  ("v3", "include_schema", False)):
+            source = prompts / f"dm_outcome_synthesis_{name}.yaml"
+
+            body_key, siblings = replacement_shape(source)
+
+            assert siblings.get(knob) == value, f"{name} would lose {knob}"
+            assert body_key == "user_prompt"
+
+    def test_a_rewrite_loses_no_key_the_source_had(self, tmp_path):
+        source = tmp_path / "src.yaml"
+        source.write_text(yaml.dump({
+            "version": "1.0.0", "module": "m", "description": "d",
+            "system_prompt": "role", "user_prompt": "body",
+            "previous_ending": "final_sentence", "include_schema": False,
+            "notes": "why this variant exists\nover two lines"}))
+        key, siblings = replacement_shape(source)
+        out = tmp_path / "final_module.yaml"
+
+        _write_module_yaml(out, "m", "REWRITTEN", description="best",
+                           body_key=key, extra=siblings)
+
+        after = yaml.safe_load(out.read_text())
+        assert set(yaml.safe_load(source.read_text())) <= set(after)
+        assert after["include_schema"] is False          # not the string "False"
+        assert after["notes"].endswith("over two lines")  # block scalar, not escaped
+        assert after["user_prompt"] == "REWRITTEN"
+
     def test_a_content_module_is_unchanged(self, tmp_path):
         path = tmp_path / "m.yaml"
         path.write_text(yaml.dump({"module": "dm_combat", "content": "body"}))
