@@ -122,7 +122,7 @@ class TestTheMoveIsExact:
         rendered = synthesis_prompt.user_prompt(ROUND, PAYLOAD, PRIOR, LIFECYCLE)
 
         for heading in ("AUTHORITATIVE, PROSE-SAFE OUTCOMES",
-                        "PRIOR CANONICAL ENDING:",
+                        "HOW THE PREVIOUS ROUND CLOSED",
                         "ACCEPTED ENTITY LIFECYCLE CHANGES:",
                         "BINDING CONTRACT:"):
             assert heading in rendered
@@ -163,17 +163,22 @@ class TestRendering:
 
         assert "SUBDUED" in rendered
 
-    def test_the_whole_prior_round_still_goes_in(self):
-        """Documents the defect rather than fixing it here: this extraction is a
-        pure move, and #158 is where the field gets trimmed. If this test starts
-        failing because the prompt now sends only a closing sentence, that is
-        #158 landing — update it, do not restore the behaviour.
+    def test_only_the_closing_line_of_the_prior_round_goes_in(self):
+        """#158 landed 2026-08-12; this test asserted the opposite until then.
+
+        The prompt used to send the *entire* previous round under a heading
+        calling it an "ending", directly above the rule forbidding its reuse.
+        Measured over 24 replayed cases before promotion: identical round
+        openings 5/19 → 0/19, median opening similarity 0.62 → 0.36 — the figure
+        the pipeline had before it began feeding the narrator its own output.
         """
         prior = "First paragraph.\n\nSecond paragraph.\n\nThird and final paragraph."
 
         rendered = synthesis_prompt.user_prompt(ROUND, PAYLOAD, prior, LIFECYCLE)
 
-        assert prior in rendered
+        assert prior not in rendered
+        assert "Third and final paragraph." in rendered
+        assert "First paragraph." not in rendered
 
 
 class TestTheTemplateStaysFormattable:

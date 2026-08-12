@@ -1,13 +1,15 @@
 version: 1.0.0
 module: dm_outcome_synthesis
-description: V3 — no schema dump in the system prompt
+description: V3 — no schema dump in the system prompt (REJECTED, kept as evidence)
 load_when: round synthesis phase, after all outcomes are applied
 notes: |-
-  #158 V3. One variable: the ~21,700-character Pydantic schema dump is not
-  sent. The structured-output decoder enforces that schema regardless, so the
-  dump is 64% of the call spent restating a constraint already guaranteed.
-  Prediction: no change in validity. If validity drops, the dump was
-  load-bearing and we have learned something worth knowing.
+  #158 V3, REJECTED 2026-08-12 and kept so the result is not relearned.
+  Premise was that the decoder already enforces the schema, so the ~21,700-char
+  dump is redundant. False for the path production uses: llm_batch_provider calls
+  chat_completion with no response_format, so the dump IS the contract. Scored
+  0/24 schema-valid — the model returned 4,595 characters of prose and no JSON.
+  Only openai_structured.py uses native json_schema enforcement, and these
+  sessions never took that path. The real fix is #160: enforce, do not describe.
 system_prompt: You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
 user_prompt: |
   Write the canonical literary narration for round {round_num}.
@@ -15,7 +17,7 @@ user_prompt: |
   AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
   {outcomes_json}
 
-  PRIOR CANONICAL ENDING:
+  HOW THE PREVIOUS ROUND CLOSED (one line, for continuity only — do not retell it):
   {previous_ending}
 
   ACCEPTED ENTITY LIFECYCLE CHANGES:
@@ -49,4 +51,5 @@ user_prompt: |
 
   Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
   specificity, motive, and a changed final tableau over repeated action summaries.
+previous_ending: final_sentence
 include_schema: false

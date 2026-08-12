@@ -145,13 +145,13 @@ class TestModuleShapeRoundTrips:
         """
         prompts = Path(__file__).parent.parent.parent / (
             "scripts/aeonisk/multiagent/prompts/claude/en/dm")
-        for name, knob, value in (("v1", "previous_ending", "final_sentence"),
-                                  ("v3", "include_schema", False)):
-            source = prompts / f"dm_outcome_synthesis_{name}.yaml"
+        for name, knob, value in (("", "previous_ending", "final_sentence"),
+                                  ("_v3", "include_schema", False)):
+            source = prompts / f"dm_outcome_synthesis{name}.yaml"
 
             body_key, siblings = replacement_shape(source)
 
-            assert siblings.get(knob) == value, f"{name} would lose {knob}"
+            assert siblings.get(knob) == value, f"{name or 'base'} would lose {knob}"
             assert body_key == "user_prompt"
 
     def test_a_rewrite_loses_no_key_the_source_had(self, tmp_path):

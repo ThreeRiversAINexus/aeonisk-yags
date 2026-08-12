@@ -54,7 +54,17 @@ def _case(**kw):
 
 
 class FakeSwapper:
-    replacement_module = {"system_prompt": "role line", "user_prompt": "unused"}
+    """Stands in for ModuleSwapper, carrying the module a variant would supply.
+
+    `replacement_module` matters more than it looks: `_synthesis_prompts` reads
+    the render knobs (`previous_ending`, `include_schema`) off it. A stub without
+    them silently renders with defaults, so a test could "pass" while never
+    exercising the setting it names.
+    """
+
+    def __init__(self, module=None):
+        self.replacement_module = module or {"system_prompt": "role line",
+                                             "user_prompt": "unused"}
 
     def swap_module(self, system_prompt, module_name, new_content):
         if "OLD BODY" not in system_prompt:
@@ -141,14 +151,29 @@ class TestSynthesisRendersFaithfully:
     """The load-bearing test. If a rebuild does not reproduce the recording,
     every variant score is partly measuring the reconstruction."""
 
-    def _built(self, content=None):
+    #: The two things #158 V1 changed when it was promoted into the live module
+    #: on 2026-08-12. Byte identity against a 2026-08-11 recording is a property
+    #: of the rebuild *plus the module of the day*, not of today's module, so the
+    #: fidelity test reverts exactly these and nothing else.
+    AS_RECORDED = {"previous_ending": "full"}
+    RECORDED_HEADING = "PRIOR CANONICAL ENDING:"
+    CURRENT_HEADING = "HOW THE PREVIOUS ROUND CLOSED"
+
+    def _built(self, content=None, as_recorded=False):
         from aeonisk.multiagent import synthesis_prompt
-        module = synthesis_prompt.load_module()
+        module = dict(synthesis_prompt.load_module())
+        module.setdefault("system_prompt", "role line")
+        if as_recorded:
+            module.update(self.AS_RECORDED)
+            heading = next(l for l in module["user_prompt"].splitlines()
+                           if l.startswith(self.CURRENT_HEADING))
+            module["user_prompt"] = module["user_prompt"].replace(
+                heading, self.RECORDED_HEADING)
         rebuilt, outcomes = synthesis_inputs_for_round(_events_by_round(), 3)
         case = _case(kind_name="synthesis", synthesis_inputs=rebuilt,
                      synthesis_outcomes=outcomes)
         return SYNTHESIS.build_prompts(
-            case, FakeSwapper(), "dm_outcome_synthesis",
+            case, FakeSwapper(module), "dm_outcome_synthesis",
             content if content is not None else module["user_prompt"])
 
     def test_rerendering_reproduces_the_recorded_prompt_byte_for_byte(self):
@@ -169,8 +194,21 @@ class TestSynthesisRendersFaithfully:
                         recorded = message["content"]
 
         assert recorded, "fixture lost round 3's recorded user prompt"
-        _, rebuilt = self._built()
+        _, rebuilt = self._built(as_recorded=True)
         assert rebuilt == recorded
+
+    def test_todays_module_no_longer_reproduces_it_and_that_is_the_point(self):
+        """The promotion, seen from the other side.
+
+        If this ever passes again, either V1 was reverted or the trim stopped
+        working — both of which the byte-identity test above would happily miss,
+        because it renders with the old settings on purpose.
+        """
+        _, current = self._built()
+        _, as_recorded = self._built(as_recorded=True)
+
+        assert current != as_recorded
+        assert len(current) < len(as_recorded)
 
     def test_the_system_prompt_comes_from_the_module_not_the_recording(self):
         """Synthesis recordings carry only the user turn — the role line is the
@@ -182,17 +220,17 @@ class TestSynthesisRendersFaithfully:
         """
         system, _ = self._built()
 
-        assert system.startswith("role line")
+        assert system.startswith(
+            "You are the literary DM for Aeonisk YAGS")
         assert "You must respond with valid JSON matching this schema:" in system
 
     def test_a_variant_actually_changes_the_prompt(self):
         _, base = self._built()
         _, variant = self._built(
-            self._module_text().replace("PRIOR CANONICAL ENDING:",
-                                        "HOW THE PREVIOUS ROUND CLOSED:"))
+            self._module_text().replace("BINDING CONTRACT:", "THE RULES:"))
 
         assert variant != base
-        assert "HOW THE PREVIOUS ROUND CLOSED:" in variant
+        assert "THE RULES:" in variant
 
     def test_a_case_without_inputs_raises_rather_than_rendering_an_empty_scene(self):
         case = _case(kind_name="synthesis", synthesis_inputs=None)

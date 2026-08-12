@@ -6,9 +6,13 @@ field, because a variant that quietly changed a second thing would still produce
 a number — a better or worse number — and nothing would say which change earned
 it.
 
-V1  the prior round arrives as its closing sentence, under a heading that says so
 V2  the contract moves above the payload and its 18 rules group by consequence
-V3  the ~21,700-character schema dump the decoder already enforces is not sent
+V3  the ~21,700-character schema dump is not sent
+
+V1 is no longer among them. It was measured, it won, and it was promoted into
+`dm_outcome_synthesis.yaml` on 2026-08-12 — identical round openings 5/19 to
+0/19, median similarity 0.62 to 0.36. Its behaviour is asserted here as the
+base module's, which is where a shipped change belongs.
 
 The knobs live in the YAML rather than in a caller, so an arm is fully declared
 in the file under test — which is the point of getting these prompts out of
@@ -114,10 +118,6 @@ class TestEachVariantChangesOneThing:
         return {k for k in set(BASE) | set(module)
                 if BASE.get(k) != module.get(k) and k not in prose_keys}
 
-    def test_v1_changes_only_the_prior_round_and_its_heading(self):
-        assert self._differences("v1") == {"previous_ending", "user_prompt"}
-        assert variant("v1")["previous_ending"] == "final_sentence"
-
     def test_v2_changes_only_the_template(self):
         assert self._differences("v2") == {"user_prompt"}
 
@@ -125,36 +125,48 @@ class TestEachVariantChangesOneThing:
         assert self._differences("v3") == {"include_schema"}
         assert variant("v3")["include_schema"] is False
 
-    @pytest.mark.parametrize("name", ["v1", "v2", "v3"])
+    @pytest.mark.parametrize("name", ["v2", "v3"])
     def test_every_variant_still_names_the_base_module(self, name):
         """`ModuleSwapper` looks the old body up by this name; a variant that
         renamed itself would not be found."""
         assert variant(name)["module"] == "dm_outcome_synthesis"
 
-    @pytest.mark.parametrize("name", ["v1", "v2", "v3"])
+    @pytest.mark.parametrize("name", ["v2", "v3"])
     def test_every_variant_still_renders(self, name):
         """A stray brace raises inside `str.format`, and it would raise on the
         one call that turns mechanics into story rather than here."""
         assert rendered(variant(name)).startswith("Write the canonical")
 
 
-class TestV1:
+class TestTheShippedPrompt:
+    """V1, now the live module. Measured over 24 replayed cases before promotion:
+    identical openings 5/19 -> 0/19, median similarity 0.62 -> 0.36, warnings
+    9 -> 1, errors 16 -> 10, schema-valid 23/24 -> 24/24."""
 
-    def test_it_sends_the_closing_line_instead_of_the_round(self):
-        base_text, v1_text = rendered(BASE), rendered(variant("v1"))
+    def test_it_sends_the_closing_line_not_the_whole_round(self):
+        text = rendered(BASE)
 
-        assert PRIOR in base_text
-        assert PRIOR not in v1_text
-        assert "Nobody moves." in v1_text
+        assert PRIOR not in text
+        assert "Nobody moves." in text
 
     def test_the_heading_no_longer_calls_a_whole_round_an_ending(self):
-        text = rendered(variant("v1"))
+        """The label mattered as much as the length: 2,131 characters of
+        finished prose were introduced to the narrator as an 'ending'."""
+        text = rendered(BASE)
 
         assert "PRIOR CANONICAL ENDING:" not in text
         assert "do not retell it" in text
 
-    def test_it_shortens_the_prompt(self):
-        assert len(rendered(variant("v1"))) < len(rendered(BASE))
+    def test_the_knob_is_declared_in_the_module(self):
+        """Not in a caller. A shipped behaviour that lives in Python is one the
+        harness cannot vary — the whole reason for #159."""
+        assert BASE["previous_ending"] == "final_sentence"
+
+    def test_an_opening_round_is_unaffected(self):
+        """Round 1 has no prior narration to trim, and must not acquire one."""
+        text = user_prompt(1, PAYLOAD, "", {}, module=BASE)
+
+        assert synthesis_prompt.NO_PRIOR_ROUND in text
 
 
 class TestV2:

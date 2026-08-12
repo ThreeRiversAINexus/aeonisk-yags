@@ -3,11 +3,11 @@ module: dm_outcome_synthesis
 description: V2 — contract first, grouped by consequence
 load_when: round synthesis phase, after all outcomes are applied
 notes: |-
-  #158 V2. One variable: the contract moves above the payload and its 18
-  rules are grouped by consequence instead of listed flat. Not one rule is added,
-  dropped or reworded — a flat list gives a model under load no signal about
-  which omission is catastrophic, and 7.5k characters of JSON sit between the
-  rules and the task in the base module.
+  #158 V2, rebuilt on the shipped prompt after V1 was promoted 2026-08-12.
+  One variable: the contract moves above the payload and its 18 rules group by
+  consequence. Not one rule added, dropped or reworded — a flat list gives a
+  model under load no signal about which omission is catastrophic, and 7.5k
+  characters of JSON sit between the rules and the task.
   Prediction: fewer validation errors on long payloads.
 system_prompt: You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
 user_prompt: |
@@ -45,12 +45,11 @@ user_prompt: |
   - Integrate only useful declared dialogue. Omit repetitive or inert speech.
   - Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
 
-  Write the canonical literary narration for round {round_num}.
 
   AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
   {outcomes_json}
 
-  PRIOR CANONICAL ENDING:
+  HOW THE PREVIOUS ROUND CLOSED (one line, for continuity only — do not retell it):
   {previous_ending}
 
   ACCEPTED ENTITY LIFECYCLE CHANGES:
@@ -58,3 +57,4 @@ user_prompt: |
 
   Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
   specificity, motive, and a changed final tableau over repeated action summaries.
+previous_ending: final_sentence
