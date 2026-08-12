@@ -43,6 +43,8 @@ import sys
 import time
 import hashlib
 import copy
+import difflib
+import statistics
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -54,13 +56,17 @@ from typing import Callable, Dict, List, Optional, Any, Tuple, Set
 import yaml
 from dotenv import load_dotenv
 
-from aeonisk.multiagent import synthesis_prompt
-
 # Add project path for imports
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 MULTIAGENT_DIR = SCRIPT_DIR / "aeonisk" / "multiagent"
 sys.path.insert(0, str(SCRIPT_DIR))
+
+# Imported after the path setup above, not with the other imports: this module
+# is run both as a script from the repo root and imported as
+# `scripts.prompt_eval_harness`, and only one of those has `scripts/` on the
+# path already.
+from aeonisk.multiagent import synthesis_prompt  # noqa: E402
 
 # Load environment variables (.env in scripts/aeonisk/ first, then project root)
 _dotenv_path = SCRIPT_DIR / "aeonisk" / ".env"
@@ -182,7 +188,7 @@ def synthesis_inputs_for_round(events_by_round, round_num):
         "safe_payload": prose_safe_outcome_payload(outcomes),
         "previous_ending": previous_ending,
         "safe_lifecycle": lifecycle,
-    }
+    }, [o.model_dump(mode="json") for o in outcomes]
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +228,72 @@ def _synthesis_prompts(case, module_swapper, module_name, content):
     )
 
 
+def _resolution_extract(parsed: dict, case) -> Dict[str, Any]:
+    """Today's reader: flatten damage, conditions, void, clocks."""
+    return MechanicalExtractor.extract_mechanical_fields(parsed)
+
+
+def _synthesis_extract(parsed: dict, case) -> Dict[str, Any]:
+    """Read a synthesis response the way the engine reads it.
+
+    The engine's own `validate_outcome_synthesis` is the oracle here: pure, no
+    session state, 18 blocking error kinds and 3 warnings, and both sides are
+    already logged. A variant that produces more validation errors is worse
+    without anyone judging prose — which is the whole reason to reach for it
+    before paying a frontier model to have an opinion.
+
+    It *mutates* what it is given — sorts source_outcome_ids, auto-repairs
+    coverage — so it gets a copy. Defensive rather than load-bearing: every
+    field reported here is read before validation runs, so removing the copy
+    changes no result today. It stays because the alternative is that the next
+    person to report a field after validation credits the prompt for repairs the
+    engine performed on its behalf, and nothing would flag it. The hazard is
+    asserted in `test_synthesis_harness_scorers.py` so it stays a choice.
+    """
+    fields: Dict[str, Any] = {
+        "parsed": bool(parsed), "schema_valid": False, "narration": "",
+        "narration_chars": 0, "segment_count": 0,
+        "validation_errors": [], "validation_warnings": [],
+    }
+    if not parsed:
+        return fields
+
+    try:
+        from aeonisk.multiagent.outcome_pipeline import (
+            AppliedOutcome, OutcomeRoundSynthesis, SynthesisValidationError,
+            validate_outcome_synthesis)
+    except ImportError:  # pragma: no cover - engine package unavailable
+        return fields
+
+    try:
+        synthesis = OutcomeRoundSynthesis.model_validate(parsed)
+    except Exception as exc:
+        # A response the schema rejects never reached the engine at all, so it
+        # is the worst outcome a variant can produce, not a missing measurement.
+        fields["validation_errors"] = [f"schema: {exc.__class__.__name__}"]
+        return fields
+
+    fields.update(schema_valid=True, narration=synthesis.narration,
+                  narration_chars=len(synthesis.narration or ""),
+                  segment_count=len(synthesis.segments))
+
+    outcomes = []
+    for raw in case.synthesis_outcomes or []:
+        try:
+            outcomes.append(AppliedOutcome.model_validate(raw))
+        except Exception:
+            return fields  # cannot judge coverage without the ground truth
+    if not outcomes:
+        return fields
+
+    try:
+        fields["validation_warnings"] = validate_outcome_synthesis(
+            copy.deepcopy(synthesis), outcomes)
+    except SynthesisValidationError as exc:
+        fields["validation_errors"] = list(exc.errors)
+    return fields
+
+
 @dataclass(frozen=True)
 class CaseKind:
     """One family of recorded calls, and everything that differs about it.
@@ -234,6 +306,7 @@ class CaseKind:
     name: str
     call_type: Optional[str]
     build_prompts: Callable
+    extract: Callable
     default_scorers: Tuple[str, ...]
 
 
@@ -241,6 +314,7 @@ RESOLUTION = CaseKind(
     name="resolution",
     call_type=None,            # selected by response markers, as before
     build_prompts=_resolution_prompts,
+    extract=_resolution_extract,
     default_scorers=("damage_comparison",),
 )
 
@@ -248,6 +322,7 @@ SYNTHESIS = CaseKind(
     name="synthesis",
     call_type="structured:OutcomeRoundSynthesis",
     build_prompts=_synthesis_prompts,
+    extract=_synthesis_extract,
     default_scorers=("synthesis_validation", "synthesis_repetition"),
 )
 
@@ -311,6 +386,11 @@ class EvalCase:
     #: and how its response is read — see CaseKind. Defaults to the resolution
     #: path so nothing that existed before this field behaves differently.
     kind_name: str = "resolution"
+
+    #: The round's applied outcomes as recorded, kept as dicts rather than
+    #: models so a case can cross a thread boundary. `validate_outcome_synthesis`
+    #: needs them: a synthesis is only judgeable against what actually happened.
+    synthesis_outcomes: Optional[List[Dict[str, Any]]] = None
 
     #: Everything needed to re-render a synthesis prompt from scratch, taken
     #: from the recorded session. Populated only for synthesis cases, because
@@ -379,6 +459,11 @@ def is_eval_candidate(event: dict, call_type: Optional[str] = None) -> bool:
 #: `content`, so every module using another key loaded as empty string and was
 #: silently unswappable — the failure of a prompt tool to see a prompt, which is
 #: #159's whole complaint in miniature.
+#: How much of an opening counts as the opening. Matches `synthesis_scorers.py`
+#: so an offline corpus sweep and a harness run report the same number — two
+#: different answers to "how repetitive is this" would be worse than one.
+OPENING_CHARS = 120
+
 MODULE_BODY_KEYS = ("content", "user_prompt", "round_assessment_prompt")
 
 
@@ -1098,8 +1183,9 @@ class SessionExtractor:
             if module_filter and module_filter not in detected_modules:
                 continue
 
-            if kind is SYNTHESIS and not synthesis_inputs_for_round(
-                    events_by_round, round_num):
+            rebuilt = (synthesis_inputs_for_round(events_by_round, round_num)
+                       if kind is SYNTHESIS else None)
+            if kind is SYNTHESIS and rebuilt is None:
                 logger.debug("round %s has no rebuildable synthesis inputs", round_num)
                 continue
 
@@ -1124,9 +1210,8 @@ class SessionExtractor:
                 declared_target=weapon_ctx["declared_target"],
                 player_intent=player_intent,
                 kind_name=kind.name,
-                synthesis_inputs=(
-                    synthesis_inputs_for_round(events_by_round, round_num)
-                    if kind is SYNTHESIS else None),
+                synthesis_inputs=rebuilt[0] if rebuilt else None,
+                synthesis_outcomes=rebuilt[1] if rebuilt else None,
                 original_base_damage=outcome["original_base_damage"],
                 original_damage_type=outcome["original_damage_type"],
                 original_conditions=outcome["original_conditions"],
@@ -1408,11 +1493,89 @@ class SoulcreditScorer(BaseScorer):
         }
 
 
+class SynthesisValidationScorer(BaseScorer):
+    """How much of the engine's own contract the variant satisfies.
+
+    The primary target, because it is exact and free: `validate_outcome_synthesis`
+    is the same function the live session runs, and a response it rejects would
+    have been rejected in play. `schema_valid=False` is the floor — a response
+    the schema refuses never reached the narrator at all.
+
+    Reported against the original so a variant is measured as a *change*, not
+    against an absolute nobody has calibrated.
+    """
+    name = "synthesis_validation"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        orig_errors = len(original.get("validation_errors") or [])
+        replay_errors = len(replay.get("validation_errors") or [])
+        return {
+            "schema_valid": bool(replay.get("schema_valid")),
+            "original_errors": orig_errors,
+            "replay_errors": replay_errors,
+            "error_delta": replay_errors - orig_errors,
+            "replay_warnings": len(replay.get("validation_warnings") or []),
+            "clean": bool(replay.get("schema_valid")) and replay_errors == 0,
+        }
+
+
+class SynthesisRepetitionScorer(BaseScorer):
+    """How much of this round's opening is the previous round's opening.
+
+    The defect #158 exists to fix: 22% of consecutive round pairs in the corpus
+    open with character-identical text, against 0% of 1,760 legacy pairs.
+    Compared against `previous_ending` — the prior narration the prompt itself
+    hands the model — so it measures exactly the contamination being tested.
+
+    Trivially gameable on its own (open every round on a random noun), which is
+    why the goal file must keep a held-out regression and never optimise this
+    alone.
+    """
+    name = "synthesis_repetition"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        prior = ((case.synthesis_inputs or {}).get("previous_ending") or "")
+        head = prior[:OPENING_CHARS]
+        result = {"has_prior": bool(head)}
+        for label, fields in (("original", original), ("replay", replay)):
+            opening = (fields.get("narration") or "")[:OPENING_CHARS]
+            result[f"{label}_similarity"] = (
+                difflib.SequenceMatcher(None, head, opening).ratio() if head else 0.0)
+            result[f"{label}_identical"] = bool(head) and opening == head
+        result["similarity_delta"] = (
+            result["replay_similarity"] - result["original_similarity"])
+        return result
+
+
+class SynthesisGrowthScorer(BaseScorer):
+    """Narration length against the round it was told to continue from.
+
+    Accretion is the other face of the same contamination: a narrator retelling
+    what it was shown produces a longer round every time. Held out of the
+    optimisation targets by default — it is the check that catches a rewrite
+    that games repetition by padding.
+    """
+    name = "synthesis_growth"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        prior = len(((case.synthesis_inputs or {}).get("previous_ending") or ""))
+        replay_chars = replay.get("narration_chars", 0)
+        return {
+            "prior_chars": prior,
+            "replay_chars": replay_chars,
+            "original_chars": original.get("narration_chars", 0),
+            "growth_ratio": (replay_chars / prior) if prior else None,
+        }
+
+
 SCORER_REGISTRY = {
     "damage_comparison": DamageComparisonScorer,
     "damage_range": DamageRangeScorer,
     "suppression_table": DamageRangeScorer,  # backward compat alias
     "soulcredit": SoulcreditScorer,
+    "synthesis_validation": SynthesisValidationScorer,
+    "synthesis_repetition": SynthesisRepetitionScorer,
+    "synthesis_growth": SynthesisGrowthScorer,
 }
 
 
@@ -1625,8 +1788,9 @@ class ReplayEngine:
             modified_prompt, replay_user_prompt = modified_prompts[case.case_id]
 
             # Parse original response
+            reader = CASE_KINDS[case.kind_name].extract
             orig_parsed = MechanicalExtractor.parse_response(case.response_text)
-            orig_fields = MechanicalExtractor.extract_mechanical_fields(orig_parsed)
+            orig_fields = reader(orig_parsed, case)
 
             try:
                 response_text, latency_ms = self.replay_case(
@@ -1635,7 +1799,7 @@ class ReplayEngine:
                     user_prompt=replay_user_prompt,
                 )
                 replay_parsed = MechanicalExtractor.parse_response(response_text)
-                replay_fields = MechanicalExtractor.extract_mechanical_fields(replay_parsed)
+                replay_fields = reader(replay_parsed, case)
 
                 # Score
                 score_results = {}
@@ -1884,6 +2048,65 @@ class ReportGenerator:
                         "avg_base_damage": avg_bd,
                         "in_range_pct": in_range_pct,
                         "has_condition_pct": has_cond_pct,
+                    }
+
+            elif scorer.name == "synthesis_validation":
+                lines.append(f"{'Model':<{mw}} | {'% schema-valid':>14} | {'% clean':>8} | {'avg errors':>10} | {'avg warns':>9}")
+                lines.append("-" * (mw + 52))
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores]
+                    if not scored:
+                        continue
+                    n = len(scored)
+                    valid_pct = sum(1 for r in scored if r.scores[scorer.name]["schema_valid"]) / n * 100
+                    clean_pct = sum(1 for r in scored if r.scores[scorer.name]["clean"]) / n * 100
+                    avg_err = sum(r.scores[scorer.name]["replay_errors"] for r in scored) / n
+                    avg_warn = sum(r.scores[scorer.name]["replay_warnings"] for r in scored) / n
+                    lines.append(f"{model:<{mw}} | {valid_pct:>13.0f}% | {clean_pct:>7.0f}% | {avg_err:>10.2f} | {avg_warn:>9.2f}")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "schema_valid_pct": valid_pct,
+                        "clean_pct": clean_pct,
+                        "max_avg_errors": avg_err,
+                        "max_avg_warnings": avg_warn,
+                    }
+
+            elif scorer.name == "synthesis_repetition":
+                lines.append(f"{'Model':<{mw}} | {'median sim (orig→new)':<22} | {'% identical':>11}")
+                lines.append("-" * (mw + 40))
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores
+                              and r.scores[scorer.name]["has_prior"]]
+                    if not scored:
+                        continue
+                    orig = statistics.median(r.scores[scorer.name]["original_similarity"] for r in scored)
+                    new = statistics.median(r.scores[scorer.name]["replay_similarity"] for r in scored)
+                    ident_pct = sum(1 for r in scored if r.scores[scorer.name]["replay_identical"]) / len(scored) * 100
+                    lines.append(f"{model:<{mw}} | {orig:>8.2f} → {new:<8.2f}     | {ident_pct:>10.0f}%")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "max_median_similarity": new,
+                        "max_identical_pct": ident_pct,
+                        "original_median_similarity": orig,
+                    }
+
+            elif scorer.name == "synthesis_growth":
+                lines.append(f"{'Model':<{mw}} | {'median growth vs prior round':>28}")
+                lines.append("-" * (mw + 32))
+
+                for model, model_results in sorted(by_model.items()):
+                    ratios = [r.scores[scorer.name]["growth_ratio"] for r in model_results
+                              if scorer.name in r.scores
+                              and r.scores[scorer.name]["growth_ratio"] is not None]
+                    if not ratios:
+                        continue
+                    median_growth = statistics.median(ratios)
+                    lines.append(f"{model:<{mw}} | {median_growth:>27.2f}x")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "max_median_growth": median_growth,
                     }
 
             elif scorer.name == "soulcredit":

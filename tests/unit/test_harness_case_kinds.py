@@ -101,8 +101,16 @@ class TestResolutionIsUnchanged:
 
 class TestSynthesisRebuild:
 
+    def test_it_returns_both_the_render_inputs_and_the_ground_truth(self):
+        """Two different jobs from one walk of the round: the four values the
+        prompt renders, and the outcomes a response gets validated against."""
+        inputs, outcomes = synthesis_inputs_for_round(_events_by_round(), 3)
+
+        assert isinstance(inputs, dict) and isinstance(outcomes, list)
+        assert len(outcomes) == len(inputs["safe_payload"])
+
     def test_the_four_inputs_come_back_from_the_recording(self):
-        got = synthesis_inputs_for_round(_events_by_round(), 3)
+        got, _outcomes = synthesis_inputs_for_round(_events_by_round(), 3)
 
         assert set(got) == {"round_num", "safe_payload", "previous_ending",
                             "safe_lifecycle"}
@@ -113,13 +121,13 @@ class TestSynthesisRebuild:
     def test_the_payload_is_the_prose_safe_whitelist_not_the_raw_outcome(self):
         """A field absent from the whitelist never reaches the narrator, so a
         rebuild that leaked extra keys would be testing a different prompt."""
-        payload = synthesis_inputs_for_round(_events_by_round(), 3)["safe_payload"]
+        payload = synthesis_inputs_for_round(_events_by_round(), 3)[0]["safe_payload"]
 
         assert "entity_states_after" not in payload[0]
         assert {"outcome_id", "actor_name", "intent", "weapon"} <= set(payload[0])
 
     def test_round_one_has_no_prior_narration(self):
-        assert synthesis_inputs_for_round(_events_by_round(), 1)["previous_ending"] == ""
+        assert synthesis_inputs_for_round(_events_by_round(), 1)[0]["previous_ending"] == ""
 
     def test_a_round_with_no_outcomes_is_dropped_not_faked(self):
         """Replaying against an empty scene would score a prompt nobody sent."""
@@ -136,8 +144,9 @@ class TestSynthesisRendersFaithfully:
     def _built(self, content=None):
         from aeonisk.multiagent import synthesis_prompt
         module = synthesis_prompt.load_module()
-        case = _case(kind_name="synthesis",
-                     synthesis_inputs=synthesis_inputs_for_round(_events_by_round(), 3))
+        rebuilt, outcomes = synthesis_inputs_for_round(_events_by_round(), 3)
+        case = _case(kind_name="synthesis", synthesis_inputs=rebuilt,
+                     synthesis_outcomes=outcomes)
         return SYNTHESIS.build_prompts(
             case, FakeSwapper(), "dm_outcome_synthesis",
             content if content is not None else module["user_prompt"])
