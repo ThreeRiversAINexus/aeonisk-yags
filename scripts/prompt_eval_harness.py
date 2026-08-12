@@ -173,6 +173,56 @@ class ReplayResult:
 # ModuleSwapper
 # ---------------------------------------------------------------------------
 
+#: The response shape the harness has always selected on. Kept as the default
+#: so nothing that ran yesterday selects differently today.
+LEGACY_RESOLUTION_MARKERS = ('"narration"', '"effects"')
+
+
+def is_eval_candidate(event: dict, call_type: Optional[str] = None) -> bool:
+    """Is this recorded LLM call a case the harness can replay?
+
+    Selecting by `call_type` rather than by substrings in the response body is
+    both a fix and a generalisation. Every `llm_call` has carried a `call_type`
+    tag since the batch-proxy path was tagged, and the tag says what the call
+    *was*; the substring test says what its answer happened to contain. The
+    round synthesis call answers with `narration` + `segments` + `coverage` and
+    no `effects`, so the harness could not see the one prompt most in need of
+    optimisation (#158) — it was invisible for a reason that had nothing to do
+    with whether it was replayable.
+
+    With no `call_type` given the legacy behaviour is preserved exactly, so
+    every existing invocation keeps selecting the same cases.
+    """
+    if event.get("event_type") != "llm_call" or event.get("agent_type") != "dm":
+        return False
+    if call_type:
+        return call_type in str(event.get("call_type") or "")
+    response = event.get("response") or ""
+    return all(marker in response for marker in LEGACY_RESOLUTION_MARKERS)
+
+
+#: Modules do not agree on where their prose lives. Most use `content`;
+#: `dm_round_assessment` uses `round_assessment_prompt`; `dm_outcome_synthesis`
+#: splits into `system_prompt` + `user_prompt`. The swapper only ever read
+#: `content`, so every module using another key loaded as empty string and was
+#: silently unswappable — the failure of a prompt tool to see a prompt, which is
+#: #159's whole complaint in miniature.
+MODULE_BODY_KEYS = ("content", "user_prompt", "round_assessment_prompt")
+
+
+def module_body(data: dict) -> str:
+    """The prompt text out of a module, whichever key it chose to put it under."""
+    for key in MODULE_BODY_KEYS:
+        value = data.get(key)
+        if value:
+            return value
+    # A single *_prompt key is the convention these modules keep reinventing.
+    for key, value in sorted(data.items()):
+        if key.endswith("_prompt") and isinstance(value, str) and value.strip():
+            return value
+    return ""
+
+
 class ModuleSwapper:
     """Loads DM YAML modules and swaps them in system prompts."""
 
@@ -191,7 +241,7 @@ class ModuleSwapper:
                 with open(yaml_path, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 module_name = data.get("module", yaml_path.stem)
-                content = data.get("content", "")
+                content = module_body(data)
                 if content:
                     self._modules[module_name] = content
             except Exception as e:
@@ -225,9 +275,11 @@ class ModuleSwapper:
         with open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         module_name = data.get("module", path.stem)
-        content = data.get("content", "")
+        content = module_body(data)
         if not content:
-            raise ValueError(f"Replacement module {yaml_path} has no 'content' field")
+            raise ValueError(
+                f"Replacement module {yaml_path} carries no prompt text under any of "
+                f"{MODULE_BODY_KEYS} or a *_prompt key")
         return module_name, content
 
     def swap_module(self, system_prompt: str, module_name: str, new_content: str) -> str:
@@ -606,6 +658,7 @@ class SessionExtractor:
         margin_range: Optional[Tuple[int, int]] = None,
         max_cases: Optional[int] = None,
         module_swapper: Optional[ModuleSwapper] = None,
+        call_type_filter: Optional[str] = None,
     ) -> List[EvalCase]:
         """
         Extract DM resolution cases from session files.
@@ -622,6 +675,9 @@ class SessionExtractor:
             module_filter: Only cases where a specific module was detected
             margin_range: Only cases with margin in [min, max] range
             max_cases: Stop after this many cases
+            call_type_filter: Select by the call's `call_type` tag (e.g.
+                'structured:OutcomeRoundSynthesis') instead of by markers in the
+                response body. Omit for the legacy resolution-shaped selection.
         """
         # Normalize intent_filter → intent_keywords for backward compat
         effective_keywords = intent_keywords
@@ -640,6 +696,7 @@ class SessionExtractor:
                     action_type_filter, effective_keywords, exclude_keywords,
                     weapon_damage_type,
                     original_model_filter, module_filter, margin_range, module_swapper,
+                    call_type_filter,
                 )
                 cases.extend(file_cases)
             except Exception as e:
@@ -664,6 +721,7 @@ class SessionExtractor:
         module_filter: Optional[str],
         margin_range: Optional[Tuple[int, int]],
         module_swapper: Optional[ModuleSwapper],
+        call_type_filter: Optional[str] = None,
     ) -> List[EvalCase]:
         """
         Extract eval cases from a single JSONL file using two-pass extraction.
@@ -691,12 +749,9 @@ class SessionExtractor:
                 if round_num is not None:
                     events_by_round.setdefault(round_num, []).append(event)
 
-                # Identify DM llm_call resolution events
-                if (event.get("event_type") == "llm_call"
-                        and event.get("agent_type") == "dm"):
-                    response_text = event.get("response", "")
-                    if '"narration"' in response_text and '"effects"' in response_text:
-                        dm_llm_calls.append((line_num, event))
+                # Identify replayable DM llm_calls (by call_type when given)
+                if is_eval_candidate(event, call_type_filter):
+                    dm_llm_calls.append((line_num, event))
 
         # --- Pass 2: Process each DM llm_call with correlated events ---
         cases = []
@@ -2721,6 +2776,10 @@ Examples:
     parser.add_argument("--direct", action="store_true", help="Alias for --strategy direct (immediate)")
 
     # Filters
+    parser.add_argument("--call-type", type=str, default=None,
+                        help="Select cases by call_type tag, e.g. "
+                             "structured:OutcomeRoundSynthesis (default: "
+                             "resolution-shaped responses)")
     parser.add_argument("--action-type", type=str, default=None, help="Filter by action type (combat, investigate, ...)")
     parser.add_argument("--intent-filter", type=str, default=None, help="Single keyword match on player action text (backward compat)")
     parser.add_argument(
@@ -2927,6 +2986,7 @@ def main(argv=None):
             margin_range=margin_range,
             max_cases=args.max_cases,
             module_swapper=module_swapper,
+            call_type_filter=args.call_type,
         )
 
         # Classify without filtering if --classify-intent but no goal file config
