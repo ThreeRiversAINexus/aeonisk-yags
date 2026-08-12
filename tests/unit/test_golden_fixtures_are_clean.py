@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.session_invariants import ERROR, check_file, load
+from scripts.session_invariants import ERROR, _body, check_file, load
 
 FIXTURES = Path(__file__).parent.parent / "fixtures/sessions"
 MANIFEST = FIXTURES / "MANIFEST.json"
@@ -69,6 +69,25 @@ class TestEveryGoldenFixture:
         assert declared <= actual, (
             f"{name} declares stale_findings {sorted(declared - actual)} that no "
             f"longer occur — drop them from the MANIFEST")
+
+    def test_the_checkers_can_actually_see_it(self, name):
+        """Zero findings must mean "nothing wrong", not "nothing visible".
+
+        Only 12 of the 44 complete sessions in the corpus carry
+        `end_state_snapshot.soulcredit_states`; the other 32 pass
+        `soulcredit_oracle_lag` because it cannot read them, not because they
+        agree. A fixture promoted on that kind of silence would certify the
+        checker's blind spot as the standard — the same absence-of-evidence
+        that let eleven extracts sit behind terminal checkers that could never
+        fire on them.
+        """
+        end = [_body(e) for e in load(str(FIXTURES / name))
+               if e.get("event_type") == "end_state_snapshot"]
+
+        assert end, f"{name} has no end_state_snapshot; the ledger checks are blind"
+        assert (end[-1].get("state_summary") or {}).get("soulcredit_states"), (
+            f"{name} records no final Soulcredit ledger, so soulcredit_oracle_lag "
+            f"passes it vacuously")
 
     def test_is_a_complete_session_not_an_extract(self, name):
         kinds = [e.get("event_type") for e in load(str(FIXTURES / name))]
