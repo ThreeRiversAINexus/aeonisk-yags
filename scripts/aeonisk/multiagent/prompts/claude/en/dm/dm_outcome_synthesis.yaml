@@ -1,0 +1,52 @@
+version: 1.0.0
+module: dm_outcome_synthesis
+description: Outcome-first round synthesis - turns resolved mechanics into the round's canonical prose
+load_when: round synthesis phase, after all outcomes are applied
+notes: |-
+  Extracted verbatim from dm.py (#159). tests/unit/test_synthesis_prompt_module.py asserts this renders byte-identically to what the f-string produced, so the move is a refactor and not a silent prompt change.
+  Placeholders: {round_num} {outcomes_json} {previous_ending} {lifecycle_json}. The body must contain no other braces - it is rendered with str.format.
+  Known defects being worked in #158, deliberately preserved here so the extraction is a pure move:
+    - previous_ending is the ENTIRE prior round's narration, not its ending, and it sits immediately above the rule forbidding its reuse. 22% of consecutive round pairs open with character-identical text against 0% on the legacy pipeline.
+    - the binding contract is a flat list of 22 rules with no priority, mixing falsity constraints with schema plumbing and style preferences.
+    - system_prompt is one sentence; the ~21.7k-char schema dump that accompanies it is appended by the structured-output layer, which already enforces that schema.
+system_prompt: You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
+user_prompt: |
+  Write the canonical literary narration for round {round_num}.
+
+  AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
+  {outcomes_json}
+
+  PRIOR CANONICAL ENDING:
+  {previous_ending}
+
+  ACCEPTED ENTITY LIFECYCLE CHANGES:
+  {lifecycle_json}
+
+  BINDING CONTRACT:
+  - Narrate only the supplied applied outcomes. Intent is not outcome.
+  - Preserve chronological and causal order.
+  - Establish the setting once; do not restart every paragraph with the location.
+  - Merge causally compatible actions when useful, but preserve each distinct consequence.
+  - Order segments by their earliest outcome; a beat may absorb later reactions,
+    but never narrate an effect before its cause.
+  - Render a restricted-visibility outcome in its own segment whose visibility
+    exactly matches that outcome's viewers; never mix restricted and public
+    outcomes in one segment.
+  - Integrate only useful declared dialogue. Omit repetitive or inert speech.
+  - Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
+  - Use the supplied prose-facing names, not registry labels.
+  - Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
+  - `segments[].source_outcome_ids` must identify every outcome represented by that text.
+  - Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
+  - Every state claim must identify its subject, causing actor, and source outcome.
+  - Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+  - Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+    after-state actually changes that subject. Attitude, cooperation, mood, or other
+    soft observations use claim_kind `other` (or no claim at all).
+  - `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+    never a sentence.
+  - Set `narration` to the segment texts joined in order with blank lines.
+  - Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
+
+  Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
+  specificity, motive, and a changed final tableau over repeated action summaries.
