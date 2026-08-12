@@ -99,14 +99,27 @@ def parse_model_spec(spec: str) -> Tuple[str, str]:
     return provider, model
 
 
-def _write_module_yaml(path: Path, module_name: str, content: str, description: str = "", version: str = "auto"):
-    """Write a prompt module YAML with clean |- block scalar for the content field."""
+def _write_module_yaml(path: Path, module_name: str, content: str, description: str = "",
+                       version: str = "auto", body_key: str = "content",
+                       extra: Optional[Dict[str, str]] = None):
+    """Write a prompt module YAML with a clean |- block scalar for the body.
+
+    `body_key` must match the key the source module keeps its prose under, or a
+    self-judged rewrite does not round-trip: `dm_outcome_synthesis` uses
+    `user_prompt`, `dm_round_assessment` uses `round_assessment_prompt`, and a
+    file written with `content:` would load as empty and be silently
+    unswappable — which is the same failure `module_body` exists to prevent.
+    `extra` carries sibling scalars the source had (a system_prompt, say) so
+    they survive the rewrite instead of being dropped.
+    """
     with open(path, "w") as f:
         f.write(f"version: {version}\n")
         f.write(f"module: {module_name}\n")
         if description:
             f.write(f"description: {description}\n")
-        f.write("content: |-\n")
+        for key, value in (extra or {}).items():
+            f.write(f"{key}: {json.dumps(value)}\n")
+        f.write(f"{body_key}: |-\n")
         for line in content.split("\n"):
             f.write(f"  {line}\n" if line else "\n")
 
@@ -210,6 +223,35 @@ def is_eval_candidate(event: dict, call_type: Optional[str] = None) -> bool:
 MODULE_BODY_KEYS = ("content", "user_prompt", "round_assessment_prompt")
 
 
+def module_body_key(data: dict) -> str:
+    """Which key this module keeps its prose under, so a rewrite round-trips."""
+    for key in MODULE_BODY_KEYS:
+        if data.get(key):
+            return key
+    for key, value in sorted(data.items()):
+        if key.endswith("_prompt") and isinstance(value, str) and value.strip():
+            return key
+    return MODULE_BODY_KEYS[0]
+
+
+def replacement_shape(yaml_path) -> Tuple[str, Dict[str, str]]:
+    """(body key, sibling *_prompt scalars) for a replacement module file.
+
+    Read from the file rather than remembered on the swapper: the shape is a
+    property of the module, and threading it through mutable swapper state made
+    every caller that mocks the swapper break. Falls back to `content` for a
+    file that cannot be read, which is the shape most modules use.
+    """
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError):
+        return MODULE_BODY_KEYS[0], {}
+    key = module_body_key(data)
+    return key, {k: v for k, v in data.items()
+                 if k.endswith("_prompt") and k != key and isinstance(v, str)}
+
+
 def module_body(data: dict) -> str:
     """The prompt text out of a module, whichever key it chose to put it under."""
     for key in MODULE_BODY_KEYS:
@@ -221,6 +263,38 @@ def module_body(data: dict) -> str:
         if key.endswith("_prompt") and isinstance(value, str) and value.strip():
             return value
     return ""
+
+
+class UnswappableCases(RuntimeError):
+    """Every case failed the swap, so nothing would measure the new prompt."""
+
+
+def build_modified_prompts(cases, module_swapper, module_name, content):
+    """Modified system prompt per case, and the cases that actually got one.
+
+    Every caller must go through this. Three call sites used to swallow the
+    swap failure and fall back to `case.system_prompt` — replaying the *old*
+    prompt and scoring it as though it were the new one. That is worse than a
+    crash: the optimiser reads the resulting numbers as evidence about a rewrite
+    that was never sent, and a self-judge loop then iterates on that evidence.
+
+    Cases that cannot be varied are dropped and counted. Dropping all of them
+    raises, because a run that measures nothing must not report a score.
+    """
+    prompts, kept, skipped = {}, [], []
+    for case in cases:
+        try:
+            prompts[case.case_id] = module_swapper.swap_module(
+                case.system_prompt, module_name, content)
+            kept.append(case)
+        except ValueError:
+            skipped.append(case.case_id)
+    if cases and not kept:
+        raise UnswappableCases(
+            f"none of {len(cases)} cases could be varied for module "
+            f"{module_name!r} — the module body was not found in any recorded "
+            f"prompt, so every result would describe the unmodified prompt")
+    return prompts, kept, skipped
 
 
 class ModuleSwapper:
@@ -2079,14 +2153,11 @@ class SelfJudge:
         if not reg_scorers:
             return None
 
-        reg_prompts = {}
-        for case in reg_cases:
-            try:
-                reg_prompts[case.case_id] = module_swapper.swap_module(
-                    case.system_prompt, module_name, current_content
-                )
-            except ValueError:
-                reg_prompts[case.case_id] = case.system_prompt
+        reg_prompts, reg_cases, dropped = build_modified_prompts(
+            reg_cases, module_swapper, module_name, current_content)
+        if dropped:
+            logger.warning("Regression %s dropped %d unvariable case(s)",
+                           reg_name, len(dropped))
 
         return {
             "name": reg_name,
@@ -2492,15 +2563,12 @@ class SelfJudge:
             print(f"{'='*60}", file=sys.stderr)
 
             # Build modified prompts for all cases
-            modified_prompts = {}
-            for case in cases:
-                try:
-                    modified_prompts[case.case_id] = module_swapper.swap_module(
-                        case.system_prompt, module_name, current_content
-                    )
-                except ValueError:
-                    # Module not found in this case's prompt - use original
-                    modified_prompts[case.case_id] = case.system_prompt
+            modified_prompts, cases, dropped = build_modified_prompts(
+                cases, module_swapper, module_name, current_content)
+            if dropped:
+                logger.warning(
+                    "Dropped %d case(s) that could not be varied: %s",
+                    len(dropped), ", ".join(dropped[:5]))
 
             # Run main replay and regressions concurrently — both are
             # independent API replay batches, no need to serialize
@@ -2535,8 +2603,10 @@ class SelfJudge:
             iter_report_path = output_path / f"iteration_{iteration}_report.txt"
 
             # Save module YAML
+            body_key, siblings = replacement_shape(initial_module_path)
             _write_module_yaml(iter_module_path, module_name, current_content,
-                               description=f"Self-judge iteration {iteration}")
+                               description=f"Self-judge iteration {iteration}",
+                               body_key=body_key, extra=siblings)
 
             ResultStore(str(iter_results_path)).save_results(results)
             with open(iter_report_path, "w") as f:
@@ -2624,8 +2694,10 @@ class SelfJudge:
 
         # Save best module
         best_path = output_path / "final_module.yaml"
+        body_key, siblings = replacement_shape(initial_module_path)
         _write_module_yaml(best_path, module_name, best_content,
-                           description="Best-scoring module from self-judge iteration")
+                           description="Best-scoring module from self-judge iteration",
+                           body_key=body_key, extra=siblings)
 
         # Save convergence
         convergence_path = output_path / "convergence.json"
@@ -2655,13 +2727,10 @@ class SelfJudge:
             if validation_cases:
                 # Build modified prompts with best content
                 validation_prompts = {}
-                for case in validation_cases:
-                    try:
-                        validation_prompts[case.case_id] = module_swapper.swap_module(
-                            case.system_prompt, module_name, best_content
-                        )
-                    except ValueError:
-                        validation_prompts[case.case_id] = case.system_prompt
+                validation_prompts, validation_cases, dropped = build_modified_prompts(
+                    validation_cases, module_swapper, module_name, best_content)
+                if dropped:
+                    logger.warning("Validation dropped %d unvariable case(s)", len(dropped))
 
                 validation_results = replay_engine.replay_batch(
                     validation_cases, validation_prompts, model_specs, scorers,
@@ -3222,25 +3291,19 @@ def main(argv=None):
         if completed_keys:
             print(f"Resuming: {len(completed_keys)} results already completed", file=sys.stderr)
 
-    # Build modified prompts — skip cases where module can't be swapped
-    modified_prompts = {}
-    skipped = 0
-    swappable_cases = []
-    for case in cases:
-        try:
-            modified_prompts[case.case_id] = module_swapper.swap_module(
-                case.system_prompt, module_name, new_content
-            )
-            swappable_cases.append(case)
-        except ValueError:
-            skipped += 1
-
-    if skipped:
-        print(f"Skipped {skipped}/{len(cases)} cases (module not found in prompt — old/incompatible sessions)", file=sys.stderr)
-    cases = swappable_cases
-    if not cases:
-        print("No swappable cases remaining. Check --sessions directories.", file=sys.stderr)
+    # Build modified prompts — cases that cannot be varied are dropped, never
+    # replayed unmodified and scored as though they had been (see
+    # build_modified_prompts).
+    try:
+        modified_prompts, cases, dropped = build_modified_prompts(
+            cases, module_swapper, module_name, new_content)
+    except UnswappableCases as exc:
+        print(f"{exc}", file=sys.stderr)
         return 1
+
+    if dropped:
+        print(f"Skipped {len(dropped)}/{len(dropped) + len(cases)} cases "
+              f"(module not found in prompt — old/incompatible sessions)", file=sys.stderr)
 
     # Open output file for streaming writes (results saved as they complete)
     result_store.open(append=args.resume)
