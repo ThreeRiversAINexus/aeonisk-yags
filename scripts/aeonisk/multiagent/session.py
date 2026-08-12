@@ -27,6 +27,7 @@ from .outcome_parser import (
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
 from .agent_prompt_logger import AgentPromptLogger
+from .guard_log import record_guard_rejection
 from .awareness import filter_narrations_for_agent, NarrationEntry
 
 logger = logging.getLogger(__name__)
@@ -2343,7 +2344,9 @@ Generate narratives (numbered list only):"""
                 )
 
         changes = apply_assessments(self._declared_actions, assessment,
-                                    character_sheets)
+                                    character_sheets,
+                                    mechanics=self.shared_state.get_mechanics_engine()
+                                    if self.shared_state else None)
         for line in changes:
             print(f"⚖️  DM assessment: {line}")
 
@@ -4095,11 +4098,21 @@ Generate narratives (numbered list only):"""
                                 if corrected_id:
                                     logger.warning(f"Auto-corrected enemy conversion: {enemy_conversion.enemy_id} → {corrected_id}")
                                     print(f"⚠️  Auto-corrected conversion ID: {enemy_conversion.enemy_id} → {corrected_id}")
+                                    record_guard_rejection(
+                                        mechanics, mechanics.current_round if mechanics else 0,
+                                        guard='enemy_conversion_target', disposition='corrected',
+                                        requested=enemy_conversion.enemy_id, reason=error_msg,
+                                        subject_id=corrected_id, substituted=corrected_id)
                                     enemy_conversion.enemy_id = corrected_id
                                     is_valid = True
                                 else:
                                     logger.warning(f"Skipping invalid enemy conversion: {error_msg}")
                                     print(f"\n⚠️  {error_msg}")
+                                    record_guard_rejection(
+                                        mechanics, mechanics.current_round if mechanics else 0,
+                                        guard='enemy_conversion_target', disposition='skipped',
+                                        requested=enemy_conversion.enemy_id, reason=error_msg,
+                                        subject_id=enemy_conversion.enemy_id)
                                     continue
 
                             # Find and convert the enemy
@@ -4119,6 +4132,12 @@ Generate narratives (numbered list only):"""
                                     logger.warning(
                                         f"Rejecting enemy conversion: {claim_error}")
                                     print(f"\n⚠️  Rejected conversion: {claim_error}")
+                                    record_guard_rejection(
+                                        mechanics, mechanics.current_round if mechanics else 0,
+                                        guard='conversion_claim', disposition='skipped',
+                                        requested=str(enemy_conversion.resolution),
+                                        reason=claim_error,
+                                        subject_id=enemy_conversion.enemy_id)
                                     continue
 
                             if enemy and enemy.is_active:
@@ -4382,7 +4401,19 @@ Generate narratives (numbered list only):"""
             else:
                 logger.debug("DM agent not found or doesn't have check_conversions method - skipping entity lifecycle")
 
-        # Log EntityLifecycleResult to JSONL (if any lifecycle events occurred)
+        # Every round, including the empty ones. Gating the event on "something
+        # happened" made a round in which the DM asked for three impossible
+        # conversions — all correctly refused — indistinguishable from a round
+        # in which it asked for nothing: neither wrote an event (#155). A reader
+        # cannot tell silence from absence unless the silence is recorded.
+        if mechanics and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_event(
+                'entity_lifecycle',
+                entity_lifecycle_result.to_jsonl_dict(
+                    round_num=mechanics.current_round),
+                round_num=mechanics.current_round
+            )
+
         if (entity_lifecycle_result.morale_events or
             entity_lifecycle_result.enemies_spawned or
             entity_lifecycle_result.npcs_spawned or
@@ -4392,17 +4423,8 @@ Generate narratives (numbered list only):"""
             entity_lifecycle_result.enemies_departed or
             entity_lifecycle_result.env_objects_spawned):
 
-            if mechanics and mechanics.jsonl_logger:
-                lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
-                    round_num=mechanics.current_round
-                )
-                mechanics.jsonl_logger.log_event(
-                    'entity_lifecycle',
-                    lifecycle_dict,
-                    round_num=mechanics.current_round
-                )
-
-            # Print entity lifecycle summary
+            # Print the summary only when there is one — an empty block every
+            # round is console noise, and the console is not the record.
             print(f"\n{entity_lifecycle_result.to_synthesis_context()}")
             logger.info(f"Entity lifecycle complete: {len(entity_lifecycle_result.morale_events)} morale events, "
                        f"{len(entity_lifecycle_result.enemies_spawned)} enemies spawned, "
