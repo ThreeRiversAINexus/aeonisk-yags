@@ -782,6 +782,71 @@ class SessionAnalyzer:
                     if event.get('fallback_triggered', False):
                         self.stats['llm_fallbacks'] += 1
 
+    def print_story(self, mechanics: bool = False):
+        """The session as prose: scenario, each round's narration, the debrief.
+
+        This is what a reader sees. Nothing here is derived or summarised — it
+        is the canonical text the engine committed for each round, so a story
+        that reads badly here read badly in play.
+
+        With `mechanics=True` each round is preceded by the outcomes it was
+        built from, which is how you check the prose against the record rather
+        than against your memory of it: an event in the list and absent from the
+        prose is an omission, prose with no event behind it is an invention.
+        """
+        body = lambda e: e.get('data') if isinstance(e.get('data'), dict) else e
+
+        scenario = next((body(e) for e in self.events
+                         if e.get('event_type') == 'scenario'), None) or {}
+        # The payload nests one level deeper than the event body.
+        scenario = scenario.get('scenario', scenario)
+        print("=" * 78)
+        print(f"SESSION {self.stats['session_id']}")
+        print("=" * 78)
+        if scenario:
+            for key in ('theme', 'location'):
+                if scenario.get(key):
+                    print(f"{key.title()}: {scenario[key]}")
+            opening = scenario.get('description') or scenario.get('opening') or ''
+            if opening:
+                print(f"\n{opening.strip()}")
+
+        outcomes_by_round = defaultdict(list)
+        if mechanics:
+            for e in self.events:
+                if e.get('event_type') == 'applied_outcome':
+                    b = body(e)
+                    facts = [f.get('symbolic_value') for f in (b.get('observable_facts') or [])]
+                    outcomes_by_round[e.get('round')].append(
+                        (b.get('actor_narrative_name') or b.get('actor_id'),
+                         str(b.get('intent') or '').strip(), facts))
+
+        narrations = [(e.get('round'), body(e).get('synthesis') or body(e).get('narration') or '')
+                      for e in self.events if e.get('event_type') == 'round_synthesis']
+        for round_num, text in narrations:
+            print(f"\n{'=' * 78}\nROUND {round_num}"
+                  f"  ({len(text.split())} words)\n{'=' * 78}")
+            if mechanics:
+                for actor, intent, facts in outcomes_by_round.get(round_num, []):
+                    print(f"  · {str(actor)[:24]:24s} {intent[:46]:46s} {facts}")
+                print()
+            print(text.strip())
+
+        debriefs = [(body(e).get('character') or body(e).get('character_name'),
+                     body(e).get('debrief') or '')
+                    for e in self.events if e.get('event_type') == 'mission_debrief']
+        if debriefs:
+            print(f"\n{'=' * 78}\nDEBRIEF\n{'=' * 78}")
+            for who, text in debriefs:
+                if text:
+                    print(f"\n[{who}] {text.strip()}")
+
+        total = sum(len(t.split()) for _, t in narrations)
+        print(f"\n{'-' * 78}")
+        print(f"{len(narrations)} rounds, {total} words of narration"
+              f"{f', {total // len(narrations)} per round' if narrations else ''}")
+
+
     def print_summary(self):
         """Print concise session summary (~30-40 lines)."""
         config = self.stats['config'] or {}
@@ -1348,8 +1413,14 @@ Examples:
     )
     parser.add_argument(
         '--mode',
-        choices=['summary', 'clocks', 'void', 'errors'],
-        help='Analysis mode (summary=default, clocks, void, errors)'
+        choices=['summary', 'clocks', 'void', 'errors', 'story'],
+        help='Analysis mode (summary=default, clocks, void, errors, story)'
+    )
+    parser.add_argument(
+        '--with-mechanics',
+        action='store_true',
+        help='story mode: list each round\'s applied outcomes above its prose, '
+             'so the narration can be checked against the record'
     )
     parser.add_argument(
         '--search',
@@ -1569,6 +1640,8 @@ Examples:
         analyzer.print_void()
     elif mode == 'errors':
         analyzer.print_errors()
+    elif mode == 'story':
+        analyzer.print_story(mechanics=args.with_mechanics)
 
     return 0
 

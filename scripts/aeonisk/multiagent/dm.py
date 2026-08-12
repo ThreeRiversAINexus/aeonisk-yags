@@ -4626,6 +4626,9 @@ Void Level: {self.current_scenario.void_level}/10"""
                     entity_id: snap.name
                     for entity_id, snap in snapshot_shared_state(self.shared_state).items()
                 },
+                mechanics=self.shared_state.get_mechanics_engine()
+                if self.shared_state else None,
+                round_num=round_num,
             )
             if getattr(self.shared_state, 'session', None) and getattr(
                     self.shared_state.session, 'replay_mode', False):
