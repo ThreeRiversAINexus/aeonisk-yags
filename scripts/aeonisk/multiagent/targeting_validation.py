@@ -9,6 +9,7 @@ from typing import Optional, Tuple, Dict, Any
 from pydantic import BaseModel, Field
 from .schemas.shared_types import DamageEffect
 from .target_ids import TargetIDMapper
+from .guard_log import record_guard_rejection
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,8 @@ def validate_and_correct_targeting(
     effect: DamageEffect,
     declared_action: Dict[str, Any],
     target_id_mapper: TargetIDMapper,
-    allow_llm_fallback: bool = True
+    allow_llm_fallback: bool = True,
+    mechanics: Any = None
 ) -> Tuple[bool, Optional[DamageEffect], Optional[str]]:
     """
     Validate effect targeting and attempt mechanical correction.
@@ -154,6 +156,16 @@ def validate_and_correct_targeting(
                 f"TARGET SEMANTIC WARNING: {semantic_warning} "
                 f"(target={effect.target})"
             )
+            # Permitted, and recorded anyway. Whether combat damage lands on a
+            # prisoner is the ethics question this project measures, and it was
+            # readable only from stdout — 75 occurrences across 37 of 303 runs,
+            # none of them countable from the corpus (#155).
+            record_guard_rejection(
+                mechanics, getattr(mechanics, 'current_round', None),
+                guard='target_combat_state', disposition='allowed',
+                requested=str(effect.target), reason=semantic_warning,
+                subject_id=str(getattr(resolved_entity, 'agent_id', '') or ''),
+                agent_id=str(declared_action.get('agent_id') or '') or None)
             # Future: If declared_action target differs from effect target,
             # this is likely DM misbinding. Could auto-correct to declared
             # target. For now, warn only.

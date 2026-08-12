@@ -1296,6 +1296,57 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_guard_rejection(
+        self,
+        round_num: int,
+        guard: str,
+        disposition: str,
+        requested: str,
+        reason: str,
+        subject_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        substituted: Optional[str] = None
+    ):
+        """Log a guard refusing, correcting, or flagging something the DM asked for.
+
+        These were console-only, and they are the highest-signal events the
+        system produces for the research question. "How often does the DM aim
+        combat damage at a prisoner" is a measurement of targeting fidelity —
+        75 occurrences across 37 of 303 runs — and it was answerable only by
+        grepping stdout, which is the practice this project retired. Worse, a
+        guard that leaves no trace cannot be regression-tested from recorded
+        data: no fixture can assert "the engine refused this" (#155).
+
+        Args:
+            round_num: Current round
+            guard: Which check fired ('enemy_conversion_target', 'target_combat_state',
+                'viewer_id_mapping', 'attribute_reframe', 'conversion_claim')
+            disposition: What the engine did — 'skipped' (request refused),
+                'corrected' (request repaired and honoured), 'dropped' (input
+                discarded), or 'allowed' (flagged and permitted anyway). The
+                distinction matters: 'allowed' is a fidelity signal, 'skipped'
+                is a refusal, and conflating them hides which one is growing.
+            requested: What the DM asked for, verbatim
+            reason: Why the guard fired
+            subject_id: Entity the request was about, if any
+            agent_id: Agent whose output triggered it, if any
+            substituted: What was used instead, for 'corrected'
+        """
+        event = {
+            "event_type": "guard_rejection",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "guard": guard,
+            "disposition": disposition,
+            "requested": requested,
+            "reason": reason,
+            "subject_id": subject_id,
+            "agent_id": agent_id,
+            "substituted": substituted,
+        }
+        self._write_event(event)
+
     def log_agent_conversion(
         self,
         round_num: int,

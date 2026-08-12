@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from .constants import ATTRIBUTES_STRING, YAGS_ATTRIBUTES
+from .guard_log import record_guard_rejection
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def apply_assessments(
     declared_actions: Dict[str, List[Dict[str, Any]]],
     assessment: Optional[RoundAssessment],
     character_sheets: Dict[str, Tuple[Dict[str, int], Dict[str, int]]],
+    mechanics: Any = None,
 ) -> List[str]:
     """Merge DM assessments into buffered action dicts, in place.
 
@@ -115,6 +117,14 @@ def apply_assessments(
                     changes.append(
                         f"{name}: attribute reframe to {ruling.attribute} "
                         f"REJECTED (not a YAGS attribute)")
+                    record_guard_rejection(
+                        mechanics, getattr(mechanics, 'current_round', None),
+                        guard='attribute_reframe', disposition='skipped',
+                        requested=str(ruling.attribute),
+                        reason=f'not one of the eight YAGS attributes '
+                               f'({ATTRIBUTES_STRING})',
+                        subject_id=name,
+                        substituted=str(action.get('attribute')))
                 else:
                     old = action.get('attribute')
                     action['attribute'] = ruling.attribute

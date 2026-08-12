@@ -11,6 +11,8 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from .guard_log import record_guard_rejection
+
 from .schemas.action_resolution import MechanicalEffects
 from .schemas.shared_types import SuccessTier
 from .schemas.story_events import RoundSynthesis
@@ -652,6 +654,8 @@ def _normalize_viewer_token(token: str) -> str:
 def canonicalize_viewer_ids(
     raw_ids: Sequence[str],
     roster: Dict[str, str],
+    mechanics: Any = None,
+    round_num: Optional[int] = None,
 ) -> List[str]:
     """Map proposed viewer ids onto real entity ids; drop what cannot be matched.
 
@@ -685,6 +689,13 @@ def canonicalize_viewer_ids(
                     canonical = matches[0]
         if canonical is None:
             logger.warning("Dropping unmappable viewer id %r", raw)
+            # 343 of these across 16 runs, all console-only. Silently narrowing
+            # who can see an outcome is a visibility decision made on the
+            # engine's behalf by a typo, and nothing recorded it (#155).
+            record_guard_rejection(
+                mechanics, round_num, guard='viewer_id_mapping',
+                disposition='dropped', requested=str(raw),
+                reason='no unambiguous match in the entity roster')
         elif canonical not in result:
             result.append(canonical)
     return result

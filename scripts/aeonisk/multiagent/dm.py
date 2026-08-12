@@ -8476,7 +8476,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             effect=first_damage,
                             declared_action=action,
                             target_id_mapper=self.shared_state.get_target_id_mapper() if self.shared_state else None,
-                            allow_llm_fallback=True
+                            allow_llm_fallback=True,
+                            mechanics=mechanics
                         )
                     else:
                         # Empty damage list - skip validation
