@@ -3251,6 +3251,7 @@ Generate narratives (numbered list only):"""
                         skip_resolution['action'] = declared_action or skip_resolution['action']
                         outcome_sequence += 1
                         applied_outcome = build_applied_outcome(
+                            mechanics=mechanics,
                             round_num=mechanics.current_round if mechanics else 0,
                             sequence=outcome_sequence,
                             actor_id=agent.agent_id,
@@ -3495,6 +3496,7 @@ Generate narratives (numbered list only):"""
                                         )
                                 outcome_sequence += 1
                                 applied_outcome = build_applied_outcome(
+                            mechanics=mechanics,
                                     round_num=mechanics.current_round if mechanics else 0,
                                     sequence=outcome_sequence,
                                     actor_id=agent.agent_id,
@@ -3615,6 +3617,7 @@ Generate narratives (numbered list only):"""
                                 'dialogue_content': result.get('dialogue_content'),
                             }
                             applied_outcome = build_applied_outcome(
+                            mechanics=mechanics,
                                 round_num=mechanics.current_round if mechanics else 0,
                                 sequence=outcome_sequence,
                                 actor_id=agent.agent_id,
@@ -3850,6 +3853,7 @@ Generate narratives (numbered list only):"""
                                         target_entity, 'agent_id', getattr(target_entity, 'object_id', target_id)
                                     )
                             applied_outcome = build_applied_outcome(
+                            mechanics=mechanics,
                                 round_num=mechanics.current_round if mechanics else 0,
                                 sequence=outcome_sequence,
                                 actor_id=agent.agent_id,

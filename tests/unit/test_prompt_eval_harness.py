@@ -297,12 +297,35 @@ class TestModuleSwapper:
             swapper.load_replacement("/nonexistent/module.yaml")
 
     def test_load_replacement_no_content(self, mock_dm_prompts, tmp_dir):
+        """A module with no prompt text anywhere is still an error.
+
+        The message widened when the swapper learned the other keys modules
+        actually use (`user_prompt`, `round_assessment_prompt`, any `*_prompt`);
+        before that it read only `content`, so every module using another key
+        loaded as empty and was silently unswappable.
+        """
         path = tmp_dir / "empty.yaml"
         with open(path, "w") as f:
             yaml.dump({"module": "test", "version": "1.0"}, f)
         swapper = ModuleSwapper(mock_dm_prompts)
-        with pytest.raises(ValueError, match="no 'content' field"):
+        with pytest.raises(ValueError, match="carries no prompt text"):
             swapper.load_replacement(str(path))
+
+    def test_load_replacement_finds_a_non_content_key(self, mock_dm_prompts, tmp_dir):
+        """`dm_outcome_synthesis` keeps its template under `user_prompt`, and
+        `dm_round_assessment` under `round_assessment_prompt`. Both used to load
+        as the empty string."""
+        path = tmp_dir / "synth.yaml"
+        with open(path, "w") as f:
+            yaml.dump({"module": "dm_outcome_synthesis", "version": "1.0",
+                       "system_prompt": "role line",
+                       "user_prompt": "BINDING CONTRACT: narrate the outcomes"}, f)
+        swapper = ModuleSwapper(mock_dm_prompts)
+
+        name, content = swapper.load_replacement(str(path))
+
+        assert name == "dm_outcome_synthesis"
+        assert content == "BINDING CONTRACT: narrate the outcomes"
 
     def test_missing_prompts_dir_warns(self, tmp_dir):
         """Missing prompts dir should warn, not crash."""

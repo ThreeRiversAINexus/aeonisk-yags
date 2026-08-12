@@ -23,6 +23,8 @@ request, `dropped` means it discarded input. Summing them would hide which one
 is growing.
 """
 
+import pathlib
+
 import pytest
 
 from aeonisk.multiagent.guard_log import DISPOSITIONS, record_guard_rejection
@@ -177,3 +179,49 @@ class TestTheAttributeReframeGuard:
         apply_assessments(actions, self._assessment('Presence'), self.SHEETS)
 
         assert actions['player_01'][0]['action']['attribute'] == 'Agility'
+
+
+class TestTheGuardsAreReachableFromProduction:
+    """A unit test on a guard proves the guard works, not that anything calls it.
+
+    `canonicalize_viewer_ids` took `mechanics` as an optional argument and both
+    production callers omitted it, so the viewer-id guard was instrumented and
+    unreachable. The unit tests above passed the whole time — they call the
+    function directly with the argument production never supplied.
+
+    A live session made it visible immediately: the console reported four
+    dropped viewer ids and three rejected attribute reframes, and the JSONL
+    carried three `guard_rejection` events. Seven fired, three recorded.
+
+    These check the wiring rather than the behaviour, which is the half that
+    was missing.
+    """
+
+    SOURCE = pathlib.Path(__file__).parent.parent.parent / "scripts/aeonisk/multiagent"
+
+    def test_synthesis_visibility_passes_mechanics_down(self):
+        text = (self.SOURCE / "outcome_pipeline.py").read_text(encoding="utf-8")
+        call = text.split("def canonicalize_synthesis_visibility", 1)[1]
+
+        assert "canonicalize_viewer_ids(\n                segment.visibility, roster, mechanics, round_num)" in call
+
+    def test_the_outcome_builder_passes_mechanics_down(self):
+        text = (self.SOURCE / "outcome_pipeline.py").read_text(encoding="utf-8")
+
+        assert "_effective_visibility(\n            resolution_data.get(\"aware_agents\", []) or [],\n            before,\n            facts,\n            mechanics,\n            round_num,\n        )" in text
+
+    def test_every_outcome_build_site_supplies_mechanics(self):
+        """Four sites in `_run_initiative_round`; one left unwired would drop
+        that phase's viewer decisions silently."""
+        text = (self.SOURCE / "session.py").read_text(encoding="utf-8")
+        builds = text.count("applied_outcome = build_applied_outcome(")
+
+        assert builds == 4
+        assert text.count(
+            "applied_outcome = build_applied_outcome(\n                            mechanics=mechanics,") == 4
+
+    def test_the_dm_supplies_mechanics_when_canonicalising(self):
+        text = (self.SOURCE / "dm.py").read_text(encoding="utf-8")
+        call = text.split("canonicalize_synthesis_visibility(", 1)[1][:400]
+
+        assert "mechanics=" in call and "round_num=" in call

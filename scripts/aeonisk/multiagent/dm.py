@@ -14,6 +14,10 @@ from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import Vendor, VendorType, create_standard_vendors
 from .prompt_loader import load_agent_prompt, compose_sections, load_modular_prompt
+from .synthesis_prompt import (
+    system_prompt as synthesis_system_prompt,
+    user_prompt as synthesis_user_prompt,
+)
 from token_utils import count_chat_tokens, count_text_tokens
 
 logger = logging.getLogger(__name__)
@@ -4574,46 +4578,16 @@ Void Level: {self.current_scenario.void_level}/10"""
             'env_objects_spawned',
         ):
             safe_lifecycle[key] = [lifecycle_name(item) for item in lifecycle_data.get(key, [])]
-        prompt = f"""Write the canonical literary narration for round {round_num}.
-
-AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
-{json.dumps(safe_payload, indent=2)}
-
-PRIOR CANONICAL ENDING:
-{previous_ending or '(opening round)'}
-
-ACCEPTED ENTITY LIFECYCLE CHANGES:
-{json.dumps(safe_lifecycle, indent=2, default=str)}
-
-BINDING CONTRACT:
-- Narrate only the supplied applied outcomes. Intent is not outcome.
-- Preserve chronological and causal order.
-- Establish the setting once; do not restart every paragraph with the location.
-- Merge causally compatible actions when useful, but preserve each distinct consequence.
-- Order segments by their earliest outcome; a beat may absorb later reactions,
-  but never narrate an effect before its cause.
-- Render a restricted-visibility outcome in its own segment whose visibility
-  exactly matches that outcome's viewers; never mix restricted and public
-  outcomes in one segment.
-- Integrate only useful declared dialogue. Omit repetitive or inert speech.
-- Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
-- Use the supplied prose-facing names, not registry labels.
-- Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
-- `segments[].source_outcome_ids` must identify every outcome represented by that text.
-- Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
-- Every state claim must identify its subject, causing actor, and source outcome.
-- Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
-- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
-  after-state actually changes that subject. Attitude, cooperation, mood, or other
-  soft observations use claim_kind `other` (or no claim at all).
-- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
-  never a sentence.
-- Set `narration` to the segment texts joined in order with blank lines.
-- Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
-
-Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
-specificity, motive, and a changed final tableau over repeated action summaries.
-"""
+        # The prompt itself lives in prompts/claude/en/dm/dm_outcome_synthesis.yaml
+        # so the eval harness can swap it (#159). It was a 2,291-char f-string here,
+        # which put the worst prompt in the system beyond the reach of every tool
+        # built to improve it. test_synthesis_prompt_module.py pins byte identity.
+        prompt = synthesis_user_prompt(
+            round_num=round_num,
+            safe_payload=safe_payload,
+            previous_ending=previous_ending,
+            safe_lifecycle=safe_lifecycle,
+        )
         max_attempts = max(1, int(self.session_config.get('outcome_synthesis_attempts', 3)))
         validation_errors: List[str] = []
         prior_response_json: Optional[str] = None
@@ -4637,10 +4611,7 @@ specificity, motive, and a changed final tableau over repeated action summaries.
             synthesis = await self._generate_round_synthesis_structured(
                 prompt + retry_context,
                 result_type=OutcomeRoundSynthesis,
-                system_prompt=(
-                    "You are the literary DM for Aeonisk YAGS. Mechanics are already "
-                    "resolved. Render supplied facts without changing them."
-                ),
+                system_prompt=synthesis_system_prompt(),
             )
             if synthesis is None:
                 validation_errors = ["structured synthesis returned no result"]
@@ -4655,6 +4626,9 @@ specificity, motive, and a changed final tableau over repeated action summaries.
                     entity_id: snap.name
                     for entity_id, snap in snapshot_shared_state(self.shared_state).items()
                 },
+                mechanics=self.shared_state.get_mechanics_engine()
+                if self.shared_state else None,
+                round_num=round_num,
             )
             if getattr(self.shared_state, 'session', None) and getattr(
                     self.shared_state.session, 'replay_mode', False):

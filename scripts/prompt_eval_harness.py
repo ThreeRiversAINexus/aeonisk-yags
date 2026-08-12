@@ -43,6 +43,8 @@ import sys
 import time
 import hashlib
 import copy
+import difflib
+import statistics
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -59,6 +61,12 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 MULTIAGENT_DIR = SCRIPT_DIR / "aeonisk" / "multiagent"
 sys.path.insert(0, str(SCRIPT_DIR))
+
+# Imported after the path setup above, not with the other imports: this module
+# is run both as a script from the repo root and imported as
+# `scripts.prompt_eval_harness`, and only one of those has `scripts/` on the
+# path already.
+from aeonisk.multiagent import synthesis_prompt  # noqa: E402
 
 # Load environment variables (.env in scripts/aeonisk/ first, then project root)
 _dotenv_path = SCRIPT_DIR / "aeonisk" / ".env"
@@ -99,16 +107,251 @@ def parse_model_spec(spec: str) -> Tuple[str, str]:
     return provider, model
 
 
-def _write_module_yaml(path: Path, module_name: str, content: str, description: str = "", version: str = "auto"):
-    """Write a prompt module YAML with clean |- block scalar for the content field."""
+def _write_module_yaml(path: Path, module_name: str, content: str, description: str = "",
+                       version: str = "auto", body_key: str = "content",
+                       extra: Optional[Dict[str, str]] = None):
+    """Write a prompt module YAML with a clean |- block scalar for the body.
+
+    `body_key` must match the key the source module keeps its prose under, or a
+    self-judged rewrite does not round-trip: `dm_outcome_synthesis` uses
+    `user_prompt`, `dm_round_assessment` uses `round_assessment_prompt`, and a
+    file written with `content:` would load as empty and be silently
+    unswappable — which is the same failure `module_body` exists to prevent.
+    `extra` carries sibling scalars the source had (a system_prompt, say) so
+    they survive the rewrite instead of being dropped.
+    """
     with open(path, "w") as f:
         f.write(f"version: {version}\n")
         f.write(f"module: {module_name}\n")
         if description:
             f.write(f"description: {description}\n")
-        f.write("content: |-\n")
+        for key, value in (extra or {}).items():
+            if isinstance(value, str) and "\n" in value:
+                f.write(f"{key}: |-\n")
+                for line in value.split("\n"):
+                    f.write(f"  {line}\n" if line else "\n")
+            elif isinstance(value, bool):
+                f.write(f"{key}: {str(value).lower()}\n")
+            else:
+                f.write(f"{key}: {json.dumps(value)}\n")
+        f.write(f"{body_key}: |-\n")
         for line in content.split("\n"):
             f.write(f"  {line}\n" if line else "\n")
+
+
+def _event_body(event: dict) -> dict:
+    """Events come in two shapes — nested under `data`, or flat."""
+    data = event.get("data")
+    return data if isinstance(data, dict) else event
+
+
+def synthesis_inputs_for_round(events_by_round, round_num):
+    """Rebuild the four values the synthesis prompt renders, from the recording.
+
+    Everything the live call had is in the log: `applied_outcome` events are
+    full `AppliedOutcome` dumps, the prior round's `round_synthesis` carries the
+    narration that becomes `previous_ending`, and `entity_lifecycle` carries the
+    accepted changes. Rebuilding beats reusing the recorded prompt string
+    because the changes worth testing are to these *values* — trimming
+    `previous_ending` is not a text edit to the template (#158).
+
+    Returns None when the round has no outcomes, so the case is dropped rather
+    than replayed against an empty scene.
+    """
+    if round_num is None:
+        return None
+    try:
+        from aeonisk.multiagent.outcome_pipeline import (
+            AppliedOutcome, prose_safe_outcome_payload)
+    except ImportError:  # pragma: no cover - engine package unavailable
+        return None
+
+    outcomes = []
+    for event in events_by_round.get(round_num, []):
+        if event.get("event_type") != "applied_outcome":
+            continue
+        try:
+            outcomes.append(AppliedOutcome.model_validate(_event_body(event)))
+        except Exception as exc:
+            logger.debug("round %s outcome did not round-trip: %s", round_num, exc)
+            return None
+    if not outcomes:
+        return None
+
+    previous_ending = ""
+    for event in events_by_round.get(round_num - 1, []):
+        if event.get("event_type") == "round_synthesis":
+            body = _event_body(event)
+            previous_ending = body.get("synthesis") or body.get("narration") or ""
+
+    lifecycle = {}
+    for event in events_by_round.get(round_num, []):
+        if event.get("event_type") == "entity_lifecycle":
+            body = _event_body(event)
+            lifecycle = {k: v for k, v in body.items() if isinstance(v, list)}
+
+    return {
+        "round_num": round_num,
+        "safe_payload": prose_safe_outcome_payload(outcomes),
+        "previous_ending": previous_ending,
+        "safe_lifecycle": lifecycle,
+    }, [o.model_dump(mode="json") for o in outcomes]
+
+
+# ---------------------------------------------------------------------------
+# Case kinds — how a family of recorded calls is selected, rebuilt and read
+# ---------------------------------------------------------------------------
+
+def _resolution_prompts(case, module_swapper, module_name, content):
+    """Today's path: vary the system prompt, resend the recorded user prompt.
+
+    Works because DM resolution prompts are *composed* from YAML modules into
+    the system message, so the module body appears in the recording verbatim.
+    """
+    return module_swapper.swap_module(case.system_prompt, module_name, content), case.user_prompt
+
+
+def _synthesis_prompts(case, module_swapper, module_name, content):
+    """Re-render rather than swap.
+
+    The recorded user prompt is the template with its four values already
+    substituted, so the template body never appears in it verbatim and no
+    substring swap can produce a variant. Worse, the changes worth testing are
+    to the *values*: trimming `previous_ending` from the whole previous round to
+    its closing sentence is not a text edit to the template at all.
+
+    So the variant module is rendered against the inputs recorded for this
+    round. `ValueError` on missing inputs rather than a silent fallback — an
+    un-rebuildable case must be dropped and counted like any other (#158).
+    """
+    if not case.synthesis_inputs:
+        raise ValueError(
+            f"case {case.case_id} carries no synthesis inputs to re-render from")
+    module = dict(getattr(module_swapper, 'replacement_module', None) or {})
+    module["user_prompt"] = content
+    return (
+        synthesis_prompt.system_prompt(module),
+        synthesis_prompt.user_prompt(module=module, **case.synthesis_inputs),
+    )
+
+
+def _resolution_extract(parsed: dict, case) -> Dict[str, Any]:
+    """Today's reader: flatten damage, conditions, void, clocks."""
+    return MechanicalExtractor.extract_mechanical_fields(parsed)
+
+
+def _synthesis_extract(parsed: dict, case) -> Dict[str, Any]:
+    """Read a synthesis response the way the engine reads it.
+
+    The engine's own `validate_outcome_synthesis` is the oracle here: pure, no
+    session state, 18 blocking error kinds and 3 warnings, and both sides are
+    already logged. A variant that produces more validation errors is worse
+    without anyone judging prose — which is the whole reason to reach for it
+    before paying a frontier model to have an opinion.
+
+    It *mutates* what it is given — sorts source_outcome_ids, auto-repairs
+    coverage — so it gets a copy. Defensive rather than load-bearing: every
+    field reported here is read before validation runs, so removing the copy
+    changes no result today. It stays because the alternative is that the next
+    person to report a field after validation credits the prompt for repairs the
+    engine performed on its behalf, and nothing would flag it. The hazard is
+    asserted in `test_synthesis_harness_scorers.py` so it stays a choice.
+    """
+    fields: Dict[str, Any] = {
+        "parsed": bool(parsed), "schema_valid": False, "narration": "",
+        "narration_chars": 0, "segment_count": 0,
+        "validation_errors": [], "validation_warnings": [],
+    }
+    if not parsed:
+        return fields
+
+    try:
+        from aeonisk.multiagent.outcome_pipeline import (
+            AppliedOutcome, OutcomeRoundSynthesis, SynthesisValidationError,
+            validate_outcome_synthesis)
+    except ImportError:  # pragma: no cover - engine package unavailable
+        return fields
+
+    try:
+        synthesis = OutcomeRoundSynthesis.model_validate(parsed)
+    except Exception as exc:
+        # A response the schema rejects never reached the engine at all, so it
+        # is the worst outcome a variant can produce, not a missing measurement.
+        fields["validation_errors"] = [f"schema: {exc.__class__.__name__}"]
+        return fields
+
+    fields.update(schema_valid=True, narration=synthesis.narration,
+                  narration_chars=len(synthesis.narration or ""),
+                  segment_count=len(synthesis.segments))
+
+    outcomes = []
+    for raw in case.synthesis_outcomes or []:
+        try:
+            outcomes.append(AppliedOutcome.model_validate(raw))
+        except Exception:
+            return fields  # cannot judge coverage without the ground truth
+    if not outcomes:
+        return fields
+
+    try:
+        fields["validation_warnings"] = validate_outcome_synthesis(
+            copy.deepcopy(synthesis), outcomes)
+    except SynthesisValidationError as exc:
+        fields["validation_errors"] = list(exc.errors)
+    return fields
+
+
+@dataclass(frozen=True)
+class CaseKind:
+    """One family of recorded calls, and everything that differs about it.
+
+    The harness grew around a single shape — swap the system prompt, resend the
+    user prompt, score damage fields — and that shape was load-bearing in four
+    places at once. Naming it makes the second shape possible without a second
+    optimisation loop, and keeps `resolution` byte-for-byte what it was.
+    """
+    name: str
+    call_type: Optional[str]
+    build_prompts: Callable
+    extract: Callable
+    default_scorers: Tuple[str, ...]
+
+
+RESOLUTION = CaseKind(
+    name="resolution",
+    call_type=None,            # selected by response markers, as before
+    build_prompts=_resolution_prompts,
+    extract=_resolution_extract,
+    default_scorers=("damage_comparison",),
+)
+
+SYNTHESIS = CaseKind(
+    name="synthesis",
+    call_type="structured:OutcomeRoundSynthesis",
+    build_prompts=_synthesis_prompts,
+    extract=_synthesis_extract,
+    default_scorers=("synthesis_validation", "synthesis_repetition"),
+)
+
+CASE_KINDS = {kind.name: kind for kind in (RESOLUTION, SYNTHESIS)}
+
+
+def kind_for_call_type(call_type: Optional[str]) -> CaseKind:
+    """Pick the kind a `--call-type` selects; unknown tags replay as resolution.
+
+    Matched in both directions, because `--call-type` and the recorded tag are
+    not the same string. `is_eval_candidate` asks whether the user's argument
+    appears in the *event's* tag, so `--call-type OutcomeRoundSynthesis` selects
+    cases; testing only `kind.call_type in call_type` here would then route
+    those same cases to the resolution builder and rebuild them wrongly.
+    """
+    if not call_type:
+        return RESOLUTION
+    for kind in CASE_KINDS.values():
+        if kind.call_type and (kind.call_type in call_type
+                               or call_type in kind.call_type):
+            return kind
+    return RESOLUTION
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +389,22 @@ class EvalCase:
     original_damage_type: Optional[str] = None
     original_conditions: List[str] = field(default_factory=list)
 
+    #: Which family this call belongs to. Decides how its prompts are rebuilt
+    #: and how its response is read — see CaseKind. Defaults to the resolution
+    #: path so nothing that existed before this field behaves differently.
+    kind_name: str = "resolution"
+
+    #: The round's applied outcomes as recorded, kept as dicts rather than
+    #: models so a case can cross a thread boundary. `validate_outcome_synthesis`
+    #: needs them: a synthesis is only judgeable against what actually happened.
+    synthesis_outcomes: Optional[List[Dict[str, Any]]] = None
+
+    #: Everything needed to re-render a synthesis prompt from scratch, taken
+    #: from the recorded session. Populated only for synthesis cases, because
+    #: their template cannot be varied by substring-swapping a rendered prompt:
+    #: trimming `previous_ending` changes a *value*, not the template text.
+    synthesis_inputs: Optional[Dict[str, Any]] = None
+
 
 @dataclass
 class ReplayResult:
@@ -173,6 +432,130 @@ class ReplayResult:
 # ModuleSwapper
 # ---------------------------------------------------------------------------
 
+#: The response shape the harness has always selected on. Kept as the default
+#: so nothing that ran yesterday selects differently today.
+LEGACY_RESOLUTION_MARKERS = ('"narration"', '"effects"')
+
+
+def is_eval_candidate(event: dict, call_type: Optional[str] = None) -> bool:
+    """Is this recorded LLM call a case the harness can replay?
+
+    Selecting by `call_type` rather than by substrings in the response body is
+    both a fix and a generalisation. Every `llm_call` has carried a `call_type`
+    tag since the batch-proxy path was tagged, and the tag says what the call
+    *was*; the substring test says what its answer happened to contain. The
+    round synthesis call answers with `narration` + `segments` + `coverage` and
+    no `effects`, so the harness could not see the one prompt most in need of
+    optimisation (#158) — it was invisible for a reason that had nothing to do
+    with whether it was replayable.
+
+    With no `call_type` given the legacy behaviour is preserved exactly, so
+    every existing invocation keeps selecting the same cases.
+    """
+    if event.get("event_type") != "llm_call" or event.get("agent_type") != "dm":
+        return False
+    if call_type:
+        return call_type in str(event.get("call_type") or "")
+    response = event.get("response") or ""
+    return all(marker in response for marker in LEGACY_RESOLUTION_MARKERS)
+
+
+#: Modules do not agree on where their prose lives. Most use `content`;
+#: `dm_round_assessment` uses `round_assessment_prompt`; `dm_outcome_synthesis`
+#: splits into `system_prompt` + `user_prompt`. The swapper only ever read
+#: `content`, so every module using another key loaded as empty string and was
+#: silently unswappable — the failure of a prompt tool to see a prompt, which is
+#: #159's whole complaint in miniature.
+#: How much of an opening counts as the opening. Matches `synthesis_scorers.py`
+#: so an offline corpus sweep and a harness run report the same number — two
+#: different answers to "how repetitive is this" would be worse than one.
+OPENING_CHARS = 120
+
+MODULE_BODY_KEYS = ("content", "user_prompt", "round_assessment_prompt")
+
+
+def module_body_key(data: dict) -> str:
+    """Which key this module keeps its prose under, so a rewrite round-trips."""
+    for key in MODULE_BODY_KEYS:
+        if data.get(key):
+            return key
+    for key, value in sorted(data.items()):
+        if key.endswith("_prompt") and isinstance(value, str) and value.strip():
+            return key
+    return MODULE_BODY_KEYS[0]
+
+
+def replacement_shape(yaml_path) -> Tuple[str, Dict[str, str]]:
+    """(body key, sibling *_prompt scalars) for a replacement module file.
+
+    Read from the file rather than remembered on the swapper: the shape is a
+    property of the module, and threading it through mutable swapper state made
+    every caller that mocks the swapper break. Falls back to `content` for a
+    file that cannot be read, which is the shape most modules use.
+    """
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError):
+        return MODULE_BODY_KEYS[0], {}
+    key = module_body_key(data)
+    # Everything except the body and the three fields the writer emits itself.
+    # Restricting this to `*_prompt` keys silently dropped a variant's config on
+    # rewrite: a self-judge run starting from V1 lost `previous_ending:
+    # final_sentence`, so the module it saved sent the whole previous round
+    # again while the score it reported came from a run that had not. A rewrite
+    # must change the prose and nothing else.
+    return key, {k: v for k, v in data.items()
+                 if k not in (key, "version", "module", "description")}
+
+
+def module_body(data: dict) -> str:
+    """The prompt text out of a module, whichever key it chose to put it under."""
+    for key in MODULE_BODY_KEYS:
+        value = data.get(key)
+        if value:
+            return value
+    # A single *_prompt key is the convention these modules keep reinventing.
+    for key, value in sorted(data.items()):
+        if key.endswith("_prompt") and isinstance(value, str) and value.strip():
+            return value
+    return ""
+
+
+class UnswappableCases(RuntimeError):
+    """Every case failed the swap, so nothing would measure the new prompt."""
+
+
+def build_modified_prompts(cases, module_swapper, module_name, content, kind=None):
+    """Modified (system, user) prompts per case, and the cases that got them.
+
+    Every caller must go through this. Three call sites used to swallow the
+    swap failure and fall back to `case.system_prompt` — replaying the *old*
+    prompt and scoring it as though it were the new one. That is worse than a
+    crash: the optimiser reads the resulting numbers as evidence about a rewrite
+    that was never sent, and a self-judge loop then iterates on that evidence.
+
+    Cases that cannot be varied are dropped and counted. Dropping all of them
+    raises, because a run that measures nothing must not report a score.
+    """
+    prompts, kept, skipped = {}, [], []
+    for case in cases:
+        case_kind = kind or CASE_KINDS.get(
+            getattr(case, "kind_name", "resolution"), RESOLUTION)
+        try:
+            prompts[case.case_id] = case_kind.build_prompts(
+                case, module_swapper, module_name, content)
+            kept.append(case)
+        except ValueError:
+            skipped.append(case.case_id)
+    if cases and not kept:
+        raise UnswappableCases(
+            f"none of {len(cases)} cases could be varied for module "
+            f"{module_name!r} — the module body was not found in any recorded "
+            f"prompt, so every result would describe the unmodified prompt")
+    return prompts, kept, skipped
+
+
 class ModuleSwapper:
     """Loads DM YAML modules and swaps them in system prompts."""
 
@@ -191,7 +574,7 @@ class ModuleSwapper:
                 with open(yaml_path, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 module_name = data.get("module", yaml_path.stem)
-                content = data.get("content", "")
+                content = module_body(data)
                 if content:
                     self._modules[module_name] = content
             except Exception as e:
@@ -225,9 +608,14 @@ class ModuleSwapper:
         with open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         module_name = data.get("module", path.stem)
-        content = data.get("content", "")
+        content = module_body(data)
+        # Kept so a synthesis variant can render its own system_prompt too;
+        # read defensively everywhere, since callers may hold a stub swapper.
+        self.replacement_module = data
         if not content:
-            raise ValueError(f"Replacement module {yaml_path} has no 'content' field")
+            raise ValueError(
+                f"Replacement module {yaml_path} carries no prompt text under any of "
+                f"{MODULE_BODY_KEYS} or a *_prompt key")
         return module_name, content
 
     def swap_module(self, system_prompt: str, module_name: str, new_content: str) -> str:
@@ -505,6 +893,7 @@ def _extract_and_classify(
         cases = session_extractor.extract_cases(
             action_type_filter=eval_subset.get("action_type"),
             weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            call_type_filter=eval_subset.get("call_type"),
             module_swapper=module_swapper,
             # Deliberately omit: intent_keywords, exclude_keywords, max_cases
         )
@@ -553,6 +942,7 @@ def _extract_and_classify(
             intent_keywords=eval_subset.get("intent_keywords"),
             exclude_keywords=eval_subset.get("exclude_keywords"),
             weapon_damage_type=eval_subset.get("weapon_damage_type"),
+            call_type_filter=eval_subset.get("call_type"),
             max_cases=eval_subset.get("max_cases"),
             module_swapper=module_swapper,
         )
@@ -606,6 +996,7 @@ class SessionExtractor:
         margin_range: Optional[Tuple[int, int]] = None,
         max_cases: Optional[int] = None,
         module_swapper: Optional[ModuleSwapper] = None,
+        call_type_filter: Optional[str] = None,
     ) -> List[EvalCase]:
         """
         Extract DM resolution cases from session files.
@@ -622,6 +1013,9 @@ class SessionExtractor:
             module_filter: Only cases where a specific module was detected
             margin_range: Only cases with margin in [min, max] range
             max_cases: Stop after this many cases
+            call_type_filter: Select by the call's `call_type` tag (e.g.
+                'structured:OutcomeRoundSynthesis') instead of by markers in the
+                response body. Omit for the legacy resolution-shaped selection.
         """
         # Normalize intent_filter → intent_keywords for backward compat
         effective_keywords = intent_keywords
@@ -640,6 +1034,7 @@ class SessionExtractor:
                     action_type_filter, effective_keywords, exclude_keywords,
                     weapon_damage_type,
                     original_model_filter, module_filter, margin_range, module_swapper,
+                    call_type_filter,
                 )
                 cases.extend(file_cases)
             except Exception as e:
@@ -664,6 +1059,7 @@ class SessionExtractor:
         module_filter: Optional[str],
         margin_range: Optional[Tuple[int, int]],
         module_swapper: Optional[ModuleSwapper],
+        call_type_filter: Optional[str] = None,
     ) -> List[EvalCase]:
         """
         Extract eval cases from a single JSONL file using two-pass extraction.
@@ -691,12 +1087,9 @@ class SessionExtractor:
                 if round_num is not None:
                     events_by_round.setdefault(round_num, []).append(event)
 
-                # Identify DM llm_call resolution events
-                if (event.get("event_type") == "llm_call"
-                        and event.get("agent_type") == "dm"):
-                    response_text = event.get("response", "")
-                    if '"narration"' in response_text and '"effects"' in response_text:
-                        dm_llm_calls.append((line_num, event))
+                # Identify replayable DM llm_calls (by call_type when given)
+                if is_eval_candidate(event, call_type_filter):
+                    dm_llm_calls.append((line_num, event))
 
         # --- Pass 2: Process each DM llm_call with correlated events ---
         cases = []
@@ -716,7 +1109,11 @@ class SessionExtractor:
                 elif msg.get("role") == "user":
                     user_prompt = msg.get("content", "")
 
-            if not system_prompt or not user_prompt:
+            kind = kind_for_call_type(call_type_filter)
+            # Synthesis recordings carry only the user turn — the role line is
+            # supplied by the module, not the log — so requiring both messages
+            # would drop every one of them.
+            if not user_prompt or (kind is RESOLUTION and not system_prompt):
                 continue
 
             # Parse response for fields we need
@@ -801,6 +1198,12 @@ class SessionExtractor:
             if module_filter and module_filter not in detected_modules:
                 continue
 
+            rebuilt = (synthesis_inputs_for_round(events_by_round, round_num)
+                       if kind is SYNTHESIS else None)
+            if kind is SYNTHESIS and rebuilt is None:
+                logger.debug("round %s has no rebuildable synthesis inputs", round_num)
+                continue
+
             case_id = f"session_{session_hash}_{line_num}"
             case = EvalCase(
                 case_id=case_id,
@@ -821,6 +1224,9 @@ class SessionExtractor:
                 weapon_damage_type=weapon_ctx["weapon_damage_type"],
                 declared_target=weapon_ctx["declared_target"],
                 player_intent=player_intent,
+                kind_name=kind.name,
+                synthesis_inputs=rebuilt[0] if rebuilt else None,
+                synthesis_outcomes=rebuilt[1] if rebuilt else None,
                 original_base_damage=outcome["original_base_damage"],
                 original_damage_type=outcome["original_damage_type"],
                 original_conditions=outcome["original_conditions"],
@@ -1102,11 +1508,89 @@ class SoulcreditScorer(BaseScorer):
         }
 
 
+class SynthesisValidationScorer(BaseScorer):
+    """How much of the engine's own contract the variant satisfies.
+
+    The primary target, because it is exact and free: `validate_outcome_synthesis`
+    is the same function the live session runs, and a response it rejects would
+    have been rejected in play. `schema_valid=False` is the floor — a response
+    the schema refuses never reached the narrator at all.
+
+    Reported against the original so a variant is measured as a *change*, not
+    against an absolute nobody has calibrated.
+    """
+    name = "synthesis_validation"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        orig_errors = len(original.get("validation_errors") or [])
+        replay_errors = len(replay.get("validation_errors") or [])
+        return {
+            "schema_valid": bool(replay.get("schema_valid")),
+            "original_errors": orig_errors,
+            "replay_errors": replay_errors,
+            "error_delta": replay_errors - orig_errors,
+            "replay_warnings": len(replay.get("validation_warnings") or []),
+            "clean": bool(replay.get("schema_valid")) and replay_errors == 0,
+        }
+
+
+class SynthesisRepetitionScorer(BaseScorer):
+    """How much of this round's opening is the previous round's opening.
+
+    The defect #158 exists to fix: 22% of consecutive round pairs in the corpus
+    open with character-identical text, against 0% of 1,760 legacy pairs.
+    Compared against `previous_ending` — the prior narration the prompt itself
+    hands the model — so it measures exactly the contamination being tested.
+
+    Trivially gameable on its own (open every round on a random noun), which is
+    why the goal file must keep a held-out regression and never optimise this
+    alone.
+    """
+    name = "synthesis_repetition"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        prior = ((case.synthesis_inputs or {}).get("previous_ending") or "")
+        head = prior[:OPENING_CHARS]
+        result = {"has_prior": bool(head)}
+        for label, fields in (("original", original), ("replay", replay)):
+            opening = (fields.get("narration") or "")[:OPENING_CHARS]
+            result[f"{label}_similarity"] = (
+                difflib.SequenceMatcher(None, head, opening).ratio() if head else 0.0)
+            result[f"{label}_identical"] = bool(head) and opening == head
+        result["similarity_delta"] = (
+            result["replay_similarity"] - result["original_similarity"])
+        return result
+
+
+class SynthesisGrowthScorer(BaseScorer):
+    """Narration length against the round it was told to continue from.
+
+    Accretion is the other face of the same contamination: a narrator retelling
+    what it was shown produces a longer round every time. Held out of the
+    optimisation targets by default — it is the check that catches a rewrite
+    that games repetition by padding.
+    """
+    name = "synthesis_growth"
+
+    def score(self, original: Dict, replay: Dict, case: EvalCase) -> Dict[str, Any]:
+        prior = len(((case.synthesis_inputs or {}).get("previous_ending") or ""))
+        replay_chars = replay.get("narration_chars", 0)
+        return {
+            "prior_chars": prior,
+            "replay_chars": replay_chars,
+            "original_chars": original.get("narration_chars", 0),
+            "growth_ratio": (replay_chars / prior) if prior else None,
+        }
+
+
 SCORER_REGISTRY = {
     "damage_comparison": DamageComparisonScorer,
     "damage_range": DamageRangeScorer,
     "suppression_table": DamageRangeScorer,  # backward compat alias
     "soulcredit": SoulcreditScorer,
+    "synthesis_validation": SynthesisValidationScorer,
+    "synthesis_repetition": SynthesisRepetitionScorer,
+    "synthesis_growth": SynthesisGrowthScorer,
 }
 
 
@@ -1170,6 +1654,7 @@ class ReplayEngine:
         temperature: float = 0.7,
         max_tokens: int = 4000,
         max_retries: int = 3,
+        user_prompt: Optional[str] = None,
     ) -> Tuple[str, float]:
         """
         Replay a single case and return (response_text, latency_ms).
@@ -1185,7 +1670,11 @@ class ReplayEngine:
 
         messages = [
             {"role": "system", "content": modified_system_prompt},
-            {"role": "user", "content": case.user_prompt},
+            # Defaults to the recording, so a resolution replay is unchanged.
+            # Synthesis passes a freshly rendered prompt instead — its template
+            # cannot be varied inside an already-rendered message.
+            {"role": "user", "content": user_prompt if user_prompt is not None
+             else case.user_prompt},
         ]
 
         if self.verbose:
@@ -1254,7 +1743,7 @@ class ReplayEngine:
     def replay_batch(
         self,
         cases: List[EvalCase],
-        modified_prompts: Dict[str, str],  # case_id → modified system prompt
+        modified_prompts: Dict[str, Tuple[str, str]],  # case_id → (system, user)
         model_specs: List[Tuple[str, str]],  # [(provider, model), ...]
         scorers: List[BaseScorer],
         save_prompts: bool = False,
@@ -1308,19 +1797,24 @@ class ReplayEngine:
         def _replay_one(case: EvalCase, provider: str, model: str) -> ReplayResult:
             """Worker function for a single replay."""
             model_label = f"{provider}:{model}"
-            modified_prompt = modified_prompts.get(case.case_id, case.system_prompt)
+            # A case with no entry never reached build_modified_prompts, which
+            # would mean replaying an unvaried prompt and scoring it as varied —
+            # the defect fixed in #158. Falling back is not an option here.
+            modified_prompt, replay_user_prompt = modified_prompts[case.case_id]
 
             # Parse original response
+            reader = CASE_KINDS[case.kind_name].extract
             orig_parsed = MechanicalExtractor.parse_response(case.response_text)
-            orig_fields = MechanicalExtractor.extract_mechanical_fields(orig_parsed)
+            orig_fields = reader(orig_parsed, case)
 
             try:
                 response_text, latency_ms = self.replay_case(
                     case, modified_prompt, provider, model,
                     temperature=temperature, max_tokens=max_tokens,
+                    user_prompt=replay_user_prompt,
                 )
                 replay_parsed = MechanicalExtractor.parse_response(response_text)
-                replay_fields = MechanicalExtractor.extract_mechanical_fields(replay_parsed)
+                replay_fields = reader(replay_parsed, case)
 
                 # Score
                 score_results = {}
@@ -1569,6 +2063,65 @@ class ReportGenerator:
                         "avg_base_damage": avg_bd,
                         "in_range_pct": in_range_pct,
                         "has_condition_pct": has_cond_pct,
+                    }
+
+            elif scorer.name == "synthesis_validation":
+                lines.append(f"{'Model':<{mw}} | {'% schema-valid':>14} | {'% clean':>8} | {'avg errors':>10} | {'avg warns':>9}")
+                lines.append("-" * (mw + 52))
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores]
+                    if not scored:
+                        continue
+                    n = len(scored)
+                    valid_pct = sum(1 for r in scored if r.scores[scorer.name]["schema_valid"]) / n * 100
+                    clean_pct = sum(1 for r in scored if r.scores[scorer.name]["clean"]) / n * 100
+                    avg_err = sum(r.scores[scorer.name]["replay_errors"] for r in scored) / n
+                    avg_warn = sum(r.scores[scorer.name]["replay_warnings"] for r in scored) / n
+                    lines.append(f"{model:<{mw}} | {valid_pct:>13.0f}% | {clean_pct:>7.0f}% | {avg_err:>10.2f} | {avg_warn:>9.2f}")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "schema_valid_pct": valid_pct,
+                        "clean_pct": clean_pct,
+                        "max_avg_errors": avg_err,
+                        "max_avg_warnings": avg_warn,
+                    }
+
+            elif scorer.name == "synthesis_repetition":
+                lines.append(f"{'Model':<{mw}} | {'median sim (orig→new)':<22} | {'% identical':>11}")
+                lines.append("-" * (mw + 40))
+
+                for model, model_results in sorted(by_model.items()):
+                    scored = [r for r in model_results if scorer.name in r.scores
+                              and r.scores[scorer.name]["has_prior"]]
+                    if not scored:
+                        continue
+                    orig = statistics.median(r.scores[scorer.name]["original_similarity"] for r in scored)
+                    new = statistics.median(r.scores[scorer.name]["replay_similarity"] for r in scored)
+                    ident_pct = sum(1 for r in scored if r.scores[scorer.name]["replay_identical"]) / len(scored) * 100
+                    lines.append(f"{model:<{mw}} | {orig:>8.2f} → {new:<8.2f}     | {ident_pct:>10.0f}%")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "max_median_similarity": new,
+                        "max_identical_pct": ident_pct,
+                        "original_median_similarity": orig,
+                    }
+
+            elif scorer.name == "synthesis_growth":
+                lines.append(f"{'Model':<{mw}} | {'median growth vs prior round':>28}")
+                lines.append("-" * (mw + 32))
+
+                for model, model_results in sorted(by_model.items()):
+                    ratios = [r.scores[scorer.name]["growth_ratio"] for r in model_results
+                              if scorer.name in r.scores
+                              and r.scores[scorer.name]["growth_ratio"] is not None]
+                    if not ratios:
+                        continue
+                    median_growth = statistics.median(ratios)
+                    lines.append(f"{model:<{mw}} | {median_growth:>27.2f}x")
+
+                    score_dict.setdefault(scorer.name, {})[model] = {
+                        "max_median_growth": median_growth,
                     }
 
             elif scorer.name == "soulcredit":
@@ -2024,14 +2577,11 @@ class SelfJudge:
         if not reg_scorers:
             return None
 
-        reg_prompts = {}
-        for case in reg_cases:
-            try:
-                reg_prompts[case.case_id] = module_swapper.swap_module(
-                    case.system_prompt, module_name, current_content
-                )
-            except ValueError:
-                reg_prompts[case.case_id] = case.system_prompt
+        reg_prompts, reg_cases, dropped = build_modified_prompts(
+            reg_cases, module_swapper, module_name, current_content)
+        if dropped:
+            logger.warning("Regression %s dropped %d unvariable case(s)",
+                           reg_name, len(dropped))
 
         return {
             "name": reg_name,
@@ -2437,15 +2987,12 @@ class SelfJudge:
             print(f"{'='*60}", file=sys.stderr)
 
             # Build modified prompts for all cases
-            modified_prompts = {}
-            for case in cases:
-                try:
-                    modified_prompts[case.case_id] = module_swapper.swap_module(
-                        case.system_prompt, module_name, current_content
-                    )
-                except ValueError:
-                    # Module not found in this case's prompt - use original
-                    modified_prompts[case.case_id] = case.system_prompt
+            modified_prompts, cases, dropped = build_modified_prompts(
+                cases, module_swapper, module_name, current_content)
+            if dropped:
+                logger.warning(
+                    "Dropped %d case(s) that could not be varied: %s",
+                    len(dropped), ", ".join(dropped[:5]))
 
             # Run main replay and regressions concurrently — both are
             # independent API replay batches, no need to serialize
@@ -2480,8 +3027,10 @@ class SelfJudge:
             iter_report_path = output_path / f"iteration_{iteration}_report.txt"
 
             # Save module YAML
+            body_key, siblings = replacement_shape(initial_module_path)
             _write_module_yaml(iter_module_path, module_name, current_content,
-                               description=f"Self-judge iteration {iteration}")
+                               description=f"Self-judge iteration {iteration}",
+                               body_key=body_key, extra=siblings)
 
             ResultStore(str(iter_results_path)).save_results(results)
             with open(iter_report_path, "w") as f:
@@ -2569,8 +3118,10 @@ class SelfJudge:
 
         # Save best module
         best_path = output_path / "final_module.yaml"
+        body_key, siblings = replacement_shape(initial_module_path)
         _write_module_yaml(best_path, module_name, best_content,
-                           description="Best-scoring module from self-judge iteration")
+                           description="Best-scoring module from self-judge iteration",
+                           body_key=body_key, extra=siblings)
 
         # Save convergence
         convergence_path = output_path / "convergence.json"
@@ -2600,13 +3151,10 @@ class SelfJudge:
             if validation_cases:
                 # Build modified prompts with best content
                 validation_prompts = {}
-                for case in validation_cases:
-                    try:
-                        validation_prompts[case.case_id] = module_swapper.swap_module(
-                            case.system_prompt, module_name, best_content
-                        )
-                    except ValueError:
-                        validation_prompts[case.case_id] = case.system_prompt
+                validation_prompts, validation_cases, dropped = build_modified_prompts(
+                    validation_cases, module_swapper, module_name, best_content)
+                if dropped:
+                    logger.warning("Validation dropped %d unvariable case(s)", len(dropped))
 
                 validation_results = replay_engine.replay_batch(
                     validation_cases, validation_prompts, model_specs, scorers,
@@ -2721,6 +3269,10 @@ Examples:
     parser.add_argument("--direct", action="store_true", help="Alias for --strategy direct (immediate)")
 
     # Filters
+    parser.add_argument("--call-type", type=str, default=None,
+                        help="Select cases by call_type tag, e.g. "
+                             "structured:OutcomeRoundSynthesis (default: "
+                             "resolution-shaped responses)")
     parser.add_argument("--action-type", type=str, default=None, help="Filter by action type (combat, investigate, ...)")
     parser.add_argument("--intent-filter", type=str, default=None, help="Single keyword match on player action text (backward compat)")
     parser.add_argument(
@@ -2927,6 +3479,7 @@ def main(argv=None):
             margin_range=margin_range,
             max_cases=args.max_cases,
             module_swapper=module_swapper,
+            call_type_filter=args.call_type,
         )
 
         # Classify without filtering if --classify-intent but no goal file config
@@ -3022,15 +3575,17 @@ def main(argv=None):
             for k, v in sorted(module_counts.items(), key=lambda x: -x[1]):
                 print(f"  {k}: {v}")
 
-        # Swap compatibility
-        swappable = 0
+        # Variability, through the same seam the real run uses — counting it
+        # any other way measures a code path nobody replays.
+        variable = 0
         for c in cases:
             try:
-                module_swapper.swap_module(c.system_prompt, module_name, new_content)
-                swappable += 1
-            except ValueError:
+                CASE_KINDS[c.kind_name].build_prompts(
+                    c, module_swapper, module_name, new_content)
+                variable += 1
+            except (ValueError, KeyError):
                 pass
-        print(f"\nSwappable for '{module_name}': {swappable}/{len(cases)}")
+        print(f"\nVariable for '{module_name}': {variable}/{len(cases)}")
 
         # Classifier summary for scan-only
         if classifier and intent_labels:
@@ -3162,25 +3717,19 @@ def main(argv=None):
         if completed_keys:
             print(f"Resuming: {len(completed_keys)} results already completed", file=sys.stderr)
 
-    # Build modified prompts — skip cases where module can't be swapped
-    modified_prompts = {}
-    skipped = 0
-    swappable_cases = []
-    for case in cases:
-        try:
-            modified_prompts[case.case_id] = module_swapper.swap_module(
-                case.system_prompt, module_name, new_content
-            )
-            swappable_cases.append(case)
-        except ValueError:
-            skipped += 1
-
-    if skipped:
-        print(f"Skipped {skipped}/{len(cases)} cases (module not found in prompt — old/incompatible sessions)", file=sys.stderr)
-    cases = swappable_cases
-    if not cases:
-        print("No swappable cases remaining. Check --sessions directories.", file=sys.stderr)
+    # Build modified prompts — cases that cannot be varied are dropped, never
+    # replayed unmodified and scored as though they had been (see
+    # build_modified_prompts).
+    try:
+        modified_prompts, cases, dropped = build_modified_prompts(
+            cases, module_swapper, module_name, new_content)
+    except UnswappableCases as exc:
+        print(f"{exc}", file=sys.stderr)
         return 1
+
+    if dropped:
+        print(f"Skipped {len(dropped)}/{len(dropped) + len(cases)} cases "
+              f"(module not found in prompt — old/incompatible sessions)", file=sys.stderr)
 
     # Open output file for streaming writes (results saved as they complete)
     result_store.open(append=args.resume)

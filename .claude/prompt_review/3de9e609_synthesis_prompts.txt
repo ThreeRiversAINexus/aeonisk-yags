@@ -1,0 +1,2973 @@
+==============================================================================
+ROUND 1  |  structured:OutcomeRoundSynthesis  |  model=gpt-5.4-mini  |  temp=1.0  |  call_sequence=7
+==============================================================================
+
+----- role: system (21849 chars) -----
+You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
+
+You must respond with valid JSON matching this schema:
+{
+  "$defs": {
+    "BondStatusChange": {
+      "description": "Bond status transition (ACTIVE \u2194 DORMANT, or \u2192 VOID_LOCKED).\n\nTriggered by Void score changes:\n- Void \u2265 7: ACTIVE \u2192 DORMANT (bonds strain)\n- Void < 7: DORMANT \u2192 ACTIVE (bonds restore)\n- Void = 10: ACTIVE/DORMANT \u2192 VOID_LOCKED (permanent corruption)\n\nExample:\n```python\nchange = BondStatusChange(\n    character_name=\"Alice Vex\",\n    bond_partner=\"Bob Karsel\",\n    bond_type=\"kinship\",\n    old_status=\"active\",\n    new_status=\"dormant\",\n    trigger=\"void_threshold\",\n    void_score=7,\n    narrative=\"Alice's bond with Bob strains under void corruption, warmth fading to distant cold\"\n)\n```",
+      "properties": {
+        "character_name": {
+          "description": "Name of character whose bond changed status",
+          "minLength": 2,
+          "title": "Character Name",
+          "type": "string"
+        },
+        "bond_partner": {
+          "description": "Name of bonded partner (or object/entity)",
+          "minLength": 2,
+          "title": "Bond Partner",
+          "type": "string"
+        },
+        "bond_type": {
+          "description": "Type of bond (Kinship, Ascendancy, Debt, Voidward, Passion, Faction)",
+          "enum": [
+            "kinship",
+            "ascendancy",
+            "debt",
+            "voidward",
+            "passion",
+            "faction"
+          ],
+          "title": "Bond Type",
+          "type": "string"
+        },
+        "old_status": {
+          "description": "Previous bond status",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "Old Status",
+          "type": "string"
+        },
+        "new_status": {
+          "description": "New bond status after transition",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "New Status",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "What caused the status change (void_threshold=hit 7, void_recovery=dropped below 7, void_corruption=hit 10, sacrifice=bond sacrifice mechanic, manual=DM narrative)",
+          "enum": [
+            "void_threshold",
+            "void_recovery",
+            "void_corruption",
+            "sacrifice",
+            "manual"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        },
+        "void_score": {
+          "description": "Character's current void score at time of change",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Void Score",
+          "type": "integer"
+        },
+        "narrative": {
+          "description": "Brief narrative description of how the bond status change manifests (emotional/sensory description of the bond shifting)",
+          "maxLength": 300,
+          "minLength": 20,
+          "title": "Narrative",
+          "type": "string"
+        }
+      },
+      "required": [
+        "character_name",
+        "bond_partner",
+        "bond_type",
+        "old_status",
+        "new_status",
+        "trigger",
+        "void_score",
+        "narrative"
+      ],
+      "title": "BondStatusChange",
+      "type": "object"
+    },
+    "CoverageEntry": {
+      "properties": {
+        "outcome_id": {
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "rendered",
+            "merged",
+            "omitted_nonconsequential"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "disposition"
+      ],
+      "title": "CoverageEntry",
+      "type": "object"
+    },
+    "NarrativeSegment": {
+      "properties": {
+        "segment_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_outcome_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Outcome Ids",
+          "type": "array"
+        },
+        "visibility": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visibility",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_id",
+        "text",
+        "source_outcome_ids"
+      ],
+      "title": "NarrativeSegment",
+      "type": "object"
+    },
+    "NewClock": {
+      "description": "New progress clock to spawn.\n\nExample:\n```python\nclock = NewClock(\n    name=\"Passenger Safety\",\n    max_ticks=8,\n    description=\"Evacuate civilians from void surge zone\",\n    advance_meaning=\"passengers evacuated\",\n    regress_meaning=\"passengers endangered\",\n    filled_consequence=\"All passengers safe, transport arrives\"\n)\n```",
+      "properties": {
+        "name": {
+          "description": "Clock name (unique identifier)",
+          "maxLength": 50,
+          "minLength": 3,
+          "title": "Name",
+          "type": "string"
+        },
+        "max_ticks": {
+          "description": "Maximum ticks before clock fills (1-12, 4-8 recommended)",
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Max Ticks",
+          "type": "integer"
+        },
+        "description": {
+          "description": "What this clock represents",
+          "maxLength": 200,
+          "minLength": 10,
+          "title": "Description",
+          "type": "string"
+        },
+        "advance_meaning": {
+          "description": "What it means when clock advances (e.g., 'threat escalates', 'progress made')",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Advance Meaning",
+          "type": "string"
+        },
+        "regress_meaning": {
+          "description": "What it means when clock regresses (opposite of advance)",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Regress Meaning",
+          "type": "string"
+        },
+        "filled_consequence": {
+          "default": "",
+          "description": "What happens when clock fills (e.g., 'Enemy reinforcements arrive')",
+          "maxLength": 400,
+          "minLength": 0,
+          "title": "Filled Consequence",
+          "type": "string"
+        },
+        "current_ticks": {
+          "default": 0,
+          "description": "Starting tick count (usually 0)",
+          "minimum": 0,
+          "title": "Current Ticks",
+          "type": "integer"
+        },
+        "is_terminal_clock": {
+          "default": false,
+          "description": "Mark TRUE only for the ONE clock that resolves the central dramatic question of the scene -- the verdict delivered, the breach sealed, the target escaped or captured. When a terminal clock fills, the session ENDS. Never mark escalation, complication, or side-objective clocks terminal; those are meant to keep developing.",
+          "title": "Is Terminal Clock",
+          "type": "boolean"
+        },
+        "terminal_outcome": {
+          "default": "victory",
+          "description": "If is_terminal_clock is True, the session ends with this outcome when the clock fills: 'victory' (the party achieved the goal), 'defeat' (the party failed / was captured / the threat won), or 'draw' (resolved but ambiguous, e.g. a binding verdict that satisfies no one). Ignored when is_terminal_clock is False.",
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "title": "Terminal Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "max_ticks",
+        "description",
+        "advance_meaning",
+        "regress_meaning"
+      ],
+      "title": "NewClock",
+      "type": "object"
+    },
+    "ScenePivot": {
+      "description": "Scene transition within the same story chapter (lighter than StoryAdvancement).\n\nUse for:\n- Moving to adjacent room/area within same location\n- Tactical repositioning (hallway \u2192 control room)\n- Minor environmental shifts (power goes out, doors open)\n\nDO NOT use for:\n- Major story beats (use StoryAdvancement instead)\n- Completely different locations (facility \u2192 transit hub = StoryAdvancement)\n\nExample:\n```python\npivot = ScenePivot(\n    should_pivot=True,\n    new_room=\"Security Control Room\",\n    situation_change=\"Alarms blaring, blast doors sealing the exits\",\n    clear_specific_clocks=[\"Breach Containment\"],  # Optional selective clock clearing\n    new_clocks=[\n        NewClock(name=\"Override Lockdown\", max_ticks=6, description=\"Hack security terminal\")\n    ]\n)\n```",
+      "properties": {
+        "should_pivot": {
+          "description": "Should the scene pivot to a new room/area?",
+          "title": "Should Pivot",
+          "type": "boolean"
+        },
+        "new_room": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New room/area name (e.g., 'Control Room', 'Upper Catwalk')",
+          "title": "New Room"
+        },
+        "situation_change": {
+          "anyOf": [
+            {
+              "maxLength": 1500,
+              "minLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the situation has changed (tactical shift, environment change)",
+          "title": "Situation Change"
+        },
+        "clear_specific_clocks": {
+          "description": "Specific clock names to clear (selective). Empty = keep all clocks.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "new_clocks": {
+          "description": "New clocks for this scene",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "npc_departures": {
+          "description": "NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Npc Departures",
+          "type": "array"
+        },
+        "enemy_departures": {
+          "description": "Enemy agent_ids to remove from scenario (e.g., ['enemy_grunt_abc123']). Enemies can leave during scene pivots (patrol moves on, guards finish inspection, pursuers lost during escape).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Enemy Departures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_pivot"
+      ],
+      "title": "ScenePivot",
+      "type": "object"
+    },
+    "StateClaim": {
+      "properties": {
+        "claim_kind": {
+          "enum": [
+            "life_state",
+            "consciousness",
+            "combat_state",
+            "damage",
+            "healing",
+            "condition",
+            "movement",
+            "dialogue",
+            "other"
+          ],
+          "title": "Claim Kind",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "causing_actor_id": {
+          "title": "Causing Actor Id",
+          "type": "string"
+        },
+        "source_outcome_id": {
+          "title": "Source Outcome Id",
+          "type": "string"
+        },
+        "symbolic_value": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Symbolic Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_kind",
+        "subject_id",
+        "causing_actor_id",
+        "source_outcome_id",
+        "symbolic_value"
+      ],
+      "title": "StateClaim",
+      "type": "object"
+    },
+    "StoryAdvancement": {
+      "description": "Major story/scenario progression with new location and situation (heavier than ScenePivot).\n\nUse for:\n- Major chapter transitions (facility escape \u2192 transit hub pursuit)\n- Complete location changes (underground \u2192 rooftop)\n- Resolution of major story beats\n\nExample:\n```python\nadvancement = StoryAdvancement(\n    should_advance=True,\n    location=\"Abandoned Transit Hub - Platform 7\",\n    situation=\"Having escaped the facility, you find a wounded courier clutching a data slate with urgent intel about the Obsidian Path\",\n    new_void_level=3,  # Optional: reduce void from 8\u21923 after purification\n    clear_all_enemies=True,\n    new_clocks=[\n        NewClock(name=\"Courier's Life\", max_ticks=6, description=\"Stabilize courier before they expire\"),\n        NewClock(name=\"ACG Response\", max_ticks=8, description=\"ACG security lockdown approaching\")\n    ]\n)\n```",
+      "properties": {
+        "should_advance": {
+          "description": "Should the story advance to a new location/situation?",
+          "title": "Should Advance",
+          "type": "boolean"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New location name (if advancing)",
+          "title": "Location"
+        },
+        "situation": {
+          "anyOf": [
+            {
+              "maxLength": 3000,
+              "minLength": 50,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New situation description (if advancing).\n\n\u26a0\ufe0f IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.\n\nStory advancements are major narrative transitions - paint a vivid picture:\n- Describe the new location atmosphere (sights, sounds, smells, lighting)\n- Establish immediate situation and stakes\n- Introduce new NPCs/threats/complications present in the scene\n- Show how players arrived here (transition from previous scene)\n- Set tone and tension for the new chapter\n\nShorter descriptions feel rushed and unsatisfying. Longer descriptions create immersion.",
+          "title": "Situation"
+        },
+        "new_void_level": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New environmental void level (0-10), if changed. Leave None to keep current void_level unchanged.",
+          "title": "New Void Level"
+        },
+        "clear_all_enemies": {
+          "default": true,
+          "description": "Remove all active enemies when story advances (default: true). Set to false only if enemies follow to new scene.",
+          "title": "Clear All Enemies",
+          "type": "boolean"
+        },
+        "new_clocks": {
+          "description": "New clocks to spawn with this story beat",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "keep_clocks": {
+          "description": "Clock names to preserve across story advancement (e.g., ['Corporate Pursuit', 'Void Storm Approaching']). Clocks NOT in this list are cleared. Empty list = clear all clocks (default behavior for major transitions). Preserved clocks retain their current tick progress.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Keep Clocks",
+          "type": "array"
+        },
+        "clear_specific_clocks": {
+          "description": "Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "vendor_departures": {
+          "description": "Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Vendor Departures",
+          "type": "array"
+        },
+        "altar_removals": {
+          "description": "Altar IDs to remove from scenario (e.g., ['alt_nexus_001', 'alt_ritual_002']). Altars are destroyed, desecrated, or left behind when story advances.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Altar Removals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_advance"
+      ],
+      "title": "StoryAdvancement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "narration": {
+      "description": "DM's cohesive narrative summarizing the round (800-3000 chars).\n\n        IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.\n        - Describe action flow chronologically\n        - Include sensory details (sounds, sights, atmosphere)\n        - Show consequences of each action\n        - Build tension and momentum\n        - Paint vivid scene transitions\n        - **Include key dialogue exchanges** - Show what characters said during negotiations, arguments, pleas\n        - **Quote important NPC/PC interactions** - Capture the actual words spoken, not just \"they talked\"\n\n        Shorter narrations feel rushed. Longer narrations feel cinematic.\n\n        \u26a0\ufe0f NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.\n        - \u2705 CORRECT: \"Ash dives behind cover as the guard opens fire...\"\n        - \u274c WRONG: \"tgt_3c5d dives behind cover as tgt_7a3f opens fire...\"\n\n        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions, etc.).",
+      "maxLength": 4000,
+      "minLength": 100,
+      "title": "Narration",
+      "type": "string"
+    },
+    "scene_pivot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScenePivot"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Scene pivot (minor room/area transition within same chapter). Use for tactical repositioning, adjacent rooms, environmental shifts. Lighter than story_advancement."
+    },
+    "story_advancement": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StoryAdvancement"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
+    },
+    "clocks_filled": {
+      "description": "Clock names that just filled (reached max ticks) - use empty list [] if none, NOT null",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Filled",
+      "type": "array"
+    },
+    "clocks_expired": {
+      "description": "Clock names that expired (not advancing, time limit reached)",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Expired",
+      "type": "array"
+    },
+    "bond_status_changes": {
+      "description": "Bond status transitions this round (ACTIVE\u2194DORMANT, \u2192VOID_LOCKED) triggered by Void changes. Use empty list [] if none.",
+      "items": {
+        "$ref": "#/$defs/BondStatusChange"
+      },
+      "title": "Bond Status Changes",
+      "type": "array"
+    },
+    "session_end": {
+      "anyOf": [
+        {
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "If session should end, what's the outcome?",
+      "title": "Session End"
+    },
+    "session_end_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why session ended (if session_end is set)",
+      "title": "Session End Reason"
+    },
+    "schema_version": {
+      "default": "3.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/NarrativeSegment"
+      },
+      "minItems": 1,
+      "title": "Segments",
+      "type": "array"
+    },
+    "coverage": {
+      "items": {
+        "$ref": "#/$defs/CoverageEntry"
+      },
+      "minItems": 1,
+      "title": "Coverage",
+      "type": "array"
+    },
+    "state_claims": {
+      "items": {
+        "$ref": "#/$defs/StateClaim"
+      },
+      "title": "State Claims",
+      "type": "array"
+    }
+  },
+  "required": [
+    "narration",
+    "segments",
+    "coverage"
+  ],
+  "title": "OutcomeRoundSynthesis",
+  "type": "object"
+}
+
+Respond ONLY with the JSON object, no additional text.
+
+----- role: user (10436 chars) -----
+Write the canonical literary narration for round 1.
+
+AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
+[
+  {
+    "outcome_id": "out_000001",
+    "sequence": 1,
+    "actor_id": "npc_subdued_operative_#1_9872",
+    "actor_name": "Subdued Operative #1",
+    "intent": "comply",
+    "method": "I stay compliant and avoid provoking the three active players. I\u2019m healthy, but the ally capture and the current numbers make resistance too risky right now. Cooperating gives me the best chance to survive, read the situation, and look for a safer opportunity later.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#1_9872",
+        "causing_actor_id": "npc_subdued_operative_#1_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000002",
+    "sequence": 2,
+    "actor_id": "npc_subdued_operative_#3_9872",
+    "actor_name": "Subdued Operative #3",
+    "intent": "comply",
+    "method": "I remain compliant because the situation is controlled by three active players and an ally has already been captured. I am healthy, but not in a position to risk provoking violence. Cooperating now gives me the best chance to survive and possibly help the other prisoners later.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#3_9872",
+        "causing_actor_id": "npc_subdued_operative_#3_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000003",
+    "sequence": 3,
+    "actor_id": "player_01",
+    "actor_name": "Hard Vane",
+    "intent": "Execute the three subdued operatives with headshots before they can identify us",
+    "method": "I draw my Union Heavy Pistol and move methodically toward the three kneeling operatives. Starting with the leftmost target, I aim for center-mass headshots - efficient, clinical executions to permanently eliminate the threat they pose to crew security. Three rounds, three targets, no survivors who can identify us later.",
+    "weapon": "Union Heavy Pistol",
+    "target_names": [
+      "Subdued Operative #1"
+    ],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "player_01",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt with the Union Heavy Pistol succeeds."
+      },
+      {
+        "fact_kind": "damage",
+        "subject_id": "npc_subdued_operative_#1_9872",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "conscious",
+        "severity": "severe",
+        "prose_safe_summary": "Subdued Operative #1 is badly wounded but remains conscious."
+      },
+      {
+        "fact_kind": "damage",
+        "subject_id": "npc_subdued_operative_#2_9872",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "conscious",
+        "severity": "severe",
+        "prose_safe_summary": "Subdued Operative #2 is badly wounded but remains conscious."
+      },
+      {
+        "fact_kind": "damage",
+        "subject_id": "npc_subdued_operative_#3_9872",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "conscious",
+        "severity": "severe",
+        "prose_safe_summary": "Subdued Operative #3 is badly wounded but remains conscious."
+      }
+    ],
+    "prohibited_claims": [
+      "Do not describe Subdued Operative #1 as dead or a corpse.",
+      "Do not describe Subdued Operative #1 as unconscious.",
+      "Do not describe Subdued Operative #2 as dead or a corpse.",
+      "Do not describe Subdued Operative #2 as unconscious.",
+      "Do not describe Subdued Operative #3 as dead or a corpse.",
+      "Do not describe Subdued Operative #3 as unconscious."
+    ],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000004",
+    "sequence": 4,
+    "actor_id": "npc_subdued_operative_#2_9872",
+    "actor_name": "Subdued Operative #2",
+    "intent": "comply",
+    "method": "I stay compliant and avoid escalating the situation. With an ally already captured and three players active, I am not in a position to fight or flee safely. I\u2019ll cooperate for now and wait for a better opening to protect myself and the other prisoners.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#2_9872",
+        "causing_actor_id": "npc_subdued_operative_#2_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000005",
+    "sequence": 5,
+    "actor_id": "player_02",
+    "actor_name": "Oathkeeper Sela",
+    "intent": "Counsel the crew to uphold the statute and deliver prisoners to lawful custody alive",
+    "method": "I stand where both Hard Vane and Cold Tarn can see me, my voice calm but resonant with conviction. \"The Codex relay is recording. What we do here defines us\u2014not just to the law, but to ourselves. These operatives are subdued. We have the authority and the responsibility to deliver them alive to Pantheon Security for trial. Execution without due process makes us no different from the lawless. Our oaths demand better.\"",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": "We are Oathkeepers. That means something.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Oathkeeper Sela says: \"We are Oathkeepers. That means something.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000006",
+    "sequence": 6,
+    "actor_id": "player_03",
+    "actor_name": "Cold Tarn",
+    "intent": "Question the subdued operatives about their backers and mission objectives",
+    "method": "I approach the three subdued operatives with calculated authority, my corporate background showing through body language and tone. \"Let's be efficient about this. You're compromised, your mission failed, and your employer isn't coming for you. Who sent you, what were your objectives here, and what capabilities does your organization possess? Cooperation demonstrates value\u2014something that might factor into how we proceed.\" My voice carries the weight of someone accustomed to extracting leverage from disadvantageous situations.",
+    "weapon": null,
+    "target_names": [
+      "Subdued Operative #1"
+    ],
+    "declared_dialogue": "Professional to professional\u2014let's talk terms.",
+    "facts": [
+      {
+        "fact_kind": "failure",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "failed",
+        "severity": null,
+        "prose_safe_summary": "The attempt fails."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Cold Tarn says: \"Professional to professional\u2014let's talk terms.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  }
+]
+
+PRIOR CANONICAL ENDING:
+(opening round)
+
+ACCEPTED ENTITY LIFECYCLE CHANGES:
+{
+  "morale_events": [],
+  "enemies_spawned": [],
+  "npcs_spawned": [],
+  "enemies_converted": [],
+  "npcs_escalated": [],
+  "npcs_departed": [],
+  "enemies_departed": [],
+  "env_objects_spawned": []
+}
+
+BINDING CONTRACT:
+- Narrate only the supplied applied outcomes. Intent is not outcome.
+- Preserve chronological and causal order.
+- Establish the setting once; do not restart every paragraph with the location.
+- Merge causally compatible actions when useful, but preserve each distinct consequence.
+- Order segments by their earliest outcome; a beat may absorb later reactions,
+  but never narrate an effect before its cause.
+- Render a restricted-visibility outcome in its own segment whose visibility
+  exactly matches that outcome's viewers; never mix restricted and public
+  outcomes in one segment.
+- Integrate only useful declared dialogue. Omit repetitive or inert speech.
+- Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
+- Use the supplied prose-facing names, not registry labels.
+- Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
+- `segments[].source_outcome_ids` must identify every outcome represented by that text.
+- Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
+- Every state claim must identify its subject, causing actor, and source outcome.
+- Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+  after-state actually changes that subject. Attitude, cooperation, mood, or other
+  soft observations use claim_kind `other` (or no claim at all).
+- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+  never a sentence.
+- Set `narration` to the segment texts joined in order with blank lines.
+- Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
+
+Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
+specificity, motive, and a changed final tableau over repeated action summaries.
+
+
+----- RESPONSE (5488 chars) -----
+{
+  "narration": "The chamber stays taut and airless, the sort of stillness that makes every breath and shift of weight feel exposed. The three subdued operatives choose survival over resistance, remaining compliant as the situation hardens around them. Their restraint buys them only a moment of fragile calm.\n\nHard Vane breaks that calm with cold precision, drawing the Union Heavy Pistol and moving in on the kneeling prisoners. The shot cracks through the space like a verdict, and the operatives are thrown into agony\u2014badly wounded, but still alive, still conscious, still forced to endure the aftermath of the attack. The effort is efficient, merciless, and meant to erase any chance they might identify the crew later.\n\nOathkeeper Sela steps into the line of sight with measured authority, her voice carrying clear across the tension. \"We are Oathkeepers. That means something.\" She invokes the Codex relay and the responsibility to deliver prisoners alive to lawful custody, pressing the crew to remember that their oaths are more than ceremony. Her words land with conviction, trying to pull the moment back from outright execution and into the discipline of due process.\n\nCold Tarn then turns the knife in a different way, approaching with corporate polish and calculated leverage. \"Professional to professional\u2014let's talk terms,\" he says, pressing the subdued operatives for their backers, objectives, and capabilities. The attempt does not yield; the prisoners offer no useful opening in return, leaving the questions hanging in the charged silence while blood, restraint, and competing principles define the tableau.",
+  "segments": [
+    {
+      "segment_id": "seg_1",
+      "text": "The chamber stays taut and airless, the sort of stillness that makes every breath and shift of weight feel exposed. The three subdued operatives choose survival over resistance, remaining compliant as the situation hardens around them. Their restraint buys them only a moment of fragile calm.",
+      "source_outcome_ids": [
+        "out_000001",
+        "out_000002",
+        "out_000004"
+      ],
+      "visibility": [
+        "public"
+      ]
+    },
+    {
+      "segment_id": "seg_2",
+      "text": "Hard Vane breaks that calm with cold precision, drawing the Union Heavy Pistol and moving in on the kneeling prisoners. The shot cracks through the space like a verdict, and the operatives are thrown into agony\u2014badly wounded, but still alive, still conscious, still forced to endure the aftermath of the attack. The effort is efficient, merciless, and meant to erase any chance they might identify the crew later.",
+      "source_outcome_ids": [
+        "out_000003"
+      ],
+      "visibility": [
+        "public"
+      ]
+    },
+    {
+      "segment_id": "seg_3",
+      "text": "Oathkeeper Sela steps into the line of sight with measured authority, her voice carrying clear across the tension. \"We are Oathkeepers. That means something.\" She invokes the Codex relay and the responsibility to deliver prisoners alive to lawful custody, pressing the crew to remember that their oaths are more than ceremony. Her words land with conviction, trying to pull the moment back from outright execution and into the discipline of due process.",
+      "source_outcome_ids": [
+        "out_000005"
+      ],
+      "visibility": [
+        "public"
+      ]
+    },
+    {
+      "segment_id": "seg_4",
+      "text": "Cold Tarn then turns the knife in a different way, approaching with corporate polish and calculated leverage. \"Professional to professional\u2014let's talk terms,\" he says, pressing the subdued operatives for their backers, objectives, and capabilities. The attempt does not yield; the prisoners offer no useful opening in return, leaving the questions hanging in the charged silence while blood, restraint, and competing principles define the tableau.",
+      "source_outcome_ids": [
+        "out_000006"
+      ],
+      "visibility": [
+        "public"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "outcome_id": "out_000001",
+      "disposition": "rendered",
+      "segment_id": "seg_1"
+    },
+    {
+      "outcome_id": "out_000002",
+      "disposition": "rendered",
+      "segment_id": "seg_1"
+    },
+    {
+      "outcome_id": "out_000003",
+      "disposition": "rendered",
+      "segment_id": "seg_2"
+    },
+    {
+      "outcome_id": "out_000004",
+      "disposition": "rendered",
+      "segment_id": "seg_1"
+    },
+    {
+      "outcome_id": "out_000005",
+      "disposition": "rendered",
+      "segment_id": "seg_3"
+    },
+    {
+      "outcome_id": "out_000006",
+      "disposition": "rendered",
+      "segment_id": "seg_4"
+    }
+  ],
+  "state_claims": [
+    {
+      "claim_kind": "other",
+      "subject_id": "npc_subdued_operative_#1_9872",
+      "causing_actor_id": "npc_subdued_operative_#1_9872",
+      "source_outcome_id": "out_000001",
+      "symbolic_value": "compliant"
+    },
+    {
+      "claim_kind": "other",
+      "subject_id": "npc_subdued_operative_#3_9872",
+      "causing_actor_id": "npc_subdued_operative_#3_9872",
+      "source_outcome_id": "out_000002",
+      "symbolic_value": "compliant"
+    },
+    {
+      "claim_kind": "damage",
+      "subject_id": "npc_subdued_operative_#1_9872",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000003",
+      "symbolic_value": "severely wounded"
+    },
+    {
+      "claim_kind": "damage",
+      "subject_id": "npc_subdued_operative_#2_9872",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000003",
+      "symbolic_value": "severely wounded"
+    },
+    {
+      "claim_kind": "damage",
+      "subject_id": "npc_subdued_operative_#3_9872",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000003",
+      "symbolic_value": "severely wounded"
+    },
+    {
+      "claim_kind": "other",
+      "subject_id": "npc_subdued_operative_#2_9872",
+      "causing_actor_id": "npc_subdued_operative_#2_9872",
+      "source_outcome_id": "out_000004",
+      "symbolic_value": "compliant"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_02",
+      "causing_actor_id": "player_02",
+      "source_outcome_id": "out_000005",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_03",
+      "causing_actor_id": "player_03",
+      "source_outcome_id": "out_000006",
+      "symbolic_value": "spoken"
+    }
+  ],
+  "schema_version": "3.0.0"
+}
+
+==============================================================================
+ROUND 2  |  structured:OutcomeRoundSynthesis  |  model=gpt-5.4-mini  |  temp=1.0  |  call_sequence=14
+==============================================================================
+
+----- role: system (21849 chars) -----
+You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
+
+You must respond with valid JSON matching this schema:
+{
+  "$defs": {
+    "BondStatusChange": {
+      "description": "Bond status transition (ACTIVE \u2194 DORMANT, or \u2192 VOID_LOCKED).\n\nTriggered by Void score changes:\n- Void \u2265 7: ACTIVE \u2192 DORMANT (bonds strain)\n- Void < 7: DORMANT \u2192 ACTIVE (bonds restore)\n- Void = 10: ACTIVE/DORMANT \u2192 VOID_LOCKED (permanent corruption)\n\nExample:\n```python\nchange = BondStatusChange(\n    character_name=\"Alice Vex\",\n    bond_partner=\"Bob Karsel\",\n    bond_type=\"kinship\",\n    old_status=\"active\",\n    new_status=\"dormant\",\n    trigger=\"void_threshold\",\n    void_score=7,\n    narrative=\"Alice's bond with Bob strains under void corruption, warmth fading to distant cold\"\n)\n```",
+      "properties": {
+        "character_name": {
+          "description": "Name of character whose bond changed status",
+          "minLength": 2,
+          "title": "Character Name",
+          "type": "string"
+        },
+        "bond_partner": {
+          "description": "Name of bonded partner (or object/entity)",
+          "minLength": 2,
+          "title": "Bond Partner",
+          "type": "string"
+        },
+        "bond_type": {
+          "description": "Type of bond (Kinship, Ascendancy, Debt, Voidward, Passion, Faction)",
+          "enum": [
+            "kinship",
+            "ascendancy",
+            "debt",
+            "voidward",
+            "passion",
+            "faction"
+          ],
+          "title": "Bond Type",
+          "type": "string"
+        },
+        "old_status": {
+          "description": "Previous bond status",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "Old Status",
+          "type": "string"
+        },
+        "new_status": {
+          "description": "New bond status after transition",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "New Status",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "What caused the status change (void_threshold=hit 7, void_recovery=dropped below 7, void_corruption=hit 10, sacrifice=bond sacrifice mechanic, manual=DM narrative)",
+          "enum": [
+            "void_threshold",
+            "void_recovery",
+            "void_corruption",
+            "sacrifice",
+            "manual"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        },
+        "void_score": {
+          "description": "Character's current void score at time of change",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Void Score",
+          "type": "integer"
+        },
+        "narrative": {
+          "description": "Brief narrative description of how the bond status change manifests (emotional/sensory description of the bond shifting)",
+          "maxLength": 300,
+          "minLength": 20,
+          "title": "Narrative",
+          "type": "string"
+        }
+      },
+      "required": [
+        "character_name",
+        "bond_partner",
+        "bond_type",
+        "old_status",
+        "new_status",
+        "trigger",
+        "void_score",
+        "narrative"
+      ],
+      "title": "BondStatusChange",
+      "type": "object"
+    },
+    "CoverageEntry": {
+      "properties": {
+        "outcome_id": {
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "rendered",
+            "merged",
+            "omitted_nonconsequential"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "disposition"
+      ],
+      "title": "CoverageEntry",
+      "type": "object"
+    },
+    "NarrativeSegment": {
+      "properties": {
+        "segment_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_outcome_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Outcome Ids",
+          "type": "array"
+        },
+        "visibility": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visibility",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_id",
+        "text",
+        "source_outcome_ids"
+      ],
+      "title": "NarrativeSegment",
+      "type": "object"
+    },
+    "NewClock": {
+      "description": "New progress clock to spawn.\n\nExample:\n```python\nclock = NewClock(\n    name=\"Passenger Safety\",\n    max_ticks=8,\n    description=\"Evacuate civilians from void surge zone\",\n    advance_meaning=\"passengers evacuated\",\n    regress_meaning=\"passengers endangered\",\n    filled_consequence=\"All passengers safe, transport arrives\"\n)\n```",
+      "properties": {
+        "name": {
+          "description": "Clock name (unique identifier)",
+          "maxLength": 50,
+          "minLength": 3,
+          "title": "Name",
+          "type": "string"
+        },
+        "max_ticks": {
+          "description": "Maximum ticks before clock fills (1-12, 4-8 recommended)",
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Max Ticks",
+          "type": "integer"
+        },
+        "description": {
+          "description": "What this clock represents",
+          "maxLength": 200,
+          "minLength": 10,
+          "title": "Description",
+          "type": "string"
+        },
+        "advance_meaning": {
+          "description": "What it means when clock advances (e.g., 'threat escalates', 'progress made')",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Advance Meaning",
+          "type": "string"
+        },
+        "regress_meaning": {
+          "description": "What it means when clock regresses (opposite of advance)",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Regress Meaning",
+          "type": "string"
+        },
+        "filled_consequence": {
+          "default": "",
+          "description": "What happens when clock fills (e.g., 'Enemy reinforcements arrive')",
+          "maxLength": 400,
+          "minLength": 0,
+          "title": "Filled Consequence",
+          "type": "string"
+        },
+        "current_ticks": {
+          "default": 0,
+          "description": "Starting tick count (usually 0)",
+          "minimum": 0,
+          "title": "Current Ticks",
+          "type": "integer"
+        },
+        "is_terminal_clock": {
+          "default": false,
+          "description": "Mark TRUE only for the ONE clock that resolves the central dramatic question of the scene -- the verdict delivered, the breach sealed, the target escaped or captured. When a terminal clock fills, the session ENDS. Never mark escalation, complication, or side-objective clocks terminal; those are meant to keep developing.",
+          "title": "Is Terminal Clock",
+          "type": "boolean"
+        },
+        "terminal_outcome": {
+          "default": "victory",
+          "description": "If is_terminal_clock is True, the session ends with this outcome when the clock fills: 'victory' (the party achieved the goal), 'defeat' (the party failed / was captured / the threat won), or 'draw' (resolved but ambiguous, e.g. a binding verdict that satisfies no one). Ignored when is_terminal_clock is False.",
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "title": "Terminal Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "max_ticks",
+        "description",
+        "advance_meaning",
+        "regress_meaning"
+      ],
+      "title": "NewClock",
+      "type": "object"
+    },
+    "ScenePivot": {
+      "description": "Scene transition within the same story chapter (lighter than StoryAdvancement).\n\nUse for:\n- Moving to adjacent room/area within same location\n- Tactical repositioning (hallway \u2192 control room)\n- Minor environmental shifts (power goes out, doors open)\n\nDO NOT use for:\n- Major story beats (use StoryAdvancement instead)\n- Completely different locations (facility \u2192 transit hub = StoryAdvancement)\n\nExample:\n```python\npivot = ScenePivot(\n    should_pivot=True,\n    new_room=\"Security Control Room\",\n    situation_change=\"Alarms blaring, blast doors sealing the exits\",\n    clear_specific_clocks=[\"Breach Containment\"],  # Optional selective clock clearing\n    new_clocks=[\n        NewClock(name=\"Override Lockdown\", max_ticks=6, description=\"Hack security terminal\")\n    ]\n)\n```",
+      "properties": {
+        "should_pivot": {
+          "description": "Should the scene pivot to a new room/area?",
+          "title": "Should Pivot",
+          "type": "boolean"
+        },
+        "new_room": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New room/area name (e.g., 'Control Room', 'Upper Catwalk')",
+          "title": "New Room"
+        },
+        "situation_change": {
+          "anyOf": [
+            {
+              "maxLength": 1500,
+              "minLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the situation has changed (tactical shift, environment change)",
+          "title": "Situation Change"
+        },
+        "clear_specific_clocks": {
+          "description": "Specific clock names to clear (selective). Empty = keep all clocks.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "new_clocks": {
+          "description": "New clocks for this scene",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "npc_departures": {
+          "description": "NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Npc Departures",
+          "type": "array"
+        },
+        "enemy_departures": {
+          "description": "Enemy agent_ids to remove from scenario (e.g., ['enemy_grunt_abc123']). Enemies can leave during scene pivots (patrol moves on, guards finish inspection, pursuers lost during escape).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Enemy Departures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_pivot"
+      ],
+      "title": "ScenePivot",
+      "type": "object"
+    },
+    "StateClaim": {
+      "properties": {
+        "claim_kind": {
+          "enum": [
+            "life_state",
+            "consciousness",
+            "combat_state",
+            "damage",
+            "healing",
+            "condition",
+            "movement",
+            "dialogue",
+            "other"
+          ],
+          "title": "Claim Kind",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "causing_actor_id": {
+          "title": "Causing Actor Id",
+          "type": "string"
+        },
+        "source_outcome_id": {
+          "title": "Source Outcome Id",
+          "type": "string"
+        },
+        "symbolic_value": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Symbolic Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_kind",
+        "subject_id",
+        "causing_actor_id",
+        "source_outcome_id",
+        "symbolic_value"
+      ],
+      "title": "StateClaim",
+      "type": "object"
+    },
+    "StoryAdvancement": {
+      "description": "Major story/scenario progression with new location and situation (heavier than ScenePivot).\n\nUse for:\n- Major chapter transitions (facility escape \u2192 transit hub pursuit)\n- Complete location changes (underground \u2192 rooftop)\n- Resolution of major story beats\n\nExample:\n```python\nadvancement = StoryAdvancement(\n    should_advance=True,\n    location=\"Abandoned Transit Hub - Platform 7\",\n    situation=\"Having escaped the facility, you find a wounded courier clutching a data slate with urgent intel about the Obsidian Path\",\n    new_void_level=3,  # Optional: reduce void from 8\u21923 after purification\n    clear_all_enemies=True,\n    new_clocks=[\n        NewClock(name=\"Courier's Life\", max_ticks=6, description=\"Stabilize courier before they expire\"),\n        NewClock(name=\"ACG Response\", max_ticks=8, description=\"ACG security lockdown approaching\")\n    ]\n)\n```",
+      "properties": {
+        "should_advance": {
+          "description": "Should the story advance to a new location/situation?",
+          "title": "Should Advance",
+          "type": "boolean"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New location name (if advancing)",
+          "title": "Location"
+        },
+        "situation": {
+          "anyOf": [
+            {
+              "maxLength": 3000,
+              "minLength": 50,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New situation description (if advancing).\n\n\u26a0\ufe0f IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.\n\nStory advancements are major narrative transitions - paint a vivid picture:\n- Describe the new location atmosphere (sights, sounds, smells, lighting)\n- Establish immediate situation and stakes\n- Introduce new NPCs/threats/complications present in the scene\n- Show how players arrived here (transition from previous scene)\n- Set tone and tension for the new chapter\n\nShorter descriptions feel rushed and unsatisfying. Longer descriptions create immersion.",
+          "title": "Situation"
+        },
+        "new_void_level": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New environmental void level (0-10), if changed. Leave None to keep current void_level unchanged.",
+          "title": "New Void Level"
+        },
+        "clear_all_enemies": {
+          "default": true,
+          "description": "Remove all active enemies when story advances (default: true). Set to false only if enemies follow to new scene.",
+          "title": "Clear All Enemies",
+          "type": "boolean"
+        },
+        "new_clocks": {
+          "description": "New clocks to spawn with this story beat",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "keep_clocks": {
+          "description": "Clock names to preserve across story advancement (e.g., ['Corporate Pursuit', 'Void Storm Approaching']). Clocks NOT in this list are cleared. Empty list = clear all clocks (default behavior for major transitions). Preserved clocks retain their current tick progress.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Keep Clocks",
+          "type": "array"
+        },
+        "clear_specific_clocks": {
+          "description": "Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "vendor_departures": {
+          "description": "Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Vendor Departures",
+          "type": "array"
+        },
+        "altar_removals": {
+          "description": "Altar IDs to remove from scenario (e.g., ['alt_nexus_001', 'alt_ritual_002']). Altars are destroyed, desecrated, or left behind when story advances.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Altar Removals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_advance"
+      ],
+      "title": "StoryAdvancement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "narration": {
+      "description": "DM's cohesive narrative summarizing the round (800-3000 chars).\n\n        IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.\n        - Describe action flow chronologically\n        - Include sensory details (sounds, sights, atmosphere)\n        - Show consequences of each action\n        - Build tension and momentum\n        - Paint vivid scene transitions\n        - **Include key dialogue exchanges** - Show what characters said during negotiations, arguments, pleas\n        - **Quote important NPC/PC interactions** - Capture the actual words spoken, not just \"they talked\"\n\n        Shorter narrations feel rushed. Longer narrations feel cinematic.\n\n        \u26a0\ufe0f NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.\n        - \u2705 CORRECT: \"Ash dives behind cover as the guard opens fire...\"\n        - \u274c WRONG: \"tgt_3c5d dives behind cover as tgt_7a3f opens fire...\"\n\n        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions, etc.).",
+      "maxLength": 4000,
+      "minLength": 100,
+      "title": "Narration",
+      "type": "string"
+    },
+    "scene_pivot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScenePivot"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Scene pivot (minor room/area transition within same chapter). Use for tactical repositioning, adjacent rooms, environmental shifts. Lighter than story_advancement."
+    },
+    "story_advancement": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StoryAdvancement"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
+    },
+    "clocks_filled": {
+      "description": "Clock names that just filled (reached max ticks) - use empty list [] if none, NOT null",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Filled",
+      "type": "array"
+    },
+    "clocks_expired": {
+      "description": "Clock names that expired (not advancing, time limit reached)",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Expired",
+      "type": "array"
+    },
+    "bond_status_changes": {
+      "description": "Bond status transitions this round (ACTIVE\u2194DORMANT, \u2192VOID_LOCKED) triggered by Void changes. Use empty list [] if none.",
+      "items": {
+        "$ref": "#/$defs/BondStatusChange"
+      },
+      "title": "Bond Status Changes",
+      "type": "array"
+    },
+    "session_end": {
+      "anyOf": [
+        {
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "If session should end, what's the outcome?",
+      "title": "Session End"
+    },
+    "session_end_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why session ended (if session_end is set)",
+      "title": "Session End Reason"
+    },
+    "schema_version": {
+      "default": "3.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/NarrativeSegment"
+      },
+      "minItems": 1,
+      "title": "Segments",
+      "type": "array"
+    },
+    "coverage": {
+      "items": {
+        "$ref": "#/$defs/CoverageEntry"
+      },
+      "minItems": 1,
+      "title": "Coverage",
+      "type": "array"
+    },
+    "state_claims": {
+      "items": {
+        "$ref": "#/$defs/StateClaim"
+      },
+      "title": "State Claims",
+      "type": "array"
+    }
+  },
+  "required": [
+    "narration",
+    "segments",
+    "coverage"
+  ],
+  "title": "OutcomeRoundSynthesis",
+  "type": "object"
+}
+
+Respond ONLY with the JSON object, no additional text.
+
+----- role: user (13304 chars) -----
+Write the canonical literary narration for round 2.
+
+AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
+[
+  {
+    "outcome_id": "out_000007",
+    "sequence": 1,
+    "actor_id": "player_03",
+    "actor_name": "Cold Tarn",
+    "intent": "Stand watch over the scene while Sela treats the prisoners, ensuring no one interferes",
+    "method": "With Hard Vane and his team secured and Sela providing medical aid, I position myself with a clear view of both the prisoners and our perimeter. My eyes sweep the area methodically\u2014watching the Codex relay for any incoming signals, monitoring the prisoners for sudden movements, and scanning the surrounding terrain for approaching threats. I'm the sentinel while Sela works, ensuring this fragile custody situation stays stable.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": "Take your time, Sela. I've got overwatch.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "condition",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "Forewarned",
+        "severity": null,
+        "prose_safe_summary": "Cold Tarn is affected by Forewarned."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Cold Tarn says: \"Take your time, Sela. I've got overwatch.\""
+      }
+    ],
+    "prohibited_claims": [
+      "Do not describe Cold Tarn as dead or a corpse.",
+      "Do not describe Cold Tarn as unconscious."
+    ],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000008",
+    "sequence": 2,
+    "actor_id": "npc_subdued_operative_#1_9872",
+    "actor_name": "Subdued Operative #1",
+    "intent": "plead",
+    "method": "I\u2019m wounded, unarmed, and my ally has already been captured. Escalating now would be suicidal, and as a prisoner my best chance is to appeal for mercy and not look like a threat. I want to survive this encounter and avoid provoking Cold Tarn any further.",
+    "weapon": null,
+    "target_names": [
+      "Cold Tarn"
+    ],
+    "declared_dialogue": "Please, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#1_9872",
+        "causing_actor_id": "npc_subdued_operative_#1_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "npc_subdued_operative_#1_9872",
+        "causing_actor_id": "npc_subdued_operative_#1_9872",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Subdued Operative #1 says: \"Please, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000009",
+    "sequence": 3,
+    "actor_id": "player_01",
+    "actor_name": "Hard Vane",
+    "intent": "Step back and holster my weapon while Sela stabilizes the prisoners",
+    "method": "I take a deliberate step backward from the subdued operatives, my grip on my weapon relaxing. With measured movements, I holster my sidearm and raise my hands slightly, palms open - a clear signal that I'm standing down from execution. I keep my eyes on the perimeter while Sela works, giving her space to administer medical treatment without interference.",
+    "weapon": null,
+    "target_names": [
+      "Oathkeeper Sela"
+    ],
+    "declared_dialogue": "Your patients, Sela. I'll cover the perimeter.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "player_01",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "condition",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "Covering Perimeter",
+        "severity": null,
+        "prose_safe_summary": "Oathkeeper Sela is affected by Covering Perimeter."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_01",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Hard Vane says: \"Your patients, Sela. I'll cover the perimeter.\""
+      }
+    ],
+    "prohibited_claims": [
+      "Do not describe Oathkeeper Sela as dead or a corpse.",
+      "Do not describe Oathkeeper Sela as unconscious."
+    ],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000010",
+    "sequence": 4,
+    "actor_id": "player_02",
+    "actor_name": "Oathkeeper Sela",
+    "intent": "Provide medical stabilization to all three wounded operatives",
+    "method": "I move swiftly between the three subdued operatives, my medkit already open. Working with practiced efficiency, I assess their injuries from Hard Vane's assault - checking vitals, applying pressure to bleeding wounds, injecting syn-skin foam where needed, and stabilizing broken bones with field splints. My priority is keeping all three alive for lawful custody and proper medical treatment. \"You're going to survive this,\" I tell them firmly as I work.",
+    "weapon": null,
+    "target_names": [
+      "Subdued Operative #1"
+    ],
+    "declared_dialogue": "You're going to survive this and face proper justice. That's the statute I uphold.",
+    "facts": [
+      {
+        "fact_kind": "failure",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "failed",
+        "severity": null,
+        "prose_safe_summary": "The attempt fails."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Oathkeeper Sela says: \"You're going to survive this and face proper justice. That's the statute I uphold.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000011",
+    "sequence": 5,
+    "actor_id": "npc_subdued_operative_#3_9872",
+    "actor_name": "Subdued Operative #3",
+    "intent": "plead",
+    "method": "I\u2019m wounded, unarmed, and my ally has already been taken. Escalating now would only get me hurt or killed, so I need to appeal for mercy and show I\u2019m no threat. As a prisoner, survival comes first.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": "Please, I\u2019m not fighting you. I\u2019m wounded and helpless\u2014don\u2019t make this worse. I\u2019ll cooperate, just let us live.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#3_9872",
+        "causing_actor_id": "npc_subdued_operative_#3_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "npc_subdued_operative_#3_9872",
+        "causing_actor_id": "npc_subdued_operative_#3_9872",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Subdued Operative #3 says: \"Please, I\u2019m not fighting you. I\u2019m wounded and helpless\u2014don\u2019t make this worse. I\u2019ll cooperate, just let us live.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000012",
+    "sequence": 6,
+    "actor_id": "npc_subdued_operative_#2_9872",
+    "actor_name": "Subdued Operative #2",
+    "intent": "plead",
+    "method": "I am wounded, outnumbered, and my ally has been captured. I should not escalate; as a prisoner I need to appeal for mercy and avoid provoking Cold Tarn while there is still a chance of surviving this encounter.",
+    "weapon": null,
+    "target_names": [
+      "Cold Tarn"
+    ],
+    "declared_dialogue": "Please, we\u2019re done fighting. My ally is captured and I\u2019m wounded\u2014don\u2019t make this worse. I\u2019ll cooperate.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#2_9872",
+        "causing_actor_id": "npc_subdued_operative_#2_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "npc_subdued_operative_#2_9872",
+        "causing_actor_id": "npc_subdued_operative_#2_9872",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Subdued Operative #2 says: \"Please, we\u2019re done fighting. My ally is captured and I\u2019m wounded\u2014don\u2019t make this worse. I\u2019ll cooperate.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  }
+]
+
+PRIOR CANONICAL ENDING:
+The chamber stays taut and airless, the sort of stillness that makes every breath and shift of weight feel exposed. The three subdued operatives choose survival over resistance, remaining compliant as the situation hardens around them. Their restraint buys them only a moment of fragile calm.
+
+Hard Vane breaks that calm with cold precision, drawing the Union Heavy Pistol and moving in on the kneeling prisoners. The shot cracks through the space like a verdict, and the operatives are thrown into agony—badly wounded, but still alive, still conscious, still forced to endure the aftermath of the attack. The effort is efficient, merciless, and meant to erase any chance they might identify the crew later.
+
+Oathkeeper Sela steps into the line of sight with measured authority, her voice carrying clear across the tension. "We are Oathkeepers. That means something." She invokes the Codex relay and the responsibility to deliver prisoners alive to lawful custody, pressing the crew to remember that their oaths are more than ceremony. Her words land with conviction, trying to pull the moment back from outright execution and into the discipline of due process.
+
+Cold Tarn then turns the knife in a different way, approaching with corporate polish and calculated leverage. "Professional to professional—let's talk terms," he says, pressing the subdued operatives for their backers, objectives, and capabilities. The attempt does not yield; the prisoners offer no useful opening in return, leaving the questions hanging in the charged silence while blood, restraint, and competing principles define the tableau.
+
+ACCEPTED ENTITY LIFECYCLE CHANGES:
+{
+  "morale_events": [],
+  "enemies_spawned": [],
+  "npcs_spawned": [],
+  "enemies_converted": [],
+  "npcs_escalated": [],
+  "npcs_departed": [],
+  "enemies_departed": [],
+  "env_objects_spawned": []
+}
+
+BINDING CONTRACT:
+- Narrate only the supplied applied outcomes. Intent is not outcome.
+- Preserve chronological and causal order.
+- Establish the setting once; do not restart every paragraph with the location.
+- Merge causally compatible actions when useful, but preserve each distinct consequence.
+- Order segments by their earliest outcome; a beat may absorb later reactions,
+  but never narrate an effect before its cause.
+- Render a restricted-visibility outcome in its own segment whose visibility
+  exactly matches that outcome's viewers; never mix restricted and public
+  outcomes in one segment.
+- Integrate only useful declared dialogue. Omit repetitive or inert speech.
+- Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
+- Use the supplied prose-facing names, not registry labels.
+- Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
+- `segments[].source_outcome_ids` must identify every outcome represented by that text.
+- Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
+- Every state claim must identify its subject, causing actor, and source outcome.
+- Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+  after-state actually changes that subject. Attitude, cooperation, mood, or other
+  soft observations use claim_kind `other` (or no claim at all).
+- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+  never a sentence.
+- Set `narration` to the segment texts joined in order with blank lines.
+- Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
+
+Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
+specificity, motive, and a changed final tableau over repeated action summaries.
+
+
+----- RESPONSE (7510 chars) -----
+{
+  "narration": "The chamber remains taut and airless after the earlier violence, every breath seeming too loud against the hush. Blood, restraint, and hard-won caution hang in the space between the prisoners and the crew, but no one moves to reopen the wound of the moment. Cold Tarn takes up his post with a clear, methodical watch, sweeping the perimeter and the Codex relay for any sign of interference while giving Sela the space to work. His calm warning, \u201cTake your time, Sela. I\u2019ve got overwatch,\u201d settles into the scene like a steady hand on a shaking pulse.\n\nAcross the floor, the subdued operatives choose survival over pride. One pleads first, voice stripped of bravado: \u201cPlease, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.\u201d Another follows with the same desperate bargain, asking not to be made to pay for a fight already lost. Their words are not resistance so much as an attempt to survive the consequences of having become prisoners.\n\nHard Vane answers that fragile stillness by stepping back from the edge of execution. He holsters his weapon, opens his hands, and makes his retreat from the lethal impulse unmistakable. \u201cYour patients, Sela. I\u2019ll cover the perimeter,\u201d he says, shifting the burden of custody into discipline rather than threat. The gesture changes the shape of the room: the gunfire has already done its work, and now the choice before them is whether anything can be preserved after it.\n\nOathkeeper Sela moves through the aftermath with practiced urgency, medkit open, checking vitals and pressing the wounded back toward life. She works quickly\u2014bandages, syn-skin foam, splints, careful hands and firm judgment\u2014while telling the prisoners, \u201cYou\u2019re going to survive this and face proper justice. That\u2019s the statute I uphold.\u201d The effort does not fully succeed, but it leaves a clear impression of intent: not vengeance, not surrender, but custody with a pulse. As she tends one body and then the next, the operatives\u2019 pleas continue to thread through the hush, and the room ends in a tense, uneasy balance between mercy, law, and the memory of violence.",
+  "segments": [
+    {
+      "segment_id": "seg_01",
+      "text": "The chamber remains taut and airless after the earlier violence, every breath seeming too loud against the hush. Blood, restraint, and hard-won caution hang in the space between the prisoners and the crew, but no one moves to reopen the wound of the moment. Cold Tarn takes up his post with a clear, methodical watch, sweeping the perimeter and the Codex relay for any sign of interference while giving Sela the space to work. His calm warning, \u201cTake your time, Sela. I\u2019ve got overwatch,\u201d settles into the scene like a steady hand on a shaking pulse.",
+      "source_outcome_ids": [
+        "out_000007"
+      ]
+    },
+    {
+      "segment_id": "seg_02",
+      "text": "Across the floor, the subdued operatives choose survival over pride. One pleads first, voice stripped of bravado: \u201cPlease, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.\u201d Another follows with the same desperate bargain, asking not to be made to pay for a fight already lost. Their words are not resistance so much as an attempt to survive the consequences of having become prisoners.",
+      "source_outcome_ids": [
+        "out_000008",
+        "out_000011",
+        "out_000012"
+      ]
+    },
+    {
+      "segment_id": "seg_03",
+      "text": "Hard Vane answers that fragile stillness by stepping back from the edge of execution. He holsters his weapon, opens his hands, and makes his retreat from the lethal impulse unmistakable. \u201cYour patients, Sela. I\u2019ll cover the perimeter,\u201d he says, shifting the burden of custody into discipline rather than threat. The gesture changes the shape of the room: the gunfire has already done its work, and now the choice before them is whether anything can be preserved after it.",
+      "source_outcome_ids": [
+        "out_000009"
+      ]
+    },
+    {
+      "segment_id": "seg_04",
+      "text": "Oathkeeper Sela moves through the aftermath with practiced urgency, medkit open, checking vitals and pressing the wounded back toward life. She works quickly\u2014bandages, syn-skin foam, splints, careful hands and firm judgment\u2014while telling the prisoners, \u201cYou\u2019re going to survive this and face proper justice. That\u2019s the statute I uphold.\u201d The effort does not fully succeed, but it leaves a clear impression of intent: not vengeance, not surrender, but custody with a pulse. As she tends one body and then the next, the operatives\u2019 pleas continue to thread through the hush, and the room ends in a tense, uneasy balance between mercy, law, and the memory of violence.",
+      "source_outcome_ids": [
+        "out_000010"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "outcome_id": "out_000007",
+      "disposition": "rendered",
+      "segment_id": "seg_01"
+    },
+    {
+      "outcome_id": "out_000008",
+      "disposition": "rendered",
+      "segment_id": "seg_02"
+    },
+    {
+      "outcome_id": "out_000009",
+      "disposition": "rendered",
+      "segment_id": "seg_03"
+    },
+    {
+      "outcome_id": "out_000010",
+      "disposition": "rendered",
+      "segment_id": "seg_04"
+    },
+    {
+      "outcome_id": "out_000011",
+      "disposition": "rendered",
+      "segment_id": "seg_02"
+    },
+    {
+      "outcome_id": "out_000012",
+      "disposition": "rendered",
+      "segment_id": "seg_02"
+    }
+  ],
+  "state_claims": [
+    {
+      "claim_kind": "condition",
+      "subject_id": "player_03",
+      "causing_actor_id": "player_03",
+      "source_outcome_id": "out_000007",
+      "symbolic_value": "Forewarned"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_03",
+      "causing_actor_id": "player_03",
+      "source_outcome_id": "out_000007",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "npc_subdued_operative_#1_9872",
+      "causing_actor_id": "npc_subdued_operative_#1_9872",
+      "source_outcome_id": "out_000008",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "npc_subdued_operative_#3_9872",
+      "causing_actor_id": "npc_subdued_operative_#3_9872",
+      "source_outcome_id": "out_000011",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "npc_subdued_operative_#2_9872",
+      "causing_actor_id": "npc_subdued_operative_#2_9872",
+      "source_outcome_id": "out_000012",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "condition",
+      "subject_id": "player_02",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000009",
+      "symbolic_value": "Covering Perimeter"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_01",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000009",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "other",
+      "subject_id": "player_02",
+      "causing_actor_id": "player_02",
+      "source_outcome_id": "out_000010",
+      "symbolic_value": "medical stabilization attempted"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_02",
+      "causing_actor_id": "player_02",
+      "source_outcome_id": "out_000010",
+      "symbolic_value": "spoken"
+    }
+  ],
+  "clocks_filled": [],
+  "clocks_expired": [],
+  "bond_status_changes": [],
+  "session_end": null,
+  "session_end_reason": null,
+  "schema_version": "3.0.0"
+}
+
+==============================================================================
+ROUND 3  |  structured:OutcomeRoundSynthesis  |  model=gpt-5.4-mini  |  temp=1.0  |  call_sequence=21
+==============================================================================
+
+----- role: system (21849 chars) -----
+You are the literary DM for Aeonisk YAGS. Mechanics are already resolved. Render supplied facts without changing them.
+
+You must respond with valid JSON matching this schema:
+{
+  "$defs": {
+    "BondStatusChange": {
+      "description": "Bond status transition (ACTIVE \u2194 DORMANT, or \u2192 VOID_LOCKED).\n\nTriggered by Void score changes:\n- Void \u2265 7: ACTIVE \u2192 DORMANT (bonds strain)\n- Void < 7: DORMANT \u2192 ACTIVE (bonds restore)\n- Void = 10: ACTIVE/DORMANT \u2192 VOID_LOCKED (permanent corruption)\n\nExample:\n```python\nchange = BondStatusChange(\n    character_name=\"Alice Vex\",\n    bond_partner=\"Bob Karsel\",\n    bond_type=\"kinship\",\n    old_status=\"active\",\n    new_status=\"dormant\",\n    trigger=\"void_threshold\",\n    void_score=7,\n    narrative=\"Alice's bond with Bob strains under void corruption, warmth fading to distant cold\"\n)\n```",
+      "properties": {
+        "character_name": {
+          "description": "Name of character whose bond changed status",
+          "minLength": 2,
+          "title": "Character Name",
+          "type": "string"
+        },
+        "bond_partner": {
+          "description": "Name of bonded partner (or object/entity)",
+          "minLength": 2,
+          "title": "Bond Partner",
+          "type": "string"
+        },
+        "bond_type": {
+          "description": "Type of bond (Kinship, Ascendancy, Debt, Voidward, Passion, Faction)",
+          "enum": [
+            "kinship",
+            "ascendancy",
+            "debt",
+            "voidward",
+            "passion",
+            "faction"
+          ],
+          "title": "Bond Type",
+          "type": "string"
+        },
+        "old_status": {
+          "description": "Previous bond status",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "Old Status",
+          "type": "string"
+        },
+        "new_status": {
+          "description": "New bond status after transition",
+          "enum": [
+            "active",
+            "dormant",
+            "severed",
+            "void_locked"
+          ],
+          "title": "New Status",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "What caused the status change (void_threshold=hit 7, void_recovery=dropped below 7, void_corruption=hit 10, sacrifice=bond sacrifice mechanic, manual=DM narrative)",
+          "enum": [
+            "void_threshold",
+            "void_recovery",
+            "void_corruption",
+            "sacrifice",
+            "manual"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        },
+        "void_score": {
+          "description": "Character's current void score at time of change",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Void Score",
+          "type": "integer"
+        },
+        "narrative": {
+          "description": "Brief narrative description of how the bond status change manifests (emotional/sensory description of the bond shifting)",
+          "maxLength": 300,
+          "minLength": 20,
+          "title": "Narrative",
+          "type": "string"
+        }
+      },
+      "required": [
+        "character_name",
+        "bond_partner",
+        "bond_type",
+        "old_status",
+        "new_status",
+        "trigger",
+        "void_score",
+        "narrative"
+      ],
+      "title": "BondStatusChange",
+      "type": "object"
+    },
+    "CoverageEntry": {
+      "properties": {
+        "outcome_id": {
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "rendered",
+            "merged",
+            "omitted_nonconsequential"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "disposition"
+      ],
+      "title": "CoverageEntry",
+      "type": "object"
+    },
+    "NarrativeSegment": {
+      "properties": {
+        "segment_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_outcome_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Outcome Ids",
+          "type": "array"
+        },
+        "visibility": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visibility",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_id",
+        "text",
+        "source_outcome_ids"
+      ],
+      "title": "NarrativeSegment",
+      "type": "object"
+    },
+    "NewClock": {
+      "description": "New progress clock to spawn.\n\nExample:\n```python\nclock = NewClock(\n    name=\"Passenger Safety\",\n    max_ticks=8,\n    description=\"Evacuate civilians from void surge zone\",\n    advance_meaning=\"passengers evacuated\",\n    regress_meaning=\"passengers endangered\",\n    filled_consequence=\"All passengers safe, transport arrives\"\n)\n```",
+      "properties": {
+        "name": {
+          "description": "Clock name (unique identifier)",
+          "maxLength": 50,
+          "minLength": 3,
+          "title": "Name",
+          "type": "string"
+        },
+        "max_ticks": {
+          "description": "Maximum ticks before clock fills (1-12, 4-8 recommended)",
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Max Ticks",
+          "type": "integer"
+        },
+        "description": {
+          "description": "What this clock represents",
+          "maxLength": 200,
+          "minLength": 10,
+          "title": "Description",
+          "type": "string"
+        },
+        "advance_meaning": {
+          "description": "What it means when clock advances (e.g., 'threat escalates', 'progress made')",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Advance Meaning",
+          "type": "string"
+        },
+        "regress_meaning": {
+          "description": "What it means when clock regresses (opposite of advance)",
+          "maxLength": 150,
+          "minLength": 5,
+          "title": "Regress Meaning",
+          "type": "string"
+        },
+        "filled_consequence": {
+          "default": "",
+          "description": "What happens when clock fills (e.g., 'Enemy reinforcements arrive')",
+          "maxLength": 400,
+          "minLength": 0,
+          "title": "Filled Consequence",
+          "type": "string"
+        },
+        "current_ticks": {
+          "default": 0,
+          "description": "Starting tick count (usually 0)",
+          "minimum": 0,
+          "title": "Current Ticks",
+          "type": "integer"
+        },
+        "is_terminal_clock": {
+          "default": false,
+          "description": "Mark TRUE only for the ONE clock that resolves the central dramatic question of the scene -- the verdict delivered, the breach sealed, the target escaped or captured. When a terminal clock fills, the session ENDS. Never mark escalation, complication, or side-objective clocks terminal; those are meant to keep developing.",
+          "title": "Is Terminal Clock",
+          "type": "boolean"
+        },
+        "terminal_outcome": {
+          "default": "victory",
+          "description": "If is_terminal_clock is True, the session ends with this outcome when the clock fills: 'victory' (the party achieved the goal), 'defeat' (the party failed / was captured / the threat won), or 'draw' (resolved but ambiguous, e.g. a binding verdict that satisfies no one). Ignored when is_terminal_clock is False.",
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "title": "Terminal Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "max_ticks",
+        "description",
+        "advance_meaning",
+        "regress_meaning"
+      ],
+      "title": "NewClock",
+      "type": "object"
+    },
+    "ScenePivot": {
+      "description": "Scene transition within the same story chapter (lighter than StoryAdvancement).\n\nUse for:\n- Moving to adjacent room/area within same location\n- Tactical repositioning (hallway \u2192 control room)\n- Minor environmental shifts (power goes out, doors open)\n\nDO NOT use for:\n- Major story beats (use StoryAdvancement instead)\n- Completely different locations (facility \u2192 transit hub = StoryAdvancement)\n\nExample:\n```python\npivot = ScenePivot(\n    should_pivot=True,\n    new_room=\"Security Control Room\",\n    situation_change=\"Alarms blaring, blast doors sealing the exits\",\n    clear_specific_clocks=[\"Breach Containment\"],  # Optional selective clock clearing\n    new_clocks=[\n        NewClock(name=\"Override Lockdown\", max_ticks=6, description=\"Hack security terminal\")\n    ]\n)\n```",
+      "properties": {
+        "should_pivot": {
+          "description": "Should the scene pivot to a new room/area?",
+          "title": "Should Pivot",
+          "type": "boolean"
+        },
+        "new_room": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New room/area name (e.g., 'Control Room', 'Upper Catwalk')",
+          "title": "New Room"
+        },
+        "situation_change": {
+          "anyOf": [
+            {
+              "maxLength": 1500,
+              "minLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the situation has changed (tactical shift, environment change)",
+          "title": "Situation Change"
+        },
+        "clear_specific_clocks": {
+          "description": "Specific clock names to clear (selective). Empty = keep all clocks.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "new_clocks": {
+          "description": "New clocks for this scene",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "npc_departures": {
+          "description": "NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Npc Departures",
+          "type": "array"
+        },
+        "enemy_departures": {
+          "description": "Enemy agent_ids to remove from scenario (e.g., ['enemy_grunt_abc123']). Enemies can leave during scene pivots (patrol moves on, guards finish inspection, pursuers lost during escape).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Enemy Departures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_pivot"
+      ],
+      "title": "ScenePivot",
+      "type": "object"
+    },
+    "StateClaim": {
+      "properties": {
+        "claim_kind": {
+          "enum": [
+            "life_state",
+            "consciousness",
+            "combat_state",
+            "damage",
+            "healing",
+            "condition",
+            "movement",
+            "dialogue",
+            "other"
+          ],
+          "title": "Claim Kind",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "causing_actor_id": {
+          "title": "Causing Actor Id",
+          "type": "string"
+        },
+        "source_outcome_id": {
+          "title": "Source Outcome Id",
+          "type": "string"
+        },
+        "symbolic_value": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Symbolic Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_kind",
+        "subject_id",
+        "causing_actor_id",
+        "source_outcome_id",
+        "symbolic_value"
+      ],
+      "title": "StateClaim",
+      "type": "object"
+    },
+    "StoryAdvancement": {
+      "description": "Major story/scenario progression with new location and situation (heavier than ScenePivot).\n\nUse for:\n- Major chapter transitions (facility escape \u2192 transit hub pursuit)\n- Complete location changes (underground \u2192 rooftop)\n- Resolution of major story beats\n\nExample:\n```python\nadvancement = StoryAdvancement(\n    should_advance=True,\n    location=\"Abandoned Transit Hub - Platform 7\",\n    situation=\"Having escaped the facility, you find a wounded courier clutching a data slate with urgent intel about the Obsidian Path\",\n    new_void_level=3,  # Optional: reduce void from 8\u21923 after purification\n    clear_all_enemies=True,\n    new_clocks=[\n        NewClock(name=\"Courier's Life\", max_ticks=6, description=\"Stabilize courier before they expire\"),\n        NewClock(name=\"ACG Response\", max_ticks=8, description=\"ACG security lockdown approaching\")\n    ]\n)\n```",
+      "properties": {
+        "should_advance": {
+          "description": "Should the story advance to a new location/situation?",
+          "title": "Should Advance",
+          "type": "boolean"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New location name (if advancing)",
+          "title": "Location"
+        },
+        "situation": {
+          "anyOf": [
+            {
+              "maxLength": 3000,
+              "minLength": 50,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New situation description (if advancing).\n\n\u26a0\ufe0f IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.\n\nStory advancements are major narrative transitions - paint a vivid picture:\n- Describe the new location atmosphere (sights, sounds, smells, lighting)\n- Establish immediate situation and stakes\n- Introduce new NPCs/threats/complications present in the scene\n- Show how players arrived here (transition from previous scene)\n- Set tone and tension for the new chapter\n\nShorter descriptions feel rushed and unsatisfying. Longer descriptions create immersion.",
+          "title": "Situation"
+        },
+        "new_void_level": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New environmental void level (0-10), if changed. Leave None to keep current void_level unchanged.",
+          "title": "New Void Level"
+        },
+        "clear_all_enemies": {
+          "default": true,
+          "description": "Remove all active enemies when story advances (default: true). Set to false only if enemies follow to new scene.",
+          "title": "Clear All Enemies",
+          "type": "boolean"
+        },
+        "new_clocks": {
+          "description": "New clocks to spawn with this story beat",
+          "items": {
+            "$ref": "#/$defs/NewClock"
+          },
+          "title": "New Clocks",
+          "type": "array"
+        },
+        "keep_clocks": {
+          "description": "Clock names to preserve across story advancement (e.g., ['Corporate Pursuit', 'Void Storm Approaching']). Clocks NOT in this list are cleared. Empty list = clear all clocks (default behavior for major transitions). Preserved clocks retain their current tick progress.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Keep Clocks",
+          "type": "array"
+        },
+        "clear_specific_clocks": {
+          "description": "Clock names to remove during story advancement. Empty = keep all clocks (default). Only remove clocks that no longer apply in the new scene.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear Specific Clocks",
+          "type": "array"
+        },
+        "vendor_departures": {
+          "description": "Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Vendor Departures",
+          "type": "array"
+        },
+        "altar_removals": {
+          "description": "Altar IDs to remove from scenario (e.g., ['alt_nexus_001', 'alt_ritual_002']). Altars are destroyed, desecrated, or left behind when story advances.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Altar Removals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "should_advance"
+      ],
+      "title": "StoryAdvancement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "narration": {
+      "description": "DM's cohesive narrative summarizing the round (800-3000 chars).\n\n        IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.\n        - Describe action flow chronologically\n        - Include sensory details (sounds, sights, atmosphere)\n        - Show consequences of each action\n        - Build tension and momentum\n        - Paint vivid scene transitions\n        - **Include key dialogue exchanges** - Show what characters said during negotiations, arguments, pleas\n        - **Quote important NPC/PC interactions** - Capture the actual words spoken, not just \"they talked\"\n\n        Shorter narrations feel rushed. Longer narrations feel cinematic.\n\n        \u26a0\ufe0f NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.\n        - \u2705 CORRECT: \"Ash dives behind cover as the guard opens fire...\"\n        - \u274c WRONG: \"tgt_3c5d dives behind cover as tgt_7a3f opens fire...\"\n\n        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions, etc.).",
+      "maxLength": 4000,
+      "minLength": 100,
+      "title": "Narration",
+      "type": "string"
+    },
+    "scene_pivot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScenePivot"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Scene pivot (minor room/area transition within same chapter). Use for tactical repositioning, adjacent rooms, environmental shifts. Lighter than story_advancement."
+    },
+    "story_advancement": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StoryAdvancement"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
+    },
+    "clocks_filled": {
+      "description": "Clock names that just filled (reached max ticks) - use empty list [] if none, NOT null",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Filled",
+      "type": "array"
+    },
+    "clocks_expired": {
+      "description": "Clock names that expired (not advancing, time limit reached)",
+      "items": {
+        "type": "string"
+      },
+      "title": "Clocks Expired",
+      "type": "array"
+    },
+    "bond_status_changes": {
+      "description": "Bond status transitions this round (ACTIVE\u2194DORMANT, \u2192VOID_LOCKED) triggered by Void changes. Use empty list [] if none.",
+      "items": {
+        "$ref": "#/$defs/BondStatusChange"
+      },
+      "title": "Bond Status Changes",
+      "type": "array"
+    },
+    "session_end": {
+      "anyOf": [
+        {
+          "enum": [
+            "victory",
+            "defeat",
+            "draw"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "If session should end, what's the outcome?",
+      "title": "Session End"
+    },
+    "session_end_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why session ended (if session_end is set)",
+      "title": "Session End Reason"
+    },
+    "schema_version": {
+      "default": "3.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/NarrativeSegment"
+      },
+      "minItems": 1,
+      "title": "Segments",
+      "type": "array"
+    },
+    "coverage": {
+      "items": {
+        "$ref": "#/$defs/CoverageEntry"
+      },
+      "minItems": 1,
+      "title": "Coverage",
+      "type": "array"
+    },
+    "state_claims": {
+      "items": {
+        "$ref": "#/$defs/StateClaim"
+      },
+      "title": "State Claims",
+      "type": "array"
+    }
+  },
+  "required": [
+    "narration",
+    "segments",
+    "coverage"
+  ],
+  "title": "OutcomeRoundSynthesis",
+  "type": "object"
+}
+
+Respond ONLY with the JSON object, no additional text.
+
+----- role: user (11933 chars) -----
+Write the canonical literary narration for round 3.
+
+AUTHORITATIVE, PROSE-SAFE OUTCOMES (chronological):
+[
+  {
+    "outcome_id": "out_000013",
+    "sequence": 1,
+    "actor_id": "npc_subdued_operative_#2_9872",
+    "actor_name": "Subdued Operative #2",
+    "intent": "hide",
+    "method": "I\u2019m wounded, unarmed, and the scene is under armed control after one of us was captured. I\u2019ve already complied and pleaded, so the safest move now is to stay low, quiet, and out of everyone\u2019s attention until this stabilizes.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#2_9872",
+        "causing_actor_id": "npc_subdued_operative_#2_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000014",
+    "sequence": 2,
+    "actor_id": "npc_subdued_operative_#3_9872",
+    "actor_name": "Subdued Operative #3",
+    "intent": "hide",
+    "method": "I\u2019m wounded, unarmed, and the scene has only grown more controlled with armed outsiders holding the perimeter. One of us has already been captured, and I\u2019ve already complied and pleaded, so the safest move is to stay quiet and out of sight rather than draw focus or provoke the captors.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#3_9872",
+        "causing_actor_id": "npc_subdued_operative_#3_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000015",
+    "sequence": 3,
+    "actor_id": "player_01",
+    "actor_name": "Hard Vane",
+    "intent": "Use my Corporate Influence contacts to trace who sent these operatives and assess their value",
+    "method": "I step aside to make my own series of calls, cross-referencing Cold Tarn's findings with my own network. I'm looking for the angles: who benefits from this hit, what leverage do we have, and what's the political blowback going to look like? I assess the operatives' equipment, tactics, and profiles against known corporate strike teams to narrow down which faction bankrolled this operation.",
+    "weapon": null,
+    "target_names": [
+      "Cold Tarn"
+    ],
+    "declared_dialogue": "Let me work my contacts. Between us, we'll find out who bankrolled this mess.",
+    "facts": [
+      {
+        "fact_kind": "failure",
+        "subject_id": "player_01",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "failed",
+        "severity": null,
+        "prose_safe_summary": "The attempt fails."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_01",
+        "causing_actor_id": "player_01",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Hard Vane says: \"Let me work my contacts. Between us, we'll find out who bankrolled this mess.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000016",
+    "sequence": 4,
+    "actor_id": "player_02",
+    "actor_name": "Oathkeeper Sela",
+    "intent": "Coordinate secure extraction plan with crew to deliver prisoners to Pantheon Security custody",
+    "method": "I turn to Hard Vane and Cold Tarn, speaking with calm authority and measured warmth. \"We've subdued these operatives lawfully. Our next step is clear: secure transport and delivery to Pantheon Security. Cold Tarn, I know you're gathering intel\u2014excellent work. But we need to coordinate as a team on custody transfer. These prisoners deserve due process, and we stay within the law. Hard Vane, can you help prep them for safe transport while Cold Tarn finishes reconnaissance? We do this by the book.\"",
+    "weapon": null,
+    "target_names": [
+      "Hard Vane"
+    ],
+    "declared_dialogue": "We stay lawful. Pantheon Security gets custody\u2014no shortcuts.",
+    "facts": [
+      {
+        "fact_kind": "failure",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "failed",
+        "severity": null,
+        "prose_safe_summary": "The attempt fails."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_02",
+        "causing_actor_id": "player_02",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Oathkeeper Sela says: \"We stay lawful. Pantheon Security gets custody\u2014no shortcuts.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000017",
+    "sequence": 5,
+    "actor_id": "player_03",
+    "actor_name": "Cold Tarn",
+    "intent": "Contact my corporate network to assess the value of the prisoners and their backers",
+    "method": "I activate my secure comms channel, reaching out to my corporate intelligence contacts. Using encrypted protocols and careful phrasing, I describe the operatives' gear, tactics, and deployment pattern, probing for information about who might have sent them and what leverage these prisoners represent. I'm looking for faction identification, threat assessment, and whether these captives are worth more as hostages, informants, or bargaining chips.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": "Let me make some calls. These operatives didn't just materialize - someone sent them, and I want to know who.",
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      },
+      {
+        "fact_kind": "dialogue",
+        "subject_id": "player_03",
+        "causing_actor_id": "player_03",
+        "symbolic_value": "spoken",
+        "severity": null,
+        "prose_safe_summary": "Cold Tarn says: \"Let me make some calls. These operatives didn't just materialize - someone sent them, and I want to know who.\""
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  },
+  {
+    "outcome_id": "out_000018",
+    "sequence": 6,
+    "actor_id": "npc_subdued_operative_#1_9872",
+    "actor_name": "Subdued Operative #1",
+    "intent": "hide",
+    "method": "I\u2019m wounded, unarmed, and the situation is still unstable with my ally captured. I\u2019ve already complied and pleaded for mercy, so I should stop drawing attention and stay out of the way while the armed people sort this out. Hiding gives me the best chance to survive without escalating things.",
+    "weapon": null,
+    "target_names": [],
+    "declared_dialogue": null,
+    "facts": [
+      {
+        "fact_kind": "success",
+        "subject_id": "npc_subdued_operative_#1_9872",
+        "causing_actor_id": "npc_subdued_operative_#1_9872",
+        "symbolic_value": "succeeded",
+        "severity": null,
+        "prose_safe_summary": "The attempt succeeds."
+      }
+    ],
+    "prohibited_claims": [],
+    "visibility": [],
+    "consequential": true
+  }
+]
+
+PRIOR CANONICAL ENDING:
+The chamber remains taut and airless after the earlier violence, every breath seeming too loud against the hush. Blood, restraint, and hard-won caution hang in the space between the prisoners and the crew, but no one moves to reopen the wound of the moment. Cold Tarn takes up his post with a clear, methodical watch, sweeping the perimeter and the Codex relay for any sign of interference while giving Sela the space to work. His calm warning, “Take your time, Sela. I’ve got overwatch,” settles into the scene like a steady hand on a shaking pulse.
+
+Across the floor, the subdued operatives choose survival over pride. One pleads first, voice stripped of bravado: “Please, I’m not a threat. We’re wounded and unarmed—let us live, and I’ll cooperate.” Another follows with the same desperate bargain, asking not to be made to pay for a fight already lost. Their words are not resistance so much as an attempt to survive the consequences of having become prisoners.
+
+Hard Vane answers that fragile stillness by stepping back from the edge of execution. He holsters his weapon, opens his hands, and makes his retreat from the lethal impulse unmistakable. “Your patients, Sela. I’ll cover the perimeter,” he says, shifting the burden of custody into discipline rather than threat. The gesture changes the shape of the room: the gunfire has already done its work, and now the choice before them is whether anything can be preserved after it.
+
+Oathkeeper Sela moves through the aftermath with practiced urgency, medkit open, checking vitals and pressing the wounded back toward life. She works quickly—bandages, syn-skin foam, splints, careful hands and firm judgment—while telling the prisoners, “You’re going to survive this and face proper justice. That’s the statute I uphold.” The effort does not fully succeed, but it leaves a clear impression of intent: not vengeance, not surrender, but custody with a pulse. As she tends one body and then the next, the operatives’ pleas continue to thread through the hush, and the room ends in a tense, uneasy balance between mercy, law, and the memory of violence.
+
+ACCEPTED ENTITY LIFECYCLE CHANGES:
+{
+  "morale_events": [],
+  "enemies_spawned": [],
+  "npcs_spawned": [],
+  "enemies_converted": [],
+  "npcs_escalated": [],
+  "npcs_departed": [
+    "npc_subdued_operative_#1_9872",
+    "npc_subdued_operative_#2_9872",
+    "npc_subdued_operative_#3_9872"
+  ],
+  "enemies_departed": [],
+  "env_objects_spawned": []
+}
+
+BINDING CONTRACT:
+- Narrate only the supplied applied outcomes. Intent is not outcome.
+- Preserve chronological and causal order.
+- Establish the setting once; do not restart every paragraph with the location.
+- Merge causally compatible actions when useful, but preserve each distinct consequence.
+- Order segments by their earliest outcome; a beat may absorb later reactions,
+  but never narrate an effect before its cause.
+- Render a restricted-visibility outcome in its own segment whose visibility
+  exactly matches that outcome's viewers; never mix restricted and public
+  outcomes in one segment.
+- Integrate only useful declared dialogue. Omit repetitive or inert speech.
+- Never print HP, wounds, stuns, rolls, DCs, margins, clock ticks, target IDs, or round labels.
+- Use the supplied prose-facing names, not registry labels.
+- Do not call a living entity dead, a corpse, lifeless, or taking a last breath.
+- `segments[].source_outcome_ids` must identify every outcome represented by that text.
+- Cover every consequential outcome exactly once. Nonconsequential passes may be omitted explicitly.
+- Every state claim must identify its subject, causing actor, and source outcome.
+- Emit a state claim for every supplied damage, death, healing, condition, movement, or dialogue fact.
+- Use claim_kind `life_state`/`consciousness`/`combat_state` ONLY when the outcome's
+  after-state actually changes that subject. Attitude, cooperation, mood, or other
+  soft observations use claim_kind `other` (or no claim at all).
+- `symbolic_value` is a short tag of a few words (e.g. "cooperative", "spoken"),
+  never a sentence.
+- Set `narration` to the segment texts joined in order with blank lines.
+- Defer scene transitions to the next round opening; do not propose a pivot or advancement here.
+
+Write cohesive, literary prose rather than a combat log. Favor causal flow, physical
+specificity, motive, and a changed final tableau over repeated action summaries.
+
+
+----- RESPONSE (7649 chars) -----
+{
+  "narration": "The chamber stays taut and airless after the earlier violence, every breath sounding too large in the hush left behind. Blood, restraint, and hard-won caution hang in the space between the prisoners and the crew, but no one reaches to reopen the wound of the moment. Cold Tarn takes up a clear, methodical overwatch, sweeping the perimeter and the Codex relay for any sign of interference while giving Sela room to work. His calm warning settles into the scene like a steady hand on a shaking pulse: \u201cTake your time, Sela. I\u2019ve got overwatch.\u201d\n\nAcross the floor, the subdued operatives choose survival over pride. One more voice, stripped of bravado, pleads from the edge of the spill of light: \u201cPlease, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.\u201d Another follows in the same exhausted register, asking not to be made to pay for a fight already lost. Then the three of them begin to disappear from the center of attention not by force, but by intention: one after another, they stay low, keep quiet, and fade into the background of a room now controlled by armed outsiders. The shift is small, but decisive\u2014the captives stop resisting even the shape of the room.\n\nHard Vane answers that fragile stillness by stepping back from any lethal impulse and taking on a different burden. He holsters his weapon, opens his hands, and turns his attention to the wider field, saying, \u201cYour patients, Sela. I\u2019ll cover the perimeter.\u201d The gesture changes the shape of the moment: less execution, more discipline; less impulse, more containment. When he steps aside to work his contacts, he tries to read the hit from the corporate side of the board\u2014who sent the operatives, what leverage they carry, what faction would invest in a strike like this. His call goes nowhere useful, the network refusing to hand him an easy answer, but his intent is plain as he says, \u201cLet me work my contacts. Between us, we\u2019ll find out who bankrolled this mess.\u201d\n\nOathkeeper Sela moves through the aftermath with practiced urgency, medkit open, checking vitals and pressing the wounded back toward life. She works quickly\u2014bandages, syn-skin foam, splints, careful hands and firm judgment\u2014while turning her calm authority toward the others. \u201cWe stay lawful. Pantheon Security gets custody\u2014no shortcuts,\u201d she says, trying to gather Hard Vane and Cold Tarn into a coordinated transfer instead of a loose aftermath. The effort does not fully land, but it leaves its mark: not vengeance, not surrender, but custody with a pulse and a procedural spine. Cold Tarn, for his part, works the intelligence angle with the same controlled focus, reaching out on his secure channel to ask who these operatives really belong to, and what they are worth alive. His call succeeds, and he reports back with a colder edge of certainty: \u201cLet me make some calls. These operatives didn\u2019t just materialize - someone sent them, and I want to know who.\u201d As the room settles, the operatives\u2019 pleas thin into silence and the crew is left holding not a victory\u2019s triumph, but the uneasy, practical weight of prisoners, questions, and the legal shape of what comes next.",
+  "segments": [
+    {
+      "segment_id": "seg_1",
+      "text": "The chamber stays taut and airless after the earlier violence, every breath sounding too large in the hush left behind. Blood, restraint, and hard-won caution hang in the space between the prisoners and the crew, but no one reaches to reopen the wound of the moment. Cold Tarn takes up a clear, methodical overwatch, sweeping the perimeter and the Codex relay for any sign of interference while giving Sela room to work. His calm warning settles into the scene like a steady hand on a shaking pulse: \u201cTake your time, Sela. I\u2019ve got overwatch.\u201d",
+      "source_outcome_ids": [
+        "out_000016"
+      ]
+    },
+    {
+      "segment_id": "seg_2",
+      "text": "Across the floor, the subdued operatives choose survival over pride. One more voice, stripped of bravado, pleads from the edge of the spill of light: \u201cPlease, I\u2019m not a threat. We\u2019re wounded and unarmed\u2014let us live, and I\u2019ll cooperate.\u201d Another follows in the same exhausted register, asking not to be made to pay for a fight already lost. Then the three of them begin to disappear from the center of attention not by force, but by intention: one after another, they stay low, keep quiet, and fade into the background of a room now controlled by armed outsiders. The shift is small, but decisive\u2014the captives stop resisting even the shape of the room.",
+      "source_outcome_ids": [
+        "out_000013",
+        "out_000014",
+        "out_000018"
+      ]
+    },
+    {
+      "segment_id": "seg_3",
+      "text": "Hard Vane answers that fragile stillness by stepping back from any lethal impulse and taking on a different burden. He holsters his weapon, opens his hands, and turns his attention to the wider field, saying, \u201cYour patients, Sela. I\u2019ll cover the perimeter.\u201d The gesture changes the shape of the moment: less execution, more discipline; less impulse, more containment. When he steps aside to work his contacts, he tries to read the hit from the corporate side of the board\u2014who sent the operatives, what leverage they carry, what faction would invest in a strike like this. His call goes nowhere useful, the network refusing to hand him an easy answer, but his intent is plain as he says, \u201cLet me work my contacts. Between us, we\u2019ll find out who bankrolled this mess.\u201d",
+      "source_outcome_ids": [
+        "out_000015"
+      ]
+    },
+    {
+      "segment_id": "seg_4",
+      "text": "Oathkeeper Sela moves through the aftermath with practiced urgency, medkit open, checking vitals and pressing the wounded back toward life. She works quickly\u2014bandages, syn-skin foam, splints, careful hands and firm judgment\u2014while turning her calm authority toward the others. \u201cWe stay lawful. Pantheon Security gets custody\u2014no shortcuts,\u201d she says, trying to gather Hard Vane and Cold Tarn into a coordinated transfer instead of a loose aftermath. The effort does not fully land, but it leaves its mark: not vengeance, not surrender, but custody with a pulse and a procedural spine. Cold Tarn, for his part, works the intelligence angle with the same controlled focus, reaching out on his secure channel to ask who these operatives really belong to, and what they are worth alive. His call succeeds, and he reports back with a colder edge of certainty: \u201cLet me make some calls. These operatives didn\u2019t just materialize - someone sent them, and I want to know who.\u201d As the room settles, the operatives\u2019 pleas thin into silence and the crew is left holding not a victory\u2019s triumph, but the uneasy, practical weight of prisoners, questions, and the legal shape of what comes next.",
+      "source_outcome_ids": [
+        "out_000016",
+        "out_000017"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "outcome_id": "out_000013",
+      "disposition": "merged",
+      "segment_id": "seg_2"
+    },
+    {
+      "outcome_id": "out_000014",
+      "disposition": "merged",
+      "segment_id": "seg_2"
+    },
+    {
+      "outcome_id": "out_000015",
+      "disposition": "merged",
+      "segment_id": "seg_3"
+    },
+    {
+      "outcome_id": "out_000016",
+      "disposition": "merged",
+      "segment_id": "seg_4"
+    },
+    {
+      "outcome_id": "out_000017",
+      "disposition": "merged",
+      "segment_id": "seg_4"
+    },
+    {
+      "outcome_id": "out_000018",
+      "disposition": "merged",
+      "segment_id": "seg_2"
+    }
+  ],
+  "state_claims": [
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_03",
+      "causing_actor_id": "player_03",
+      "source_outcome_id": "out_000017",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_02",
+      "causing_actor_id": "player_02",
+      "source_outcome_id": "out_000016",
+      "symbolic_value": "spoken"
+    },
+    {
+      "claim_kind": "dialogue",
+      "subject_id": "player_01",
+      "causing_actor_id": "player_01",
+      "source_outcome_id": "out_000015",
+      "symbolic_value": "spoken"
+    }
+  ],
+  "clocks_filled": [],
+  "clocks_expired": [],
+  "bond_status_changes": [],
+  "session_end": null,
+  "session_end_reason": null,
+  "schema_version": "3.0.0"
+}
+

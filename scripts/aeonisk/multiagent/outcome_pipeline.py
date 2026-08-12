@@ -530,6 +530,7 @@ def build_applied_outcome(
     resolution_data: Dict[str, Any],
     before: Dict[str, EntityStateSnapshot],
     after: Dict[str, EntityStateSnapshot],
+    mechanics: Any = None,
 ) -> AppliedOutcome:
     changed_before, changed_after = _changed_states(before, after)
     outcome_data = resolution_data.get("resolution", {}) or {}
@@ -607,6 +608,8 @@ def build_applied_outcome(
             resolution_data.get("aware_agents", []) or [],
             before,
             facts,
+            mechanics,
+            round_num,
         ),
         consequential=consequential,
     )
@@ -711,6 +714,8 @@ def _effective_visibility(
     raw_ids: Sequence[str],
     before: Dict[str, EntityStateSnapshot],
     facts: Sequence["ObservableFact"] = (),
+    mechanics: Any = None,
+    round_num: Optional[int] = None,
 ) -> List[str]:
     """Canonicalize proposed viewers; drop restrictions that cannot be real.
 
@@ -728,6 +733,8 @@ def _effective_visibility(
     viewers = canonicalize_viewer_ids(
         raw_ids,
         {entity_id: snap.name for entity_id, snap in before.items()},
+        mechanics,
+        round_num,
     )
     player_ids = {
         entity_id for entity_id, snap in before.items()
@@ -748,11 +755,21 @@ def finalize_synthesis_narration(synthesis: OutcomeRoundSynthesis) -> None:
 def canonicalize_synthesis_visibility(
     synthesis: OutcomeRoundSynthesis,
     roster: Dict[str, str],
+    mechanics: Any = None,
+    round_num: Optional[int] = None,
 ) -> None:
-    """Rewrite each segment's proposed viewer list onto canonical entity ids."""
+    """Rewrite each segment's proposed viewer list onto canonical entity ids.
+
+    `mechanics` is threaded through only so a dropped id gets recorded. It was
+    optional on `canonicalize_viewer_ids` and both callers omitted it, so the
+    guard was instrumented and unreachable: a live session logged four drops to
+    the console and none to the JSONL, while the unit tests passed because they
+    called the function directly with the argument production never supplies.
+    """
     for segment in synthesis.segments:
         if segment.visibility:
-            segment.visibility = canonicalize_viewer_ids(segment.visibility, roster)
+            segment.visibility = canonicalize_viewer_ids(
+                segment.visibility, roster, mechanics, round_num)
 
 
 def validate_outcome_synthesis(
