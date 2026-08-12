@@ -134,6 +134,46 @@ def character_state_row(entity, mechanics, agent: str) -> Dict[str, Any]:
     }
 
 
+def _player_economy(char) -> tuple:
+    """The purse and seed counts for one player, or two empty dicts."""
+    purse = getattr(char, 'energy_purse', None)
+    if not purse:
+        return {}, {}
+    return (
+        {'breath': purse.breath, 'drip': purse.drip, 'grain': purse.grain,
+         'spark': purse.spark, 'hollow': purse.hollow},
+        {'raw': purse.count_seeds(SeedType.RAW),
+         'attuned': purse.count_seeds(SeedType.ATTUNED),
+         'hollow': purse.count_seeds(SeedType.HOLLOW)},
+    )
+
+
+def player_state_row(player, mechanics) -> Dict[str, Any]:
+    """One `character_state` payload for a player.
+
+    Players keep their name, Void and economy on `character_state` rather than
+    on the agent, so they cannot go through `character_state_row` unchanged —
+    and that gap is how the ledger drift got in. Soulcredit here comes from the
+    mechanics ledger and never from `character_state.soulcredit`: that cache is
+    refreshed when the player receives its resolution, which is a phase *before*
+    post-resolution adjudication applies the round's judgment. Reading it made
+    every row one round stale and left the final round's judgment in no row at
+    all — a player could execute three bound captives and the oracle recorded no
+    cost that round (#153).
+
+    Void deliberately still comes from the cache: it is applied during
+    resolution, before the refresh, so the cache is current. Measured rather
+    than assumed — 1 of 236 corpus sessions disagrees on Void against 10 of 12
+    on Soulcredit.
+    """
+    char = player.character_state
+    row = character_state_row(player, mechanics, agent='player')
+    row['character_name'] = getattr(char, 'name', None)
+    row['void_score'] = getattr(char, 'void_score', 0) or 0
+    row['energy'], row['seeds'] = _player_economy(char)
+    return row
+
+
 def party_snapshot_entry(agent) -> Dict[str, Any]:
     """One end_state_snapshot party member, life-state taken from the oracle."""
     char = getattr(agent, 'character_state', None)
@@ -4434,49 +4474,14 @@ Generate narratives (numbered list only):"""
                 for player in player_agents:
                     if hasattr(player, 'character_state'):
                         char_state = player.character_state
-                        # Health/wounds/stuns are stored on player agent, not CharacterState
-                        # Calculate death state based on wounds (6+ = dead), health (0 = unconscious), stuns (6+ = KO)
-                        wounds = player.wounds if hasattr(player, 'wounds') else 0
-                        health = player.health if hasattr(player, 'health') else 0
-                        stuns = player.stuns if hasattr(player, 'stuns') else 0
-                        # Shared oracle — end_state_snapshot reads the same function,
-                        # so the two records cannot disagree again.
-                        death_state = derive_death_state(player)
-
-                        # Extract economic data from energy_purse
-                        energy_data = {}
-                        seeds_data = {}
-                        if hasattr(char_state, 'energy_purse') and char_state.energy_purse:
-                            purse = char_state.energy_purse
-                            energy_data = {
-                                "breath": purse.breath,
-                                "drip": purse.drip,
-                                "grain": purse.grain,
-                                "spark": purse.spark,
-                                "hollow": purse.hollow,
-                            }
-                            seeds_data = {
-                                "raw": purse.count_seeds(SeedType.RAW),
-                                "attuned": purse.count_seeds(SeedType.ATTUNED),
-                                "hollow": purse.count_seeds(SeedType.HOLLOW),
-                            }
-
+                        # Same shared builder as enemies and NPCs, so no field
+                        # can drift between the three paths again. Soulcredit
+                        # comes off the mechanics ledger inside it: the cached
+                        # `character_state.soulcredit` this loop used to read is
+                        # written a phase before the judgment is applied (#153).
                         mechanics.jsonl_logger.log_character_state(
                             round_num=mechanics.current_round,
-                            character_id=player.agent_id,
-                            character_name=char_state.name,
-                            health=health,
-                            max_health=player.max_health if hasattr(player, 'max_health') else 0,
-                            wounds=wounds,
-                            void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
-                            soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
-                            position=str(getattr(player, 'position', 'Unknown')),
-                            conditions=_serialize_conditions(mechanics, player.agent_id),
-                            is_defeated=(death_state != "alive"),
-                            death_state=death_state,
-                            stuns=stuns,  # Diagnose stun-KO (>= 6) vs wound/health defeat
-                            energy=energy_data,
-                            seeds=seeds_data
+                            **player_state_row(player, mechanics)
                         )
 
                         # Log narrative memory state for ML training

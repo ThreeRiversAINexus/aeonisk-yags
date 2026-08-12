@@ -47,10 +47,28 @@ class TestEveryGoldenFixture:
         assert (FIXTURES / name).is_file()
 
     def test_has_no_error_severity_findings(self, name):
-        found = [v for v in check_file(str(FIXTURES / name)) if v.severity == ERROR]
+        allowed = set(_manifest[name].get("stale_findings") or ())
+        found = [v for v in check_file(str(FIXTURES / name))
+                 if v.severity == ERROR and v.invariant not in allowed]
 
         assert not found, "\n".join(
             f"  {v.invariant} r{v.round} [{v.entity}]: {v.message}" for v in found)
+
+    def test_every_declared_staleness_actually_occurs(self, name):
+        """The exemption must not outlive the recording that needed it.
+
+        `stale_findings` says "this file predates the fix for X, and only
+        re-recording can clear it". Once it is re-recorded the entry stops being
+        true, and a permission nobody can see expiring is how a gate rots — the
+        same shape as the amnesty ledger's own stale-entry check.
+        """
+        declared = set(_manifest[name].get("stale_findings") or ())
+        actual = {v.invariant for v in check_file(str(FIXTURES / name))
+                  if v.severity == ERROR}
+
+        assert declared <= actual, (
+            f"{name} declares stale_findings {sorted(declared - actual)} that no "
+            f"longer occur — drop them from the MANIFEST")
 
     def test_is_a_complete_session_not_an_extract(self, name):
         kinds = [e.get("event_type") for e in load(str(FIXTURES / name))]

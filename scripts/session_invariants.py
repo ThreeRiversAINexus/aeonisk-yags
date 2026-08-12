@@ -931,7 +931,50 @@ def inv_duplicate_character_state(events, cfg) -> List[Violation]:
         for (r, cid), n in sorted(seen.items(), key=lambda kv: str(kv[0])) if n > 1]
 
 
+def inv_soulcredit_oracle_lag(events, cfg) -> List[Violation]:
+    """The final `character_state` row must carry the Soulcredit the session ended on.
+
+    Both sides are already logged, so this costs nothing to check and invents
+    nothing: `end_state_snapshot` syncs from the mechanics ledger at session end
+    and is right; the rows read a cache refreshed a phase earlier and were one
+    round behind. Ten of the twelve corpus sessions carrying both disagreed,
+    always by exactly the last round's applied change — a player could execute
+    three bound captives and the oracle would record no cost for that round
+    (#153).
+
+    Only the last row per entity is judged. Earlier rounds legitimately differ
+    from the end state, and flagging them would report one defect three times
+    and bury the one that counts.
+    """
+    end = None
+    for e in events:
+        if e.get("event_type") == "end_state_snapshot":
+            end = _body(e)
+    if end is None:
+        return []
+    final = ((end.get("state_summary") or {}).get("soulcredit_states")) or {}
+    if not final:
+        return []
+
+    last: Dict[str, tuple] = {}
+    for e in events:
+        b = _body(e)
+        if e.get("event_type") != "character_state" or b.get("soulcredit") is None:
+            continue
+        cid = b.get("character_id")
+        if cid in final:
+            last[cid] = (b.get("soulcredit"), e.get("round"))
+
+    return [Violation(
+        "soulcredit_oracle_lag", ERROR,
+        f"final character_state says {row} but the session ended on "
+        f"{final[cid].get('score')} — the oracle is behind the ledger", r, cid)
+        for cid, (row, r) in sorted(last.items())
+        if row != final[cid].get("score")]
+
+
 CHECKS: List[Callable] = [
+    inv_soulcredit_oracle_lag,
     inv_duplicate_character_state,
     inv_harm_unrecorded,
     inv_enemy_never_acted,
