@@ -140,6 +140,19 @@ class TestScoring:
         assert report["judged"] == 15
         assert report["unanswered"] == 4
 
+    def test_a_segment_scoped_answer_belongs_to_the_other_question(
+            self, pairs, prompts):
+        """Q2's ids look like `r3/seg_1`. They are not answers to Q1 and they
+        are not unmatched either — counting them so reported 467 phantom
+        failures over a census that had none."""
+        responses = self._responses(prompts, True)
+        responses.append({"item_id": "chain|r3/seg_1",
+                          "response": '{"unaccounted": true, "reason": "r"}'})
+        report = score(pairs, responses, session="chain")
+
+        assert report["unmatched"] == 0
+        assert report["judged"] == 19
+
     def test_the_agreement_universe_is_what_was_judged_not_what_exists(
             self, pairs, prompts):
         """A filter firing on a pair the judge never answered is neither right

@@ -322,6 +322,11 @@ def score(pairs: Sequence[SegmentOutcomePair], responses: Sequence[dict],
     for record in responses:
         item_id = str(record.get("item_id") or "")
         key = item_id.split("|", 1)[-1]
+        # Segment-scoped ids (`r3/seg_1`) are Q2's, not this question's. They
+        # are not unmatched — counting them so reported 467 phantom failures
+        # against a census that had none.
+        if key.count("/") == 1:
+            continue
         if key not in expected:
             unmatched += 1
             continue
@@ -388,16 +393,46 @@ def _load_pairs(roots: Iterable[str]):
     return out
 
 
-def _filters(pairs: Sequence[SegmentOutcomePair]) -> Dict[str, Set[str]]:
-    reuse = {f["segment_id"]: f for f in cross_round_reuse(pairs)}
+def _pair_filters(pairs: Sequence[SegmentOutcomePair]) -> Dict[str, Set[str]]:
+    """Filters whose unit is the citation, so they answer Q1."""
     return {
         "actor_presence": {f["key"] for f in actor_presence(pairs)},
         "target_presence": {f["key"] for f in target_presence(pairs)},
-        # A reuse finding is about a segment; every citation in it inherits it.
-        "cross_round_reuse": {p.key for p in pairs
-                              if p.segment_id in reuse
-                              and reuse[p.segment_id]["round"] == p.round},
     }
+
+
+def _segment_filters(pairs: Sequence[SegmentOutcomePair]) -> Dict[str, Set[str]]:
+    """Filters whose unit is the passage, so they answer Q2.
+
+    Pairing each filter with the question it is actually about is the whole
+    point of measuring them: `cross_round_reuse` was never a claim about
+    whether a segment renders its outcome, and scoring it against Q1 would have
+    reported it as a poor check for a job it was not doing.
+    """
+    return {
+        "cross_round_reuse": {f"r{f['round']}/{f['segment_id']}"
+                              for f in cross_round_reuse(pairs)},
+    }
+
+
+def _segment_verdicts(responses: Sequence[dict], session: str):
+    """Q2's answers, keyed by segment. Unreadable ones drop out of both sides."""
+    unaccounted, judged, unreadable = set(), set(), 0
+    for record in responses:
+        item_id = str(record.get("item_id") or "")
+        if not item_id.startswith(f"{session}|"):
+            continue
+        key = item_id.split("|", 1)[-1]
+        if key.count("/") != 1:
+            continue
+        answer = parse_unaccounted(record.get("response"))
+        if answer is None:
+            unreadable += 1
+            continue
+        judged.add(key)
+        if answer:
+            unaccounted.add(key)
+    return unaccounted, judged, unreadable
 
 
 def _seed_pairs() -> List[SegmentOutcomePair]:
@@ -434,10 +469,14 @@ def cmd_score(args) -> int:
     sessions = _load_pairs(args.paths)
 
     all_pairs: List[SegmentOutcomePair] = []
-    drift: Set[str] = set()
-    judged_universe: Set[str] = set()
-    flagged_all: Dict[str, Set[str]] = {}
+    segments = 0
+    not_rendered: Set[str] = set()
+    unaccounted: Set[str] = set()
+    pair_universe: Set[str] = set()
+    segment_universe: Set[str] = set()
+    flagged: Dict[str, Set[str]] = {}
     totals = {"judged": 0, "unanswered": 0, "unreadable": 0, "unmatched": 0}
+    q2_unreadable = 0
     by_result: Dict[str, Dict[str, int]] = {}
     reasons: Dict[str, str] = {}
 
@@ -446,8 +485,9 @@ def cmd_score(args) -> int:
                 if str(r.get("item_id", "")).startswith(f"{session}|")]
         report = score(pairs, mine, session)
         all_pairs += pairs
-        drift |= {f"{session}|{k}" for k in report["drift_keys"]}
-        judged_universe |= {f"{session}|{k}" for k in report["judged_keys"]}
+        segments += len({(p.round, p.segment_id) for p in pairs})
+        not_rendered |= {f"{session}|{k}" for k in report["drift_keys"]}
+        pair_universe |= {f"{session}|{k}" for k in report["judged_keys"]}
         reasons.update({f"{session}|{k}": v for k, v in report["reasons"].items()})
         for field in totals:
             totals[field] += report[field]
@@ -455,38 +495,63 @@ def cmd_score(args) -> int:
             target = by_result.setdefault(tier, {"judged": 0, "drift": 0})
             target["judged"] += bucket["judged"]
             target["drift"] += bucket["drift"]
-        for name, keys in _filters(pairs).items():
-            flagged_all.setdefault(name, set())
-            flagged_all[name] |= {f"{session}|{k}" for k in keys}
+
+        flagged_here, judged_here, unreadable_here = _segment_verdicts(mine, session)
+        unaccounted |= {f"{session}|{k}" for k in flagged_here}
+        segment_universe |= {f"{session}|{k}" for k in judged_here}
+        q2_unreadable += unreadable_here
+
+        for name, keys in list(_pair_filters(pairs).items()) + \
+                list(_segment_filters(pairs).items()):
+            flagged.setdefault(name, set())
+            flagged[name] |= {f"{session}|{k}" for k in keys}
 
     print(f"\nCorrespondence census — {len(sessions)} outcome-first sessions, "
-          f"{len(all_pairs)} segment-outcome pairs\n")
-    print(f"  judged      {totals['judged']}")
+          f"{len(all_pairs)} citations across {segments} segments\n")
+
+    print("  Q1  does the passage render the outcome it cites?")
+    print(f"      judged        {totals['judged']}")
     if totals["judged"]:
-        print(f"  drifted     {len(drift)}  "
-              f"({100 * len(drift) / totals['judged']:.1f}%)")
+        print(f"      NOT rendered  {len(not_rendered)}  "
+              f"({100 * len(not_rendered) / totals['judged']:.1f}%)")
     for field in ("unanswered", "unreadable", "unmatched"):
         if totals[field]:
-            print(f"  {field:<11} {totals[field]}")
+            print(f"      {field:<13} {totals[field]}")
 
-    print("\n  by recorded result")
+    print("\n      by recorded result")
     for tier in sorted(by_result):
         bucket = by_result[tier]
-        print(f"    {tier:<12} {bucket['drift']:>4} / {bucket['judged']:<4} "
+        print(f"        {tier:<12} {bucket['drift']:>4} / {bucket['judged']:<4} "
               f"({100 * bucket['drift'] / bucket['judged']:.1f}%)")
 
-    print("\n  deterministic filters, measured against the verdicts")
-    for name, flagged in sorted(flagged_all.items()):
-        agreement = filter_agreement(flagged, drift, judged_universe)
+    print("\n  Q2  does the passage narrate what this round did not?")
+    print(f"      judged        {len(segment_universe)}")
+    if segment_universe:
+        print(f"      unaccounted   {len(unaccounted)}  "
+              f"({100 * len(unaccounted) / len(segment_universe):.1f}%)")
+    if q2_unreadable:
+        print(f"      unreadable    {q2_unreadable}")
+
+    print("\n  deterministic filters, each against the question it is about")
+    segment_scoped = set(_segment_filters([]))
+    for name, keys in sorted(flagged.items()):
+        if name in segment_scoped:
+            agreement = filter_agreement(keys, unaccounted, segment_universe)
+            question = "Q2"
+        else:
+            agreement = filter_agreement(keys, not_rendered, pair_universe)
+            question = "Q1"
         precision = ("  -  " if agreement["precision"] is None
                      else f"{agreement['precision']:.2f}")
         recall = ("  -  " if agreement["recall"] is None
                   else f"{agreement['recall']:.2f}")
-        print(f"    {name:<18} fired {agreement['flagged']:>4}   "
+        print(f"    {question}  {name:<18} fired {agreement['flagged']:>4}   "
               f"precision {precision}   recall {recall}")
 
     if args.json:
-        print(json.dumps({"drift": sorted(drift), "reasons": reasons}, indent=2))
+        print(json.dumps({"not_rendered": sorted(not_rendered),
+                          "unaccounted": sorted(unaccounted),
+                          "reasons": reasons}, indent=2))
     return 0
 
 
