@@ -20,8 +20,8 @@ import pytest
 from scripts.session_invariants import load
 from scripts.synthesis_scorers import (
     OPENING_CHARS, RoundNarration, actor_presence, is_outcome_first,
-    length_growth, opening_similarity, score_session, summarise,
-    synthesis_rounds,
+    length_growth, opening_similarity, score_session, segment_outcome_pairs,
+    summarise, synthesis_rounds,
 )
 
 CHAIN = Path(__file__).parent.parent / "fixtures/sessions/synthesis_repetition_chain.jsonl"
@@ -29,6 +29,10 @@ CHAIN = Path(__file__).parent.parent / "fixtures/sessions/synthesis_repetition_c
 
 def _events():
     return load(str(CHAIN))
+
+
+def _pairs():
+    return segment_outcome_pairs(_events())
 
 
 def _rounds(*texts):
@@ -90,12 +94,17 @@ class TestLengthGrowth:
 
 
 class TestActorPresence:
-    """A filter, and the tests say so in both directions."""
+    """A filter, and the tests say so in both directions.
+
+    It reads `segment_outcome_pairs` now rather than parsing the `llm_call`
+    log. Same question, honest source: 103 of the corpus's 257 synthesis calls
+    are rejected retries, and scoring those judged prose nobody ever read.
+    """
 
     def test_it_catches_a_segment_that_never_names_its_actor(self):
         """Round 3's `seg_1` cites Sela's extraction plan and is pure
         scene-setting — it does not mention her at all."""
-        found = actor_presence(_events())
+        found = actor_presence(_pairs())
 
         seg1 = [f for f in found if f["round"] == 3 and f["segment_id"] == "seg_1"]
         assert seg1 and seg1[0]["unnamed_actors"] == ["Oathkeeper Sela"]
@@ -106,7 +115,7 @@ class TestActorPresence:
         call and narrates him holstering his weapon — an action from round 2.
         It names him, so this scorer stays silent. Only a judge catches that.
         """
-        found = {(f["round"], f["segment_id"]) for f in actor_presence(_events())}
+        found = {(f["round"], f["segment_id"]) for f in actor_presence(_pairs())}
 
         assert (3, "seg_3") not in found
         assert (3, "seg_4") not in found
@@ -115,21 +124,25 @@ class TestActorPresence:
         """The other direction: prose that says "the subdued operatives" rather
         than naming all three is good writing and scores as unnamed. False
         positives are why this selects cases instead of scoring them."""
-        found = actor_presence(_events())
+        found = actor_presence(_pairs())
 
         collective = [f for f in found
                       if all("Subdued Operative" in a for a in f["unnamed_actors"])]
         assert len(collective) >= 2
 
-    def test_a_session_with_no_synthesis_calls_yields_nothing(self):
-        assert actor_presence([{"event_type": "round_start", "round": 1}]) == []
+    def test_a_session_with_no_synthesis_yields_nothing(self):
+        assert actor_presence(segment_outcome_pairs(
+            [{"event_type": "round_start", "round": 1}])) == []
 
-    def test_an_unparseable_response_is_skipped_not_fatal(self):
-        events = [{"event_type": "llm_call", "round": 1,
-                   "call_type": "structured:OutcomeRoundSynthesis",
-                   "response": "not json"}]
+    def test_a_synthesis_whose_outcomes_are_absent_is_skipped_not_fatal(self):
+        """An unresolvable citation has no actor to look for. It is still
+        carried as a pair so a census counts it; it just cannot be filtered."""
+        events = [{"event_type": "round_synthesis", "round": 1, "segments": [
+            {"segment_id": "seg_1", "text": "x", "source_outcome_ids": ["out_000001"]}]}]
+        pairs = segment_outcome_pairs(events)
 
-        assert actor_presence(events) == []
+        assert [p.resolved for p in pairs] == [False]
+        assert actor_presence(pairs) == []
 
 
 class TestPipelineSplit:
