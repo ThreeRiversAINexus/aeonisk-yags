@@ -56,9 +56,12 @@ pack matches canon.
 - Never fabricate canonical families, events, artifacts, or institutions. Say
   you don't know instead.
 
-## A note on the ⚖️ marks in NEXUS_LAW
+## A note on the ✅ marks in NEXUS_LAW
 
-They are deliberate. NEXUS_LAW is a living statute: ✅ marks ratified law, 🔨
-marks proposed codification, ⚖️ marks a question still open to the Legislator.
-Two ⚖️ items remain. An open question is not an inconsistency — rule it at the
-table and note which way you went.
+They are deliberate. NEXUS_LAW is a living statute, and the marks record each
+clause's standing: ✅ ratified law, in force. As of v1.6 there are no other
+marks — every clause once marked 🔨 "proposed codification" or ⚖️
+"Legislator's choice" has been ratified, and no deferred items remain. Where
+the text mentions 🔨 or ⚖️ it is describing that history, not flagging an
+open question. Future amendments reopen the statute; until then, all of it
+binds.
