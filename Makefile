@@ -109,7 +109,7 @@ ai-pack-check:
 packets:
 	@python3 scripts/build_packets.py
 
-# Same, plus typeset PDFs inside the human packet. Needs pandoc and xelatex.
+# Same, plus the typeset humans/ PDFs. Needs pandoc and xelatex.
 packets-pdf:
 	@python3 scripts/build_packets.py --pdf
 
@@ -233,7 +233,7 @@ help:
 	@echo ""
 	@echo "Distribution Packets:"
 	@echo "  packets            - Build both itch.io zips into '$(RELEASES_DIR)/'"
-	@echo "  packets-pdf        - Same, plus PDFs (needs pandoc + xelatex)"
+	@echo "  packets-pdf        - Same, plus humans/ PDFs (needs pandoc + xelatex)"
 	@echo "  packets-check      - Verify the built zips still match canon"
 	@echo "  ai-pack            - Rebuild ai_pack/ from content/"
 	@echo "  ai-pack-check      - Verify ai_pack/ matches content/"

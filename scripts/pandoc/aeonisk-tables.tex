@@ -1,0 +1,23 @@
+% Table typesetting for Aeonisk reference documents.
+%
+% Canon has rows up to 331 characters. Pandoc gives every column a width
+% proportional to its source width, so at portrait width the narrow columns
+% wrap every entry ("Wraithroot Vineblade" over two lines) and headers break
+% mid-word. These settings buy the width back.
+\usepackage{etoolbox}
+\usepackage{array}
+
+% Smaller type inside tables only; body prose keeps its size.
+\AtBeginEnvironment{longtable}{\footnotesize}
+\AtBeginEnvironment{tabular}{\footnotesize}
+
+% Tighter gutters leave more room for text.
+\setlength{\tabcolsep}{4pt}
+
+% Breathing room between rows so wrapped cells stay distinguishable.
+\renewcommand{\arraystretch}{1.25}
+
+% Ragged-right in wrapping cells: justified narrow columns are what produces
+% the stretched-out word spacing that reads as "squished".
+\let\oldraggedright\raggedright
+\renewcommand{\raggedright}{\oldraggedright\hspace{0pt}}

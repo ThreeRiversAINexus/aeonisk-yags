@@ -32,10 +32,11 @@ marked with the itch control they belong to.
 
 | File | Label on the page |
 |---|---|
-| `aeonisk-1.4.0-ai-pack.zip` | **AI Pack — start here** (flat folder: upload to a chat, paste the prompt, play) |
-| `aeonisk-1.4.0-packet.zip` | **Full Play Packet** (organized for reading; includes the AI prompt) |
+| `aeonisk-1.4.0-packet.zip` | **Aeonisk v1.4.0 — complete** (start here: `ai/` to upload, `humans/` to read, system prompt at the root) |
+| `aeonisk-1.4.0-ai-pack.zip` | **AI Pack only** (the same books as one flat folder, if that is all you want) |
 
-Mark both as free downloads under the pay-what-you-want price.
+Mark both as free downloads under the pay-what-you-want price. The first is the
+one to feature; the second exists for people who only want the upload folder.
 
 ---
 
@@ -72,9 +73,12 @@ game.
 
 **This is the intended way to play, not a novelty mode.**
 
-1. Download the **AI Pack**.
-2. Upload the documents to a chat with any capable model.
-3. Paste the included system prompt.
+1. Download the packet and open the **`ai/`** folder — every rulebook as plain
+   markdown, deliberately flat.
+2. Upload or paste those files into any modern AI chat: Claude, ChatGPT,
+   Gemini, whatever you already use.
+3. Add **`AEONISK_SYSTEM_PROMPT.md`** from the root of the packet — as your
+   first message, or in a system-prompt / custom-instructions box.
 4. It offers you a menu. Pick *"Quickstart — I don't know anything about
    Aeonisk. Let's play."*
 
@@ -190,6 +194,11 @@ of free will.
   defense tokens, and positioning.
 - **A blank character sheet**, and **the DM system prompt** that runs the
   whole thing.
+
+Everything ships twice over: **`ai/`** holds every book as flat markdown for
+uploading or pasting, and **`humans/`** holds the same books typeset as PDFs —
+start here, core, reference — for reading and printing. Nothing is missing from
+either side.
 
 ---
 
