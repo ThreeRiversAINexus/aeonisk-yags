@@ -10,6 +10,10 @@ PODMANFILE := Podmanfile
 # Directories
 CONTENT_DIR := content
 RELEASES_DIR := releases
+PACKAGING_DIR := packaging
+
+# Distribution version. Matches the v1.4.0 suffix on the canon documents.
+RELEASE_VERSION := 1.4.0
 
 YAGS_CONVERT_SCRIPT := scripts/convert_yagsbook.sh
 CONVERTED_YAGS_BASE_DIR := converted_yagsbook
@@ -39,6 +43,7 @@ YAGS_EPUB_TARGETS := $(patsubst %.md,%.epub,$(YAGS_MD_TARGETS))
 # --- Targets ---
 
 .PHONY: all build_podman_image convert_markdown convert_yags clean clean_backups help
+.PHONY: packets packets-pdf packets-check ai-pack ai-pack-check
 .PHONY: test test-unit test-integration test-cov test-fast test-schemas test-mechanics
 .PHONY: lint format format-check install-test-deps clean-test
 
@@ -85,6 +90,32 @@ clean_backups:
 	@echo "Cleaning up backup files..."
 	@./scripts/cleanup_backups.sh
 	@echo "Backup cleanup complete."
+
+# =============================================================================
+# Distribution Packets
+# =============================================================================
+
+# Rebuild ai_pack/ from canon in content/. The pack is a build artifact; every
+# file in it is a verbatim copy, so edit the source and regenerate.
+ai-pack:
+	@python3 scripts/build_ai_pack.py
+
+ai-pack-check:
+	@python3 scripts/build_ai_pack.py --check
+
+# Build both itch.io downloads into $(RELEASES_DIR)/:
+#   aeonisk-$(RELEASE_VERSION)-packet.zip    foldered, for a person to read
+#   aeonisk-$(RELEASE_VERSION)-ai-pack.zip   flat, to upload to a chat DM
+packets:
+	@python3 scripts/build_packets.py
+
+# Same, plus the typeset humans/ PDFs. Needs pandoc and xelatex.
+packets-pdf:
+	@python3 scripts/build_packets.py --pdf
+
+# Verify the shipped zips still match canon. Non-zero if stale.
+packets-check:
+	@python3 scripts/build_packets.py --check
 
 # =============================================================================
 # Testing Targets
@@ -199,6 +230,13 @@ help:
 	@echo "  build_podman_image - Build the Podman image '$(PODMAN_IMAGE_NAME)'"
 	@echo "  convert_markdown   - Convert Markdown files from '$(CONTENT_DIR)/' to PDF/EPUB"
 	@echo "  convert_yags       - Convert specified .yags files to Markdown/EPUB"
+	@echo ""
+	@echo "Distribution Packets:"
+	@echo "  packets            - Build both itch.io zips into '$(RELEASES_DIR)/'"
+	@echo "  packets-pdf        - Same, plus humans/ PDFs (needs pandoc + xelatex)"
+	@echo "  packets-check      - Verify the built zips still match canon"
+	@echo "  ai-pack            - Rebuild ai_pack/ from content/"
+	@echo "  ai-pack-check      - Verify ai_pack/ matches content/"
 	@echo ""
 	@echo "Testing:"
 	@echo "  test               - Run all tests"
